@@ -23,7 +23,7 @@ export default function DashboardLayout({
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Link href="/" className="font-bold text-lg">
-               iNteract
+               iNteract AOE
             </Link>
           </div>
         </SidebarHeader>

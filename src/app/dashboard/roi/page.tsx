@@ -7,22 +7,38 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DollarSign, Percent, TrendingUp, Zap, Ratio } from 'lucide-react';
-import SalesPerformanceChart from '@/components/dashboard/sales-performance-chart';
-import { salesData, roiMetrics } from '@/lib/data';
-import { Progress } from '@/components/ui/progress';
+import { QrCode, User, Clock, TrendingUp } from 'lucide-react';
+import ScanFrequencyChart from '@/components/dashboard/scan-frequency-chart';
+import TopProductsTable from '@/components/dashboard/top-products-table';
+import { dashboardMetrics } from '@/lib/data';
 
 export default function RoiPage() {
+  const metrics = dashboardMetrics.getMetrics(null); // Using all stores data for this page
+
+  const engagementData = {
+    totalScans: metrics.stats.totalScans,
+    uniqueScans: metrics.stats.uniqueScans,
+    engagementDuration: metrics.stats.engagementDuration,
+    scanRate: metrics.stats.scanRate,
+  };
+
+  const scanFrequencyData = [
+    { name: 'Jan', scans: 240 },
+    { name: 'Feb', scans: 139 },
+    { name: 'Mar', scans: 980 },
+    { name: 'Apr', scans: 390 },
+    { name: 'May', scans: 480 },
+    { name: 'Jun', scans: 380 },
+  ];
+
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Retailer ROI Dashboard
+          Core Engagement Metrics
         </h2>
         <p className="text-muted-foreground max-w-3xl">
-          Monitor the financial impact and return on investment of the iNteract-AOE
-          platform. These metrics illustrate the value generated from in-store
-          customer engagement.
+          These features track customer interaction with the platform and validate the adoption of the QR code system.
         </p>
       </div>
 
@@ -30,66 +46,69 @@ export default function RoiPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Basket Uplift
+              Total Scans
+            </CardTitle>
+            <QrCode className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{engagementData.totalScans.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              All QR code scans across all stores.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Unique Scans
+            </CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {engagementData.uniqueScans.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Individual customers who have scanned.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Engagement Rate
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{roiMetrics.basketUplift}%</div>
-            <p className="text-xs text-muted-foreground">
-              Increase in average transaction value.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Offer Redemption Rate
-            </CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
             <div className="text-2xl font-bold">
-              {roiMetrics.offerRedemptionRate}%
+              {engagementData.scanRate}%
             </div>
             <p className="text-xs text-muted-foreground">
-              Personalized offers redeemed at checkout.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Engagement-to-Conversion
-            </CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {roiMetrics.engagementToConversion}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              From initial scan to final purchase.
+              Based on total scans vs. unique visitors.
             </p>
           </CardContent>
         </Card>
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Gross Merchandise ROI (GMROI)
+             Engagement Duration
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{roiMetrics.gmroi}%</div>
+            <div className="text-2xl font-bold">{engagementData.engagementDuration}s</div>
             <p className="text-xs text-muted-foreground">
-              Measures profit return on inventory investment.
+              Average time spent on product page.
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <SalesPerformanceChart data={salesData} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <ScanFrequencyChart data={scanFrequencyData} />
+        <TopProductsTable data={metrics.topProducts} />
+      </div>
     </div>
   );
 }

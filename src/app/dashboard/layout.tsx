@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Home, TrendingUp, Cog, Server, BarChart, Blocks } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -22,7 +23,9 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Link href="/" className="font-bold text-lg">iNteract- AOE</Link>
+            <Link href="/">
+              <Image src="/logo.png" alt="iNteract- AOE Logo" width={150} height={35} />
+            </Link>
           </div>
         </SidebarHeader>
         <SidebarContent>

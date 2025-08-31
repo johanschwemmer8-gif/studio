@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { retailPortfolio as initialRetailPortfolio } from '@/lib/data';
-import { Save, Upload } from 'lucide-react';
+import { Download, Save, Upload } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import QrCodeGenerator from '@/components/dashboard/qr-code-generator';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 // Helper to convert hex to HSL string
 const hexToHsl = (hex: string): string => {
@@ -66,6 +67,12 @@ const hexToHsl = (hex: string): string => {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
+type GeneratedQrCode = {
+  url: string;
+  qrCodeUrl: string;
+  timestamp: Date;
+};
+
 export default function AdminPage() {
   const [retailPortfolio, setRetailPortfolio] = useState(initialRetailPortfolio);
   const [newBrand, setNewBrand] = useState('');
@@ -75,6 +82,7 @@ export default function AdminPage() {
   const [primaryColor, setPrimaryColor] = useState('#1E90FF');
   const [backgroundColor, setBackgroundColor] = useState('#F8F8F8');
   const [accentColor, setAccentColor] = useState('#FFD700');
+  const [generatedCodes, setGeneratedCodes] = useState<GeneratedQrCode[]>([]);
 
   const allStores = retailPortfolio.flatMap(brand =>
     brand.regions.flatMap(region =>
@@ -118,8 +126,6 @@ export default function AdminPage() {
       document.documentElement.style.setProperty('--background', hexToHsl(backgroundColor));
       document.documentElement.style.setProperty('--accent', hexToHsl(accentColor));
       
-      // The logic to change the brand name itself is missing from the UI.
-      // Assuming for now saving just applies themes. Re-rendering is automatic.
       setRetailPortfolio([...retailPortfolio]);
 
       toast({
@@ -133,6 +139,10 @@ export default function AdminPage() {
         description: 'There was a problem applying your color settings.',
       });
     }
+  };
+
+  const handleQrGenerated = (url: string, qrCodeUrl: string) => {
+    setGeneratedCodes(prev => [{ url, qrCodeUrl, timestamp: new Date() }, ...prev]);
   };
 
   return (
@@ -228,14 +238,63 @@ export default function AdminPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>QR Code Generator</CardTitle>
+          <CardTitle>QR Code Management</CardTitle>
           <CardDescription>
-            Create QR codes for your products. Customers can scan these in-store to
-            view product information on your website. Just paste the product URL below.
+            Create and manage QR codes for your products. Customers can scan these in-store to
+            view product information on your website.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <QrCodeGenerator />
+        <CardContent className="space-y-6">
+          <QrCodeGenerator onQrGenerated={handleQrGenerated} />
+          <Separator />
+          <h3 className="text-lg font-medium pt-4">Generated QR Codes</h3>
+          <div className="border rounded-md">
+            {generatedCodes.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>QR Code</TableHead>
+                    <TableHead>URL</TableHead>
+                    <TableHead>Generated On</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {generatedCodes.map((code, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Image
+                          src={code.qrCodeUrl}
+                          alt={`QR Code for ${code.url}`}
+                          width={40}
+                          height={40}
+                          className="rounded-sm"
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium truncate max-w-xs">
+                        <a href={code.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                          {code.url}
+                        </a>
+                      </TableCell>
+                      <TableCell>{code.timestamp.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild variant="outline" size="sm">
+                          <a href={code.qrCodeUrl} download={`qr-code-${index}.png`}>
+                            <Download className="mr-2 h-3 w-3" />
+                            Download
+                          </a>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center p-8 text-muted-foreground">
+                No QR codes have been generated yet.
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
       
@@ -302,3 +361,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

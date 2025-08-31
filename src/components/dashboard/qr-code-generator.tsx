@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -20,9 +21,12 @@ const formSchema = z.object({
   url: z.string().url({ message: 'Please enter a valid URL.' }),
 });
 
-export default function QrCodeGenerator() {
+type QrCodeGeneratorProps = {
+  onQrGenerated: (url: string, qrCodeUrl: string) => void;
+};
+
+export default function QrCodeGenerator({ onQrGenerated }: QrCodeGeneratorProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -35,11 +39,12 @@ export default function QrCodeGenerator() {
     const encodedUrl = encodeURIComponent(values.url);
     const fullQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodedUrl}`;
     setQrCodeUrl(fullQrUrl);
-    setSourceUrl(values.url);
+    onQrGenerated(values.url, fullQrUrl);
+    form.reset();
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-8">
+    <div className="grid md:grid-cols-2 gap-8 items-start">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -60,7 +65,7 @@ export default function QrCodeGenerator() {
           />
           <Button type="submit">
             <QrCode className="mr-2 h-4 w-4" />
-            Generate
+            Generate QR Code
           </Button>
         </form>
       </Form>
@@ -74,12 +79,9 @@ export default function QrCodeGenerator() {
               height={256}
               className="rounded-md border bg-white"
             />
-            <Button asChild variant="outline" className="mt-4">
-              <a href={qrCodeUrl} download={`qr-code.png`}>
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </a>
-            </Button>
+            <p className="text-sm mt-2 text-muted-foreground">
+              QR Code generated successfully.
+            </p>
           </div>
         ) : (
           <div className="text-center text-muted-foreground">
@@ -91,3 +93,5 @@ export default function QrCodeGenerator() {
     </div>
   );
 }
+
+    

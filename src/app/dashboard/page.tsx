@@ -1,7 +1,6 @@
 
 'use client';
 import { useState } from 'react';
-import StoresByRegion from '@/components/dashboard/stores-by-region';
 import { Separator } from '@/components/ui/separator';
 import { storesByRegion, roiMetrics } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
@@ -112,8 +111,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
       
-      <Separator />
-      <StoresByRegion />
     </div>
   );
 }

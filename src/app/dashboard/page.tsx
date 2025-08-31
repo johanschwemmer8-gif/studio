@@ -3,6 +3,7 @@ import StatsCards from '@/components/dashboard/stats-cards';
 import SalesPerformanceChart from '@/components/dashboard/sales-performance-chart';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import ScanFrequencyChart from '@/components/dashboard/scan-frequency-chart';
+import StoresByRegion from '@/components/dashboard/stores-by-region';
 
 export default function DashboardPage() {
   return (
@@ -19,6 +20,7 @@ export default function DashboardPage() {
           <TopProductsTable data={dashboardMetrics.topProducts} />
         </div>
       </div>
+      <StoresByRegion />
     </div>
   );
 }

@@ -64,3 +64,27 @@ export const dashboardMetrics = {
     recommendationCTR: 18.2,
   },
 };
+
+export const storesByRegion = [
+  {
+    province: 'Gauteng',
+    stores: ['Sandton City', 'Menlyn Park', 'Mall of Africa'],
+  },
+  {
+    province: 'Western Cape',
+    stores: ['V&A Waterfront', 'Canal Walk', 'Tyger Valley'],
+  },
+  {
+    province: 'KwaZulu-Natal',
+    stores: ['Gateway Theatre of Shopping', 'The Pavilion', 'Midlands Mall'],
+  },
+  {
+    province: 'Eastern Cape',
+    stores: ['Baywest Mall', 'Greenacres Shopping Centre'],
+  },
+  { province: 'Free State', stores: ['Loch Logan Waterfront'] },
+  { province: 'Limpopo', stores: ['Mall of the North'] },
+  { province: 'Mpumalanga', stores: ['I\'langa Mall'] },
+  { province: 'North West', stores: ['Waterfall Mall'] },
+  { province: 'Northern Cape', stores: ['Diamond Pavilion Mall'] },
+];

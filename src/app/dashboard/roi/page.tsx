@@ -7,10 +7,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { QrCode, User, Clock, TrendingUp } from 'lucide-react';
+import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag } from 'lucide-react';
 import ScanFrequencyChart from '@/components/dashboard/scan-frequency-chart';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { dashboardMetrics } from '@/lib/data';
+import { Separator } from '@/components/ui/separator';
 
 export default function RoiPage() {
   const metrics = dashboardMetrics.getMetrics(null); // Using all stores data for this page
@@ -21,6 +22,8 @@ export default function RoiPage() {
     engagementDuration: metrics.stats.engagementDuration,
     scanRate: metrics.stats.scanRate,
   };
+  
+  const conversionData = metrics.stats;
 
   const scanFrequencyData = [
     { name: 'Mar', scans: 980 },
@@ -115,6 +118,69 @@ export default function RoiPage() {
         <ScanFrequencyChart data={scanFrequencyData} />
         <TopProductsTable data={metrics.topProducts} />
       </div>
+
+      <Separator />
+
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight mb-2">
+          Performance & Conversion Metrics
+        </h2>
+        <p className="text-muted-foreground max-w-3xl">
+         These elements connect engagement directly to business outcomes, demonstrating the platform's ability to influence sales.
+        </p>
+      </div>
+
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="lg:col-span-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Basket Uplift Analysis</CardTitle>
+                <Percent className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex justify-between items-baseline">
+                    <span className="text-muted-foreground text-sm">AOE Users</span>
+                    <span className="text-lg font-bold">R{conversionData.avgBasketSizeAoe.toFixed(2)}</span>
+                </div>
+                 <div className="flex justify-between items-baseline">
+                    <span className="text-muted-foreground text-sm">Non-Users</span>
+                    <span className="text-lg font-bold">R{conversionData.avgBasketSizeNonAoe.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-baseline pt-2 border-t">
+                    <span className="text-primary font-semibold text-sm">Uplift</span>
+                    <span className="text-lg font-bold text-primary">{conversionData.basketUpliftPercentage}%</span>
+                </div>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
+                <Tag className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="text-3xl font-bold">{conversionData.offerRedemptionRate}%</div >
+                <p className="text-xs text-muted-foreground">
+                    Percentage of personalized offers redeemed.
+                </p>
+                <div className="pt-4">
+                    <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
+                     <p className="text-2xl font-bold">R{conversionData.totalRedeemedValue.toLocaleString()}</p>
+                </div>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Transactions Influenced by AOE</CardTitle>
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-4xl font-bold">{conversionData.aoeTransactions}</div>
+                <p className="text-xs text-muted-foreground">
+                    Total transactions where a customer engaged with the platform before purchase.
+                </p>
+            </CardContent>
+        </Card>
+      </div>
+
     </div>
   );
 }

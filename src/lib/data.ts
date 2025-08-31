@@ -43,6 +43,12 @@ const allStoresMetrics = {
     engagementDuration: 45,
     offerRedemptionRate: 22.4,
     basketUplift: 15.8,
+    // Performance & Conversion Metrics
+    avgBasketSizeAoe: 550,
+    avgBasketSizeNonAoe: 450,
+    basketUpliftPercentage: 22.2,
+    totalRedeemedValue: 12345,
+    aoeTransactions: 842,
   },
   topProducts: [
     { id: '1', name: 'Eco-Friendly Water Bottle', scans: 120, category: 'Lifestyle' },
@@ -67,6 +73,12 @@ const generateRandomMetrics = () => ({
     engagementDuration: Math.floor(Math.random() * 30) + 20,
     offerRedemptionRate: parseFloat((Math.random() * 15 + 10).toFixed(1)),
     basketUplift: parseFloat((Math.random() * 10 + 5).toFixed(1)),
+    // Performance & Conversion Metrics
+    avgBasketSizeAoe: Math.floor(Math.random() * 100) + 500,
+    avgBasketSizeNonAoe: Math.floor(Math.random() * 80) + 400,
+    basketUpliftPercentage: parseFloat((Math.random() * 10 + 15).toFixed(1)),
+    totalRedeemedValue: Math.floor(Math.random() * 5000) + 10000,
+    aoeTransactions: Math.floor(Math.random() * 200) + 500,
   },
   topProducts: products
     .map(p => ({ ...p, scans: Math.floor(Math.random() * 50) + 10 }))

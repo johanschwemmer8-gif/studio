@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { retailPortfolio as initialRetailPortfolio } from '@/lib/data';
-import { Upload } from 'lucide-react';
+import { Save, Upload } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -31,10 +31,49 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import QrCodeGenerator from '@/components/dashboard/qr-code-generator';
+import { useToast } from '@/hooks/use-toast';
+
+// Helper to convert hex to HSL string
+const hexToHsl = (hex: string): string => {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex[1] + hex[2], 16);
+    g = parseInt(hex[3] + hex[4], 16);
+    b = parseInt(hex[5] + hex[6], 16);
+  }
+
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+};
 
 export default function AdminPage() {
   const [retailPortfolio, setRetailPortfolio] = useState(initialRetailPortfolio);
   const [newBrand, setNewBrand] = useState('');
+  const { toast } = useToast();
+
+  const [primaryColor, setPrimaryColor] = useState('#1E90FF');
+  const [backgroundColor, setBackgroundColor] = useState('#F8F8F8');
+  const [accentColor, setAccentColor] = useState('#FFD700');
 
   const allStores = retailPortfolio.flatMap(brand =>
     brand.regions.flatMap(region =>
@@ -62,6 +101,25 @@ export default function AdminPage() {
         },
       ]);
       setNewBrand('');
+    }
+  };
+  
+  const handleSaveChanges = () => {
+    try {
+      document.documentElement.style.setProperty('--primary', hexToHsl(primaryColor));
+      document.documentElement.style.setProperty('--background', hexToHsl(backgroundColor));
+      document.documentElement.style.setProperty('--accent', hexToHsl(accentColor));
+      
+      toast({
+        title: 'Theme Saved!',
+        description: 'Your brand customizations have been applied.',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Saving Theme',
+        description: 'There was a problem applying your color settings.',
+      });
     }
   };
 
@@ -114,38 +172,44 @@ export default function AdminPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="primary-color">Primary Color</Label>
-              <Input id="primary-color" type="color" defaultValue="#1E90FF" className="w-full p-1"/>
+              <Input id="primary-color" type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-full p-1"/>
               <p className="text-xs text-muted-foreground">
                 Main brand color for buttons and highlights.
               </p>
             </div>
              <div className="space-y-2">
               <Label htmlFor="background-color">Background Color</Label>
-              <Input id="background-color" type="color" defaultValue="#F8F8F8" className="w-full p-1"/>
+              <Input id="background-color" type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-full p-1"/>
               <p className="text-xs text-muted-foreground">
                 The main background color for the app.
               </p>
             </div>
              <div className="space-y-2">
               <Label htmlFor="accent-color">Accent Color</Label>
-              <Input id="accent-color" type="color" defaultValue="#FFD700" className="w-full p-1"/>
+              <Input id="accent-color" type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="w-full p-1"/>
               <p className="text-xs text-muted-foreground">
                 Color for accents, special offers, and AI features.
               </p>
             </div>
           </div>
           <Separator />
-          <div className="space-y-2">
-            <Label>Brand Logo</Label>
-            <div className="flex items-center gap-4">
-               <Button variant="outline">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Logo
-              </Button>
-               <p className="text-sm text-muted-foreground">
-                Upload a logo to be displayed on the platform. (PNG, JPG, SVG)
-              </p>
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <Label>Brand Logo</Label>
+              <div className="flex items-center gap-4">
+                 <Button variant="outline">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Logo
+                </Button>
+                 <p className="text-sm text-muted-foreground">
+                  Upload a logo to be displayed on the platform. (PNG, JPG, SVG)
+                </p>
+              </div>
             </div>
+            <Button onClick={handleSaveChanges}>
+              <Save className="mr-2 h-4 w-4" />
+              Save Changes
+            </Button>
           </div>
         </CardContent>
       </Card>

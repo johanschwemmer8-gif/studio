@@ -4,7 +4,6 @@ import { useState } from 'react';
 import StoresByRegion from '@/components/dashboard/stores-by-region';
 import { Separator } from '@/components/ui/separator';
 import { dashboardMetrics, storesByRegion, roiMetrics } from '@/lib/data';
-import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 import StoreSelector from '@/components/dashboard/store-selector';
 import {
   Card,
@@ -97,7 +96,7 @@ export default function DashboardPage() {
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle className="text-sm font-medium">Progress to Break-Even</CardTitle>
-                </CardHeader>
+                </Header>
                 <CardContent>
                     <div className="flex items-center gap-4">
                         <Progress value={roiMetrics.progressToBreakEven} className="h-3" />
@@ -113,9 +112,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
       
-      <div className="grid lg:grid-cols-2 gap-8">
-        <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
-      </div>
       <Separator />
       <StoresByRegion />
     </div>

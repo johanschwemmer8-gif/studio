@@ -64,6 +64,8 @@ export const dashboardMetrics = {
     recommendationCTR: 18.2,
     customerConversionRate: 12.5,
     qrCodeScanRate: 75.3,
+    averageTransactionValue: 120.5,
+    gmroi: 3.5,
   },
 };
 

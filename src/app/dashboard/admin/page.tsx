@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { retailPortfolio as initialRetailPortfolio, type RetailPortfolio, type Store } from '@/lib/data';
-import { Download, Save, Upload, Trash2 } from 'lucide-react';
+import { Download, Save, Upload, Trash2, QrCode, PlusCircle, Pencil } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -30,9 +30,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import QrCodeGenerator from '@/components/dashboard/qr-code-generator';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { Textarea } from '@/components/ui/textarea';
 
 // Helper to convert hex to HSL string
 const hexToHsl = (hex: string): string => {
@@ -68,8 +68,12 @@ const hexToHsl = (hex: string): string => {
 };
 
 type GeneratedQrCode = {
+  id: string;
   url: string;
   qrCodeUrl: string;
+  sku: string;
+  storeId: string;
+  location: string;
   timestamp: Date;
 };
 
@@ -228,8 +232,34 @@ export default function AdminPage() {
     }
   };
 
-  const handleQrGenerated = (url: string, qrCodeUrl: string) => {
-    setGeneratedCodes(prev => [{ url, qrCodeUrl, timestamp: new Date() }, ...prev]);
+  const handleGenerateCodes = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const count = parseInt(formData.get('count') as string, 10) || 1;
+    const sku = formData.get('sku') as string;
+    const storeId = formData.get('storeId') as string;
+    const location = formData.get('location') as string;
+
+    const newCodes: GeneratedQrCode[] = Array.from({ length: count }, (_, i) => {
+        const uniqueId = `prod-${sku}-${Date.now() + i}`;
+        const url = `https://your-store.com/product/${uniqueId}`;
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(url)}`;
+        return {
+            id: uniqueId,
+            url,
+            qrCodeUrl,
+            sku: sku,
+            storeId: storeId,
+            location: `${location} #${i + 1}`,
+            timestamp: new Date(),
+        };
+    });
+
+    setGeneratedCodes(prev => [...newCodes, ...prev]);
+    toast({
+      title: `${count} QR Code(s) Generated!`,
+      description: 'They have been added to the directory below.',
+    });
   };
 
   const handleNewStoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -329,7 +359,7 @@ export default function AdminPage() {
           </fieldset>
         </CardContent>
       </Card>
-
+      
       <Card>
         <CardHeader>
           <CardTitle>Store Management</CardTitle>
@@ -411,66 +441,190 @@ export default function AdminPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
-          <CardTitle>QR Code Management</CardTitle>
+          <CardTitle>QR Code & Content Management</CardTitle>
           <CardDescription>
-            Create and manage QR codes for your products. Customers can scan these in-store to
-            view product information on your website.
+            This is the central hub for creating and managing the personalized content that customers see.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <QrCodeGenerator onQrGenerated={handleQrGenerated} />
-          <Separator />
-          <h3 className="text-lg font-medium pt-4">Generated QR Codes</h3>
-          <div className="border rounded-md">
-            {generatedCodes.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>QR Code</TableHead>
-                    <TableHead>URL</TableHead>
-                    <TableHead>Generated On</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {generatedCodes.map((code, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Image
-                          src={code.qrCodeUrl}
-                          alt={`QR Code for ${code.url}`}
-                          width={40}
-                          height={40}
-                          className="rounded-sm"
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium truncate max-w-xs">
-                        <a href={code.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                          {code.url}
-                        </a>
-                      </TableCell>
-                      <TableCell>{code.timestamp.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="outline" size="sm">
-                          <a href={code.qrCodeUrl} download={`qr-code-${index}.png`}>
-                            <Download className="mr-2 h-3 w-3" />
-                            Download
-                          </a>
+        <CardContent className="space-y-8">
+            <div>
+                <h3 className="text-lg font-medium border-b pb-2 mb-4">Bulk QR Code Generation</h3>
+                <form className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end" onSubmit={handleGenerateCodes}>
+                    <div className="space-y-2">
+                        <Label htmlFor="count">Number of Codes</Label>
+                        <Input id="count" name="count" type="number" placeholder="e.g., 50" defaultValue="1" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="sku">Product SKU</Label>
+                        <Input id="sku" name="sku" placeholder="e.g., 501-ABC" required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="storeId">Store ID</Label>
+                        <Input id="storeId" name="storeId" placeholder="e.g., 1001" required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="location">Physical Location</Label>
+                        <Input id="location" name="location" placeholder="Aisle 3 - Shoe Display" required />
+                    </div>
+                    <Button type="submit" className="lg:col-span-4">
+                        <QrCode className="mr-2 h-4 w-4" />
+                        Generate Codes
+                    </Button>
+                </form>
+            </div>
+            <Separator />
+            <div>
+                <h3 className="text-lg font-medium border-b pb-2 mb-4">QR Code Directory</h3>
+                <div className="border rounded-md max-h-96 overflow-y-auto">
+                    {generatedCodes.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>QR</TableHead>
+                            <TableHead>SKU</TableHead>
+                            <TableHead>Store ID</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {generatedCodes.map((code, index) => (
+                            <TableRow key={index}>
+                            <TableCell>
+                                <Image src={code.qrCodeUrl} alt={`QR Code for ${code.sku}`} width={28} height={28} className="rounded-sm" />
+                            </TableCell>
+                            <TableCell className="font-medium">{code.sku}</TableCell>
+                            <TableCell>{code.storeId}</TableCell>
+                            <TableCell>{code.location}</TableCell>
+                            <TableCell className="text-right space-x-2">
+                                <Button asChild variant="outline" size="icon" className="h-8 w-8">
+                                  <a href={code.qrCodeUrl} download={`qr-code-${code.sku}-${index}.png`}>
+                                    <Download className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                                 <Button variant="outline" size="icon" className="h-8 w-8">
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                    ) : (
+                    <div className="text-center p-8 text-muted-foreground">
+                        No QR codes have been generated yet.
+                    </div>
+                    )}
+                </div>
+            </div>
+            <Separator />
+            <div className="grid lg:grid-cols-2 gap-8">
+                <div>
+                    <h3 className="text-lg font-medium border-b pb-2 mb-4">Landing Page Customization</h3>
+                     <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Template</Label>
+                             <Select defaultValue="single-product">
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select a template" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="single-product">Single Product Page</SelectItem>
+                                    <SelectItem value="promo-offer">Promotional Offer Page</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="productName">Product Name</Label>
+                            <Input id="productName" placeholder="e.g., Eco-Friendly Water Bottle" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="productDescription">Product Description</Label>
+                            <Textarea id="productDescription" placeholder="A brief description of the product." />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="productImage">Product Images</Label>
+                            <Button variant="outline" className="w-full">
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload Images
+                            </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="pricing">Pricing</Label>
+                                <Input id="pricing" type="number" placeholder="25.00" />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="promoPricing">Promotional Price</Label>
+                                <Input id="promoPricing" type="number" placeholder="19.99" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ctaButton">CTA Button</Label>
+                             <Select defaultValue="add-to-cart">
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select a CTA" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="add-to-cart">Add to Cart</SelectItem>
+                                    <SelectItem value="add-to-wishlist">Add to Wishlist</SelectItem>
+                                    <SelectItem value="get-offer">Get Offer</SelectItem>
+                                    <SelectItem value="chat-assistant">Chat with an Assistant</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <Button className="w-full">
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Content
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center p-8 text-muted-foreground">
-                No QR codes have been generated yet.
-              </div>
-            )}
-          </div>
+                    </div>
+                </div>
+                 <div>
+                    <h3 className="text-lg font-medium border-b pb-2 mb-4">Offer & Promotion Engine</h3>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="offerType">Offer Type</Label>
+                            <Select defaultValue="percentage-off">
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select offer type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="percentage-off">10% Off</SelectItem>
+                                    <SelectItem value="bogo">Buy One Get One Free</SelectItem>
+                                    <SelectItem value="fixed-amount">R50 Off</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="validityDates">Validity Dates</Label>
+                            <Input id="validityDates" type="date" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="redemptionLimit">Redemption Limit</Label>
+                            <Input id="redemptionLimit" type="number" placeholder="e.g., 1000" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label>Applicable Brand/Store</Label>
+                             <Select>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Apply to..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Brands & Stores</SelectItem>
+                                    {brands.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button className="w-full">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Create Offer
+                        </Button>
+                    </div>
+                </div>
+            </div>
         </CardContent>
       </Card>
     </div>

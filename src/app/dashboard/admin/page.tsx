@@ -76,7 +76,7 @@ export default function AdminPage() {
   const [backgroundColor, setBackgroundColor] = useState('#F8F8F8');
   const [accentColor, setAccentColor] = useState('#FFD700');
 
-  const allStores = retailPortfolio.flatMap(brand =>
+  allStores = retailPortfolio.flatMap(brand =>
     brand.regions.flatMap(region =>
       region.areas.flatMap(area =>
         area.stores.map(store => ({
@@ -250,7 +250,7 @@ export default function AdminPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="brand-name">Brand Name</Label>
-              <Input id="brand-name" placeholder="e.g., Your Retail Brand" />
+              <Input id="brand-name" placeholder="Select a brand above" value={selectedBrand || ''} readOnly />
             </div>
             <div className="space-y-2">
               <Label htmlFor="region-name">Region Name</Label>
@@ -302,3 +302,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

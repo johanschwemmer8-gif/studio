@@ -2,7 +2,6 @@
 'use client';
 import { useState } from 'react';
 import StoresByRegion from '@/components/dashboard/stores-by-region';
-import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
 import { dashboardMetrics, storesByRegion, roiMetrics } from '@/lib/data';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
@@ -115,7 +114,6 @@ export default function DashboardPage() {
       </Card>
       
       <div className="grid lg:grid-cols-2 gap-8">
-        <TopProductsTable data={metrics.topProducts} />
         <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
       </div>
       <Separator />

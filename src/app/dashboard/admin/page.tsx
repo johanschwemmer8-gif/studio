@@ -69,6 +69,7 @@ const hexToHsl = (hex: string): string => {
 export default function AdminPage() {
   const [retailPortfolio, setRetailPortfolio] = useState(initialRetailPortfolio);
   const [newBrand, setNewBrand] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [primaryColor, setPrimaryColor] = useState('#1E90FF');
@@ -92,15 +93,22 @@ export default function AdminPage() {
   const brands = retailPortfolio.map(b => b.brand);
 
   const handleAddBrand = () => {
-    if (newBrand.trim() && !brands.includes(newBrand.trim())) {
-      setRetailPortfolio([
+    const trimmedBrand = newBrand.trim();
+    if (trimmedBrand && !brands.includes(trimmedBrand)) {
+      const updatedPortfolio = [
         ...retailPortfolio,
         {
-          brand: newBrand.trim(),
+          brand: trimmedBrand,
           regions: [],
         },
-      ]);
+      ];
+      setRetailPortfolio(updatedPortfolio);
       setNewBrand('');
+      setSelectedBrand(trimmedBrand);
+      toast({
+        title: 'Brand Added!',
+        description: `The brand "${trimmedBrand}" has been added.`,
+      });
     }
   };
   
@@ -110,6 +118,10 @@ export default function AdminPage() {
       document.documentElement.style.setProperty('--background', hexToHsl(backgroundColor));
       document.documentElement.style.setProperty('--accent', hexToHsl(accentColor));
       
+      // The logic to change the brand name itself is missing from the UI.
+      // Assuming for now saving just applies themes. Re-rendering is automatic.
+      setRetailPortfolio([...retailPortfolio]);
+
       toast({
         title: 'Theme Saved!',
         description: 'Your brand customizations have been applied.',
@@ -156,7 +168,7 @@ export default function AdminPage() {
             </div>
              <div className="space-y-2 flex-1">
               <Label htmlFor="brand-select">Select Existing Brand</Label>
-              <Select>
+              <Select value={selectedBrand || ''} onValueChange={setSelectedBrand}>
                 <SelectTrigger id="brand-select">
                   <SelectValue placeholder="Select a brand..." />
                 </SelectTrigger>

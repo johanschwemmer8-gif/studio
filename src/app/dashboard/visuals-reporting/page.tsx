@@ -46,9 +46,10 @@ export default function VisualsReportingPage() {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <DropdownMenuItem>Sales Performance Report</DropdownMenuItem>
-                        <DropdownMenuItem>Store Traffic Report</DropdownMenuItem>
-                        <DropdownMenuItem>Top Products Report</DropdownMenuItem>
+                        <DropdownMenuItem>Financial Impact</DropdownMenuItem>
+                        <DropdownMenuItem>Engagement & Adoption Metrics</DropdownMenuItem>
+                        <DropdownMenuItem>Performance & Conversion Metrics</DropdownMenuItem>
+                        <DropdownMenuItem>Supporting Data</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

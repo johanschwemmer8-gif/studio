@@ -7,36 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DollarSign, Percent, TrendingUp, Zap, MinusCircle, PlusCircle, Ratio } from 'lucide-react';
+import { DollarSign, Percent, TrendingUp, Zap } from 'lucide-react';
 import SalesPerformanceChart from '@/components/dashboard/sales-performance-chart';
-import { salesData, roiMetrics, revenueUpliftData } from '@/lib/data';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
-import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import {
-  ChartContainer,
-  ChartTooltipContent,
-} from '@/components/ui/chart';
-
+import { salesData, roiMetrics } from '@/lib/data';
 
 export default function RoiPage() {
-  const netGainIsPositive = roiMetrics.netGainLoss > 0;
-  const chartConfig = {
-    ratio: {
-      label: 'Ratio',
-      color: 'hsl(var(--chart-1))',
-    },
-    revenue: {
-      label: 'Revenue',
-      color: 'hsl(var(--chart-2))',
-    }
-  };
-
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Executive Summary: The ROI Dashboard
+          Retailer ROI Dashboard
         </h2>
         <p className="text-muted-foreground max-w-3xl">
           Monitor the financial impact and return on investment of the iNteract-AOE
@@ -44,127 +24,6 @@ export default function RoiPage() {
           customer engagement.
         </p>
       </div>
-
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="lg:col-span-2">
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Revenue Uplift to Cost Ratio
-            </CardTitle>
-            <Ratio className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold mb-2">{roiMetrics.revenueUpliftToCostRatio}:1</div>
-             <p className="text-xs text-muted-foreground mb-4">
-              Ratio of total revenue uplift to iNteract's subscription cost over the last 6 months.
-            </p>
-            <ChartContainer config={chartConfig} className="h-[80px] w-full">
-              <AreaChart
-                  accessibilityLayer
-                  data={revenueUpliftData}
-                  margin={{
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                  }}
-                >
-                  <defs>
-                    <linearGradient id="colorRatio" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-ratio)" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="var(--color-ratio)" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="month" hide />
-                  <YAxis domain={['dataMin - 1', 'dataMax + 1']} hide/>
-                  <Tooltip
-                    cursor={false}
-                    content={<ChartTooltipContent
-                      indicator="line"
-                      formatter={(value) => `${value}:1`}
-                    />}
-                  />
-                  <Area
-                    dataKey="ratio"
-                    type="natural"
-                    fill="url(#colorRatio)"
-                    stroke="var(--color-ratio)"
-                    stackId="a"
-                  />
-                </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Revenue Uplift (This Month)
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R{roiMetrics.totalRevenueUplift.toLocaleString()}</div>
-             <p className="text-xs text-muted-foreground mb-2">
-              Direct financial gain attributable to the AOE.
-            </p>
-          </CardContent>
-        </Card>
-         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Net Gain / Loss
-            </CardTitle>
-             {netGainIsPositive ? (
-                <PlusCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <MinusCircle className="h-4 w-4 text-red-500" />
-              )}
-          </CardHeader>
-          <CardContent>
-            <div className={cn(
-              "text-2xl font-bold",
-              netGainIsPositive ? 'text-green-500' : 'text-red-500'
-            )}>
-              R{roiMetrics.netGainLoss.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Monthly revenue uplift minus subscription cost.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className='grid gap-4 md:grid-cols-2'>
-        <Card>
-            <CardHeader>
-              <CardTitle>Progress to Break-Even</CardTitle>
-              <CardDescription>
-                How close you are to recouping your investment for the month.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center gap-4">
-                    <Progress value={roiMetrics.progressToBreakEven} className="h-3 flex-1" />
-                    <span className="font-bold text-lg">{roiMetrics.progressToBreakEven}%</span>
-                </div>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                Subscription Cost (This Month)
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </Header>
-            <CardContent>
-                <div className="text-2xl font-bold">R{roiMetrics.subscriptionCost.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                Fixed monthly cost for the iNteract service.
-                </p>
-            </CardContent>
-        </Card>
-      </div>
-
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

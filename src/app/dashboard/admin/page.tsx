@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { retailPortfolio as initialRetailPortfolio, type RetailPortfolio, type Store } from '@/lib/data';
-import { Download, Save, Upload, Trash2, QrCode, PlusCircle, Pencil } from 'lucide-react';
+import { Download, Save, Upload, Trash2, QrCode, PlusCircle, Pencil, Link2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -33,6 +33,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 
 // Helper to convert hex to HSL string
 const hexToHsl = (hex: string): string => {
@@ -444,7 +445,7 @@ export default function AdminPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>QR Code & Content Management</CardTitle>
+          <CardTitle>QR Code &amp; Content Management</CardTitle>
           <CardDescription>
             This is the central hub for creating and managing the personalized content that customers see.
           </CardDescription>
@@ -583,7 +584,7 @@ export default function AdminPage() {
                     </div>
                 </div>
                  <div>
-                    <h3 className="text-lg font-medium border-b pb-2 mb-4">Offer & Promotion Engine</h3>
+                    <h3 className="text-lg font-medium border-b pb-2 mb-4">Offer &amp; Promotion Engine</h3>
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="offerType">Offer Type</Label>
@@ -613,7 +614,7 @@ export default function AdminPage() {
                                 <SelectValue placeholder="Apply to..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Brands & Stores</SelectItem>
+                                    <SelectItem value="all">All Brands &amp; Stores</SelectItem>
                                     {brands.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -627,8 +628,73 @@ export default function AdminPage() {
             </div>
         </CardContent>
       </Card>
+      
+      <Card>
+        <CardHeader>
+            <CardTitle>System &amp; Integration Configurations</CardTitle>
+            <CardDescription>
+                Manage connections to external systems like your ERP, CRM, and payment gateways.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+            <div className="space-y-6">
+                {/* SAP S/4HANA Integration */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <h4 className="font-medium">SAP S/4HANA Integration</h4>
+                        <p className="text-sm text-muted-foreground">
+                            Synchronize product, inventory, and sales data.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-4 mt-4 sm:mt-0">
+                         <Button variant="outline" size="sm">
+                            <Link2 className="mr-2 h-4 w-4" />
+                            Configure
+                        </Button>
+                        <Switch id="sap-enabled" defaultChecked />
+                    </div>
+                </div>
+                {/* Salesforce Commerce Cloud */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <h4 className="font-medium">Salesforce Commerce Cloud</h4>
+                        <p className="text-sm text-muted-foreground">
+                           Enable customer data and promotion synchronization.
+                        </p>
+                    </div>
+                     <div className="flex items-center gap-4 mt-4 sm:mt-0">
+                         <Button variant="outline" size="sm">
+                            <Link2 className="mr-2 h-4 w-4" />
+                            Configure
+                        </Button>
+                        <Switch id="salesforce-enabled" />
+                    </div>
+                </div>
+                 {/* Oracle Fusion Cloud ERP */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <h4 className="font-medium">Oracle Fusion Cloud ERP</h4>
+                        <p className="text-sm text-muted-foreground">
+                           Manage financial data and procurement streams.
+                        </p>
+                    </div>
+                     <div className="flex items-center gap-4 mt-4 sm:mt.0">
+                         <Button variant="outline" size="sm">
+                            <Link2 className="mr-2 h-4 w-4" />
+                            Configure
+                        </Button>
+                        <Switch id="oracle-enabled" />
+                    </div>
+                </div>
+            </div>
+             <div className="flex justify-end pt-4">
+                <Button>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Configurations
+                </Button>
+            </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-    

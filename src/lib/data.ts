@@ -1,0 +1,58 @@
+export type Product = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  image: string;
+  'data-ai-hint': string;
+};
+
+export const products: Product[] = [
+  {
+    id: '1',
+    name: 'Eco-Friendly Water Bottle',
+    description:
+      'Stay hydrated on the go with our reusable and eco-friendly water bottle. Made from durable stainless steel, it keeps your drinks cold for 24 hours or hot for 12.',
+    category: 'Lifestyle',
+    price: 25.0,
+    image: 'https://picsum.photos/600/600',
+    'data-ai-hint': 'water bottle',
+  },
+  {
+    id: '2',
+    name: 'Wireless Charging Pad',
+    description: 'A sleek and fast wireless charging pad for all your compatible devices. Say goodbye to tangled cables.',
+    category: 'Electronics',
+    price: 45.0,
+    image: 'https://picsum.photos/600/600',
+    'data-ai-hint': 'charging pad',
+  },
+];
+
+export const findProductById = (id: string | number) => {
+  return products.find((p) => p.id === String(id));
+};
+
+export const dashboardMetrics = {
+  scanFrequency: [
+    { name: 'Jan', scans: 400 },
+    { name: 'Feb', scans: 300 },
+    { name: 'Mar', scans: 500 },
+    { name: 'Apr', scans: 450 },
+    { name: 'May', scans: 600 },
+    { name: 'Jun', scans: 800 },
+  ],
+  topProducts: [
+    { id: '1', name: 'Eco-Friendly Water Bottle', scans: 120, category: 'Lifestyle' },
+    { id: '2', name: 'Wireless Charging Pad', scans: 98, category: 'Electronics' },
+    { id: '3', name: 'Organic Cotton Tote Bag', scans: 85, category: 'Accessories' },
+    { id: '4', name: 'Smart Fitness Tracker', scans: 72, category: 'Health' },
+    { id: '5', name: 'Aromatherapy Diffuser', scans: 61, category: 'Home Goods' },
+  ],
+  stats: {
+    totalScans: 3150,
+    uniqueProducts: 42,
+    recommendationCTR: 18.2,
+  },
+};

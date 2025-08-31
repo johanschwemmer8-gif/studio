@@ -76,7 +76,21 @@ export const dashboardMetrics = {
     { time: 'Afternoon', engagement: 85, conversion: 25 },
     { time: 'Evening', engagement: 70, conversion: 20 },
     { time: 'Weekend', engagement: 95, conversion: 30 },
-  ]
+  ],
+  dataIntegration: {
+    stockLevels: [
+      { id: '1', name: 'Eco-Friendly Water Bottle', stock: 150, status: 'In Stock' },
+      { id: '2', name: 'Wireless Charging Pad', stock: 75, status: 'In Stock' },
+      { id: '3', name: 'Organic Cotton Tote Bag', stock: 5, status: 'Low Stock' },
+      { id: '4', name: 'Smart Fitness Tracker', stock: 0, status: 'Out of Stock' },
+    ],
+    syncLogs: [
+      { id: 'sync_001', service: 'Loyalty Program DB', status: 'Success', timestamp: '2024-07-29 08:00:15' },
+      { id: 'sync_002', service: 'Inventory System', status: 'Success', timestamp: '2024-07-29 08:00:10' },
+      { id: 'sync_003', service: 'CRM Platform', status: 'Failed', timestamp: '2024-07-29 07:45:05' },
+      { id: 'sync_004', service: 'Loyalty Program DB', status: 'Success', timestamp: '2024-07-29 07:00:12' },
+    ]
+  }
 };
 
 export const storesByRegion = [

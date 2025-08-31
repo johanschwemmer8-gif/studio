@@ -25,7 +25,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-2 p-2">
             <AppLogo />
             <span className="font-semibold text-lg whitespace-nowrap">
-              ShopScan AI
+              iNteract- AOE
             </span>
           </div>
         </SidebarHeader>

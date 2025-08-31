@@ -63,7 +63,7 @@ export default function AiRecommendations({ product }: AiRecommendationsProps) {
               <CardHeader>
                 <CardTitle>{rec.name}</CardTitle>
                 <CardDescription className="text-primary font-bold text-lg">
-                  ${rec.price.toFixed(2)}
+                  R{rec.price.toFixed(2)}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow space-y-4">

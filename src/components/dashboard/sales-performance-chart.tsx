@@ -62,7 +62,7 @@ export default function SalesPerformanceChart({ data }: { data: ChartData }) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value) => `$${value / 1000}k`}
+              tickFormatter={(value) => `R${value / 1000}k`}
             />
             <YAxis
               yAxisId="right"

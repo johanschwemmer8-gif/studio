@@ -40,7 +40,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <Badge variant="outline" className="w-fit">{product.category}</Badge>
             <h1 className="text-3xl md:text-4xl font-bold">{product.name}</h1>
             <p className="text-3xl font-semibold text-primary">
-              ${product.price.toFixed(2)}
+              R{product.price.toFixed(2)}
             </p>
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
           </div>

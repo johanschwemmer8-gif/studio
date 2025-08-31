@@ -9,6 +9,12 @@ import { salesData, storesByRegion } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function VisualsReportingPage() {
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
@@ -32,10 +38,19 @@ export default function VisualsReportingPage() {
                         Dive deeper into your data with comprehensive charts and regional breakdowns.
                     </p>
                 </div>
-                 <Button>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Reports
-                </Button>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button>
+                            <Download className="mr-2 h-4 w-4" />
+                            Download Reports
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem>Sales Performance Report</DropdownMenuItem>
+                        <DropdownMenuItem>Store Traffic Report</DropdownMenuItem>
+                        <DropdownMenuItem>Top Products Report</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             
             <StoreSelector

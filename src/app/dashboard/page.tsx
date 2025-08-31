@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import StoresByRegion from '@/components/dashboard/stores-by-region';
 import { Separator } from '@/components/ui/separator';
-import { dashboardMetrics, storesByRegion, roiMetrics } from '@/lib/data';
+import { storesByRegion, roiMetrics } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
 import {
   Card,
@@ -21,8 +21,6 @@ export default function DashboardPage() {
   const handleStoreChange = (store: string | null) => {
     setSelectedStore(store);
   };
-
-  const metrics = dashboardMetrics.getMetrics(selectedStore);
 
   return (
     <div className="space-y-8">

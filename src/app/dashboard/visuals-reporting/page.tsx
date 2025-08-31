@@ -11,10 +11,16 @@ import { Download } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export default function VisualsReportingPage() {
-    const [selectedStore, setSelectedStore] = useState<string | null>('All Stores');
+    const [selectedRegion, setSelectedRegion] = useState<string | null>('All Regions');
+    const [selectedStore, setSelectedStore] = useState<string | null>(null);
 
     const handleStoreChange = (store: string | null) => {
         setSelectedStore(store);
+    };
+    
+    const handleRegionChange = (region: string | null) => {
+        setSelectedRegion(region);
+        setSelectedStore(null); // Reset store when region changes
     };
 
     return (
@@ -34,6 +40,8 @@ export default function VisualsReportingPage() {
             
             <StoreSelector
                 regions={storesByRegion}
+                selectedRegion={selectedRegion}
+                onRegionChange={handleRegionChange}
                 selectedStore={selectedStore}
                 onStoreChange={handleStoreChange}
             />

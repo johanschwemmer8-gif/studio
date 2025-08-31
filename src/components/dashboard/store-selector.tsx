@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -13,31 +12,34 @@ import { Building2, Globe } from 'lucide-react';
 
 type StoreSelectorProps = {
   regions: { province: string; stores: {name: string, code: number}[] }[];
+  selectedRegion: string | null;
+  onRegionChange: (region: string | null) => void;
   selectedStore: string | null;
   onStoreChange: (store: string | null) => void;
 };
 
 export default function StoreSelector({
   regions,
+  selectedRegion,
+  onRegionChange,
   selectedStore,
   onStoreChange,
 }: StoreSelectorProps) {
-  const [selectedRegion, setSelectedRegion] = useState<string>('All Regions');
+  
   const storesInRegion = regions.find(r => r.province === selectedRegion)?.stores || [];
 
   const handleRegionChange = (province: string) => {
-    setSelectedRegion(province);
-    onStoreChange(province === 'All Regions' ? 'All Stores' : null);
+    onRegionChange(province === 'All Regions' ? 'All Regions' : province);
   };
   
   const handleStoreChange = (store: string) => {
-    onStoreChange(store);
+    onStoreChange(store === 'All Stores' ? null : store);
   };
 
   return (
     <div className="flex flex-col sm:flex-row gap-4">
       <div className="flex-1">
-        <Select value={selectedRegion} onValueChange={handleRegionChange}>
+        <Select value={selectedRegion || 'All Regions'} onValueChange={handleRegionChange}>
           <SelectTrigger className="w-full">
              <div className="flex items-center gap-2">
                 <Globe />
@@ -56,9 +58,9 @@ export default function StoreSelector({
       </div>
       <div className="flex-1">
         <Select
-          value={selectedStore || ''}
+          value={selectedStore || 'All Stores'}
           onValueChange={handleStoreChange}
-          disabled={selectedRegion === 'All Regions'}
+          disabled={!selectedRegion || selectedRegion === 'All Regions'}
         >
           <SelectTrigger className="w-full">
             <div className="flex items-center gap-2">

@@ -275,3 +275,8 @@ export const dataSyncLogs = [
   { id: '3', service: 'Oracle Fusion Cloud ERP', status: 'Failed' as const, timestamp: '2023-10-27T09:30:00Z' },
   { id: '4', service: 'Microsoft Dynamics 365', status: 'Success' as const, timestamp: '2023-10-27T09:15:00Z' },
 ];
+
+export const systemUptime = {
+  status: 'Operational',
+  uptime: 99.99,
+};

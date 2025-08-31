@@ -26,6 +26,10 @@ export default function RoiPage() {
       label: 'Ratio',
       color: 'hsl(var(--chart-1))',
     },
+    revenue: {
+      label: 'Revenue',
+      color: 'hsl(var(--chart-2))',
+    },
   };
 
   return (
@@ -100,9 +104,44 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R{roiMetrics.totalRevenueUplift.toLocaleString()}</div>
-             <p className="text-xs text-muted-foreground">
+             <p className="text-xs text-muted-foreground mb-2">
               Direct financial gain attributable to the AOE.
             </p>
+            <ChartContainer config={chartConfig} className="h-[50px] w-full">
+                 <AreaChart
+                  accessibilityLayer
+                  data={salesData}
+                   margin={{
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                  }}
+                >
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" hide />
+                  <YAxis domain={['dataMin - 1000', 'dataMax + 1000']} hide/>
+                  <Tooltip
+                    cursor={false}
+                     content={<ChartTooltipContent
+                      indicator="line"
+                      formatter={(value) => `R${Number(value).toLocaleString()}`}
+                    />}
+                  />
+                  <Area
+                    dataKey="revenue"
+                    type="natural"
+                    fill="url(#colorRevenue)"
+                    stroke="var(--color-revenue)"
+                    stackId="a"
+                  />
+                </AreaChart>
+              </ChartContainer>
           </CardContent>
         </Card>
          <Card>
@@ -151,7 +190,7 @@ export default function RoiPage() {
                 Subscription Cost (This Month)
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
+            </Header>
             <CardContent>
                 <div className="text-2xl font-bold">R{roiMetrics.subscriptionCost.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground">
@@ -222,7 +261,7 @@ export default function RoiPage() {
               From initial scan to final purchase.
             </p>
           </CardContent>
-        </Card>
+        </card>
       </div>
 
       <SalesPerformanceChart data={salesData} />

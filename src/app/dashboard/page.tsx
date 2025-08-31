@@ -4,11 +4,13 @@ import SalesPerformanceChart from '@/components/dashboard/sales-performance-char
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import ScanFrequencyChart from '@/components/dashboard/scan-frequency-chart';
 import StoresByRegion from '@/components/dashboard/stores-by-region';
+import { Separator } from '@/components/ui/separator';
 
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <StatsCards stats={dashboardMetrics.stats} />
+      <Separator />
       <div className="grid gap-8 grid-cols-1">
         <SalesPerformanceChart data={dashboardMetrics.salesPerformance} />
       </div>

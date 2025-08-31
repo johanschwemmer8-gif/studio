@@ -223,3 +223,12 @@ export const salesData = [
   { name: 'May', revenue: 1890, scans: 480, crossSells: 250 },
   { name: 'Jun', revenue: 2390, scans: 380, crossSells: 190 },
 ];
+
+export const revenueUpliftData = [
+  { month: 'Jan', ratio: 1.8 },
+  { month: 'Feb', ratio: 2.1 },
+  { month: 'Mar', ratio: 2.5 },
+  { month: 'Apr', ratio: 2.2 },
+  { month: 'May', ratio: 2.6 },
+  { month: 'Jun', ratio: 2.8 },
+];

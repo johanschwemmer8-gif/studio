@@ -1,4 +1,5 @@
 
+'use client';
 import {
   Card,
   CardContent,
@@ -8,12 +9,24 @@ import {
 } from '@/components/ui/card';
 import { DollarSign, Percent, TrendingUp, Zap, MinusCircle, PlusCircle, Ratio } from 'lucide-react';
 import SalesPerformanceChart from '@/components/dashboard/sales-performance-chart';
-import { salesData, roiMetrics } from '@/lib/data';
+import { salesData, roiMetrics, revenueUpliftData } from '@/lib/data';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import {
+  ChartContainer,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+
 
 export default function RoiPage() {
   const netGainIsPositive = roiMetrics.netGainLoss > 0;
+  const chartConfig = {
+    ratio: {
+      label: 'Ratio',
+      color: 'hsl(var(--chart-1))',
+    },
+  };
 
   return (
     <div className="space-y-8">
@@ -30,17 +43,52 @@ export default function RoiPage() {
 
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Revenue Uplift to Cost Ratio
             </CardTitle>
             <Ratio className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{roiMetrics.revenueUpliftToCostRatio}:1</div>
-            <p className="text-xs text-muted-foreground">
-              Ratio of total revenue uplift to iNteract's subscription cost.
+            <div className="text-3xl font-bold mb-2">{roiMetrics.revenueUpliftToCostRatio}:1</div>
+             <p className="text-xs text-muted-foreground mb-4">
+              Ratio of total revenue uplift to iNteract's subscription cost over the last 6 months.
             </p>
+            <ChartContainer config={chartConfig} className="h-[80px] w-full">
+              <AreaChart
+                  accessibilityLayer
+                  data={revenueUpliftData}
+                  margin={{
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                  }}
+                >
+                  <defs>
+                    <linearGradient id="colorRatio" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-ratio)" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="var(--color-ratio)" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="month" hide />
+                  <YAxis domain={['dataMin - 1', 'dataMax + 1']} hide/>
+                  <Tooltip
+                    cursor={false}
+                    content={<ChartTooltipContent
+                      indicator="line"
+                      formatter={(value) => `${value}:1`}
+                    />}
+                  />
+                  <Area
+                    dataKey="ratio"
+                    type="natural"
+                    fill="url(#colorRatio)"
+                    stroke="var(--color-ratio)"
+                    stackId="a"
+                  />
+                </AreaChart>
+            </ChartContainer>
           </CardContent>
         </Card>
          <Card>

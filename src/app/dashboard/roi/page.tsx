@@ -101,7 +101,7 @@ export default function RoiPage() {
               From initial scan to final purchase.
             </p>
           </CardContent>
-        </card>
+        </Card>
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">

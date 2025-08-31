@@ -1,4 +1,7 @@
 
+'use client';
+
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -18,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { retailPortfolio } from '@/lib/data';
+import { retailPortfolio as initialRetailPortfolio } from '@/lib/data';
 import { Upload } from 'lucide-react';
 import {
   Select,
@@ -29,6 +32,9 @@ import {
 } from '@/components/ui/select';
 
 export default function AdminPage() {
+  const [retailPortfolio, setRetailPortfolio] = useState(initialRetailPortfolio);
+  const [newBrand, setNewBrand] = useState('');
+
   const allStores = retailPortfolio.flatMap(brand =>
     brand.regions.flatMap(region =>
       region.areas.flatMap(area =>
@@ -45,6 +51,19 @@ export default function AdminPage() {
   
   const brands = retailPortfolio.map(b => b.brand);
 
+  const handleAddBrand = () => {
+    if (newBrand.trim() && !brands.includes(newBrand.trim())) {
+      setRetailPortfolio([
+        ...retailPortfolio,
+        {
+          brand: newBrand.trim(),
+          regions: [],
+        },
+      ]);
+      setNewBrand('');
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -59,22 +78,36 @@ export default function AdminPage() {
           <CardTitle>Individual Brand Customization</CardTitle>
           <CardDescription>
             Tailor the look and feel of the platform to match your brand identity.
-            Select a brand to customize its theme.
+            Select a brand to customize its theme, or add a new one.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-           <div className="space-y-2 max-w-sm">
-            <Label htmlFor="brand-select">Select Brand</Label>
-            <Select>
-              <SelectTrigger id="brand-select">
-                <SelectValue placeholder="Select a brand..." />
-              </SelectTrigger>
-              <SelectContent>
-                {brands.map(brand => (
-                  <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="space-y-2 flex-1">
+              <Label htmlFor="new-brand-name">Add New Brand</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="new-brand-name"
+                  placeholder="e.g., Your New Brand"
+                  value={newBrand}
+                  onChange={(e) => setNewBrand(e.target.value)}
+                />
+                <Button onClick={handleAddBrand}>Add Brand</Button>
+              </div>
+            </div>
+             <div className="space-y-2 flex-1">
+              <Label htmlFor="brand-select">Select Existing Brand</Label>
+              <Select>
+                <SelectTrigger id="brand-select">
+                  <SelectValue placeholder="Select a brand..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {brands.map(brand => (
+                    <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Separator />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

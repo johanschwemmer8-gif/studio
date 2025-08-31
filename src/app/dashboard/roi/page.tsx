@@ -29,7 +29,7 @@ export default function RoiPage() {
     revenue: {
       label: 'Revenue',
       color: 'hsl(var(--chart-2))',
-    },
+    }
   };
 
   return (

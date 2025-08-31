@@ -1,20 +1,48 @@
 export function AppLogo() {
   return (
     <svg
-      width="32"
+      width="64"
       height="32"
-      viewBox="0 0 24 24"
+      viewBox="0 0 120 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="text-primary"
     >
-      <path
-        d="M4 4h6v6H4V4zm0 10h6v6H4v-6zM14 4h6v6h-6V4zm0 10h6v6h-6v-6z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <g clipPath="url(#clip0_1_2)">
+        <path
+          d="M18.6667 22C19.7713 22 20.6667 21.1046 20.6667 20C20.6667 18.8954 19.7713 18 18.6667 18C17.5621 18 16.6667 18.8954 16.6667 20C16.6667 21.1046 17.5621 22 18.6667 22Z"
+          fill="#0091D2"
+        />
+        <path
+          d="M10.8333 12.3333C15.0453 12.3333 18.942 13.9663 21.7821 16.8064C24.6222 19.6465 26.2552 23.5432 26.2552 27.7552H29.1667C29.1667 22.5638 27.0607 17.5806 23.4284 13.9483C19.7961 10.316 14.8129 8.20996 9.62329 8.20996V12.3333H10.8333Z"
+          fill="#0091D2"
+        />
+        <path
+          d="M4.66667 6.16669C11.531 6.16669 17.9536 8.89201 22.75 13.6883C27.5464 18.4847 30.2717 24.9073 30.2717 31.7717H34.3333C34.3333 23.7377 31.0933 16.142 25.5678 10.6165C20.0423 5.09099 12.4466 1.83334 4.41667 1.83334L4.66667 6.16669Z"
+          fill="#0091D2"
+        />
+        <text
+          fill="#2D3748"
+          xmlSpace="preserve"
+          style={{ whiteSpace: 'pre' }}
+          fontFamily="Inter"
+          fontSize="24"
+          fontWeight="bold"
+          letterSpacing="0em"
+        >
+          <tspan x="38" y="27">
+            iNteract
+          </tspan>
+        </text>
+        <path
+          d="M115 26.5C115.828 26.5 116.5 25.8284 116.5 25C116.5 24.1716 115.828 23.5 115 23.5C114.172 23.5 113.5 24.1716 113.5 25C113.5 25.8284 114.172 26.5 115 26.5Z"
+          fill="#2D3748"
+        />
+      </g>
+      <defs>
+        <clipPath id="clip0_1_2">
+          <rect width="120" height="40" fill="white" />
+        </clipPath>
+      </defs>
     </svg>
   );
 }

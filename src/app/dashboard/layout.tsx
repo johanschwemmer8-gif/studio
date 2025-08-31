@@ -24,9 +24,6 @@ export default function DashboardLayout({
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <AppLogo />
-            <span className="font-semibold text-lg whitespace-nowrap">
-              iNteract- AOE
-            </span>
           </div>
         </SidebarHeader>
         <SidebarContent>

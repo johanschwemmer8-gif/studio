@@ -9,7 +9,6 @@ export default function Home() {
       <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
         <Link href="/" className="flex items-center gap-2">
           <AppLogo />
-          <h1 className="text-xl font-bold tracking-tight">iNteract- AOE</h1>
         </Link>
         <Button asChild variant="ghost">
           <Link href="/dashboard">Retailer Dashboard</Link>

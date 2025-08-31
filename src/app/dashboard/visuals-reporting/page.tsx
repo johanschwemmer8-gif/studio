@@ -3,12 +3,9 @@
 
 import SalesPerformanceChart from '@/components/dashboard/sales-performance-chart';
 import StoresByRegion from '@/components/dashboard/stores-by-region';
-import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
-import { dashboardMetrics, salesData } from '@/lib/data';
+import { salesData } from '@/lib/data';
 
 export default function VisualsReportingPage() {
-    const metrics = dashboardMetrics.getMetrics(null);
-
     return (
         <div className="space-y-8">
             <div>
@@ -26,8 +23,6 @@ export default function VisualsReportingPage() {
                     <StoresByRegion />
                 </div>
             </div>
-            
-            <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
         </div>
     );
 }

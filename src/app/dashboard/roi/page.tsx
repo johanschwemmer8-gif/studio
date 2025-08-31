@@ -12,6 +12,7 @@ import ScanFrequencyChart from '@/components/dashboard/scan-frequency-chart';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { dashboardMetrics } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
+import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 
 export default function RoiPage() {
   const metrics = dashboardMetrics.getMetrics(null); // Using all stores data for this page
@@ -181,6 +182,9 @@ export default function RoiPage() {
         </Card>
       </div>
 
+      <Separator />
+
+      <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Home, QrCodeIcon } from 'lucide-react';
+import { AreaChart, Home, QrCodeIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -32,6 +32,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard">
                   <Home />
                   <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Engagement">
+                <Link href="/dashboard/engagement">
+                  <AreaChart />
+                  <span>Engagement</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

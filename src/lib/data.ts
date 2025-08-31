@@ -259,3 +259,19 @@ export const ytdData = [
     { month: 'Jan', revenue: 7500, cost: 1250, net: 6250 },
     { month: 'Feb', revenue: 7200, cost: 1250, net: 5950 },
 ];
+
+
+export const realTimeStockLevels = [
+  { id: '1', name: 'Eco-Friendly Water Bottle', stock: 120, status: 'In Stock' as const },
+  { id: '2', name: 'Wireless Charging Pad', stock: 45, status: 'Low Stock' as const },
+  { id: '3', name: 'Organic Cotton Tote Bag', stock: 0, status: 'Out of Stock' as const },
+  { id: '4', name: 'Smart Fitness Tracker', stock: 80, status: 'In Stock' as const },
+  { id: '5', name: 'Aromatherapy Diffuser', stock: 15, status: 'Low Stock' as const },
+];
+
+export const dataSyncLogs = [
+  { id: '1', service: 'SAP S/4HANA', status: 'Success' as const, timestamp: '2023-10-27T10:00:00Z' },
+  { id: '2', service: 'Salesforce Commerce Cloud', status: 'Success' as const, timestamp: '2023-10-27T09:45:00Z' },
+  { id: '3', service: 'Oracle Fusion Cloud ERP', status: 'Failed' as const, timestamp: '2023-10-27T09:30:00Z' },
+  { id: '4', service: 'Microsoft Dynamics 365', status: 'Success' as const, timestamp: '2023-10-27T09:15:00Z' },
+];

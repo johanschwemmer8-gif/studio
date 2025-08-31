@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Home, TrendingUp, Cog } from 'lucide-react';
+import { Home, TrendingUp, Cog, Server } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -40,6 +40,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/roi">
                   <TrendingUp />
                   <span>Retailer ROI</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Real-Time Data">
+                <Link href="/dashboard/real-time">
+                  <Server />
+                  <span>Real-Time Data</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

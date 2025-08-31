@@ -29,7 +29,7 @@ export default function RoiPage() {
     revenue: {
       label: 'Revenue',
       color: 'hsl(var(--chart-2))',
-    },
+    }
   };
 
   return (
@@ -107,33 +107,6 @@ export default function RoiPage() {
              <p className="text-xs text-muted-foreground mb-2">
               Direct financial gain attributable to the AOE.
             </p>
-            <ChartContainer config={chartConfig} className="h-[50px] w-full">
-                 <BarChart
-                  accessibilityLayer
-                  data={salesData}
-                   margin={{
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                  }}
-                >
-                  <XAxis dataKey="name" hide />
-                  <YAxis domain={['dataMin - 1000', 'dataMax + 1000']} hide/>
-                  <Tooltip
-                    cursor={false}
-                     content={<ChartTooltipContent
-                      indicator="line"
-                      formatter={(value) => `R${Number(value).toLocaleString()}`}
-                    />}
-                  />
-                  <Bar
-                    dataKey="revenue"
-                    fill="var(--color-revenue)"
-                    radius={2}
-                  />
-                </BarChart>
-              </ChartContainer>
           </CardContent>
         </Card>
          <Card>

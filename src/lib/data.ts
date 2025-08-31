@@ -34,23 +34,15 @@ export const findProductById = (id: string | number) => {
   return products.find((p) => p.id === String(id));
 };
 
-export const dashboardMetrics = {
-  salesPerformance: [
-    { name: 'Jan', revenue: 10000, scans: 400, crossSells: 150 },
-    { name: 'Feb', revenue: 9500, scans: 300, crossSells: 120 },
-    { name: 'Mar', revenue: 12000, scans: 500, crossSells: 200 },
-    { name: 'Apr', revenue: 11000, scans: 450, crossSells: 180 },
-    { name: 'May', revenue: 13000, scans: 600, crossSells: 250 },
-    { name: 'Jun', revenue: 15000, scans: 800, crossSells: 300 },
-  ],
-  scanFrequency: [
-    { name: 'Jan', scans: 400 },
-    { name: 'Feb', scans: 300 },
-    { name: 'Mar', scans: 500 },
-    { name: 'Apr', scans: 450 },
-    { name: 'May', scans: 600 },
-    { name: 'Jun', scans: 800 },
-  ],
+const allStoresMetrics = {
+  stats: {
+    totalScans: 3150,
+    uniqueScans: 1890,
+    scanRate: 75.3,
+    engagementDuration: 45,
+    offerRedemptionRate: 22.4,
+    basketUplift: 15.8,
+  },
   topProducts: [
     { id: '1', name: 'Eco-Friendly Water Bottle', scans: 120, category: 'Lifestyle' },
     { id: '2', name: 'Wireless Charging Pad', scans: 98, category: 'Electronics' },
@@ -58,40 +50,35 @@ export const dashboardMetrics = {
     { id: '4', name: 'Smart Fitness Tracker', scans: 72, category: 'Health' },
     { id: '5', name: 'Aromatherapy Diffuser', scans: 61, category: 'Home Goods' },
   ],
-  stats: {
-    totalScans: 3150,
-    uniqueScans: 1890,
-    scanRate: 75.3,
-    engagementDuration: 45,
-    recommendationCTR: 18.2,
-    customerConversionRate: 12.5,
-    qrCodeScanRate: 75.3,
-    averageTransactionValue: 120.5,
-    gmroi: 3.5,
-    offerRedemptionRate: 22.4,
-    basketUplift: 15.8,
-  },
   timeBasedPerformance: [
     { time: 'Morning', engagement: 65, conversion: 15 },
     { time: 'Afternoon', engagement: 85, conversion: 25 },
     { time: 'Evening', engagement: 70, conversion: 20 },
     { time: 'Weekend', engagement: 95, conversion: 30 },
   ],
-  dataIntegration: {
-    stockLevels: [
-      { id: '1', name: 'Eco-Friendly Water Bottle', stock: 150, status: 'In Stock' },
-      { id: '2', name: 'Wireless Charging Pad', stock: 75, status: 'In Stock' },
-      { id: '3', name: 'Organic Cotton Tote Bag', stock: 5, status: 'Low Stock' },
-      { id: '4', name: 'Smart Fitness Tracker', stock: 0, status: 'Out of Stock' },
-    ],
-    syncLogs: [
-      { id: 'sync_001', service: 'Loyalty Program DB', status: 'Success', timestamp: '2024-07-29 08:00:15' },
-      { id: 'sync_002', service: 'Inventory System', status: 'Success', timestamp: '2024-07-29 08:00:10' },
-      { id: 'sync_003', service: 'CRM Platform', status: 'Failed', timestamp: '2024-07-29 07:45:05' },
-      { id: 'sync_004', service: 'Loyalty Program DB', status: 'Success', timestamp: '2024-07-29 07:00:12' },
-    ]
-  }
 };
+
+const generateRandomMetrics = () => ({
+  stats: {
+    totalScans: Math.floor(Math.random() * 500) + 50,
+    uniqueScans: Math.floor(Math.random() * 300) + 30,
+    scanRate: parseFloat((Math.random() * 30 + 50).toFixed(1)),
+    engagementDuration: Math.floor(Math.random() * 30) + 20,
+    offerRedemptionRate: parseFloat((Math.random() * 15 + 10).toFixed(1)),
+    basketUplift: parseFloat((Math.random() * 10 + 5).toFixed(1)),
+  },
+  topProducts: products
+    .map(p => ({ ...p, scans: Math.floor(Math.random() * 50) + 10 }))
+    .sort((a, b) => b.scans - a.scans)
+    .slice(0, 5),
+  timeBasedPerformance: [
+    { time: 'Morning', engagement: Math.floor(Math.random() * 40) + 40, conversion: Math.floor(Math.random() * 10) + 5 },
+    { time: 'Afternoon', engagement: Math.floor(Math.random() * 40) + 50, conversion: Math.floor(Math.random() * 15) + 10 },
+    { time: 'Evening', engagement: Math.floor(Math.random() * 40) + 45, conversion: Math.floor(Math.random() * 12) + 8 },
+    { time: 'Weekend', engagement: Math.floor(Math.random() * 30) + 60, conversion: Math.floor(Math.random() * 20) + 15 },
+  ],
+});
+
 
 export const storesByRegion = [
   {
@@ -116,3 +103,17 @@ export const storesByRegion = [
   { province: 'North West', stores: ['Waterfall Mall'] },
   { province: 'Northern Cape', stores: ['Diamond Pavilion Mall'] },
 ];
+
+const storeMetrics: Record<string, ReturnType<typeof generateRandomMetrics>> = {};
+storesByRegion.flatMap(r => r.stores).forEach(store => {
+  storeMetrics[store] = generateRandomMetrics();
+});
+
+export const dashboardMetrics = {
+  getMetrics: (storeName?: string | null) => {
+    if (!storeName || storeName === 'All Stores') {
+      return allStoresMetrics;
+    }
+    return storeMetrics[storeName] || allStoresMetrics;
+  },
+};

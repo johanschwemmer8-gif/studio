@@ -628,7 +628,7 @@ export default function AdminPage() {
             </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
             <CardTitle>System &amp; Integration Configurations</CardTitle>
@@ -678,7 +678,7 @@ export default function AdminPage() {
                            Manage financial data and procurement streams.
                         </p>
                     </div>
-                     <div className="flex items-center gap-4 mt-4 sm:mt.0">
+                     <div className="flex items-center gap-4 mt-4 sm:mt-0">
                          <Button variant="outline" size="sm">
                             <Link2 className="mr-2 h-4 w-4" />
                             Configure

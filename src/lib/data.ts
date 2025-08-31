@@ -232,3 +232,18 @@ export const revenueUpliftData = [
   { month: 'May', ratio: 2.6 },
   { month: 'Jun', ratio: 2.8 },
 ];
+
+export const ytdData = [
+    { month: 'Mar', revenue: 3200, cost: 1250, net: 1950 },
+    { month: 'Apr', revenue: 3500, cost: 1250, net: 2250 },
+    { month: 'May', revenue: 3800, cost: 1250, net: 2550 },
+    { month: 'Jun', revenue: 4100, cost: 1250, net: 2850 },
+    { month: 'Jul', revenue: 4500, cost: 1250, net: 3250 },
+    { month: 'Aug', revenue: 4800, cost: 1250, net: 3550 },
+    { month: 'Sep', revenue: 5200, cost: 1250, net: 3950 },
+    { month: 'Oct', revenue: 5800, cost: 1250, net: 4550 },
+    { month: 'Nov', revenue: 6500, cost: 1250, net: 5250 },
+    { month: 'Dec', revenue: 8000, cost: 1250, net: 6750 },
+    { month: 'Jan', revenue: 7500, cost: 1250, net: 6250 },
+    { month: 'Feb', revenue: 7200, cost: 1250, net: 5950 },
+];

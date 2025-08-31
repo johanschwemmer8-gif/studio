@@ -2,7 +2,7 @@
 'use client';
 import { useState } from 'react';
 import { Separator } from '@/components/ui/separator';
-import { storesByRegion, roiMetrics } from '@/lib/data';
+import { storesByRegion, roiMetrics, ytdData } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
 import {
   Card,
@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/card';
 import { DollarSign, TrendingUp } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import YtdPerformanceChart from '@/components/dashboard/ytd-performance-chart';
+
 
 export default function DashboardPage() {
   const [selectedStore, setSelectedStore] = useState<string | null>('All Stores');
@@ -54,7 +56,7 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue Uplift (This Month)</CardTitle>
+                  <CardTitle className="text-sm font-medium">Total Revenue Uplift YTD</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -66,7 +68,7 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Subscription Cost (This Month)</CardTitle>
+                  <CardTitle className="text-sm font-medium">Subscription Cost YTD</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -78,7 +80,7 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Net Gain/Loss</CardTitle>
+                  <CardTitle className="text-sm font-medium">Net Gain/Loss YTD</CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -110,6 +112,8 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <YtdPerformanceChart data={ytdData} />
       
     </div>
   );

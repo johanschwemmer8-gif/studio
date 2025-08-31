@@ -132,7 +132,32 @@ export const storesByRegion = [
   { province: 'Northern Cape', stores: [{ name: 'Diamond Pavilion Mall', code: 9001 }] },
 ];
 
-export let retailPortfolio = [
+export type Store = {
+  name: string;
+  code: number;
+  address: string;
+  contact: string;
+};
+
+export type Area = {
+  name: string;
+  stores: Store[];
+};
+
+export type Region = {
+  name: string;
+  areas: Area[];
+};
+
+export type Brand = {
+  brand: string;
+  regions: Region[];
+};
+
+export type RetailPortfolio = Brand[];
+
+
+export let retailPortfolio: RetailPortfolio = [
   {
     brand: 'iNteract Retail',
     regions: [
@@ -142,13 +167,13 @@ export let retailPortfolio = [
           {
             name: 'Johannesburg North',
             stores: [
-              { name: 'Sandton City', code: 1001 },
-              { name: 'Mall of Africa', code: 1003 },
+              { name: 'Sandton City', code: 1001, address: '83 Rivonia Rd, Sandhurst, Sandton, 2196', contact: '011 217 6000' },
+              { name: 'Mall of Africa', code: 1003, address: 'Lone Creek Cres, Waterval City, Midrand, 1686', contact: '010 596 1470' },
             ],
           },
           {
             name: 'Pretoria',
-            stores: [{ name: 'Menlyn Park', code: 1002 }],
+            stores: [{ name: 'Menlyn Park', code: 1002, address: 'Cnr Atterbury Road & Lois Avenue, Menlo Park, Pretoria, 0063', contact: '012 764 9600' }],
           },
         ],
       },
@@ -157,15 +182,15 @@ export let retailPortfolio = [
         areas: [
           {
             name: 'Cape Town City Bowl',
-            stores: [{ name: 'V&A Waterfront', code: 2001 }],
+            stores: [{ name: 'V&A Waterfront', code: 2001, address: '19 Dock Rd, Cape Town, 8001', contact: '021 408 7600' }],
           },
           {
             name: 'Century City',
-            stores: [{ name: 'Canal Walk', code: 2002 }],
+            stores: [{ name: 'Canal Walk', code: 2002, address: 'Canal Walk, Century Blvd, Century City, Cape Town, 7441', contact: '021 529 9600' }],
           },
           {
             name: 'Northern Suburbs',
-            stores: [{ name: 'Tyger Valley', code: 2003 }],
+            stores: [{ name: 'Tyger Valley', code: 2003, address: 'Cnr of Bill Bezuidenhout & Willie van Schoor, Bellville Park, Cape Town, 7530', contact: '021 914 1822' }],
           },
         ],
       },
@@ -175,13 +200,13 @@ export let retailPortfolio = [
           {
             name: 'Durban',
             stores: [
-              { name: 'Gateway Theatre of Shopping', code: 3001 },
-              { name: 'The Pavilion', code: 3002 },
+              { name: 'Gateway Theatre of Shopping', code: 3001, address: '1 Palm Blvd, Umhlanga Ridge, Umhlanga, 4319', contact: '031 514 0500' },
+              { name: 'The Pavilion', code: 3002, address: '5 Jack Martens Dr, Westville, Durban, 3629', contact: '031 275 9800' },
             ],
           },
            {
             name: 'Pietermaritzburg',
-            stores: [{ name: 'Midlands Mall', code: 3003 }],
+            stores: [{ name: 'Midlands Mall', code: 3003, address: '50 Sanctuary Rd, Chase Valley, Pietermaritzburg, 3201', contact: '033 341 9570' }],
           },
         ],
       },

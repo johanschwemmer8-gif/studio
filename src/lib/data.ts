@@ -192,11 +192,27 @@ export const dashboardMetrics = {
   },
 };
 
+const totalRevenueUplift = 42500;
+const subscriptionCost = 15000;
+const netGainLoss = totalRevenueUplift - subscriptionCost;
+const revenueUpliftToCostRatio = parseFloat((totalRevenueUplift / subscriptionCost).toFixed(2));
+const progressToBreakEven = Math.min(
+  100,
+  parseFloat(((totalRevenueUplift / subscriptionCost) * 100).toFixed(2))
+);
+
+
 export const roiMetrics = {
   gmroi: 18.5,
   basketUplift: 15.8,
   offerRedemptionRate: 22.4,
   engagementToConversion: 8.2,
+  // New Executive Summary Metrics
+  revenueUpliftToCostRatio: revenueUpliftToCostRatio,
+  totalRevenueUplift: totalRevenueUplift,
+  subscriptionCost: subscriptionCost,
+  netGainLoss: netGainLoss,
+  progressToBreakEven: progressToBreakEven,
 };
 
 export const salesData = [

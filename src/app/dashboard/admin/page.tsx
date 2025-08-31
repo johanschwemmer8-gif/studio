@@ -76,7 +76,7 @@ export default function AdminPage() {
   const [backgroundColor, setBackgroundColor] = useState('#F8F8F8');
   const [accentColor, setAccentColor] = useState('#FFD700');
 
-  allStores = retailPortfolio.flatMap(brand =>
+  const allStores = retailPortfolio.flatMap(brand =>
     brand.regions.flatMap(region =>
       region.areas.flatMap(area =>
         area.stores.map(store => ({
@@ -302,5 +302,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    

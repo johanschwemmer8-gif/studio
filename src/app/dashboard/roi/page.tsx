@@ -12,7 +12,7 @@ import SalesPerformanceChart from '@/components/dashboard/sales-performance-char
 import { salesData, roiMetrics, revenueUpliftData } from '@/lib/data';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import {
   ChartContainer,
   ChartTooltipContent,
@@ -29,7 +29,7 @@ export default function RoiPage() {
     revenue: {
       label: 'Revenue',
       color: 'hsl(var(--chart-2))',
-    }
+    },
   };
 
   return (
@@ -108,7 +108,7 @@ export default function RoiPage() {
               Direct financial gain attributable to the AOE.
             </p>
             <ChartContainer config={chartConfig} className="h-[50px] w-full">
-                 <AreaChart
+                 <BarChart
                   accessibilityLayer
                   data={salesData}
                    margin={{
@@ -118,12 +118,6 @@ export default function RoiPage() {
                     bottom: 0,
                   }}
                 >
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
                   <XAxis dataKey="name" hide />
                   <YAxis domain={['dataMin - 1000', 'dataMax + 1000']} hide/>
                   <Tooltip
@@ -133,14 +127,12 @@ export default function RoiPage() {
                       formatter={(value) => `R${Number(value).toLocaleString()}`}
                     />}
                   />
-                  <Area
+                  <Bar
                     dataKey="revenue"
-                    type="natural"
-                    fill="url(#colorRevenue)"
-                    stroke="var(--color-revenue)"
-                    stackId="a"
+                    fill="var(--color-revenue)"
+                    radius={2}
                   />
-                </AreaChart>
+                </BarChart>
               </ChartContainer>
           </CardContent>
         </Card>

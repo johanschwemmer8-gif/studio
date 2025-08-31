@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import QrCodeGenerator from '@/components/dashboard/qr-code-generator';
 
 export default function AdminPage() {
   const [retailPortfolio, setRetailPortfolio] = useState(initialRetailPortfolio);
@@ -146,6 +147,19 @@ export default function AdminPage() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>QR Code Generator</CardTitle>
+          <CardDescription>
+            Create QR codes for your products. Customers can scan these in-store to
+            view product information on your website. Just paste the product URL below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <QrCodeGenerator />
         </CardContent>
       </Card>
       

@@ -23,12 +23,18 @@ export default function RoiPage() {
   };
 
   const scanFrequencyData = [
-    { name: 'Jan', scans: 240 },
-    { name: 'Feb', scans: 139 },
     { name: 'Mar', scans: 980 },
     { name: 'Apr', scans: 390 },
     { name: 'May', scans: 480 },
     { name: 'Jun', scans: 380 },
+    { name: 'Jul', scans: 520 },
+    { name: 'Aug', scans: 610 },
+    { name: 'Sep', scans: 750 },
+    { name: 'Oct', scans: 880 },
+    { name: 'Nov', scans: 1050 },
+    { name: 'Dec', scans: 1500 },
+    { name: 'Jan', scans: 1240 },
+    { name: 'Feb', scans: 1139 },
   ];
 
   return (

@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Home, TrendingUp, Cog, Server, BarChart } from 'lucide-react';
+import { Home, TrendingUp, Cog, Server, BarChart, Blocks } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -64,6 +64,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/admin">
                   <Cog />
                   <span>Admin Panel</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="System & Integration Configuration">
+                <Link href="/dashboard/system-integration">
+                  <Blocks />
+                  <span>System & Integration</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

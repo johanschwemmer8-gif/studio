@@ -23,8 +23,8 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Link href="/">
-              <Image src="/logo.png" alt="iNteract- AOE Logo" width={150} height={35} />
+            <Link href="/" className="font-bold text-lg">
+              iNteract- AOE
             </Link>
           </div>
         </SidebarHeader>

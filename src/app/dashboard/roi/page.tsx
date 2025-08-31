@@ -29,14 +29,30 @@ export default function RoiPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Gross Merchandise ROI (GMROI)
+              Total Revenue Uplift (This Month)
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{roiMetrics.gmroi}%</div>
+            <div className="text-2xl font-bold">R{roiMetrics.totalRevenueUplift.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              Measures profit return on inventory investment.
+              Additional revenue generated this month.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Net Gain/Loss
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${roiMetrics.netGainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              R{roiMetrics.netGainLoss.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Revenue uplift minus subscription costs.
             </p>
           </CardContent>
         </Card>
@@ -86,11 +102,23 @@ export default function RoiPage() {
             </p>
           </CardContent>
         </card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Gross Merchandise ROI (GMROI)
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{roiMetrics.gmroi}%</div>
+            <p className="text-xs text-muted-foreground">
+              Measures profit return on inventory investment.
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <SalesPerformanceChart data={salesData} />
     </div>
   );
 }
-
-

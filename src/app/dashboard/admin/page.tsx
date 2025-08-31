@@ -18,16 +18,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { storesByRegion } from '@/lib/data';
+import { retailPortfolio } from '@/lib/data';
 import { Upload } from 'lucide-react';
 
 export default function AdminPage() {
-  const allStores = storesByRegion.flatMap(region => 
-    region.stores.map(store => ({
-      name: store.name,
-      province: region.province,
-      code: store.code,
-    }))
+  const allStores = retailPortfolio.flatMap(brand =>
+    brand.regions.flatMap(region =>
+      region.areas.flatMap(area =>
+        area.stores.map(store => ({
+          brand: brand.brand,
+          region: region.name,
+          area: area.name,
+          storeName: store.name,
+          storeCode: store.code,
+        }))
+      )
+    )
   );
 
   return (
@@ -76,24 +82,33 @@ export default function AdminPage() {
         <CardHeader>
           <CardTitle>Store Management</CardTitle>
           <CardDescription>
-            Add new stores and manage existing locations.
+            Manage your retail structure, from brands and regions down to individual stores.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="store-name">Store Name</Label>
-              <Input id="store-name" placeholder="e.g., Sandton City" />
+              <Label htmlFor="brand-name">Brand Name</Label>
+              <Input id="brand-name" placeholder="e.g., Your Retail Brand" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="province">Province</Label>
-              <Input id="province" placeholder="e.g., Gauteng" />
+              <Label htmlFor="region-name">Region Name</Label>
+              <Input id="region-name" placeholder="e.g., Gauteng" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="area-name">Area Name</Label>
+              <Input id="area-name" placeholder="e.g., Johannesburg North" />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="store-name">Store Name</Label>
+              <Input id="store-name" placeholder="e.g., Sandton City" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="store-code">Store Code</Label>
               <Input id="store-code" type="number" placeholder="e.g., 1001" />
             </div>
           </div>
+
           <Button>Add Store</Button>
           <Separator />
            <h3 className="text-lg font-medium pt-4">Existing Stores</h3>
@@ -101,17 +116,21 @@ export default function AdminPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Brand</TableHead>
+                  <TableHead>Region</TableHead>
+                  <TableHead>Area</TableHead>
                   <TableHead>Store Name</TableHead>
-                  <TableHead>Province</TableHead>
                   <TableHead>Store Code</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {allStores.map((store, index) => (
                   <TableRow key={index}>
-                    <TableCell className="font-medium">{store.name}</TableCell>
-                    <TableCell>{store.province}</TableCell>
-                    <TableCell>{store.code}</TableCell>
+                    <TableCell className="font-medium">{store.brand}</TableCell>
+                    <TableCell>{store.region}</TableCell>
+                    <TableCell>{store.area}</TableCell>
+                    <TableCell>{store.storeName}</TableCell>
+                    <TableCell>{store.storeCode}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

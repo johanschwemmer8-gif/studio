@@ -120,6 +120,64 @@ export const storesByRegion = [
   { province: 'Northern Cape', stores: [{ name: 'Diamond Pavilion Mall', code: 9001 }] },
 ];
 
+export const retailPortfolio = [
+  {
+    brand: 'iNteract Retail',
+    regions: [
+      {
+        name: 'Gauteng',
+        areas: [
+          {
+            name: 'Johannesburg North',
+            stores: [
+              { name: 'Sandton City', code: 1001 },
+              { name: 'Mall of Africa', code: 1003 },
+            ],
+          },
+          {
+            name: 'Pretoria',
+            stores: [{ name: 'Menlyn Park', code: 1002 }],
+          },
+        ],
+      },
+      {
+        name: 'Western Cape',
+        areas: [
+          {
+            name: 'Cape Town City Bowl',
+            stores: [{ name: 'V&A Waterfront', code: 2001 }],
+          },
+          {
+            name: 'Century City',
+            stores: [{ name: 'Canal Walk', code: 2002 }],
+          },
+          {
+            name: 'Northern Suburbs',
+            stores: [{ name: 'Tyger Valley', code: 2003 }],
+          },
+        ],
+      },
+       {
+        name: 'KwaZulu-Natal',
+        areas: [
+          {
+            name: 'Durban',
+            stores: [
+              { name: 'Gateway Theatre of Shopping', code: 3001 },
+              { name: 'The Pavilion', code: 3002 },
+            ],
+          },
+           {
+            name: 'Pietermaritzburg',
+            stores: [{ name: 'Midlands Mall', code: 3003 }],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+
 const storeMetrics: Record<string, ReturnType<typeof generateRandomMetrics>> = {};
 storesByRegion.flatMap(r => r.stores).forEach(store => {
   storeMetrics[store.name] = generateRandomMetrics();

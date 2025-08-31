@@ -17,16 +17,24 @@ import YtdPerformanceChart from '@/components/dashboard/ytd-performance-chart';
 
 
 export default function DashboardPage() {
-  const [selectedStore, setSelectedStore] = useState<string | null>('All Stores');
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 
   const handleStoreChange = (store: string | null) => {
     setSelectedStore(store);
+  };
+  
+  const handleRegionChange = (region: string | null) => {
+    setSelectedRegion(region);
+    setSelectedStore(null); // Reset store when region changes
   };
 
   return (
     <div className="space-y-8">
       <StoreSelector
         regions={storesByRegion}
+        selectedRegion={selectedRegion}
+        onRegionChange={handleRegionChange}
         selectedStore={selectedStore}
         onStoreChange={handleStoreChange}
       />

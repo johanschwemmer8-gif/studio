@@ -12,8 +12,8 @@ import { Building2, Globe } from 'lucide-react';
 
 type StoreSelectorProps = {
   regions: { province: string; stores: {name: string, code: number}[] }[];
-  selectedRegion: string | null;
-  onRegionChange: (region: string | null) => void;
+  selectedRegion?: string | null;
+  onRegionChange?: (region: string | null) => void;
   selectedStore: string | null;
   onStoreChange: (store: string | null) => void;
 };
@@ -29,38 +29,43 @@ export default function StoreSelector({
   const storesInRegion = regions.find(r => r.province === selectedRegion)?.stores || [];
 
   const handleRegionChange = (province: string) => {
-    onRegionChange(province === 'All Regions' ? 'All Regions' : province);
+    onRegionChange?.(province === 'All Regions' ? null : province);
   };
   
   const handleStoreChange = (store: string) => {
     onStoreChange(store === 'All Stores' ? null : store);
   };
 
+  const isRegionSelectorDisabled = !onRegionChange;
+  const isStoreSelectorDisabled = !selectedRegion || selectedRegion === 'All Regions';
+
   return (
     <div className="flex flex-col sm:flex-row gap-4">
-      <div className="flex-1">
-        <Select value={selectedRegion || 'All Regions'} onValueChange={handleRegionChange}>
-          <SelectTrigger className="w-full">
-             <div className="flex items-center gap-2">
-                <Globe />
-                <SelectValue placeholder="Select a Region" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All Regions">All Regions</SelectItem>
-            {regions.map(region => (
-              <SelectItem key={region.province} value={region.province}>
-                {region.province}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {onRegionChange && (
+        <div className="flex-1">
+          <Select value={selectedRegion || 'All Regions'} onValueChange={handleRegionChange} disabled={isRegionSelectorDisabled}>
+            <SelectTrigger className="w-full">
+               <div className="flex items-center gap-2">
+                  <Globe />
+                  <SelectValue placeholder="Select a Region" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All Regions">All Regions</SelectItem>
+              {regions.map(region => (
+                <SelectItem key={region.province} value={region.province}>
+                  {region.province}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="flex-1">
         <Select
           value={selectedStore || 'All Stores'}
           onValueChange={handleStoreChange}
-          disabled={!selectedRegion || selectedRegion === 'All Regions'}
+          disabled={isStoreSelectorDisabled}
         >
           <SelectTrigger className="w-full">
             <div className="flex items-center gap-2">

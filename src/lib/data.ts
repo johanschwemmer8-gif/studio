@@ -132,7 +132,7 @@ export const storesByRegion = [
   { province: 'Northern Cape', stores: [{ name: 'Diamond Pavilion Mall', code: 9001 }] },
 ];
 
-export const retailPortfolio = [
+export let retailPortfolio = [
   {
     brand: 'iNteract Retail',
     regions: [

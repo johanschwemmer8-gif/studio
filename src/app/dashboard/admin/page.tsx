@@ -302,34 +302,36 @@ export default function AdminPage() {
         <CardHeader>
           <CardTitle>Store Management</CardTitle>
           <CardDescription>
-            Manage your retail structure, from brands and regions down to individual stores.
+            Manage your retail structure. First, select a brand above, then add regions, areas, and stores.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="brand-name">Brand Name</Label>
-              <Input id="brand-name" placeholder="Select a brand above" value={selectedBrand || ''} readOnly />
+          <fieldset disabled={!selectedBrand} className="disabled:opacity-50">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="brand-name">Brand Name</Label>
+                  <Input id="brand-name" placeholder="Select a brand to begin" value={selectedBrand || ''} readOnly />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="region-name">Region Name</Label>
+                  <Input id="region-name" placeholder="e.g., Gauteng" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="area-name">Area Name</Label>
+                  <Input id="area-name" placeholder="e.g., Johannesburg North" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="store-name">Store Name</Label>
+                  <Input id="store-name" placeholder="e.g., Sandton City" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="store-code">Store Code</Label>
+                  <Input id="store-code" type="number" placeholder="e.g., 1001" />
+                </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="region-name">Region Name</Label>
-              <Input id="region-name" placeholder="e.g., Gauteng" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="area-name">Area Name</Label>
-              <Input id="area-name" placeholder="e.g., Johannesburg North" />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="store-name">Store Name</Label>
-              <Input id="store-name" placeholder="e.g., Sandton City" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="store-code">Store Code</Label>
-              <Input id="store-code" type="number" placeholder="e.g., 1001" />
-            </div>
-          </div>
 
-          <Button>Add Store</Button>
+            <Button className="mt-6">Add Store</Button>
+          </fieldset>
           <Separator />
            <h3 className="text-lg font-medium pt-4">Existing Stores</h3>
           <div className="border rounded-md">

@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import EngagementMetrics from '@/components/dashboard/engagement-metrics';
 import StoresByRegion from '@/components/dashboard/stores-by-region';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
@@ -25,8 +24,6 @@ export default function DashboardPage() {
         selectedStore={selectedStore}
         onStoreChange={handleStoreChange}
       />
-      <Separator />
-      <EngagementMetrics stats={metrics.stats} />
       <Separator />
       <PerformanceMetrics stats={metrics.stats} />
       <Separator />

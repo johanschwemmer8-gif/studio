@@ -117,3 +117,19 @@ export const dashboardMetrics = {
     return storeMetrics[storeName] || allStoresMetrics;
   },
 };
+
+export const roiMetrics = {
+  gmroi: 18.5,
+  basketUplift: 15.8,
+  offerRedemptionRate: 22.4,
+  engagementToConversion: 8.2,
+};
+
+export const salesData = [
+  { name: 'Jan', revenue: 4000, scans: 240, crossSells: 120 },
+  { name: 'Feb', revenue: 3000, scans: 139, crossSells: 98 },
+  { name: 'Mar', revenue: 2000, scans: 980, crossSells: 450 },
+  { name: 'Apr', revenue: 2780, scans: 390, crossSells: 210 },
+  { name: 'May', revenue: 1890, scans: 480, crossSells: 250 },
+  { name: 'Jun', revenue: 2390, scans: 380, crossSells: 190 },
+];

@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Home, QrCodeIcon } from 'lucide-react';
+import { Home, QrCodeIcon, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -40,6 +40,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/qr-generator">
                   <QrCodeIcon />
                   <span>QR Generator</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Retailer ROI">
+                <Link href="/dashboard/roi">
+                  <TrendingUp />
+                  <span>Retailer ROI</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

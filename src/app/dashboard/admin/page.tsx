@@ -332,6 +332,88 @@ export default function AdminPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Store Management</CardTitle>
+          <CardDescription>
+            Manage your retail structure. First, select a brand above, then add, remove, or view stores.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <fieldset disabled={!selectedBrand} className="disabled:opacity-50">
+             <h3 className="text-lg font-medium pt-4 border-b pb-2 mb-4">Add a New Store to "{selectedBrand || '...'}"</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Store Name</Label>
+                  <Input id="name" placeholder="e.g., Sandton City" value={newStore.name} onChange={handleNewStoreChange}/>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="code">Store Code</Label>
+                  <Input id="code" type="number" placeholder="e.g., 1001" value={newStore.code} onChange={handleNewStoreChange}/>
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input id="address" placeholder="e.g., 83 Rivonia Rd, Sandhurst" value={newStore.address} onChange={handleNewStoreChange}/>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact">Contact Information</Label>
+                  <Input id="contact" placeholder="e.g., 011 217 6000" value={newStore.contact} onChange={handleNewStoreChange}/>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="region">Region Name (Optional)</Label>
+                  <Input id="region" placeholder="e.g., Gauteng" value={newStore.region} onChange={handleNewStoreChange}/>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="area">Area Name (Optional)</Label>
+                  <Input id="area" placeholder="e.g., Johannesburg North" value={newStore.area} onChange={handleNewStoreChange}/>
+                </div>
+            </div>
+
+            <Button className="mt-6" onClick={handleAddStore}>Add Store</Button>
+          </fieldset>
+          <Separator />
+           <h3 className="text-lg font-medium pt-4">Store Directory</h3>
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Brand</TableHead>
+                  <TableHead>Store Name</TableHead>
+                  <TableHead>Store Code</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {allStores.map((store, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{store.brand}</TableCell>
+                    <TableCell>{store.name}</TableCell>
+                    <TableCell>{store.code}</TableCell>
+                    <TableCell>{store.address}</TableCell>
+                    <TableCell>{store.contact}</TableCell>
+                     <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveStore(store.brand, store.code)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <span className="sr-only">Remove Store</span>
+                        </Button>
+                      </TableCell>
+                  </TableRow>
+                ))}
+                 {allStores.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center p-8 text-muted-foreground">
+                      No stores found. Select a brand and add one above.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
           <CardTitle>QR Code Management</CardTitle>
           <CardDescription>
             Create and manage QR codes for your products. Customers can scan these in-store to
@@ -391,88 +473,8 @@ export default function AdminPage() {
           </div>
         </CardContent>
       </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Store Management</CardTitle>
-          <CardDescription>
-            Manage your retail structure. First, select a brand above, then add, remove, or view stores.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <fieldset disabled={!selectedBrand} className="disabled:opacity-50">
-             <h3 className="text-lg font-medium pt-4 border-b pb-2 mb-4">Add a New Store to "{selectedBrand || '...'}"</h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Store Name</Label>
-                  <Input id="name" placeholder="e.g., Sandton City" value={newStore.name} onChange={handleNewStoreChange}/>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="code">Store Code</Label>
-                  <Input id="code" type="number" placeholder="e.g., 1001" value={newStore.code} onChange={handleNewStoreChange}/>
-                </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input id="address" placeholder="e.g., 83 Rivonia Rd, Sandhurst" value={newStore.address} onChange={handleNewStoreChange}/>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact">Contact Information</Label>
-                  <Input id="contact" placeholder="e.g., 011 217 6000" value={newStore.contact} onChange={handleNewStoreChange}/>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="region">Region Name (Optional)</Label>
-                  <Input id="region" placeholder="e.g., Gauteng" value={newStore.region} onChange={handleNewStoreChange}/>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="area">Area Name (Optional)</Label>
-                  <Input id="area" placeholder="e.g., Johannesburg North" value={newStore.area} onChange={handleNewStoreChange}/>
-                </div>
-            </div>
-
-            <Button className="mt-6" onClick={handleAddStore}>Add Store</Button>
-          </fieldset>
-          <Separator />
-           <h3 className="text-lg font-medium pt-4">Store Directory</h3>
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Brand</TableHead>
-                  <TableHead>Store Name</TableHead>
-                  <TableHead>Store Code</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {allStores.map((store, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{store.brand}</TableCell>
-                    <TableCell>{store.storeName}</TableCell>
-                    <TableCell>{store.code}</TableCell>
-                    <TableCell>{store.address}</TableCell>
-                    <TableCell>{store.contact}</TableCell>
-                     <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveStore(store.brand, store.code)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                          <span className="sr-only">Remove Store</span>
-                        </Button>
-                      </TableCell>
-                  </TableRow>
-                ))}
-                 {allStores.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center p-8 text-muted-foreground">
-                      No stores found. Select a brand and add one above.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
+
+    

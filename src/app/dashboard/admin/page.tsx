@@ -20,6 +20,13 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { retailPortfolio } from '@/lib/data';
 import { Upload } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function AdminPage() {
   const allStores = retailPortfolio.flatMap(brand =>
@@ -35,6 +42,8 @@ export default function AdminPage() {
       )
     )
   );
+  
+  const brands = retailPortfolio.map(b => b.brand);
 
   return (
     <div className="space-y-8">
@@ -47,18 +56,47 @@ export default function AdminPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Brand Customization</CardTitle>
+          <CardTitle>Individual Brand Customization</CardTitle>
           <CardDescription>
             Tailor the look and feel of the platform to match your brand identity.
+            Select a brand to customize its theme.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="primary-color">Primary Color</Label>
-            <div className="flex items-center gap-4">
-              <Input id="primary-color" type="color" defaultValue="#1E90FF" className="w-16 p-1"/>
-              <p className="text-sm text-muted-foreground">
-                Choose a primary color for buttons and highlights.
+           <div className="space-y-2 max-w-sm">
+            <Label htmlFor="brand-select">Select Brand</Label>
+            <Select>
+              <SelectTrigger id="brand-select">
+                <SelectValue placeholder="Select a brand..." />
+              </SelectTrigger>
+              <SelectContent>
+                {brands.map(brand => (
+                  <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Separator />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="primary-color">Primary Color</Label>
+              <Input id="primary-color" type="color" defaultValue="#1E90FF" className="w-full p-1"/>
+              <p className="text-xs text-muted-foreground">
+                Main brand color for buttons and highlights.
+              </p>
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="background-color">Background Color</Label>
+              <Input id="background-color" type="color" defaultValue="#F8F8F8" className="w-full p-1"/>
+              <p className="text-xs text-muted-foreground">
+                The main background color for the app.
+              </p>
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="accent-color">Accent Color</Label>
+              <Input id="accent-color" type="color" defaultValue="#FFD700" className="w-full p-1"/>
+              <p className="text-xs text-muted-foreground">
+                Color for accents, special offers, and AI features.
               </p>
             </div>
           </div>

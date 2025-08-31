@@ -1,10 +1,10 @@
+
 'use client';
 import { useState } from 'react';
 import StoresByRegion from '@/components/dashboard/stores-by-region';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
 import { dashboardMetrics, storesByRegion } from '@/lib/data';
-import PerformanceMetrics from '@/components/dashboard/performance-metrics';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 import StoreSelector from '@/components/dashboard/store-selector';
 
@@ -24,8 +24,6 @@ export default function DashboardPage() {
         selectedStore={selectedStore}
         onStoreChange={handleStoreChange}
       />
-      <Separator />
-      <PerformanceMetrics stats={metrics.stats} />
       <Separator />
       <div className="grid lg:grid-cols-2 gap-8">
         <TopProductsTable data={metrics.topProducts} />

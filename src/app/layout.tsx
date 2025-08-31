@@ -26,7 +26,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased" suppressHydrationWarning>
+      <body className="font-body antialiased futuristic-background" suppressHydrationWarning>
         {children}
         <Toaster />
       </body>

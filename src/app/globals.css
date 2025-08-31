@@ -32,9 +32,9 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 224 71% 9%;
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
@@ -48,7 +48,7 @@
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
+    --border: 217.2 32.6% 22.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 197 76% 53%;
     --chart-1: 197 76% 53%;
@@ -80,5 +80,28 @@
     100% {
       transform: translateY(calc(100% - 4px));
     }
+  }
+
+  .futuristic-background {
+      @apply relative isolate;
+  }
+
+  .futuristic-background::before,
+  .futuristic-background::after {
+      content: '';
+      @apply absolute inset-0 -z-10;
+  }
+
+  /* Radial gradient for the futuristic glow */
+  .futuristic-background::before {
+      background: radial-gradient(circle at center, hsla(var(--primary), 0.1), transparent 40%);
+  }
+
+  /* Subtle grid pattern */
+  .futuristic-background::after {
+      background-image:
+          linear-gradient(to right, hsla(var(--border), 0.2) 1px, transparent 1px),
+          linear-gradient(to bottom, hsla(var(--border), 0.2) 1px, transparent 1px);
+      background-size: 3rem 3rem;
   }
 }

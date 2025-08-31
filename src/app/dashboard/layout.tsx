@@ -1,4 +1,3 @@
-import { AppLogo } from '@/components/app-logo';
 import {
   Sidebar,
   SidebarProvider,
@@ -23,7 +22,7 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <AppLogo />
+            <Link href="/" className="font-bold text-lg">iNteract- AOE</Link>
           </div>
         </SidebarHeader>
         <SidebarContent>

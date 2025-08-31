@@ -1,14 +1,13 @@
 import QrScanner from '@/components/qr-scanner';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { AppLogo } from '@/components/app-logo';
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
-        <Link href="/" className="flex items-center gap-2">
-          <AppLogo />
+        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+          iNteract- AOE
         </Link>
         <Button asChild variant="ghost">
           <Link href="/dashboard">Retailer Dashboard</Link>

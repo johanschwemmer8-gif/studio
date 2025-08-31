@@ -28,7 +28,7 @@ export default function ScanFrequencyChart({ data }: { data: ChartData }) {
       <CardHeader>
         <CardTitle>Scan Frequency</CardTitle>
         <CardDescription>
-          Total QR code scans over the last 6 months.
+          Total QR code scans over the current financial year.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -6,6 +6,7 @@ import AiRecommendations from '@/components/product/ai-recommendations';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ProductChatbot from '@/components/product/product-chatbot';
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const product = findProductById(params.id);
@@ -43,6 +44,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               R{product.price.toFixed(2)}
             </p>
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+
+            <ProductChatbot product={product} />
           </div>
         </div>
         <div className="mt-12 lg:mt-16">

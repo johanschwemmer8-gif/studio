@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'iNteract- AOE',
+  title: 'iNteract - AOE',
   description: 'Scan, Discover, and Get Recommendations.',
 };
 

@@ -68,7 +68,15 @@ export const dashboardMetrics = {
     qrCodeScanRate: 75.3,
     averageTransactionValue: 120.5,
     gmroi: 3.5,
+    offerRedemptionRate: 22.4,
+    basketUplift: 15.8,
   },
+  timeBasedPerformance: [
+    { time: 'Morning', engagement: 65, conversion: 15 },
+    { time: 'Afternoon', engagement: 85, conversion: 25 },
+    { time: 'Evening', engagement: 70, conversion: 20 },
+    { time: 'Weekend', engagement: 95, conversion: 30 },
+  ]
 };
 
 export const storesByRegion = [

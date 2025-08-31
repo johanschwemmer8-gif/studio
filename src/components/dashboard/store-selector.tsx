@@ -37,7 +37,7 @@ export default function StoreSelector({
   };
 
   const isRegionSelectorDisabled = !onRegionChange;
-  const isStoreSelectorDisabled = !selectedRegion || selectedRegion === 'All Regions';
+  const isStoreSelectorDisabled = !selectedRegion;
 
   return (
     <div className="flex flex-col sm:flex-row gap-4">

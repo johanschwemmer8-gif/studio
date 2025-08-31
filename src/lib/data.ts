@@ -35,6 +35,14 @@ export const findProductById = (id: string | number) => {
 };
 
 export const dashboardMetrics = {
+  salesPerformance: [
+    { name: 'Jan', revenue: 10000, scans: 400, crossSells: 150 },
+    { name: 'Feb', revenue: 9500, scans: 300, crossSells: 120 },
+    { name: 'Mar', revenue: 12000, scans: 500, crossSells: 200 },
+    { name: 'Apr', revenue: 11000, scans: 450, crossSells: 180 },
+    { name: 'May', revenue: 13000, scans: 600, crossSells: 250 },
+    { name: 'Jun', revenue: 15000, scans: 800, crossSells: 300 },
+  ],
   scanFrequency: [
     { name: 'Jan', scans: 400 },
     { name: 'Feb', scans: 300 },

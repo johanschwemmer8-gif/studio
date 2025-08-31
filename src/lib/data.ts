@@ -1,3 +1,4 @@
+
 export type Product = {
   id: string;
   name: string;
@@ -83,30 +84,45 @@ const generateRandomMetrics = () => ({
 export const storesByRegion = [
   {
     province: 'Gauteng',
-    stores: ['Sandton City', 'Menlyn Park', 'Mall of Africa'],
+    stores: [
+      { name: 'Sandton City', code: 1001 },
+      { name: 'Menlyn Park', code: 1002 },
+      { name: 'Mall of Africa', code: 1003 },
+    ],
   },
   {
     province: 'Western Cape',
-    stores: ['V&A Waterfront', 'Canal Walk', 'Tyger Valley'],
+    stores: [
+      { name: 'V&A Waterfront', code: 2001 },
+      { name: 'Canal Walk', code: 2002 },
+      { name: 'Tyger Valley', code: 2003 },
+    ],
   },
   {
     province: 'KwaZulu-Natal',
-    stores: ['Gateway Theatre of Shopping', 'The Pavilion', 'Midlands Mall'],
+    stores: [
+      { name: 'Gateway Theatre of Shopping', code: 3001 },
+      { name: 'The Pavilion', code: 3002 },
+      { name: 'Midlands Mall', code: 3003 },
+    ],
   },
   {
     province: 'Eastern Cape',
-    stores: ['Baywest Mall', 'Greenacres Shopping Centre'],
+    stores: [
+      { name: 'Baywest Mall', code: 4001 },
+      { name: 'Greenacres Shopping Centre', code: 4002 },
+    ],
   },
-  { province: 'Free State', stores: ['Loch Logan Waterfront'] },
-  { province: 'Limpopo', stores: ['Mall of the North'] },
-  { province: 'Mpumalanga', stores: ['I\'langa Mall'] },
-  { province: 'North West', stores: ['Waterfall Mall'] },
-  { province: 'Northern Cape', stores: ['Diamond Pavilion Mall'] },
+  { province: 'Free State', stores: [{ name: 'Loch Logan Waterfront', code: 5001 }] },
+  { province: 'Limpopo', stores: [{ name: 'Mall of the North', code: 6001 }] },
+  { province: 'Mpumalanga', stores: [{ name: 'I\'langa Mall', code: 7001 }] },
+  { province: 'North West', stores: [{ name: 'Waterfall Mall', code: 8001 }] },
+  { province: 'Northern Cape', stores: [{ name: 'Diamond Pavilion Mall', code: 9001 }] },
 ];
 
 const storeMetrics: Record<string, ReturnType<typeof generateRandomMetrics>> = {};
 storesByRegion.flatMap(r => r.stores).forEach(store => {
-  storeMetrics[store] = generateRandomMetrics();
+  storeMetrics[store.name] = generateRandomMetrics();
 });
 
 export const dashboardMetrics = {

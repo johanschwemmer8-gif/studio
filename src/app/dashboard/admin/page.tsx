@@ -24,9 +24,9 @@ import { Upload } from 'lucide-react';
 export default function AdminPage() {
   const allStores = storesByRegion.flatMap(region => 
     region.stores.map(store => ({
-      name: store,
+      name: store.name,
       province: region.province,
-      code: `${region.province.slice(0, 2).toUpperCase()}-${store.replace(/\s+/g, '').slice(0, 4).toUpperCase()}`
+      code: store.code,
     }))
   );
 
@@ -91,7 +91,7 @@ export default function AdminPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="store-code">Store Code</Label>
-              <Input id="store-code" placeholder="e.g., GP-SAND" />
+              <Input id="store-code" type="number" placeholder="e.g., 1001" />
             </div>
           </div>
           <Button>Add Store</Button>

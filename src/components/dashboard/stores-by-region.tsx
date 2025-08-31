@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -29,9 +30,9 @@ export default function StoresByRegion() {
               <AccordionContent>
                 <ul className="space-y-3 pt-2">
                   {region.stores.map((store) => (
-                    <li key={store} className="flex items-center gap-3 text-muted-foreground">
+                    <li key={store.name} className="flex items-center gap-3 text-muted-foreground">
                       <Building2 className="h-4 w-4" />
-                      <span>{store}</span>
+                      <span>{store.name}</span>
                     </li>
                   ))}
                 </ul>

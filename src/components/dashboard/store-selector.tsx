@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,7 +12,7 @@ import {
 import { Building2, Globe } from 'lucide-react';
 
 type StoreSelectorProps = {
-  regions: { province: string; stores: string[] }[];
+  regions: { province: string; stores: {name: string, code: number}[] }[];
   selectedStore: string | null;
   onStoreChange: (store: string | null) => void;
 };
@@ -68,8 +69,8 @@ export default function StoreSelector({
           <SelectContent>
             <SelectItem value="All Stores">All Stores in Region</SelectItem>
             {storesInRegion.map(store => (
-              <SelectItem key={store} value={store}>
-                {store}
+              <SelectItem key={store.name} value={store.name}>
+                {store.name}
               </SelectItem>
             ))}
           </SelectContent>

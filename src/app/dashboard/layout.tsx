@@ -1,4 +1,3 @@
-import { AppLogo } from '@/components/app-logo';
 import {
   Sidebar,
   SidebarProvider,
@@ -11,7 +10,6 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Home, TrendingUp, Cog, Server, BarChart, Blocks } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -25,7 +23,11 @@ export default function DashboardLayout({
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Link href="/" className="font-bold text-lg">
-              <AppLogo />
+               <div className="flex items-center gap-2" aria-label="iNteract-AOE Logo">
+                 <span className="text-xl font-bold tracking-tight text-foreground">
+                    <span className="text-blue-500">iN</span>teract
+                </span>
+              </div>
             </Link>
           </div>
         </SidebarHeader>

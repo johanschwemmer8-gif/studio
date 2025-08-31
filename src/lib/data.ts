@@ -60,7 +60,9 @@ export const dashboardMetrics = {
   ],
   stats: {
     totalScans: 3150,
-    uniqueProducts: 42,
+    uniqueScans: 1890,
+    scanRate: 75.3,
+    engagementDuration: 45,
     recommendationCTR: 18.2,
     customerConversionRate: 12.5,
     qrCodeScanRate: 75.3,

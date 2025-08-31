@@ -26,9 +26,9 @@ export default function TopProductsTable({ data }: { data: TableData }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Scanned Products</CardTitle>
+        <CardTitle>Top-Scanned Products</CardTitle>
         <CardDescription>
-          The most frequently scanned products.
+          The most frequently scanned products by customers.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -24,7 +24,7 @@ export default function RetailerLandingPage({ params }: { params: { name: string
                     {retailerName}
                 </Link>
                 <Button asChild variant="ghost">
-                    <Link href={`/dashboard?retailer=${params.name}`}>{retailerName} Dashboard</Link>
+                    <Link href={`/dashboard/dashboard?retailer=${params.name}`}>{retailerName} Dashboard</Link>
                 </Button>
             </header>
             <main className="flex-1 flex items-center justify-center p-4">

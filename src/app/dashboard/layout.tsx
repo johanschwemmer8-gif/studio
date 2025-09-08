@@ -9,12 +9,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Home, TrendingUp, Cog, Server, BarChart, Blocks, Users } from 'lucide-react';
+import { Cog } from 'lucide-react';
 import Link from 'next/link';
-import LogoutButton from '@/components/dashboard/logout-button';
-
 
 export default function DashboardLayout({
   children,
@@ -34,38 +31,6 @@ export default function DashboardLayout({
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Dashboard">
-                <Link href="/dashboard">
-                  <Home />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Retailer ROI">
-                <Link href="/dashboard/roi">
-                  <TrendingUp />
-                  <span>Retailer ROI</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Visuals & Reporting">
-                <Link href="/dashboard/visuals-reporting">
-                  <BarChart />
-                  <span>Visuals & Reporting</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Real-Time Data">
-                <Link href="/dashboard/real-time">
-                  <Server />
-                  <span>Real-Time Data</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Admin Panel">
                 <Link href="/dashboard/admin">
                   <Cog />
@@ -73,33 +38,14 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Retailers' Dashboards">
-                <Link href="/dashboard/retailers-dashboards">
-                  <Users />
-                  <span>Retailers' Dashboards</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="System & Integration Configuration">
-                <Link href="/dashboard/system-integration">
-                  <Blocks />
-                  <span>System & Integration</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-            <LogoutButton />
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b bg-card h-16">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <h1 className="text-xl font-semibold">Retailer Dashboard</h1>
+            <h1 className="text-xl font-semibold">iNteract Admin</h1>
           </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8 bg-background">{children}</main>

@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Card,
@@ -72,10 +71,7 @@ export default function AdminPage() {
 
   const [savedRetailers, setSavedRetailers] = useState<SavedRetailer[]>([]);
   
-  const router = useRouter();
-
   useEffect(() => {
-    // Load saved retailers from localStorage on component mount
     const storedRetailers = localStorage.getItem('savedRetailers');
     if (storedRetailers) {
         setSavedRetailers(JSON.parse(storedRetailers));
@@ -130,7 +126,6 @@ export default function AdminPage() {
         setSavedRetailers(updatedSavedRetailers);
         localStorage.setItem('savedRetailers', JSON.stringify(updatedSavedRetailers));
         
-        // Reset the configuration section and form
         setAddedRetailer(null);
         setNewRetailerName('');
         setBrands([]);
@@ -154,7 +149,7 @@ export default function AdminPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight mb-2">iNteract Admin Panel</h2>
         <p className="text-muted-foreground max-w-3xl">
-          Manage retailers and their associated brands, stores, and platform settings.
+          Manage retailers and their associated brands, stores, and platform settings. This section defines the template for the Retailer MVP.
         </p>
       </div>
 

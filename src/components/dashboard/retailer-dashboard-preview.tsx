@@ -65,7 +65,7 @@ export default function RetailerDashboardPreview({ retailer }: RetailerDashboard
       <Separator />
       <div className="p-4">
         <Button asChild className="w-full" size="sm">
-            <Link href={`/dashboard?retailer=${slugify(retailer.name)}`} target="_blank">
+            <Link href={`/dashboard/dashboard?retailer=${slugify(retailer.name)}`} target="_blank">
                 <Eye className="mr-2 h-4 w-4" />
                 View Full Dashboard
             </Link>

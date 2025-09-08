@@ -28,7 +28,7 @@ export default function RetailerSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Dashboard">
-                <Link href="/dashboard/dashboard">
+                <Link href="/retailer-mvp/dashboard">
                   <Home />
                   <span>Dashboard</span>
                 </Link>
@@ -36,7 +36,7 @@ export default function RetailerSidebar() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Retailer ROI">
-                <Link href="/dashboard/roi">
+                <Link href="/retailer-mvp/roi">
                   <TrendingUp />
                   <span>Retailer ROI</span>
                 </Link>
@@ -44,7 +44,7 @@ export default function RetailerSidebar() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Visuals & Reporting">
-                <Link href="/dashboard/visuals-reporting">
+                <Link href="/retailer-mvp/visuals-reporting">
                   <BarChart />
                   <span>Visuals & Reporting</span>
                 </Link>
@@ -52,7 +52,7 @@ export default function RetailerSidebar() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Real-Time Data">
-                <Link href="/dashboard/real-time">
+                <Link href="/retailer-mvp/real-time">
                   <Server />
                   <span>Real-Time Data</span>
                 </Link>
@@ -60,7 +60,7 @@ export default function RetailerSidebar() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="System & Integration Configuration">
-                <Link href="/dashboard/system-integration">
+                <Link href="/retailer-mvp/system-integration">
                   <Blocks />
                   <span>System & Integration</span>
                 </Link>

@@ -72,7 +72,7 @@ export default function RetailersDashboardsPage() {
                 Clicking the button below will take you to the live, editable version of the Retailer Dashboard. All changes made there will be reflected in the template that gets deployed to all retailers.
             </p>
             <Button asChild size="lg">
-                <Link href="/dashboard/dashboard">
+                <Link href="/retailer-mvp/dashboard" target="_blank" rel="noopener noreferrer">
                     Edit MVP Template
                 </Link>
             </Button>

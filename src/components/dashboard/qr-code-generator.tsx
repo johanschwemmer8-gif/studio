@@ -93,5 +93,3 @@ export default function QrCodeGenerator({ onQrGenerated }: QrCodeGeneratorProps)
     </div>
   );
 }
-
-    

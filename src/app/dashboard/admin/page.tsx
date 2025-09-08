@@ -1,8 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -43,7 +44,7 @@ type User = {
 
 type Brand = { name: string; stores: Store[]; users: User[] };
 
-type SavedRetailer = {
+export type SavedRetailer = {
   name: string;
   brands: Brand[];
 };
@@ -57,6 +58,10 @@ const initialPermissions: Permissions = {
   systemIntegration: false,
 };
 
+function slugify(text: string) {
+    return text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+}
+
 export default function AdminPage() {
   const [newRetailerName, setNewRetailerName] = useState('');
   const [addedRetailer, setAddedRetailer] = useState<string | null>(null);
@@ -67,6 +72,14 @@ export default function AdminPage() {
   const [savedRetailers, setSavedRetailers] = useState<SavedRetailer[]>([]);
   
   const router = useRouter();
+
+  useEffect(() => {
+    // Load saved retailers from localStorage on component mount
+    const storedRetailers = localStorage.getItem('savedRetailers');
+    if (storedRetailers) {
+        setSavedRetailers(JSON.parse(storedRetailers));
+    }
+  }, []);
 
   const handleAddRetailer = () => {
     if (newRetailerName.trim()) {
@@ -111,7 +124,10 @@ export default function AdminPage() {
 
   const handleSaveConfiguration = () => {
     if (addedRetailer) {
-        setSavedRetailers([...savedRetailers, { name: addedRetailer, brands }]);
+        const newSavedRetailer = { name: addedRetailer, brands };
+        const updatedSavedRetailers = [...savedRetailers, newSavedRetailer];
+        setSavedRetailers(updatedSavedRetailers);
+        localStorage.setItem('savedRetailers', JSON.stringify(updatedSavedRetailers));
         
         // Reset the configuration section and form
         setAddedRetailer(null);
@@ -175,9 +191,11 @@ export default function AdminPage() {
             <CardContent>
                 <ul className="space-y-2">
                     {savedRetailers.map((retailer, index) => (
-                        <li key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                        <li key={index} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                             <List className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{retailer.name}</span>
+                            <Link href={`/dashboard/admin/view/${slugify(retailer.name)}`} className="font-medium hover:underline">
+                                {retailer.name}
+                            </Link>
                         </li>
                     ))}
                 </ul>

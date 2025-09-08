@@ -69,14 +69,6 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="iNteract Admin panel">
-                <Link href="/dashboard/admin">
-                  <Cog />
-                  <span>iNteract Admin panel</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="System & Integration Configuration">
                 <Link href="/dashboard/system-integration">

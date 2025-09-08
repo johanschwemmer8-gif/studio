@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Cog, Rocket } from 'lucide-react';
+import { Cog, FlaskConical, Rocket } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -43,6 +43,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/retailers-dashboards">
                   <Rocket />
                   <span>Retailers' Dashboard Management</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Test MVP">
+                <Link href="/retailer-mvp/dashboard">
+                  <FlaskConical />
+                  <span>Test MVP</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

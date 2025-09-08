@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -14,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Building2, UserPlus, Save, Trash2, ShieldCheck } from 'lucide-react';
+import { PlusCircle, Building2, UserPlus, Save, Trash2, ShieldCheck, List } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
@@ -44,6 +43,11 @@ type User = {
 
 type Brand = { name: string; stores: Store[]; users: User[] };
 
+type SavedRetailer = {
+  name: string;
+  brands: Brand[];
+};
+
 const initialPermissions: Permissions = {
   dashboard: false,
   roi: false,
@@ -59,6 +63,8 @@ export default function AdminPage() {
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [newBrandName, setNewBrandName] = useState('');
+
+  const [savedRetailers, setSavedRetailers] = useState<SavedRetailer[]>([]);
   
   const router = useRouter();
 
@@ -105,9 +111,14 @@ export default function AdminPage() {
 
   const handleSaveConfiguration = () => {
     if (addedRetailer) {
-        // In a real app, you would save all the configuration data here.
-        console.log('Saving configuration for:', addedRetailer, brands);
-        // For demonstration, we just log it. You might navigate or show a success message.
+        setSavedRetailers([...savedRetailers, { name: addedRetailer, brands }]);
+        
+        // Reset the configuration section and form
+        setAddedRetailer(null);
+        setNewRetailerName('');
+        setBrands([]);
+        
+        // In a real app, you would probably show a toast notification
         alert('Retailer configuration saved!');
     }
   };
@@ -155,6 +166,25 @@ export default function AdminPage() {
         </CardContent>
       </Card>
       
+      {savedRetailers.length > 0 && (
+        <Card>
+            <CardHeader>
+                <CardTitle>Retailers Added</CardTitle>
+                <CardDescription>A list of all successfully configured retailers.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ul className="space-y-2">
+                    {savedRetailers.map((retailer, index) => (
+                        <li key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                            <List className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{retailer.name}</span>
+                        </li>
+                    ))}
+                </ul>
+            </CardContent>
+        </Card>
+      )}
+
       {addedRetailer && (
         <Card>
           <CardHeader>

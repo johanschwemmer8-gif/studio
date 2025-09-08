@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, UserPlus, Trash2, Edit } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import {
   Dialog,
@@ -42,6 +42,7 @@ type User = {
 
 export default function UserAdminPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [users, setUsers] = useState<User[]>([
     { name: 'Admin User', email: 'admin@interact.io', role: 'Administrator' },
   ]);
@@ -117,7 +118,19 @@ export default function UserAdminPage() {
                                 <Label htmlFor="password" className="text-right">
                                     Password
                                 </Label>
-                                <Input id="password" name="password" type="password" required className="col-span-3" />
+                                <div className="col-span-3 relative">
+                                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} required className="pr-10" />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 h-6 w-6 text-muted-foreground"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                         <DialogFooter>

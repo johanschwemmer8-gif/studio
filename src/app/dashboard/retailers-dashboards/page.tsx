@@ -49,7 +49,7 @@ export default function RetailersDashboardsPage() {
           <div className="flex gap-2">
              <Button size="lg" onClick={() => setShowPreview(!showPreview)}>
               <Eye className="mr-2 h-4 w-4" />
-              {showPreview ? 'Hide' : 'Show'} MVP Preview
+              {showPreview ? 'Hide MVP Preview' : 'Show MVP Preview'}
             </Button>
             <Button size="lg" onClick={handleUpdateAll} variant="destructive">
               <Upload className="mr-2 h-4 w-4" />

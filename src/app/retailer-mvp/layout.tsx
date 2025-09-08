@@ -26,9 +26,9 @@ export default function RetailerMvpLayout({
             <h1 className="text-xl font-semibold">Retailer Dashboard</h1>
           </div>
           <Button asChild>
-            <Link href="/dashboard/admin">
+            <Link href="/dashboard/retailers-dashboards">
               <ArrowLeft />
-              <span>Back to iNteract Admin Panel</span>
+              <span>Back to Retailer's Dashboard Management</span>
             </Link>
           </Button>
         </header>

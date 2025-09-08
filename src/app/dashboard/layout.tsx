@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -35,6 +35,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/admin">
                   <Cog />
                   <span>iNteract Admin Panel</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="iNteract Core Integration">
+                <Link href="/dashboard/core-integration">
+                  <DatabaseZap />
+                  <span>iNteract Core Integration</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

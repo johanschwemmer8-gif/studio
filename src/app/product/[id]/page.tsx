@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProductChatbot from '@/components/product/product-chatbot';
+import theme from '@/config/theme.json';
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const product = findProductById(params.id);
@@ -14,6 +15,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   if (!product) {
     notFound();
   }
+
+  const { optionalModules } = theme;
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,13 +47,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               R{product.price.toFixed(2)}
             </p>
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
-
-            <ProductChatbot product={product} />
+            {optionalModules.productChatbot && <ProductChatbot product={product} />}
           </div>
         </div>
-        <div className="mt-12 lg:mt-16">
-          <AiRecommendations product={product} />
-        </div>
+        {optionalModules.aiRecommendations && (
+            <div className="mt-12 lg:mt-16">
+                <AiRecommendations product={product} />
+            </div>
+        )}
       </div>
     </div>
   );

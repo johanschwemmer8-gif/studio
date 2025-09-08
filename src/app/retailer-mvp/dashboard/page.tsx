@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import theme from '@/config/theme.json';
 
 
 export default function DashboardPage() {
@@ -27,6 +28,8 @@ export default function DashboardPage() {
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const { optionalModules } = theme;
 
   const handleStoreChange = (store: string | null) => {
     setSelectedStore(store);
@@ -86,10 +89,12 @@ export default function DashboardPage() {
                 A high-level overview of the key performance indicators for your investment in the iNteract-AOE platform.
               </CardDescription>
             </div>
-             <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Analyze Summary
-            </Button>
+            {optionalModules.performanceAnalysis && (
+              <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Analyze Summary
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>

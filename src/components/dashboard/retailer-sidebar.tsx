@@ -13,8 +13,11 @@ import {
 import { BarChart, Beaker, Blocks, Home, Network, Server, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
+import theme from '@/config/theme.json';
 
 export default function RetailerSidebar() {
+  const { optionalModules } = theme;
+
   return (
       <Sidebar>
         <SidebarHeader>
@@ -58,14 +61,16 @@ export default function RetailerSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="A/B Testing">
-                <Link href="/retailer-mvp/ab-testing">
-                  <Beaker />
-                  <span>A/B Testing</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {optionalModules.abTesting && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="A/B Testing">
+                  <Link href="/retailer-mvp/ab-testing">
+                    <Beaker />
+                    <span>A/B Testing</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="System & Integration Configuration">
                 <Link href="/retailer-mvp/system-integration">
@@ -74,14 +79,16 @@ export default function RetailerSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Retail Media Network">
-                <Link href="/retailer-mvp/retail-media-network">
-                  <Network />
-                  <span>Retail Media Network</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {optionalModules.retailMediaNetwork && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Retail Media Network">
+                  <Link href="/retailer-mvp/retail-media-network">
+                    <Network />
+                    <span>Retail Media Network</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>

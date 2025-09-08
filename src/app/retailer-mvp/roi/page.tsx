@@ -18,12 +18,15 @@ import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import theme from '@/config/theme.json';
 
 export default function RoiPage() {
   const metrics = dashboardMetrics.getMetrics(null); // Using all stores data for this page
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const { optionalModules } = theme;
 
   const engagementData = {
     totalScans: metrics.stats.totalScans,
@@ -83,10 +86,12 @@ export default function RoiPage() {
             These features track customer interaction with the platform and validate the adoption of the QR code system.
           </p>
         </div>
-        <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Analyze Metrics
-        </Button>
+        {optionalModules.performanceAnalysis && (
+          <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Analyze Metrics
+          </Button>
+        )}
       </div>
 
       {isAnalyzing && (

@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import theme from '@/config/theme.json';
 
 import { cn } from "@/lib/utils"
 
@@ -47,6 +48,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
+        style={{
+          borderRadius: theme.buttonStyles.borderRadius,
+          fontWeight: theme.buttonStyles.fontWeight,
+        }}
       />
     )
   }

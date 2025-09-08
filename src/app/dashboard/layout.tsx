@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/sidebar';
 import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush } from 'lucide-react';
 import Link from 'next/link';
+import theme from '@/config/theme.json';
+import Image from 'next/image';
 
 export default function DashboardLayout({
   children,
@@ -25,8 +27,12 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Link href="/" className="font-bold text-lg">
-               iNteract AOE
+            <Link href="/" className="font-bold text-lg flex items-center gap-2">
+               {theme.logoUrl ? (
+                  <Image src={theme.logoUrl} alt="Logo" width={24} height={24} className="rounded-full" />
+               ) : (
+                'iNteract AOE'
+               )}
             </Link>
           </div>
         </SidebarHeader>

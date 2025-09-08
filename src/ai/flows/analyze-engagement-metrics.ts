@@ -30,8 +30,9 @@ const AnalyzeEngagementMetricsInputSchema = z.object({
 export type AnalyzeEngagementMetricsInput = z.infer<typeof AnalyzeEngagementMetricsInputSchema>;
 
 const AnalyzeEngagementMetricsOutputSchema = z.object({
+  overallPerformance: z.string().describe('A high-level summary of the overall performance based on all provided metrics.'),
   conclusions: z.string().describe('Bulleted list of key conclusions drawn from the metrics.'),
-  recommendations: z.string().describe('Bulleted list of actionable recommendations based on the conclusions.'),
+  recommendations: z-string().describe('Bulleted list of actionable recommendations based on the conclusions.'),
 });
 export type AnalyzeEngagementMetricsOutput = z.infer<typeof AnalyzeEngagementMetricsOutputSchema>;
 
@@ -45,7 +46,7 @@ const prompt = ai.definePrompt({
   output: { schema: AnalyzeEngagementMetricsOutputSchema },
   prompt: `You are an expert retail analyst. You have been provided with a set of core engagement and conversion metrics for the iNteract-AOE in-store digital platform.
 
-Your task is to analyze these metrics, draw insightful conclusions, and provide actionable recommendations. It's crucial that you analyze the relationship between the engagement and conversion metrics.
+Your task is to analyze these metrics, write an overall performance summary, draw insightful conclusions, and provide actionable recommendations. It's crucial that you analyze the relationship between the engagement and conversion metrics.
 
 **Provided Metrics:**
 
@@ -64,11 +65,11 @@ Your task is to analyze these metrics, draw insightful conclusions, and provide 
 - Transactions Influenced by AOE: {{{conversion.aoeTransactions}}}
 
 **Instructions:**
-1.  **Analyze the data:** Identify strengths, weaknesses, opportunities, and threats (SWOT) from the provided numbers. Focus on how engagement is driving (or failing to drive) conversion.
+1.  **Summarize Overall Performance:** Start with a paragraph summarizing the overall performance. What is the big picture that the data tells you?
 2.  **Formulate Conclusions:** Based on your analysis, write a concise, bulleted list of the most important conclusions. What does the data say about the platform's performance and its impact on sales?
 3.  **Provide Recommendations:** Based on your conclusions, provide a bulleted list of clear, actionable recommendations. What should the retailer do next to improve both engagement and conversion metrics?
 
-Format your response as a JSON object with 'conclusions' and 'recommendations' fields. Ensure the text in these fields uses bullet points (e.g., "- Conclusion one.\n- Conclusion two.").`,
+Format your response as a JSON object with 'overallPerformance', 'conclusions', and 'recommendations' fields. Ensure the text in the 'conclusions' and 'recommendations' fields uses bullet points (e.g., "- Conclusion one.\\n- Conclusion two.").`,
 });
 
 const analyzeEngagementMetricsFlow = ai.defineFlow(

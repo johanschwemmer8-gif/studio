@@ -117,11 +117,17 @@ export default function RoiPage() {
                  <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
                  <CardDescription>An AI-generated analysis of your core engagement and conversion metrics.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+                <div>
+                    <h3 className="font-semibold mb-2">Overall Performance</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.overallPerformance}</p>
+                </div>
+                <Separator />
                 <div>
                     <h3 className="font-semibold mb-2">Conclusions</h3>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.conclusions}</p>
                 </div>
+                <Separator />
                  <div>
                     <h3 className="font-semibold mb-2">Recommendations</h3>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.recommendations}</p>

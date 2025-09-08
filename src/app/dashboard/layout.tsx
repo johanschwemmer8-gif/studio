@@ -1,4 +1,5 @@
 
+
 import {
   Sidebar,
   SidebarProvider,
@@ -11,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -62,6 +63,14 @@ export default function DashboardLayout({
                   <span>Retailer's Dashboard Management</span>
                 </Link>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="UI/UX Development">
+                    <Link href="/dashboard/ui-ux-development">
+                        <Brush />
+                        <span>UI/UX Development</span>
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Test MVP">

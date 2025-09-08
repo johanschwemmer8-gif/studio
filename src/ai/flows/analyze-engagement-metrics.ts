@@ -32,7 +32,7 @@ export type AnalyzeEngagementMetricsInput = z.infer<typeof AnalyzeEngagementMetr
 const AnalyzeEngagementMetricsOutputSchema = z.object({
   overallPerformance: z.string().describe('A high-level summary of the overall performance based on all provided metrics.'),
   conclusions: z.string().describe('Bulleted list of key conclusions drawn from the metrics.'),
-  recommendations: z-string().describe('Bulleted list of actionable recommendations based on the conclusions.'),
+  recommendations: z.string().describe('Bulleted list of actionable recommendations based on the conclusions.'),
 });
 export type AnalyzeEngagementMetricsOutput = z.infer<typeof AnalyzeEngagementMetricsOutputSchema>;
 

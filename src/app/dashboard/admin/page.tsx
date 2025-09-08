@@ -12,14 +12,53 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Building2, UserPlus, Save, Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+
+type Store = { name: string; code: string };
+type User = { name: string; email: string };
+type Brand = { name: string; stores: Store[]; users: User[] };
 
 export default function AdminPage() {
   const [newRetailerName, setNewRetailerName] = useState('');
+  const [addedRetailer, setAddedRetailer] = useState<string | null>(null);
+
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [newBrandName, setNewBrandName] = useState('');
 
   const handleAddRetailer = () => {
-    // Logic to add the retailer will go here
-    console.log('Adding retailer:', newRetailerName);
+    if (newRetailerName.trim()) {
+      setAddedRetailer(newRetailerName);
+    }
+  };
+
+  const handleAddBrand = () => {
+    if (newBrandName.trim()) {
+      setBrands([...brands, { name: newBrandName, stores: [], users: [] }]);
+      setNewBrandName('');
+    }
+  };
+
+  const handleAddStore = (brandIndex: number) => {
+    const newBrands = [...brands];
+    newBrands[brandIndex].stores.push({ name: '', code: '' });
+    setBrands(newBrands);
+  };
+  
+  const handleAddUser = (brandIndex: number) => {
+    const newBrands = [...brands];
+    newBrands[brandIndex].users.push({ name: '', email: '' });
+    setBrands(newBrands);
+  };
+
+  const handleRemoveItem = (brandIndex: number, type: 'store' | 'user', itemIndex: number) => {
+      const newBrands = [...brands];
+      if(type === 'store'){
+          newBrands[brandIndex].stores.splice(itemIndex, 1);
+      } else {
+          newBrands[brandIndex].users.splice(itemIndex, 1);
+      }
+      setBrands(newBrands);
   };
 
   return (
@@ -46,14 +85,82 @@ export default function AdminPage() {
                 placeholder="e.g., Example Retail Group"
                 value={newRetailerName}
                 onChange={(e) => setNewRetailerName(e.target.value)}
+                disabled={!!addedRetailer}
                 />
             </div>
-          <Button onClick={handleAddRetailer}>
+          <Button onClick={handleAddRetailer} disabled={!!addedRetailer || !newRetailerName.trim()}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add New Retailer
           </Button>
         </CardContent>
       </Card>
+      
+      {addedRetailer && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Retailer Configuration & Access: {addedRetailer}</CardTitle>
+            <CardDescription>
+             Configure brands, stores, and user access for the new retailer. This will provide them with their own replicated iNteract Retailer MVP.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4 p-4 border rounded-lg">
+                <h3 className="font-semibold">Brand Management</h3>
+                 <div className="flex gap-2">
+                    <Input
+                        placeholder="Enter new brand name"
+                        value={newBrandName}
+                        onChange={(e) => setNewBrandName(e.target.value)}
+                    />
+                    <Button onClick={handleAddBrand}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Brand
+                    </Button>
+                </div>
+                {brands.map((brand, brandIndex) => (
+                    <div key={brandIndex} className="space-y-4 p-4 border rounded-md bg-muted/50">
+                        <h4 className="font-medium text-lg">{brand.name}</h4>
+                        <div className="space-y-2">
+                            <Label>Stores</Label>
+                            {brand.stores.map((store, storeIndex) => (
+                                <div key={storeIndex} className="flex gap-2 items-center">
+                                    <Input placeholder="Store Name" defaultValue={store.name} className="flex-1" />
+                                    <Input placeholder="Store Code" defaultValue={store.code} className="w-32" />
+                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(brandIndex, 'store', storeIndex)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
+                            ))}
+                             <Button variant="outline" size="sm" onClick={() => handleAddStore(brandIndex)}>
+                                <Building2 className="mr-2 h-4 w-4" /> Add Store
+                            </Button>
+                        </div>
+                        <Separator />
+                         <div className="space-y-2">
+                            <Label>User Access</Label>
+                             {brand.users.map((user, userIndex) => (
+                                <div key={userIndex} className="flex gap-2 items-center">
+                                    <Input placeholder="User Full Name" defaultValue={user.name} className="flex-1" />
+                                    <Input placeholder="User Email" type="email" defaultValue={user.email} className="flex-1" />
+                                     <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(brandIndex, 'user', userIndex)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
+                            ))}
+                            <Button variant="outline" size="sm" onClick={() => handleAddUser(brandIndex)}>
+                                <UserPlus className="mr-2 h-4 w-4" /> Add User
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+             <Button size="lg" className="w-full">
+                <Save className="mr-2 h-4 w-4" />
+                Save Retailer Configuration
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 }

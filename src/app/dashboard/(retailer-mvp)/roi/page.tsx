@@ -25,28 +25,24 @@ export default function RoiPage() {
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const engagementData = {
-    totalScans: metrics.stats.totalScans,
-    uniqueScans: metrics.stats.uniqueScans,
-    engagementDuration: metrics.stats.engagementDuration,
-    scanRate: metrics.stats.scanRate,
-  };
-  
-  const conversionData = metrics.stats;
-
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
         try {
             const result = await analyzeEngagementMetrics({
-                engagement: engagementData,
+                engagement: {
+                  totalScans: metrics.stats.totalScans,
+                  uniqueScans: metrics.stats.uniqueScans,
+                  engagementDuration: metrics.stats.engagementDuration,
+                  scanRate: metrics.stats.scanRate,
+                },
                 conversion: {
-                    avgBasketSizeAoe: conversionData.avgBasketSizeAoe,
-                    avgBasketSizeNonAoe: conversionData.avgBasketSizeNonAoe,
-                    basketUpliftPercentage: conversionData.basketUpliftPercentage,
-                    offerRedemptionRate: conversionData.offerRedemptionRate,
-                    totalRedeemedValue: conversionData.totalRedeemedValue,
-                    aoeTransactions: conversionData.aoeTransactions,
+                    avgBasketSizeAoe: metrics.stats.avgBasketSizeAoe,
+                    avgBasketSizeNonAoe: metrics.stats.avgBasketSizeNonAoe,
+                    basketUpliftPercentage: metrics.stats.basketUpliftPercentage,
+                    offerRedemptionRate: metrics.stats.offerRedemptionRate,
+                    totalRedeemedValue: metrics.stats.totalRedeemedValue,
+                    aoeTransactions: metrics.stats.aoeTransactions,
                 }
             });
             setAnalysis(result);
@@ -77,15 +73,15 @@ export default function RoiPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight mb-2">
-            Core Engagement Metrics
+            AI-Powered Performance Analysis
           </h2>
           <p className="text-muted-foreground max-w-3xl">
-            These features track customer interaction with the platform and validate the adoption of the QR code system.
+            Click the button to get AI-driven conclusions and recommendations based on all engagement and conversion metrics below.
           </p>
         </div>
         <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
             <Sparkles className="mr-2 h-4 w-4" />
-            Analyze Metrics
+            Analyze All Metrics
         </Button>
       </div>
 
@@ -134,6 +130,17 @@ export default function RoiPage() {
         </Card>
       )}
 
+      <Separator />
+
+      <div>
+          <h2 className="text-2xl font-bold tracking-tight mb-2">
+            Core Engagement Metrics
+          </h2>
+          <p className="text-muted-foreground max-w-3xl">
+            These features track customer interaction with the platform and validate the adoption of the QR code system.
+          </p>
+      </div>
+
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -144,7 +151,7 @@ export default function RoiPage() {
             <QrCode className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{engagementData.totalScans.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{metrics.stats.totalScans.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               All QR code scans across all stores.
             </p>
@@ -159,7 +166,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {engagementData.uniqueScans.toLocaleString()}
+              {metrics.stats.uniqueScans.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               Individual customers who have scanned.
@@ -175,7 +182,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {engagementData.scanRate}%
+              {metrics.stats.scanRate}%
             </div>
             <p className="text-xs text-muted-foreground">
               Based on total scans vs. unique visitors.
@@ -190,7 +197,7 @@ export default function RoiPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{engagementData.engagementDuration}s</div>
+            <div className="text-2xl font-bold">{metrics.stats.engagementDuration}s</div>
             <p className="text-xs text-muted-foreground">
               Average time spent on product page.
             </p>
@@ -223,15 +230,15 @@ export default function RoiPage() {
             <CardContent className="space-y-4">
                 <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground text-sm">AOE Users</span>
-                    <span className="text-lg font-bold">R{conversionData.avgBasketSizeAoe.toFixed(2)}</span>
+                    <span className="text-lg font-bold">R{metrics.stats.avgBasketSizeAoe.toFixed(2)}</span>
                 </div>
                  <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground text-sm">Non-Users</span>
-                    <span className="text-lg font-bold">R{conversionData.avgBasketSizeNonAoe.toFixed(2)}</span>
+                    <span className="text-lg font-bold">R{metrics.stats.avgBasketSizeNonAoe.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-baseline pt-2 border-t">
                     <span className="text-primary font-semibold text-sm">Uplift</span>
-                    <span className="text-lg font-bold text-primary">{conversionData.basketUpliftPercentage}%</span>
+                    <span className="text-lg font-bold text-primary">{metrics.stats.basketUpliftPercentage}%</span>
                 </div>
             </CardContent>
         </Card>
@@ -241,13 +248,13 @@ export default function RoiPage() {
                 <Tag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="text-3xl font-bold">{conversionData.offerRedemptionRate}%</div >
+                 <div className="text-3xl font-bold">{metrics.stats.offerRedemptionRate}%</div >
                 <p className="text-xs text-muted-foreground">
                     Percentage of personalized offers redeemed.
                 </p>
                 <div className="pt-4">
                     <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
-                     <p className="text-2xl font-bold">R{conversionData.totalRedeemedValue.toLocaleString()}</p>
+                     <p className="text-2xl font-bold">R{metrics.stats.totalRedeemedValue.toLocaleString()}</p>
                 </div>
             </CardContent>
         </Card>
@@ -257,7 +264,7 @@ export default function RoiPage() {
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-4xl font-bold">{conversionData.aoeTransactions}</div>
+                <div className="text-4xl font-bold">{metrics.stats.aoeTransactions}</div>
                 <p className="text-xs text-muted-foreground">
                     Total transactions where a customer engaged with the platform before purchase.
                 </p>

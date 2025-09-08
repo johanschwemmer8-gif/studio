@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Analyzes core engagement and conversion metrics to provide conclusions and recommendations.
@@ -44,7 +45,7 @@ const prompt = ai.definePrompt({
   output: { schema: AnalyzeEngagementMetricsOutputSchema },
   prompt: `You are an expert retail analyst. You have been provided with a set of core engagement and conversion metrics for the iNteract-AOE in-store digital platform.
 
-Your task is to analyze these metrics, draw insightful conclusions, and provide actionable recommendations.
+Your task is to analyze these metrics, draw insightful conclusions, and provide actionable recommendations. It's crucial that you analyze the relationship between the engagement and conversion metrics.
 
 **Provided Metrics:**
 
@@ -63,9 +64,9 @@ Your task is to analyze these metrics, draw insightful conclusions, and provide 
 - Transactions Influenced by AOE: {{{conversion.aoeTransactions}}}
 
 **Instructions:**
-1.  **Analyze the data:** Identify strengths, weaknesses, opportunities, and threats (SWOT) from the provided numbers.
-2.  **Formulate Conclusions:** Based on your analysis, write a concise, bulleted list of the most important conclusions. What does the data say about the platform's performance?
-3.  **Provide Recommendations:** Based on your conclusions, provide a bulleted list of clear, actionable recommendations. What should the retailer do next to improve these metrics?
+1.  **Analyze the data:** Identify strengths, weaknesses, opportunities, and threats (SWOT) from the provided numbers. Focus on how engagement is driving (or failing to drive) conversion.
+2.  **Formulate Conclusions:** Based on your analysis, write a concise, bulleted list of the most important conclusions. What does the data say about the platform's performance and its impact on sales?
+3.  **Provide Recommendations:** Based on your conclusions, provide a bulleted list of clear, actionable recommendations. What should the retailer do next to improve both engagement and conversion metrics?
 
 Format your response as a JSON object with 'conclusions' and 'recommendations' fields. Ensure the text in these fields uses bullet points (e.g., "- Conclusion one.\n- Conclusion two.").`,
 });

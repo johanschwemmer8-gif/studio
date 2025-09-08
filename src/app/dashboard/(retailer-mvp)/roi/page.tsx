@@ -76,7 +76,7 @@ export default function RoiPage() {
             AI-Powered Performance Analysis
           </h2>
           <p className="text-muted-foreground max-w-3xl">
-            Click the button to get AI-driven conclusions and recommendations based on all engagement and conversion metrics below.
+            Click the button to get AI-driven feedback and recommendations based on all engagement and conversion metrics below.
           </p>
         </div>
         <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
@@ -124,8 +124,8 @@ export default function RoiPage() {
                 </div>
                 <Separator />
                 <div>
-                    <h3 className="font-semibold mb-2">Conclusions</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.conclusions}</p>
+                    <h3 className="font-semibold mb-2">Feedback</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.feedback}</p>
                 </div>
                 <Separator />
                  <div>

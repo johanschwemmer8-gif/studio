@@ -105,9 +105,9 @@ export default function AdminPage() {
   const handleSaveConfiguration = () => {
     if (addedRetailer) {
         // In a real app, you would save all the configuration data here.
-        // For now, we just navigate to a new page for that retailer.
         const retailerUrlSlug = addedRetailer.toLowerCase().replace(/\s+/g, '-');
-        router.push(`/retailer/${retailerUrlSlug}`);
+        // Open the new retailer's MVP in a new browser tab.
+        window.open(`/retailer/${retailerUrlSlug}`, '_blank');
     }
   };
 

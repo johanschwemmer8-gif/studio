@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Building2, UserPlus, Save, Trash2, ShieldCheck, List } from 'lucide-react';
+import { PlusCircle, Building2, UserPlus, Save, Trash2, ShieldCheck, List, Eye } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import RetailerDashboardPreview from '@/components/dashboard/retailer-dashboard-preview';
 
 type Store = { name: string; code: string };
 
@@ -45,7 +46,7 @@ type User = {
 type Brand = { name: string; stores: Store[]; users: User[] };
 
 export type SavedRetailer = {
-  name: string;
+  name:string;
   brands: Brand[];
 };
 
@@ -134,8 +135,8 @@ export default function AdminPage() {
         setNewRetailerName('');
         setBrands([]);
         
-        // In a real app, you would probably show a toast notification
-        alert('Retailer configuration saved!');
+        const retailerUrl = `/retailer/${slugify(newSavedRetailer.name)}`;
+        window.open(retailerUrl, '_blank');
     }
   };
 
@@ -193,9 +194,15 @@ export default function AdminPage() {
                     {savedRetailers.map((retailer, index) => (
                         <li key={index} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                             <List className="h-4 w-4 text-muted-foreground" />
-                            <Link href={`/dashboard/admin/view/${slugify(retailer.name)}`} className="font-medium hover:underline">
+                            <Link href={`/dashboard/admin/view/${slugify(retailer.name)}`} className="font-medium hover:underline flex-1">
                                 {retailer.name}
                             </Link>
+                             <Button asChild variant="outline" size="sm">
+                                <Link href={`/retailer/${slugify(retailer.name)}`} target="_blank">
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Landing Page
+                                </Link>
+                            </Button>
                         </li>
                     ))}
                 </ul>
@@ -290,6 +297,17 @@ export default function AdminPage() {
         </Card>
       )}
 
+      {savedRetailers.length > 0 && (
+          <div className="space-y-4">
+              <Separator />
+              <h3 className="text-xl font-bold tracking-tight">Dashboard Previews</h3>
+              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  {savedRetailers.map((retailer, index) => (
+                      <RetailerDashboardPreview key={index} retailer={retailer} />
+                  ))}
+              </div>
+          </div>
+      )}
     </div>
   );
 }

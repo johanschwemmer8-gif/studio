@@ -6,6 +6,9 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import RetailerSidebar from '@/components/dashboard/retailer-sidebar';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 
 export default function RetailerMvpLayout({
@@ -22,6 +25,12 @@ export default function RetailerMvpLayout({
             <SidebarTrigger />
             <h1 className="text-xl font-semibold">Retailer Dashboard</h1>
           </div>
+          <Button asChild>
+            <Link href="/dashboard/admin">
+              <ArrowLeft />
+              <span>Back to iNteract Admin Panel</span>
+            </Link>
+          </Button>
         </header>
         <main className="p-4 sm:p-6 lg:p-8 bg-background">{children}</main>
       </SidebarInset>

@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Server, TrendingUp } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, Server, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 
@@ -71,6 +71,14 @@ export default function RetailerSidebar() {
                 <Link href="/retailer-mvp/system-integration">
                   <Blocks />
                   <span>System & Integration</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Retail Media Network">
+                <Link href="/retailer-mvp/retail-media-network">
+                  <Network />
+                  <span>Retail Media Network</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

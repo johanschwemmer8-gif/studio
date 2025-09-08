@@ -17,17 +17,34 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
-  const [open, setOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     // In a real application, you'd handle authentication here.
     // For this prototype, we'll just redirect.
-    setOpen(false);
+    setIsLoginOpen(false);
     router.push('/dashboard/admin');
+  };
+
+  const handleForgotPassword = () => {
+    setIsLoginOpen(false);
+    setIsRecoveryOpen(true);
+  };
+
+  const handlePasswordRecovery = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsRecoveryOpen(false);
+    toast({
+      title: "Recovery Email Sent",
+      description: "If an account exists with that email, a recovery link has been sent.",
+    });
   };
 
   return (
@@ -36,7 +53,7 @@ export default function Home() {
         <Link href="/" className="font-bold text-lg">
           iNteract AOE
         </Link>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
           <DialogTrigger asChild>
             <Button variant="ghost">iNteract Dashboard</Button>
           </DialogTrigger>
@@ -77,7 +94,7 @@ export default function Home() {
               <DialogFooter className="sm:justify-between">
                 <div className="flex gap-2">
                     <Button type="button" variant="link" className="p-0 h-auto font-normal">Create new User</Button>
-                    <Button type="button" variant="link" className="p-0 h-auto font-normal">Forgot password?</Button>
+                    <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={handleForgotPassword}>Forgot password?</Button>
                 </div>
                 <Button type="submit">Log in</Button>
               </DialogFooter>
@@ -99,6 +116,38 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* Password Recovery Dialog */}
+       <Dialog open={isRecoveryOpen} onOpenChange={setIsRecoveryOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handlePasswordRecovery}>
+              <DialogHeader>
+                <DialogTitle>Password Recovery</DialogTitle>
+                <DialogDescription>
+                  Enter your email address below and we'll send you a link to reset your password.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="recovery-email" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="recovery-email"
+                    type="email"
+                    placeholder="name@example.com"
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsRecoveryOpen(false)}>Cancel</Button>
+                <Button type="submit">Send Recovery Email</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -105,9 +106,9 @@ export default function AdminPage() {
   const handleSaveConfiguration = () => {
     if (addedRetailer) {
         // In a real app, you would save all the configuration data here.
-        const retailerUrlSlug = addedRetailer.toLowerCase().replace(/\s+/g, '-');
-        // Open the new retailer's MVP in a new browser tab.
-        window.open(`/retailer/${retailerUrlSlug}`, '_blank');
+        console.log('Saving configuration for:', addedRetailer, brands);
+        // For demonstration, we just log it. You might navigate or show a success message.
+        alert('Retailer configuration saved!');
     }
   };
 

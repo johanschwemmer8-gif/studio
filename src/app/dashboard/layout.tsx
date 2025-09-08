@@ -9,11 +9,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Home, TrendingUp, Cog, Server, BarChart, Blocks } from 'lucide-react';
 import Link from 'next/link';
-import LogoutButton from '@/components/dashboard/logout-button';
 
 export default function DashboardLayout({
   children,
@@ -72,6 +70,14 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="iNteract Admin Panel">
+                <Link href="/dashboard/admin">
+                  <Cog />
+                  <span>iNteract Admin panel</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="System & Integration Configuration">
                 <Link href="/dashboard/system-integration">
@@ -82,11 +88,6 @@ export default function DashboardLayout({
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-            <SidebarMenu>
-                <LogoutButton />
-            </SidebarMenu>
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b bg-card h-16">

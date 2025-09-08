@@ -56,10 +56,10 @@ export default function DashboardLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Retailers' Dashboard Management">
+              <SidebarMenuButton asChild tooltip="Retailer's Dashboard Management">
                 <Link href="/dashboard/retailers-dashboards">
                   <Rocket />
-                  <span>Retailers' Dashboard Management</span>
+                  <span>Retailer's Dashboard Management</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

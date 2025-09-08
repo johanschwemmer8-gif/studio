@@ -25,7 +25,7 @@ export default function RetailersDashboardsPage() {
             </Link>
         </Button>
         <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Retailers' Dashboards Management
+          Retailer's Dashboard Management
         </h2>
         <p className="text-muted-foreground max-w-3xl">
           Centrally manage and deploy updates to all configured Retailer MVP dashboards.

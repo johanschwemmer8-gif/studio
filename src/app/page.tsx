@@ -11,7 +11,7 @@ export default function Home() {
           iNteract AOE
         </Link>
         <Button asChild variant="ghost">
-          <Link href="/dashboard">Retailer Dashboard</Link>
+          <Link href="/dashboard">iNteract Dashboard</Link>
         </Button>
       </header>
       <main className="flex-1 flex items-center justify-center p-4">

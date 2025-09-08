@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Cog } from 'lucide-react';
+import { Cog, Rocket } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({
@@ -35,6 +35,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/admin">
                   <Cog />
                   <span>iNteract Admin Panel</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Retailers' Dashboard Management">
+                <Link href="/dashboard/retailers-dashboards">
+                  <Rocket />
+                  <span>Retailers' Dashboard Management</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

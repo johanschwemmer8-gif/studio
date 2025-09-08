@@ -4,7 +4,8 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Rocket, Upload } from 'lucide-react';
+import { Rocket, Upload, Edit } from 'lucide-react';
+import Link from 'next/link';
 
 export default function RetailersDashboardsPage() {
 
@@ -49,6 +50,29 @@ export default function RetailersDashboardsPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Edit className="text-primary" />
+            Retailer MVP Edit
+          </CardTitle>
+          <CardDescription>
+            Access the live Retailer MVP template to make changes, test new features, and perform bug fixes before deploying updates.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+                Clicking the button below will take you to the live, editable version of the Retailer Dashboard. All changes made there will be reflected in the template that gets deployed to all retailers.
+            </p>
+            <Button asChild size="lg">
+                <Link href="/dashboard/dashboard">
+                    Edit MVP Template
+                </Link>
+            </Button>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }

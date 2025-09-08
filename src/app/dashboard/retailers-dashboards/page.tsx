@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Rocket, Upload, Edit } from 'lucide-react';
+import { Rocket, Upload, Edit, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function RetailersDashboardsPage() {
@@ -18,6 +18,12 @@ export default function RetailersDashboardsPage() {
   return (
     <div className="space-y-8">
       <div>
+        <Button asChild variant="ghost" className="-ml-4 mb-4">
+            <Link href="/dashboard/admin">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to iNteract Admin Panel
+            </Link>
+        </Button>
         <h2 className="text-2xl font-bold tracking-tight mb-2">
           Retailers' Dashboards Management
         </h2>

@@ -31,10 +31,10 @@ export default function DashboardLayout({
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Admin Panel">
+              <SidebarMenuButton asChild tooltip="iNteract Admin Panel">
                 <Link href="/dashboard/admin">
                   <Cog />
-                  <span>Admin Panel</span>
+                  <span>iNteract Admin Panel</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -45,7 +45,7 @@ export default function DashboardLayout({
         <header className="flex items-center justify-between p-4 border-b bg-card h-16">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <h1 className="text-xl font-semibold">iNteract Admin</h1>
+            <h1 className="text-xl font-semibold">iNteract Admin Panel</h1>
           </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8 bg-background">{children}</main>

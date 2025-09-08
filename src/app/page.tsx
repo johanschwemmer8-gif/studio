@@ -74,7 +74,11 @@ export default function Home() {
                   />
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="sm:justify-between">
+                <div className="flex gap-2">
+                    <Button type="button" variant="link" className="p-0 h-auto font-normal">Create new User</Button>
+                    <Button type="button" variant="link" className="p-0 h-auto font-normal">Forgot password?</Button>
+                </div>
                 <Button type="submit">Log in</Button>
               </DialogFooter>
             </form>

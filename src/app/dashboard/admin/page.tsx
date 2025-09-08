@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -57,6 +58,8 @@ export default function AdminPage() {
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [newBrandName, setNewBrandName] = useState('');
+  
+  const router = useRouter();
 
   const handleAddRetailer = () => {
     if (newRetailerName.trim()) {
@@ -98,6 +101,15 @@ export default function AdminPage() {
     newBrands[brandIndex].users[userIndex].permissions[permission] = checked;
     setBrands(newBrands);
   }
+
+  const handleSaveConfiguration = () => {
+    if (addedRetailer) {
+        // In a real app, you would save all the configuration data here.
+        // For now, we just navigate to a new page for that retailer.
+        const retailerUrlSlug = addedRetailer.toLowerCase().replace(/\s+/g, '-');
+        router.push(`/retailer/${retailerUrlSlug}`);
+    }
+  };
 
   const permissionLabels: {key: keyof Permissions, label: string}[] = [
       { key: 'dashboard', label: 'Retailer Dashboard' },
@@ -221,7 +233,7 @@ export default function AdminPage() {
                     </div>
                 ))}
             </div>
-             <Button size="lg" className="w-full">
+             <Button size="lg" className="w-full" onClick={handleSaveConfiguration}>
                 <Save className="mr-2 h-4 w-4" />
                 Save Retailer Configuration
             </Button>

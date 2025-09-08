@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart, Blocks, Home, Server, TrendingUp } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Server, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 
@@ -55,6 +55,14 @@ export default function RetailerSidebar() {
                 <Link href="/retailer-mvp/real-time">
                   <Server />
                   <span>Real-Time Data</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="A/B Testing">
+                <Link href="/retailer-mvp/ab-testing">
+                  <Beaker />
+                  <span>A/B Testing</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

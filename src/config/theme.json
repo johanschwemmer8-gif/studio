@@ -1,0 +1,49 @@
+
+{
+  "brandColors": {
+    "primary": "#1E90FF",
+    "secondary": "#F3F4F6",
+    "accent": "#FFD700",
+    "background": "#FFFFFF",
+    "text": "#111827",
+    "destructive": "#EF4444"
+  },
+  "typography": {
+    "headings": {
+      "family": "'Montserrat', sans-serif",
+      "url": "https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap"
+    },
+    "body": {
+      "family": "'Roboto', sans-serif",
+      "url": "https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap"
+    }
+  },
+  "logoUrl": "https://example.com/your-logo.png",
+  "buttonStyles": {
+    "borderRadius": "0.5rem",
+    "padding": "0.75rem 1.5rem",
+    "fontWeight": "600",
+    "variants": {
+      "primary": {
+        "background": "var(--primary-color)",
+        "text": "#FFFFFF"
+      },
+      "secondary": {
+        "background": "var(--secondary-color)",
+        "text": "#111827"
+      }
+    }
+  },
+  "popupBehaviour": {
+    "animationStyle": "fade-in-scale",
+    "backdrop": "blur",
+    "autoCloseDelay": null
+  },
+  "optionalModules": {
+    "aiRecommendations": true,
+    "productChatbot": true,
+    "abTesting": false,
+    "retailMediaNetwork": false,
+    "performanceAnalysis": true
+  }
+}

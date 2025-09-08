@@ -11,8 +11,9 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Home, TrendingUp, Cog, Server, BarChart, Blocks, LogOut } from 'lucide-react';
+import { Home, TrendingUp, Cog, Server, BarChart, Blocks } from 'lucide-react';
 import Link from 'next/link';
+import LogoutButton from '@/components/dashboard/logout-button';
 
 export default function DashboardLayout({
   children,
@@ -83,14 +84,7 @@ export default function DashboardLayout({
         </SidebarContent>
         <SidebarFooter>
             <SidebarMenu>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Log Out">
-                        <Link href="/">
-                            <LogOut />
-                            <span>Log Out</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
+                <LogoutButton />
             </SidebarMenu>
         </SidebarFooter>
       </Sidebar>

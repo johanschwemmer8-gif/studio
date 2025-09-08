@@ -11,6 +11,8 @@ import { Suspense } from 'react';
 function LogoutButtonComponent() {
     const searchParams = useSearchParams();
     const retailer = searchParams.get('retailer');
+    // If a retailer query param exists (e.g., 'woolworths'), the link will be '/retailer/woolworths'
+    // Otherwise, it defaults to the main iNteract homepage '/'.
     const logoutHref = retailer ? `/retailer/${retailer}` : '/';
 
     return (
@@ -25,9 +27,10 @@ function LogoutButtonComponent() {
     );
 }
 
+// useSearchParams requires a Suspense boundary to work correctly during server rendering.
 export default function LogoutButton() {
     return (
-        <Suspense fallback={null}>
+        <Suspense fallback={<SidebarMenuItem><SidebarMenuButton disabled><LogOut /><span>Log Out</span></SidebarMenuButton></SidebarMenuItem>}>
             <LogoutButtonComponent />
         </Suspense>
     )

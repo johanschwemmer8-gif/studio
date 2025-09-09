@@ -16,7 +16,11 @@ import Image from 'next/image';
 import themeConfig from '@/config/theme.json';
 
 const colorToHex = (hsl: string) => {
-  const [h, s, l] = hsl.match(/\d+/g)!.map(Number);
+  if (!hsl || typeof hsl !== 'string') return '#000000';
+  const match = hsl.match(/(\d+)\s*(\d+)%\s*(\d+)%/);
+  if (!match) return '#000000';
+  
+  const [, h, s, l] = match.map(Number);
   const s_norm = s / 100;
   const l_norm = l / 100;
   const a = s_norm * Math.min(l_norm, 1 - l_norm);
@@ -29,6 +33,7 @@ const colorToHex = (hsl: string) => {
 };
 
 const hexToHsl = (hex: string) => {
+  if (!hex || typeof hex !== 'string' || !hex.match(/^#[0-9a-f]{6}$/i)) return "0 0% 0%";
   let r = parseInt(hex.substring(1, 3), 16) / 255;
   let g = parseInt(hex.substring(3, 5), 16) / 255;
   let b = parseInt(hex.substring(5, 7), 16) / 255;
@@ -67,19 +72,26 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function BrandSettingsForm() {
   const { toast } = useToast();
-  const [currentLogo, setCurrentLogo] = useState(themeConfig.logoUrl);
+  const [currentLogo, setCurrentLogo] = useState('');
 
-  const initialColors = Object.entries(themeConfig.brandColors).map(([name, value]) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
-    value: colorToHex(value),
-  }));
+  const getInitialFormValues = () => {
+    const savedTheme = localStorage.getItem('globalBrandSettings');
+    const theme = savedTheme ? JSON.parse(savedTheme) : themeConfig;
+
+    const colors = Object.entries(theme.brandColors).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value: colorToHex(value as string),
+    }));
+
+    return {
+        logoUrl: theme.logoUrl,
+        colors,
+    }
+  }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      logoUrl: themeConfig.logoUrl,
-      colors: initialColors,
-    },
+    defaultValues: getInitialFormValues(),
   });
 
   const { fields } = useFieldArray({
@@ -88,6 +100,9 @@ export default function BrandSettingsForm() {
   });
 
   useEffect(() => {
+    // Set initial logo from loaded config
+    setCurrentLogo(form.getValues('logoUrl'));
+
     const subscription = form.watch((value, { name }) => {
       if (name?.startsWith('colors')) {
         const colors = value.colors as {name: string, value: string}[];
@@ -102,8 +117,19 @@ export default function BrandSettingsForm() {
   }, [form]);
 
   const onSubmit = (data: FormValues) => {
-    // In a real app, you'd post this to your backend to update theme.json
-    console.log(data);
+    const newThemeConfig = { ...themeConfig };
+    
+    newThemeConfig.logoUrl = data.logoUrl;
+    
+    data.colors.forEach(color => {
+        const key = color.name.toLowerCase() as keyof typeof newThemeConfig.brandColors;
+        if(key in newThemeConfig.brandColors) {
+            newThemeConfig.brandColors[key] = hexToHsl(color.value);
+        }
+    });
+
+    localStorage.setItem('globalBrandSettings', JSON.stringify(newThemeConfig));
+
     toast({
       title: 'Theme Saved!',
       description: 'Your brand settings have been updated.',
@@ -117,7 +143,7 @@ export default function BrandSettingsForm() {
           reader.onloadend = () => {
               const dataUrl = reader.result as string;
               setCurrentLogo(dataUrl);
-              form.setValue('logoUrl', dataUrl);
+              form.setValue('logoUrl', dataUrl, { shouldValidate: true });
           };
           reader.readAsDataURL(file);
       }

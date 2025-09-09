@@ -1,6 +1,7 @@
 
 'use client';
 
+import BrandSettingsForm from "@/components/dashboard/brand-settings-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
@@ -12,18 +13,29 @@ export default function RetailerAdminPage() {
                     Retailer Admin Panel
                 </h2>
                 <p className="text-muted-foreground max-w-3xl">
-                    Manage users and settings specific to your organization.
+                    Manage users, brand identity, and settings specific to your organization.
                 </p>
             </div>
             <Separator />
             <Card>
                 <CardHeader>
-                    <CardTitle>Coming Soon</CardTitle>
+                    <CardTitle>Brand Configuration</CardTitle>
                     <CardDescription>
-                        This section is under development. Soon you'll be able to manage user permissions and configure settings for your team.
+                        Customize the look and feel of your dashboard, including your logo and brand colors.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <BrandSettingsForm />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>
+                        This section is under development. Soon you'll be able to manage user permissions for your team.
+                    </CardDescription>
+                </CardHeader>
+                 <CardContent>
                     <p>
                         Stay tuned for features that will allow you to control who has access to this dashboard.
                     </p>

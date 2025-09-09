@@ -1,12 +1,12 @@
 
 {
   "brandColors": {
-    "primary": "#1E90FF",
-    "secondary": "#F3F4F6",
-    "accent": "#FFD700",
-    "background": "#FFFFFF",
-    "text": "#111827",
-    "destructive": "#EF4444"
+    "primary": "210 100% 56%",
+    "secondary": "220 13% 91%",
+    "accent": "51 100% 50%",
+    "background": "0 0% 100%",
+    "foreground": "224 71% 4%",
+    "destructive": "0 84% 60%"
   },
   "typography": {
     "headings": {
@@ -18,7 +18,7 @@
       "url": "https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap"
     }
   },
-  "logoUrl": "https://example.com/your-logo.png",
+  "logoUrl": "",
   "buttonStyles": {
     "borderRadius": "0.5rem",
     "padding": "0.75rem 1.5rem",

@@ -20,9 +20,9 @@ export default function RetailerAdminPage() {
             <Separator />
             <Card>
                 <CardHeader>
-                    <CardTitle>Brand Configuration</CardTitle>
+                    <CardTitle>Global Brand Configuration</CardTitle>
                     <CardDescription>
-                        Customize the look and feel of your dashboard, including your logo and brand colors.
+                        Customize the general look and feel of your dashboard, including a default logo and brand colors. This will be used if a specific brand does not have its own styling.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -33,7 +33,7 @@ export default function RetailerAdminPage() {
                 <CardHeader>
                     <CardTitle>Brand Management</CardTitle>
                     <CardDescription>
-                       Define your organization's brands and the stores within them.
+                       Define your organization's brands, their specific branding (logo, colors), and the stores within them.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

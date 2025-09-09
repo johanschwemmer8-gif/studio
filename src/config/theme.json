@@ -45,6 +45,7 @@
     "abTesting": true,
     "retailMediaNetwork": true,
     "performanceAnalysis": true,
-    "retailerAdmin": true
+    "retailerAdmin": true,
+    "qrAiManagement": true
   }
 }

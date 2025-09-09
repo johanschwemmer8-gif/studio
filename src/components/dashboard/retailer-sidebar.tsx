@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Network, Server, TrendingUp, UserCog } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
@@ -61,6 +61,16 @@ export default function RetailerSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             {optionalModules.qrAiManagement && (
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="QR & AI Management">
+                        <Link href="/retailer-mvp/qr-ai-management">
+                            <QrCode />
+                            <span>QR & AI Management</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            )}
             {optionalModules.abTesting && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="A/B Testing">

@@ -5,6 +5,7 @@ import BrandSettingsForm from "@/components/dashboard/brand-settings-form";
 import BrandManagementForm from "@/components/dashboard/brand-management-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import UserManagement from "@/components/dashboard/user-management";
 
 export default function RetailerAdminPage() {
     return (
@@ -40,19 +41,7 @@ export default function RetailerAdminPage() {
                     <BrandManagementForm />
                 </CardContent>
             </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription>
-                        This section is under development. Soon you'll be able to manage user permissions for your team.
-                    </CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    <p>
-                        Stay tuned for features that will allow you to control who has access to this dashboard.
-                    </p>
-                </CardContent>
-            </Card>
+            <UserManagement />
         </div>
     );
 }

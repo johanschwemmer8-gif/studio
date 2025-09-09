@@ -42,7 +42,7 @@
   "optionalModules": {
     "aiRecommendations": true,
     "productChatbot": true,
-    "abTesting": false,
+    "abTesting": true,
     "retailMediaNetwork": false,
     "performanceAnalysis": true
   }

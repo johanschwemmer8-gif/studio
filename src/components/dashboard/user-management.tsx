@@ -38,7 +38,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { type FormValues as BrandFormValues } from './brand-management-form';
-import { Separator } from '../ui/separator';
 import Papa from 'papaparse';
 
 const permissionsSchema = z.object({

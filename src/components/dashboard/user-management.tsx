@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PlusCircle, Trash2, Edit, ShieldCheck } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, ShieldCheck, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import UserPermissions from './user-permissions';
@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { type FormValues as BrandFormValues } from './brand-management-form';
+import { Separator } from '../ui/separator';
 
 const permissionsSchema = z.object({
   dashboard: z.boolean().default(false),
@@ -50,6 +51,7 @@ const permissionsSchema = z.object({
 });
 
 const userSchema = z.object({
+  id: z.string().optional(),
   fullName: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email address'),
   department: z.string().min(1, 'Department is required'),
@@ -89,6 +91,16 @@ export default function UserManagement() {
       } catch (error) {
         console.error("Failed to parse brand data from localStorage", error);
       }
+    }
+
+    const savedUsers = localStorage.getItem('userManagement');
+    if (savedUsers) {
+        try {
+            const parsedUsers = JSON.parse(savedUsers);
+            setUsers(parsedUsers);
+        } catch (error) {
+            console.error("Failed to parse user data from localStorage", error);
+        }
     }
   }, []);
 
@@ -134,13 +146,21 @@ export default function UserManagement() {
   const stores = selectedArea?.stores || [];
 
   const onSubmit = (data: User) => {
-    setUsers([...users, data]);
+    setUsers([...users, {...data, id: Date.now().toString() }]);
     form.reset();
     setIsDialogOpen(false);
     toast({
       title: 'User Added',
-      description: `${data.fullName} has been successfully added.`,
+      description: `${data.fullName} has been successfully added. Click 'Save Users' to persist changes.`,
     });
+  };
+
+  const handleSaveUsers = () => {
+      localStorage.setItem('userManagement', JSON.stringify(users));
+      toast({
+          title: 'Users Saved!',
+          description: 'The user list has been successfully saved.',
+      });
   };
 
   const handleRemoveUser = (index: number) => {
@@ -148,7 +168,7 @@ export default function UserManagement() {
     setUsers(users.filter((_, i) => i !== index));
     toast({
       title: 'User Removed',
-      description: `${userToRemove.fullName} has been removed.`,
+      description: `${userToRemove.fullName} has been removed. Click 'Save Users' to persist this change.`,
       variant: 'destructive',
     });
   };
@@ -186,7 +206,7 @@ export default function UserManagement() {
                   Fill in the details below, assign their access scope and permissions.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid md:grid-cols-2 gap-6 py-4">
+              <div className="grid md:grid-cols-2 gap-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
                  {/* User Details & Scope */}
                 <div className="space-y-4">
                     <div className="space-y-2">
@@ -236,7 +256,7 @@ export default function UserManagement() {
                                     control={form.control}
                                     name="division"
                                     render={({ field }) => (
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                             <SelectTrigger><SelectValue placeholder="All Divisions" /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="">All Divisions</SelectItem>
@@ -254,7 +274,7 @@ export default function UserManagement() {
                                     control={form.control}
                                     name="region"
                                     render={({ field }) => (
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                             <SelectTrigger><SelectValue placeholder="All Regions" /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="">All Regions</SelectItem>
@@ -272,7 +292,7 @@ export default function UserManagement() {
                                     control={form.control}
                                     name="area"
                                     render={({ field }) => (
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                             <SelectTrigger><SelectValue placeholder="All Areas" /></SelectTrigger>
                                             <SelectContent>
                                                  <SelectItem value="">All Areas</SelectItem>
@@ -290,7 +310,7 @@ export default function UserManagement() {
                                     control={form.control}
                                     name="store"
                                     render={({ field }) => (
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                             <SelectTrigger><SelectValue placeholder="All Stores" /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="">All Stores</SelectItem>
@@ -306,13 +326,19 @@ export default function UserManagement() {
                  {/* Permissions */}
                  <div className="space-y-4">
                     <Label className="flex items-center gap-2"><ShieldCheck className="text-primary"/> Permissions</Label>
-                     <div className="space-y-2 p-4 border rounded-md max-h-80 overflow-y-auto">
+                     <div className="space-y-2 p-4 border rounded-md max-h-96 overflow-y-auto">
                         {permissionLabels.map((p) => (
                            <div key={p.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`perm-${p.id}`}
-                                    checked={form.watch(`permissions.${p.id}`)}
-                                    onCheckedChange={(checked) => form.setValue(`permissions.${p.id}`, !!checked)}
+                                <Controller
+                                    control={form.control}
+                                    name={`permissions.${p.id}`}
+                                    render={({ field }) => (
+                                        <Checkbox
+                                            id={`perm-${p.id}`}
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    )}
                                 />
                                 <Label htmlFor={`perm-${p.id}`} className="font-normal">{p.label}</Label>
                            </div>
@@ -321,58 +347,64 @@ export default function UserManagement() {
                  </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Save User</Button>
+                <Button type="submit">Add User</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Access Scope</TableHead>
-              <TableHead>Permissions</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  No users have been added yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              users.map((user, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                      <p className="font-medium">{user.fullName}</p>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                  </TableCell>
-                  <TableCell>
-                      <p className="font-medium">{getUserAccessScope(user)}</p>
-                  </TableCell>
-                  <TableCell>
-                      <UserPermissions permissions={user.permissions} labels={permissionLabels} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveUser(index)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
+        <div className="border rounded-md">
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Access Scope</TableHead>
+                <TableHead>Permissions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+                {users.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
+                    No users have been added yet.
+                    </TableCell>
+                </TableRow>
+                ) : (
+                users.map((user, index) => (
+                    <TableRow key={user.id || index}>
+                    <TableCell>
+                        <p className="font-medium">{user.fullName}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </TableCell>
+                    <TableCell>
+                        <p className="font-medium">{getUserAccessScope(user)}</p>
+                    </TableCell>
+                    <TableCell>
+                        <UserPermissions permissions={user.permissions} labels={permissionLabels} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" disabled>
+                        <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveUser(index)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </TableCell>
+                    </TableRow>
+                ))
+                )}
+            </TableBody>
+            </Table>
+        </div>
       </CardContent>
+      <CardFooter>
+          <Button onClick={handleSaveUsers}>
+              <Save className="mr-2 h-4 w-4" />
+              Save Users
+          </Button>
+      </CardFooter>
     </Card>
   );
 }
-
-    

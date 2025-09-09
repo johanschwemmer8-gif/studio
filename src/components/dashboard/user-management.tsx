@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,13 @@ import { PlusCircle, Trash2, Edit, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import UserPermissions from './user-permissions';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const permissionsSchema = z.object({
   dashboard: z.boolean().default(false),
@@ -46,10 +53,12 @@ const userSchema = z.object({
   email: z.string().email('Invalid email address'),
   department: z.string().min(1, 'Department is required'),
   position: z.string().min(1, 'Position is required'),
+  brand: z.string().min(1, 'Brand is required'),
   permissions: permissionsSchema,
 });
 
 type User = z.infer<typeof userSchema>;
+type Brand = { name: string };
 
 const permissionLabels: { id: keyof z.infer<typeof permissionsSchema>; label: string }[] = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -63,8 +72,23 @@ const permissionLabels: { id: keyof z.infer<typeof permissionsSchema>; label: st
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const savedBrandData = localStorage.getItem('brandManagement');
+    if (savedBrandData) {
+      try {
+        const parsedData = JSON.parse(savedBrandData);
+        if (parsedData.brands) {
+          setBrands(parsedData.brands);
+        }
+      } catch (error) {
+        console.error("Failed to parse brand data from localStorage", error);
+      }
+    }
+  }, []);
 
   const form = useForm<User>({
     resolver: zodResolver(userSchema),
@@ -73,6 +97,7 @@ export default function UserManagement() {
       email: '',
       department: '',
       position: '',
+      brand: '',
       permissions: {
         dashboard: true, // Default permission
         roi: false,
@@ -152,6 +177,26 @@ export default function UserManagement() {
                         <Input id="position" {...form.register('position')} />
                          {form.formState.errors.position && <p className="text-sm text-destructive">{form.formState.errors.position.message}</p>}
                     </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="brand">Brand</Label>
+                        <Controller
+                            control={form.control}
+                            name="brand"
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a brand" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {brands.map(brand => (
+                                            <SelectItem key={brand.name} value={brand.name}>{brand.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                         {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message}</p>}
+                    </div>
                 </div>
                  {/* Permissions */}
                  <div className="space-y-4">
@@ -182,6 +227,7 @@ export default function UserManagement() {
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
+              <TableHead>Brand</TableHead>
               <TableHead>Permissions</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -189,7 +235,7 @@ export default function UserManagement() {
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No users have been added yet.
                 </TableCell>
               </TableRow>
@@ -199,6 +245,9 @@ export default function UserManagement() {
                   <TableCell>
                       <p className="font-medium">{user.fullName}</p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
+                  </TableCell>
+                  <TableCell>
+                      <p className="font-medium">{user.brand}</p>
                   </TableCell>
                   <TableCell>
                       <UserPermissions permissions={user.permissions} labels={permissionLabels} />

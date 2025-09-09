@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { type FormValues as BrandFormValues } from './brand-management-form';
 
 const permissionsSchema = z.object({
   dashboard: z.boolean().default(false),
@@ -54,11 +55,14 @@ const userSchema = z.object({
   department: z.string().min(1, 'Department is required'),
   position: z.string().min(1, 'Position is required'),
   brand: z.string().min(1, 'Brand is required'),
+  division: z.string().optional(),
+  region: z.string().optional(),
+  area: z.string().optional(),
+  store: z.string().optional(),
   permissions: permissionsSchema,
 });
 
 type User = z.infer<typeof userSchema>;
-type Brand = { name: string };
 
 const permissionLabels: { id: keyof z.infer<typeof permissionsSchema>; label: string }[] = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -72,7 +76,7 @@ const permissionLabels: { id: keyof z.infer<typeof permissionsSchema>; label: st
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandData, setBrandData] = useState<BrandFormValues | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -81,9 +85,7 @@ export default function UserManagement() {
     if (savedBrandData) {
       try {
         const parsedData = JSON.parse(savedBrandData);
-        if (parsedData.brands) {
-          setBrands(parsedData.brands);
-        }
+        setBrandData(parsedData);
       } catch (error) {
         console.error("Failed to parse brand data from localStorage", error);
       }
@@ -98,8 +100,12 @@ export default function UserManagement() {
       department: '',
       position: '',
       brand: '',
+      division: '',
+      region: '',
+      area: '',
+      store: '',
       permissions: {
-        dashboard: true, // Default permission
+        dashboard: true,
         roi: false,
         visualsReporting: false,
         realTime: false,
@@ -109,6 +115,23 @@ export default function UserManagement() {
       }
     },
   });
+
+  const selectedBrandName = useWatch({ control: form.control, name: 'brand' });
+  const selectedDivisionName = useWatch({ control: form.control, name: 'division' });
+  const selectedRegionName = useWatch({ control: form.control, name: 'region' });
+  const selectedAreaName = useWatch({ control: form.control, name: 'area' });
+
+  const selectedBrand = brandData?.brands.find(b => b.name === selectedBrandName);
+  const divisions = selectedBrand?.divisions || [];
+  
+  const selectedDivision = divisions.find(d => d.name === selectedDivisionName);
+  const regions = selectedDivision?.regions || [];
+
+  const selectedRegion = regions.find(r => r.name === selectedRegionName);
+  const areas = selectedRegion?.areas || [];
+
+  const selectedArea = areas.find(a => a.name === selectedAreaName);
+  const stores = selectedArea?.stores || [];
 
   const onSubmit = (data: User) => {
     setUsers([...users, data]);
@@ -129,6 +152,15 @@ export default function UserManagement() {
       variant: 'destructive',
     });
   };
+
+  const getUserAccessScope = (user: User) => {
+      if (user.store) return `Store: ${user.store}`;
+      if (user.area) return `Area: ${user.area}`;
+      if (user.region) return `Region: ${user.region}`;
+      if (user.division) return `Division: ${user.division}`;
+      if (user.brand) return `Brand: ${user.brand}`;
+      return 'N/A';
+  }
 
   return (
     <Card>
@@ -151,11 +183,11 @@ export default function UserManagement() {
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
-                  Fill in the details below and assign permissions.
+                  Fill in the details below, assign their access scope and permissions.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid md:grid-cols-2 gap-6 py-4">
-                 {/* User Details */}
+                 {/* User Details & Scope */}
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="fullName">Name & Surname</Label>
@@ -177,25 +209,98 @@ export default function UserManagement() {
                         <Input id="position" {...form.register('position')} />
                          {form.formState.errors.position && <p className="text-sm text-destructive">{form.formState.errors.position.message}</p>}
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="brand">Brand</Label>
-                        <Controller
-                            control={form.control}
-                            name="brand"
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a brand" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {brands.map(brand => (
-                                            <SelectItem key={brand.name} value={brand.name}>{brand.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                         {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message}</p>}
+                     <div className="p-4 border rounded-md space-y-4 bg-muted/50">
+                        <h4 className="font-semibold text-sm">Access Scope</h4>
+                        <div className="space-y-2">
+                            <Label>Brand</Label>
+                            <Controller
+                                control={form.control}
+                                name="brand"
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger><SelectValue placeholder="Select a brand" /></SelectTrigger>
+                                        <SelectContent>
+                                            {brandData?.brands.map(brand => (
+                                                <SelectItem key={brand.name} value={brand.name}>{brand.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message}</p>}
+                        </div>
+                         {selectedBrand && divisions.length > 0 && (
+                            <div className="space-y-2">
+                                <Label>Division (Optional)</Label>
+                                <Controller
+                                    control={form.control}
+                                    name="division"
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue placeholder="All Divisions" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="">All Divisions</SelectItem>
+                                                {divisions.map(d => <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        )}
+                        {selectedDivision && regions.length > 0 && (
+                            <div className="space-y-2">
+                                <Label>Region (Optional)</Label>
+                                <Controller
+                                    control={form.control}
+                                    name="region"
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue placeholder="All Regions" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="">All Regions</SelectItem>
+                                                {regions.map(r => <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        )}
+                        {selectedRegion && areas.length > 0 && (
+                             <div className="space-y-2">
+                                <Label>Area (Optional)</Label>
+                                <Controller
+                                    control={form.control}
+                                    name="area"
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue placeholder="All Areas" /></SelectTrigger>
+                                            <SelectContent>
+                                                 <SelectItem value="">All Areas</SelectItem>
+                                                {areas.map(a => <SelectItem key={a.name} value={a.name}>{a.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        )}
+                        {selectedArea && stores.length > 0 && (
+                             <div className="space-y-2">
+                                <Label>Store (Optional)</Label>
+                                <Controller
+                                    control={form.control}
+                                    name="store"
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue placeholder="All Stores" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="">All Stores</SelectItem>
+                                                {stores.map(s => <SelectItem key={s.code} value={s.name}>{s.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
                  {/* Permissions */}
@@ -227,7 +332,7 @@ export default function UserManagement() {
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
-              <TableHead>Brand</TableHead>
+              <TableHead>Access Scope</TableHead>
               <TableHead>Permissions</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -247,7 +352,7 @@ export default function UserManagement() {
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                   </TableCell>
                   <TableCell>
-                      <p className="font-medium">{user.brand}</p>
+                      <p className="font-medium">{getUserAccessScope(user)}</p>
                   </TableCell>
                   <TableCell>
                       <UserPermissions permissions={user.permissions} labels={permissionLabels} />
@@ -269,3 +374,5 @@ export default function UserManagement() {
     </Card>
   );
 }
+
+    

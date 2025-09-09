@@ -54,7 +54,7 @@ const formSchema = z.object({
   brands: z.array(brandSchema),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+export type FormValues = z.infer<typeof formSchema>;
 type BrandForm = ReturnType<typeof useForm<FormValues>>;
 
 const defaultColors = {
@@ -310,3 +310,5 @@ function AreaCard({ brandIndex, divisionIndex, regionIndex, areaIndex, removeAre
         </Card>
     );
 }
+
+    

@@ -18,11 +18,20 @@ const storeSchema = z.object({
   code: z.string().min(1, 'Store code is required'),
 });
 
+const colorRegex = /^#[0-9a-f]{6}$/i;
+const hexColorSchema = z.string().regex(colorRegex, "Must be a valid hex color");
+
 const brandSchema = z.object({
   name: z.string().min(1, 'Brand name is required'),
   logoUrl: z.string().url().or(z.literal('')),
-  primaryColor: z.string().regex(/^#[0-9a-f]{6}$/i, "Must be a valid hex color"),
-  accentColor: z.string().regex(/^#[0-9a-f]{6}$/i, "Must be a valid hex color"),
+  colors: z.object({
+      primary: hexColorSchema,
+      secondary: hexColorSchema,
+      accent: hexColorSchema,
+      background: hexColorSchema,
+      foreground: hexColorSchema,
+      destructive: hexColorSchema,
+  }),
   stores: z.array(storeSchema),
 });
 
@@ -31,6 +40,15 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+const defaultColors = {
+    primary: '#0066ff',
+    secondary: '#e5e7eb',
+    accent: '#ffbf00',
+    background: '#ffffff',
+    foreground: '#0f172a',
+    destructive: '#dc2626',
+};
 
 export default function BrandManagementForm() {
   const { toast } = useToast();
@@ -78,7 +96,7 @@ export default function BrandManagementForm() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => appendBrand({ name: '', logoUrl: '', primaryColor: '#0066ff', accentColor: '#ffbf00', stores: [] })}
+          onClick={() => appendBrand({ name: '', logoUrl: '', colors: defaultColors, stores: [] })}
         >
           <PlusCircle className="mr-2" /> Add Brand
         </Button>
@@ -109,6 +127,15 @@ function BrandCard({ brandIndex, removeBrand, control, register, watch, setValue
           reader.readAsDataURL(file);
       }
   };
+
+  const colorFields: {name: keyof typeof defaultColors, label: string}[] = [
+      { name: 'primary', label: 'Primary' },
+      { name: 'secondary', label: 'Secondary' },
+      { name: 'accent', label: 'Accent' },
+      { name: 'background', label: 'Background' },
+      { name: 'foreground', label: 'Foreground' },
+      { name: 'destructive', label: 'Destructive' },
+  ];
 
 
   return (
@@ -141,15 +168,13 @@ function BrandCard({ brandIndex, removeBrand, control, register, watch, setValue
                     <Input id={`logo-upload-${brandIndex}`} type="file" accept="image/*" onChange={handleLogoUpload} />
                 </div>
             </div>
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor={`primary-color-${brandIndex}`}>Primary Color</Label>
-                    <Input id={`primary-color-${brandIndex}`} type="color" {...register(`brands.${brandIndex}.primaryColor`)} className="p-1 h-10"/>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor={`accent-color-${brandIndex}`}>Accent Color</Label>
-                    <Input id={`accent-color-${brandIndex}`} type="color" {...register(`brands.${brandIndex}.accentColor`)} className="p-1 h-10"/>
-                </div>
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {colorFields.map(color => (
+                     <div key={color.name} className="space-y-2">
+                        <Label htmlFor={`${color.name}-color-${brandIndex}`}>{color.label}</Label>
+                        <Input id={`${color.name}-color-${brandIndex}`} type="color" {...register(`brands.${brandIndex}.colors.${color.name}`)} className="p-1 h-10"/>
+                    </div>
+                ))}
             </div>
         </div>
 

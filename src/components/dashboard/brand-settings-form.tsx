@@ -70,28 +70,25 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function BrandSettingsForm() {
-  const { toast } = useToast();
-  const [currentLogo, setCurrentLogo] = useState('');
-
-  const getInitialFormValues = () => {
-    const savedTheme = localStorage.getItem('globalBrandSettings');
-    const theme = savedTheme ? JSON.parse(savedTheme) : themeConfig;
-
-    const colors = Object.entries(theme.brandColors).map(([name, value]) => ({
+const getDefaultFormValues = () => {
+    const colors = Object.entries(themeConfig.brandColors).map(([name, value]) => ({
         name: name.charAt(0).toUpperCase() + name.slice(1),
         value: colorToHex(value as string),
     }));
 
     return {
-        logoUrl: theme.logoUrl,
+        logoUrl: themeConfig.logoUrl,
         colors,
-    }
-  }
+    };
+};
+
+export default function BrandSettingsForm() {
+  const { toast } = useToast();
+  const [currentLogo, setCurrentLogo] = useState('');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: getInitialFormValues(),
+    defaultValues: getDefaultFormValues(),
   });
 
   const { fields } = useFieldArray({
@@ -100,10 +97,28 @@ export default function BrandSettingsForm() {
   });
 
   useEffect(() => {
-    // Set initial logo from loaded config
+    const savedTheme = localStorage.getItem('globalBrandSettings');
+    if (savedTheme) {
+        try {
+            const theme = JSON.parse(savedTheme);
+            const colors = Object.entries(theme.brandColors).map(([name, value]) => ({
+                name: name.charAt(0).toUpperCase() + name.slice(1),
+                value: colorToHex(value as string),
+            }));
+            form.reset({ logoUrl: theme.logoUrl, colors });
+        } catch (error) {
+            console.error("Failed to parse brand settings from localStorage", error);
+        }
+    }
+  }, [form]);
+
+  useEffect(() => {
     setCurrentLogo(form.getValues('logoUrl'));
 
     const subscription = form.watch((value, { name }) => {
+      if (name === 'logoUrl') {
+          setCurrentLogo(value.logoUrl || '');
+      }
       if (name?.startsWith('colors')) {
         const colors = value.colors as {name: string, value: string}[];
         colors.forEach(color => {
@@ -142,7 +157,6 @@ export default function BrandSettingsForm() {
           const reader = new FileReader();
           reader.onloadend = () => {
               const dataUrl = reader.result as string;
-              setCurrentLogo(dataUrl);
               form.setValue('logoUrl', dataUrl, { shouldValidate: true });
           };
           reader.readAsDataURL(file);

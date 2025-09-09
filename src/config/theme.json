@@ -43,7 +43,7 @@
     "aiRecommendations": true,
     "productChatbot": true,
     "abTesting": true,
-    "retailMediaNetwork": false,
+    "retailMediaNetwork": true,
     "performanceAnalysis": true
   }
 }

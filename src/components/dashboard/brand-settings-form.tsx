@@ -10,10 +10,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Upload, Palette, Save } from 'lucide-react';
+import { Upload, Palette, Save, Building, Globe } from 'lucide-react';
 import Image from 'next/image';
 import themeConfig from '@/config/theme.json';
+import countries from '@/lib/countries.json';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { ChevronsUpDown, Check } from "lucide-react"
+import { cn } from '@/lib/utils';
+import { Controller } from 'react-hook-form';
 
 const colorToHex = (hsl: string) => {
   if (!hsl || typeof hsl !== 'string') return '#000000';
@@ -61,6 +83,8 @@ const hexToHsl = (hex: string) => {
 
 
 const formSchema = z.object({
+  companyName: z.string().min(1, 'Company name is required'),
+  companyCountry: z.string().min(1, 'Country is required'),
   logoUrl: z.string().url().or(z.literal('')),
   colors: z.array(z.object({
     name: z.string(),
@@ -77,6 +101,8 @@ const getDefaultFormValues = () => {
     }));
 
     return {
+        companyName: '',
+        companyCountry: '',
         logoUrl: themeConfig.logoUrl,
         colors,
     };
@@ -85,6 +111,7 @@ const getDefaultFormValues = () => {
 export default function BrandSettingsForm() {
   const { toast } = useToast();
   const [currentLogo, setCurrentLogo] = useState('');
+  const [isCountryPopoverOpen, setIsCountryPopoverOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -105,7 +132,12 @@ export default function BrandSettingsForm() {
                 name: name.charAt(0).toUpperCase() + name.slice(1),
                 value: colorToHex(value as string),
             }));
-            form.reset({ logoUrl: theme.logoUrl, colors });
+            form.reset({ 
+                logoUrl: theme.logoUrl, 
+                colors,
+                companyName: theme.companyName || '',
+                companyCountry: theme.companyCountry || ''
+            });
         } catch (error) {
             console.error("Failed to parse brand settings from localStorage", error);
         }
@@ -132,7 +164,7 @@ export default function BrandSettingsForm() {
   }, [form]);
 
   const onSubmit = (data: FormValues) => {
-    const newThemeConfig = { ...themeConfig };
+    const newThemeConfig = { ...themeConfig, companyName: data.companyName, companyCountry: data.companyCountry };
     
     newThemeConfig.logoUrl = data.logoUrl;
     
@@ -165,6 +197,71 @@ export default function BrandSettingsForm() {
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="text-primary" /> Company Details
+          </CardTitle>
+          <CardDescription>
+            Provide general information about your company.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input id="companyName" {...form.register('companyName')} />
+                {form.formState.errors.companyName && <p className="text-sm text-destructive">{form.formState.errors.companyName.message}</p>}
+            </div>
+             <div className="space-y-2">
+                <Label>Company Country</Label>
+                <Controller
+                    control={form.control}
+                    name="companyCountry"
+                    render={({ field }) => (
+                         <Popover open={isCountryPopoverOpen} onOpenChange={setIsCountryPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={isCountryPopoverOpen}
+                                className="w-full justify-between"
+                                >
+                                {field.value ? countries.find(c => c.value === field.value)?.label : "Select country..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Search country..." />
+                                    <CommandEmpty>No country found.</CommandEmpty>
+                                    <CommandGroup className="max-h-64 overflow-y-auto">
+                                        {countries.map((country) => (
+                                        <CommandItem
+                                            key={country.value}
+                                            value={country.label}
+                                            onSelect={(currentValue) => {
+                                                const countryValue = countries.find(c => c.label.toLowerCase() === currentValue.toLowerCase())?.value || "";
+                                                field.onChange(countryValue);
+                                                setIsCountryPopoverOpen(false);
+                                            }}
+                                        >
+                                            <Check className={cn("mr-2 h-4 w-4", field.value === country.value ? "opacity-100" : "opacity-0")} />
+                                            {country.label}
+                                        </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    )}
+                />
+                 {form.formState.errors.companyCountry && <p className="text-sm text-destructive">{form.formState.errors.companyCountry.message}</p>}
+            </div>
+        </CardContent>
+      </Card>
+
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -231,3 +328,5 @@ export default function BrandSettingsForm() {
     </form>
   );
 }
+
+    

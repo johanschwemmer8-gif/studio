@@ -218,9 +218,9 @@ export default function RoiPage() {
         <ScanFrequencyChart data={dailyScanData} title="Daily Scan Frequency" description="Average QR code scans by day of the week." />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <TopProductsTable data={metrics.topProducts} />
+      <div className="grid grid-cols-1 gap-8">
         <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
+        <TopProductsTable data={metrics.topProducts} />
       </div>
     </div>
   );

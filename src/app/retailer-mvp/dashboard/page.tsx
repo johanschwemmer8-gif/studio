@@ -2,7 +2,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { Separator } from '@/components/ui/separator';
-import { storesByRegion, roiMetrics, ytdData, dashboardMetrics } from '@/lib/data';
+import { storesByRegion, dashboardMetrics } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
 import {
   Card,
@@ -11,9 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DollarSign, TrendingUp, Sparkles, AlertTriangle } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import YtdPerformanceChart from '@/components/dashboard/ytd-performance-chart';
+import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,14 +47,14 @@ export default function DashboardPage() {
                 engagement: {
                   totalScans: metrics.stats.totalScans,
                   uniqueScans: metrics.stats.uniqueScans,
-                  engagementDuration: metrics.stats.engagementDuration,
-                  scanRate: metrics.stats.scanRate,
+                  engagementDuration: metrics.stats.dwellTime, // Changed from engagementDuration
+                  scanRate: metrics.stats.engagementRate, // Changed from scanRate
                 },
                 conversion: {
                     avgBasketSizeAoe: metrics.stats.avgBasketSizeAoe,
                     avgBasketSizeNonAoe: metrics.stats.avgBasketSizeNonAoe,
-                    basketUpliftPercentage: metrics.stats.basketUpliftPercentage,
-                    offerRedemptionRate: metrics.stats.offerRedemptionRate,
+                    basketUpliftPercentage: metrics.stats.basketUplift, // Changed from basketUpliftPercentage
+                    offerRedemptionRate: metrics.stats.offerRedemption, // Changed from offerRedemptionRate
                     totalRedeemedValue: metrics.stats.totalRedeemedValue,
                     aoeTransactions: metrics.stats.aoeTransactions,
                 }
@@ -68,6 +66,8 @@ export default function DashboardPage() {
         }
     });
   };
+  
+  const currentMetrics = dashboardMetrics.getMetrics(selectedStore).stats;
 
   return (
     <div className="space-y-8">
@@ -153,79 +153,82 @@ export default function DashboardPage() {
 
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+               <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Unique Scans</CardTitle>
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{currentMetrics.uniqueScans.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Individual customers who scanned a QR code.
+                  </p>
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Revenue Uplift to Cost Ratio</CardTitle>
+                  <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{roiMetrics.revenueUpliftToCostRatio}:1</div>
-                  <p className="text-xs text-muted-foreground">
-                    For every R1 spent, you are generating R{roiMetrics.revenueUpliftToCostRatio.toFixed(2)} in return.
+                  <div className="text-3xl font-bold">{currentMetrics.engagementRate}%</div>
+                   <p className="text-xs text-muted-foreground">
+                    Percentage of unique visitors who scanned.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue Uplift YTD</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
+                  <Tag className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">R{roiMetrics.totalRevenueUplift.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{currentMetrics.offerRedemption}%</div>
                   <p className="text-xs text-muted-foreground">
-                    Directly attributable to in-store engagements.
+                    Rate of personalized offers redeemed.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Subscription Cost YTD</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Basket Uplift</CardTitle>
+                  <ArrowUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">R{roiMetrics.subscriptionCost.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Fixed monthly platform investment.
+                  <div className="text-3xl font-bold">{currentMetrics.basketUplift}%</div>
+                   <p className="text-xs text-muted-foreground">
+                    Increase in average basket size for engaged users.
+                  </p>
+                </CardContent>
+              </Card>
+               <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                  <Percent className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{currentMetrics.conversionRate}%</div>
+                   <p className="text-xs text-muted-foreground">
+                    Engaged users who made a purchase.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Net Gain/Loss YTD</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Dwell Time</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${roiMetrics.netGainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    R{roiMetrics.netGainLoss.toLocaleString()}
-                  </div>
+                  <div className="text-3xl font-bold">{currentMetrics.dwellTime}s</div>
                   <p className="text-xs text-muted-foreground">
-                    Absolute profit after subscription costs.
+                    Average time spent on product page after scan.
                   </p>
                 </CardContent>
               </Card>
-              <div className="lg:col-span-2">
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">Progress to Break-Even</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <div className="flex items-center gap-4">
-                          <Progress value={roiMetrics.progressToBreakEven} className="h-3" />
-                          <span className="text-lg font-bold">{roiMetrics.progressToBreakEven}%</span>
-                      </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      How close you are to recouping your monthly investment.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
             </div>
           </div>
         </CardContent>
       </Card>
-      
-      <YtdPerformanceChart data={ytdData} />
-      
     </div>
   );
 }

@@ -39,11 +39,15 @@ const allStoresMetrics = {
   stats: {
     totalScans: 3150,
     uniqueScans: 1890,
+    engagementRate: 75.3,
+    dwellTime: 45,
+    offerRedemption: 22.4,
+    basketUplift: 15.8,
+    conversionRate: 8.2,
+    // Original metrics, kept for other parts of the app
     scanRate: 75.3,
     engagementDuration: 45,
     offerRedemptionRate: 22.4,
-    basketUplift: 15.8,
-    // Performance & Conversion Metrics
     avgBasketSizeAoe: 550,
     avgBasketSizeNonAoe: 450,
     basketUpliftPercentage: 22.2,
@@ -73,6 +77,11 @@ const generateRandomMetrics = () => ({
     engagementDuration: Math.floor(Math.random() * 30) + 20,
     offerRedemptionRate: parseFloat((Math.random() * 15 + 10).toFixed(1)),
     basketUplift: parseFloat((Math.random() * 10 + 5).toFixed(1)),
+    // New metrics
+    engagementRate: parseFloat((Math.random() * 30 + 50).toFixed(1)),
+    dwellTime: Math.floor(Math.random() * 30) + 20,
+    offerRedemption: parseFloat((Math.random() * 15 + 10).toFixed(1)),
+    conversionRate: parseFloat((Math.random() * 5 + 5).toFixed(1)),
     // Performance & Conversion Metrics
     avgBasketSizeAoe: Math.floor(Math.random() * 100) + 500,
     avgBasketSizeNonAoe: Math.floor(Math.random() * 80) + 400,

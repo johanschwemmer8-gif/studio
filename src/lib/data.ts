@@ -326,6 +326,13 @@ export const moduleActivationLogs = [
   { id: '3', module: 'Performance Analysis', action: 'Activated' as const, user: 'admin@interact.io', timestamp: '2023-10-25T09:05:00Z' },
 ];
 
+export const scanFailuresLog = [
+  { id: '1', store: 'Sandton City', location: 'Aisle 5, Shelf 3', error: 'Invalid QR Code', timestamp: '2023-10-27T10:05:00Z' },
+  { id: '2', store: 'V&A Waterfront', location: 'Entrance Display', error: 'Network Timeout', timestamp: '2023-10-27T10:02:00Z' },
+  { id: '3', store: 'Menlyn Park', location: 'Checkout 12', error: 'Product Not Found', timestamp: '2023-10-27T09:58:00Z' },
+  { id: '4', store: 'Sandton City', location: 'Electronics Dept', error: 'Invalid QR Code', timestamp: '2023-10-27T09:55:00Z' },
+];
+
 
 export const systemUptime = {
   status: 'Operational',
@@ -341,3 +348,5 @@ export const scanErrorRate = {
   rate: 0.1,
   failures: 5,
 };
+
+    

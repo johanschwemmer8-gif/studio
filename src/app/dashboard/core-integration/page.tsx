@@ -10,11 +10,45 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Cloud, Database, ShoppingBasket, KeyRound, Settings } from 'lucide-react';
+import { ArrowLeft, Cloud, Database, ShoppingBasket, KeyRound, Settings, ShieldCheck, Ban, SlidersHorizontal, BarChart2, Eye } from 'lucide-react';
 import Link from 'next/link';
 import ApiKeyManager from '@/components/dashboard/api-key-manager';
 
 export default function CoreIntegrationPage() {
+
+  const coreFeatures = [
+    { 
+      name: "Secure Key Storage", 
+      description: "Keys are encrypted at rest and in transit, ensuring they are never exposed.",
+      icon: <ShieldCheck className="h-5 w-5 text-green-500" />
+    },
+    { 
+      name: "Revocation & Rotation", 
+      description: "Instantly revoke compromised keys and set up automated rotation policies.",
+      icon: <Ban className="h-5 w-5 text-red-500" />
+    },
+    { 
+      name: "Scope Management", 
+      description: "Assign granular permissions to each key, limiting access to specific resources.",
+      icon: <SlidersHorizontal className="h-5 w-5 text-blue-500" />
+    },
+    { 
+      name: "Rate Limiting", 
+      description: "Protect your services from abuse with customizable rate limits per key.",
+      icon: <BarChart2 className="h-5 w-5 text-yellow-500" />
+    },
+    { 
+      name: "Usage Tracking", 
+      description: "Monitor API usage and performance with detailed logs and analytics.",
+      icon: <Eye className="h-5 w-5 text-purple-500" />
+    },
+     { 
+      name: "Key Preview Display", 
+      description: "Safely preview key details without exposing the full key, reducing accidental leaks.",
+      icon: <Eye className="h-5 w-5 text-indigo-500" />
+    },
+  ];
+
 
   return (
     <div className="space-y-8">
@@ -42,13 +76,21 @@ export default function CoreIntegrationPage() {
                   Core Features
               </CardTitle>
               <CardDescription>
-                  Manage the core features of the iNteract AOE platform.
+                  Manage the core features of the iNteract AOE platform that can be assigned to API Keys.
               </CardDescription>
           </CardHeader>
           <CardContent>
-              <p className="text-sm text-muted-foreground">
-                This section will be used to manage the core features that can be assigned to API Keys.
-              </p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {coreFeatures.map(feature => (
+                    <div key={feature.name} className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
+                        <div className="flex-shrink-0">{feature.icon}</div>
+                        <div>
+                            <h3 className="font-semibold">{feature.name}</h3>
+                            <p className="text-sm text-muted-foreground">{feature.description}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
           </CardContent>
       </Card>
 

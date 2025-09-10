@@ -136,7 +136,7 @@ export default function RealTimePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{behavioralInsights.repeatScansPerShopper}</div>
-              <p className="text-xs text-muted-foreground">Average scans per unique customer in a 30-day period.</p>
+              <p className="text-xs text-muted-foreground">Indicates loyalty and habit formation by tracking how often a single customer scans new products.</p>
             </CardContent>
           </Card>
           <Card>

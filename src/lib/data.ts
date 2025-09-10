@@ -1,4 +1,5 @@
 
+
 export type Product = {
   id: string;
   name: string;
@@ -349,4 +350,13 @@ export const scanErrorRate = {
   failures: 5,
 };
 
+export const campaignModuleMetrics = {
+  promoCardCtr: 4.8,
+  aiAssistantUsageRate: 35,
+  moduleEngagementSplit: {
+    recommendations: 60,
+    chatbot: 40,
+  },
+  timeToFirstInteraction: 12,
+};
     

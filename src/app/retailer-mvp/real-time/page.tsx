@@ -1,11 +1,11 @@
 
 'use client';
-import { realTimeStockLevels, dataSyncLogs, systemUptime, lastSyncStatus, moduleActivationLogs } from '@/lib/data';
+import { realTimeStockLevels, dataSyncLogs, systemUptime, lastSyncStatus, moduleActivationLogs, scanErrorRate } from '@/lib/data';
 import RealTimeStockLevels from '@/components/dashboard/real-time-stock-levels';
 import DataSynchronizationLogs from '@/components/dashboard/data-synchronization-logs';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldCheck, RefreshCw } from 'lucide-react';
+import { ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import ModuleActivationLogs from '@/components/dashboard/module-activation-logs';
@@ -43,7 +43,7 @@ export default function RealTimePage() {
       <Separator />
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
@@ -62,7 +62,7 @@ export default function RealTimePage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-1">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Last Sync Status</CardTitle>
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
@@ -71,6 +71,18 @@ export default function RealTimePage() {
             <div className={cn("text-xl font-bold", lastSyncStatus.status === 'Success' ? 'text-green-500' : 'text-red-500')}>{lastSyncStatus.status}</div>
             <p className="text-xs text-muted-foreground">
               Last updated: <ClientFormattedDate timestamp={lastSyncStatus.timestamp} />
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Error Rate/Scan Failures</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{scanErrorRate.rate}%</div>
+            <p className="text-xs text-muted-foreground">
+              {scanErrorRate.failures} failures in the last 24 hours.
             </p>
           </CardContent>
         </Card>

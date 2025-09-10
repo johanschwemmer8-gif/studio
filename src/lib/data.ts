@@ -336,3 +336,8 @@ export const lastSyncStatus = {
   status: 'Success' as const,
   timestamp: '2023-10-27T10:00:00Z',
 };
+
+export const scanErrorRate = {
+  rate: 0.1,
+  failures: 5,
+};

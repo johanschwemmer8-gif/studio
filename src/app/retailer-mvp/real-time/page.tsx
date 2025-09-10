@@ -9,6 +9,7 @@ import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell } from 're
 import { Button } from '@/components/ui/button';
 import { useState, useTransition } from 'react';
 import { analyzeCampaignPerformance, AnalyzeCampaignPerformanceOutput } from '@/ai/flows/analyze-campaign-performance';
+import { analyzeBehavioralInsights, AnalyzeBehavioralInsightsOutput } from '@/ai/flows/analyze-behavioral-insights';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import theme from '@/config/theme.json';
@@ -20,24 +21,43 @@ export default function RealTimePage() {
   ];
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))'];
 
-  const [analysis, setAnalysis] = useState<AnalyzeCampaignPerformanceOutput | null>(null);
-  const [isAnalyzing, startAnalyzing] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [campaignAnalysis, setCampaignAnalysis] = useState<AnalyzeCampaignPerformanceOutput | null>(null);
+  const [isCampaignAnalyzing, startCampaignAnalyzing] = useTransition();
+  const [campaignError, setCampaignError] = useState<string | null>(null);
+
+  const [behavioralAnalysis, setBehavioralAnalysis] = useState<AnalyzeBehavioralInsightsOutput | null>(null);
+  const [isBehavioralAnalyzing, startBehavioralAnalyzing] = useTransition();
+  const [behavioralError, setBehavioralError] = useState<string | null>(null);
+
   const { optionalModules } = theme;
 
 
-  const handleAnalyzeMetrics = () => {
-    setError(null);
-    startAnalyzing(async () => {
+  const handleAnalyzeCampaign = () => {
+    setCampaignError(null);
+    startCampaignAnalyzing(async () => {
       try {
         const result = await analyzeCampaignPerformance(campaignModuleMetrics);
-        setAnalysis(result);
+        setCampaignAnalysis(result);
       } catch (e) {
         console.error(e);
-        setError("We couldn't generate the analysis at this time. Please try again later.");
+        setCampaignError("We couldn't generate the analysis at this time. Please try again later.");
       }
     });
   };
+
+  const handleAnalyzeInsights = () => {
+    setBehavioralError(null);
+    startBehavioralAnalyzing(async () => {
+        try {
+            const result = await analyzeBehavioralInsights(behavioralInsights);
+            setBehavioralAnalysis(result);
+        } catch (e) {
+            console.error(e);
+            setBehavioralError("We couldn't generate the analysis at this time. Please try again later.");
+        }
+    });
+  };
+
 
   return (
     <div className="space-y-8">
@@ -68,14 +88,14 @@ export default function RealTimePage() {
             </p>
         </div>
         {optionalModules.performanceAnalysis && (
-            <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
+            <Button onClick={handleAnalyzeCampaign} disabled={isCampaignAnalyzing}>
                 <Sparkles className="mr-2 h-4 w-4" />
                 Analyze Performance
             </Button>
         )}
       </div>
 
-       {isAnalyzing && (
+       {isCampaignAnalyzing && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
@@ -93,15 +113,15 @@ export default function RealTimePage() {
         </Card>
       )}
 
-      {error && (
+      {campaignError && (
           <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Analysis Failed</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{campaignError}</AlertDescription>
           </Alert>
       )}
 
-      {analysis && (
+      {campaignAnalysis && (
         <Card className="bg-accent/10 border-accent">
             <CardHeader>
                  <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
@@ -110,17 +130,17 @@ export default function RealTimePage() {
             <CardContent className="space-y-6">
                 <div>
                     <h3 className="font-semibold mb-2">Findings</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.findings}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{campaignAnalysis.findings}</p>
                 </div>
                 <Separator />
                 <div>
                     <h3 className="font-semibold mb-2">Conclusions</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.conclusions}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{campaignAnalysis.conclusions}</p>
                 </div>
                 <Separator />
                  <div>
                     <h3 className="font-semibold mb-2">Recommendations</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.recommendations}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{campaignAnalysis.recommendations}</p>
                 </div>
             </CardContent>
         </Card>
@@ -203,14 +223,73 @@ export default function RealTimePage() {
 
       <Separator />
 
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Behavioral & Loyalty Insights
-        </h2>
-        <p className="text-muted-foreground max-w-3xl">
-          Analyze customer behavior patterns and track loyalty metrics over time.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-2">
+            Behavioral & Loyalty Insights
+            </h2>
+            <p className="text-muted-foreground max-w-3xl">
+            Analyze customer behavior patterns and track loyalty metrics over time.
+            </p>
+        </div>
+        {optionalModules.performanceAnalysis && (
+            <Button onClick={handleAnalyzeInsights} disabled={isBehavioralAnalyzing}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Analyze Insights
+            </Button>
+        )}
       </div>
+
+        {isBehavioralAnalyzing && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
+            <CardDescription>Our AI is analyzing your behavioral and loyalty insights...</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <div className="pt-4 space-y-2">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {behavioralError && (
+          <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Analysis Failed</AlertTitle>
+              <AlertDescription>{behavioralError}</AlertDescription>
+          </Alert>
+      )}
+
+      {behavioralAnalysis && (
+        <Card className="bg-accent/10 border-accent">
+            <CardHeader>
+                 <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
+                 <CardDescription>An AI-generated analysis of your behavioral insights.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                    <h3 className="font-semibold mb-2">Findings</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{behavioralAnalysis.findings}</p>
+                </div>
+                <Separator />
+                <div>
+                    <h3 className="font-semibold mb-2">Conclusions</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{behavioralAnalysis.conclusions}</p>
+                </div>
+                <Separator />
+                 <div>
+                    <h3 className="font-semibold mb-2">Recommendations</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{behavioralAnalysis.recommendations}</p>
+                </div>
+            </CardContent>
+        </Card>
+      )}
 
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>

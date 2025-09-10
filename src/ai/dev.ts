@@ -5,3 +5,4 @@ import '@/ai/flows/generate-cross-sell-recommendations.ts';
 import '@/ai/flows/product-chat-flow.ts';
 import '@/ai/flows/analyze-engagement-metrics.ts';
 import '@/ai/flows/analyze-campaign-performance.ts';
+import '@/ai/flows/analyze-behavioral-insights.ts';

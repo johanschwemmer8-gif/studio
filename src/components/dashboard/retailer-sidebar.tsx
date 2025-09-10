@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
@@ -99,6 +99,14 @@ export default function RetailerSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Documentation & Training Modules">
+                    <Link href="/retailer-mvp/documentation">
+                        <BookOpen />
+                        <span>Documentation & Training</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
             {optionalModules.retailerAdmin && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Retailer Admin Panel">

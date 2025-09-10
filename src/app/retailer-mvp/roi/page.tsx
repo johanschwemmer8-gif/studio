@@ -60,21 +60,6 @@ export default function RoiPage() {
     });
   };
 
-  const monthlyScanData = [
-    { name: 'Mar', scans: 980 },
-    { name: 'Apr', scans: 390 },
-    { name: 'May', scans: 480 },
-    { name: 'Jun', scans: 380 },
-    { name: 'Jul', scans: 520 },
-    { name: 'Aug', scans: 610 },
-    { name: 'Sep', scans: 750 },
-    { name: 'Oct', scans: 880 },
-    { name: 'Nov', scans: 1050 },
-    { name: 'Dec', scans: 1500 },
-    { name: 'Jan', scans: 1240 },
-    { name: 'Feb', scans: 1139 },
-  ];
-
   const dailyScanData = [
     { name: 'Mon', scans: 220 },
     { name: 'Tue', scans: 280 },
@@ -84,6 +69,11 @@ export default function RoiPage() {
     { name: 'Sat', scans: 800 },
     { name: 'Sun', scans: 650 },
   ];
+
+  const timeBasedScanData = metrics.timeBasedPerformance.map(item => ({
+    name: item.time,
+    scans: item.engagement,
+  }));
 
   return (
     <div className="space-y-8">
@@ -214,7 +204,7 @@ export default function RoiPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ScanFrequencyChart data={monthlyScanData} title="Monthly Scan Frequency" description="Total QR code scans over the current financial year." />
+        <ScanFrequencyChart data={timeBasedScanData} title="Engagement by Time of Day" description="Customer engagement levels throughout the day." />
         <ScanFrequencyChart data={dailyScanData} title="Daily Scan Frequency" description="Average QR code scans by day of the week." />
       </div>
       

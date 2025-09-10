@@ -374,4 +374,12 @@ export const behavioralInsights = {
         atRisk: 25,
     },
 };
+
+export const staffActivationData = [
+  { id: '1', name: 'Thabo Ndlovu', store: 'Sandton City', activations: 125 },
+  { id: '2', name: 'Sarah Miller', store: 'V&A Waterfront', activations: 110 },
+  { id: '3', name: 'John Smith', store: 'Gateway Theatre of Shopping', activations: 95 },
+  { id: '4', name: 'Naledi Williams', store: 'Menlyn Park', activations: 80 },
+  { id: '5', name: 'David Chen', store: 'Canal Walk', activations: 72 },
+];
     

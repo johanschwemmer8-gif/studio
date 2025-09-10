@@ -1,6 +1,6 @@
 
 'use client';
-import { realTimeStockLevels, campaignModuleMetrics, behavioralInsights } from '@/lib/data';
+import { realTimeStockLevels, campaignModuleMetrics, behavioralInsights, staffActivationData } from '@/lib/data';
 import RealTimeStockLevels from '@/components/dashboard/real-time-stock-levels';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { analyzeBehavioralInsights, AnalyzeBehavioralInsightsOutput } from '@/ai
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import theme from '@/config/theme.json';
+import StaffActivationModule from '@/components/dashboard/staff-activation-module';
 
 export default function RealTimePage() {
   const engagementSplitData = [
@@ -75,6 +76,19 @@ export default function RealTimePage() {
       <div className="grid gap-8 lg:grid-cols-1">
         <RealTimeStockLevels data={realTimeStockLevels} />
       </div>
+
+      <Separator />
+
+       <div>
+        <h2 className="text-2xl font-bold tracking-tight mb-2">
+          Staff Activation Module
+        </h2>
+        <p className="text-muted-foreground max-w-3xl">
+          Track which staff members in which stores are most active in promoting the AOE activation campaign.
+        </p>
+      </div>
+
+      <StaffActivationModule data={staffActivationData} />
 
       <Separator />
 

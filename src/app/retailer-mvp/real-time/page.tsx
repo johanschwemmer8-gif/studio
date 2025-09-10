@@ -116,6 +116,31 @@ export default function RealTimePage() {
           </CardContent>
         </Card>
       </div>
+
+      <Separator />
+
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight mb-2">
+          Behavioral & Loyalty Insights
+        </h2>
+        <p className="text-muted-foreground max-w-3xl">
+          Analyze customer behavior patterns and track loyalty metrics over time.
+        </p>
+      </div>
+
+       <Card>
+          <CardHeader>
+              <CardTitle>Coming Soon</CardTitle>
+              <CardDescription>
+                  This section is under development. Soon you'll be able to analyze customer journey flows, repeat engagement rates, and loyalty program interactions.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <p>
+                  Stay tuned for powerful visualizations that will help you understand user behavior and build customer loyalty.
+              </p>
+          </CardContent>
+      </Card>
     </div>
   );
 }

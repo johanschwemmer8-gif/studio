@@ -33,9 +33,9 @@ export default function TimeBasedPerformanceChart({ data }: { data: ChartData })
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Time-Based Performance</CardTitle>
+        <CardTitle>Engagement & Conversion</CardTitle>
         <CardDescription>
-          Engagement and conversion rates by time of day/week.
+          Engagement and conversion rates by month.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Cloud, Database, ShoppingBasket, KeyRound } from 'lucide-react';
+import { ArrowLeft, Cloud, Database, ShoppingBasket, KeyRound, Settings } from 'lucide-react';
 import Link from 'next/link';
 import ApiKeyManager from '@/components/dashboard/api-key-manager';
 
@@ -34,6 +34,23 @@ export default function CoreIntegrationPage() {
       </div>
 
       <Separator />
+
+       <Card>
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                  <Settings className="text-primary" />
+                  Core Features
+              </CardTitle>
+              <CardDescription>
+                  Manage the core features of the iNteract AOE platform.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <p className="text-sm text-muted-foreground">
+                This section will be used to manage the core features that can be assigned to API Keys.
+              </p>
+          </CardContent>
+      </Card>
 
        <Card>
           <CardHeader>

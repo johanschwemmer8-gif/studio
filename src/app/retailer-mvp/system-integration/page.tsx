@@ -9,19 +9,108 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Code, MessageCircle, Share2, Sparkles } from 'lucide-react';
+import { CheckCircle, Code, MessageCircle, Share2, Sparkles, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
+import { dataSyncLogs, lastSyncStatus, moduleActivationLogs, scanErrorRate, scanFailuresLog, systemUptime } from '@/lib/data';
+import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import DataSynchronizationLogs from '@/components/dashboard/data-synchronization-logs';
+import ModuleActivationLogs from '@/components/dashboard/module-activation-logs';
+import ScanFailuresLog from '@/components/dashboard/scan-failures-log';
+
+// This new component will ensure that date formatting only runs on the client
+function ClientFormattedDate({ timestamp }: { timestamp: string }) {
+  const [formattedDate, setFormattedDate] = useState('');
+
+  useEffect(() => {
+    // This code runs only on the client, after the component has mounted
+    setFormattedDate(new Date(timestamp).toLocaleString());
+  }, [timestamp]);
+
+  // Return a placeholder or null on the server and initial client render
+  if (!formattedDate) {
+    return null; // or a loading skeleton
+  }
+
+  return <span>{formattedDate}</span>;
+}
+
 
 export default function SystemIntegrationPage() {
 
   return (
     <div className="space-y-8">
        <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">Generative AI Capabilities</h2>
+        <h2 className="text-2xl font-bold tracking-tight mb-2">System & Integration Management</h2>
         <p className="text-muted-foreground max-w-3xl">
-          This dashboard showcases the powerful Generative AI features integrated into the iNteract-AOE platform to create a personalized and engaging in-store experience.
+          Showcase of the powerful Generative AI features, system health diagnostics, and integration logs for the iNteract-AOE platform.
         </p>
       </div>
       <Separator />
+
+      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{systemUptime.uptime}%</div>
+            <p
+              className={cn(
+                'text-xs',
+                systemUptime.status === 'Operational'
+                  ? 'text-green-500'
+                  : 'text-red-500'
+              )}
+            >
+              {systemUptime.status}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Last Sync Status</CardTitle>
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={cn("text-xl font-bold", lastSyncStatus.status === 'Success' ? 'text-green-500' : 'text-red-500')}>{lastSyncStatus.status}</div>
+            <p className="text-xs text-muted-foreground">
+              Last updated: <ClientFormattedDate timestamp={lastSyncStatus.timestamp} />
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Error Rate/Scan Failures</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{scanErrorRate.rate}%</div>
+            <p className="text-xs text-muted-foreground">
+              {scanErrorRate.failures} failures in the last 24 hours.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <ScanFailuresLog logs={scanFailuresLog} />
+
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+            <ModuleActivationLogs logs={moduleActivationLogs} />
+        </div>
+        <DataSynchronizationLogs logs={dataSyncLogs} />
+      </div>
+
+      <Separator />
+
+      <div>
+        <h3 className="text-xl font-bold tracking-tight mb-2">Generative AI Capabilities</h3>
+        <p className="text-muted-foreground max-w-3xl">
+          This section showcases the powerful Generative AI features integrated into the platform.
+        </p>
+      </div>
+
 
         <Card>
             <CardHeader>

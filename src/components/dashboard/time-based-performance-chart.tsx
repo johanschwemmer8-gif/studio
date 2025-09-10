@@ -18,7 +18,17 @@ type ChartData = {
   conversion: number;
 }[];
 
-export default function TimeBasedPerformanceChart({ data }: { data: ChartData }) {
+type TimeBasedPerformanceChartProps = {
+  data: ChartData;
+  title?: string;
+  description?: string;
+};
+
+export default function TimeBasedPerformanceChart({
+  data,
+  title = "Engagement & Conversion",
+  description = "Engagement and conversion rates by month.",
+}: TimeBasedPerformanceChartProps) {
   const chartConfig = {
     engagement: {
       label: 'Engagement',
@@ -33,9 +43,9 @@ export default function TimeBasedPerformanceChart({ data }: { data: ChartData })
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Engagement & Conversion</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>
-          Engagement and conversion rates by month.
+          {description}
         </CardDescription>
       </CardHeader>
       <CardContent>

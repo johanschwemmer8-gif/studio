@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag, Sparkles, AlertTriangle } from 'lucide-react';
+import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag, Sparkles, AlertTriangle, DollarSign, BarChart, Gift, Repeat } from 'lucide-react';
 import ScanFrequencyChart from '@/components/dashboard/scan-frequency-chart';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { dashboardMetrics } from '@/lib/data';
@@ -144,60 +144,60 @@ export default function RoiPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Scans
+              Sales Uplift
             </CardTitle>
-            <QrCode className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{engagementData.totalScans.toLocaleString()}</div>
+            <div className="text-2xl font-bold">R{metrics.stats.salesUplift.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              All QR code scans across all stores.
+              Increase in sales from engaged customers.
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Unique Scans
+              Redemption-Linked Revenue
             </CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
+            <Gift className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {engagementData.uniqueScans.toLocaleString()}
+             R{metrics.stats.redemptionLinkedRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              Individual customers who have scanned.
+              Revenue generated from redeemed offers.
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Engagement Rate
+              Cost Per Engagement
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <BarChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {engagementData.scanRate}%
+              R{metrics.stats.costPerEngagement.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Based on total scans vs. unique visitors.
+             Average cost for each customer interaction.
             </p>
           </CardContent>
         </Card>
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-             Engagement Duration
+             Return on Investment
             </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Repeat className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{engagementData.engagementDuration}s</div>
+            <div className="text-2xl font-bold">{metrics.stats.returnOnInvestment}:1</div>
             <p className="text-xs text-muted-foreground">
-              Average time spent on product page.
+              Ratio of net profit to investment cost.
             </p>
           </CardContent>
         </Card>

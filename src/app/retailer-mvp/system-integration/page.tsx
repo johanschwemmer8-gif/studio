@@ -104,6 +104,52 @@ export default function SystemIntegrationPage() {
 
       <Separator />
 
+       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="text-primary" /> MVP Security
+          </CardTitle>
+          <CardDescription>
+            Overview of the security measures implemented to protect the Retailer MVP.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+                The platform is protected by multiple layers of security to ensure data integrity and user safety. All systems are continuously monitored and synced with the central iNteract security system.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md">
+                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                    <div>
+                        <p className="font-semibold">End-to-End Encryption</p>
+                        <p className="text-muted-foreground">Status: <span className="text-green-500 font-medium">Active</span></p>
+                    </div>
+                </div>
+                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md">
+                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                    <div>
+                        <p className="font-semibold">Role-Based Access Control (RBAC)</p>
+                        <p className="text-muted-foreground">Status: <span className="text-green-500 font-medium">Active</span></p>
+                    </div>
+                </div>
+                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md">
+                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                    <div>
+                        <p className="font-semibold">Firewall & Intrusion Detection</p>
+                        <p className="text-muted-foreground">Status: <span className="text-green-500 font-medium">Active & Synced</span></p>
+                    </div>
+                </div>
+                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md">
+                    <ShieldCheck className="h-5 w-5 text-green-500" />
+                    <div>
+                        <p className="font-semibold">Regular Security Audits</p>
+                        <p className="text-muted-foreground">Status: <span className="text-green-500 font-medium">Scheduled</span></p>
+                    </div>
+                </div>
+            </div>
+        </CardContent>
+      </Card>
+
       <div>
         <h3 className="text-xl font-bold tracking-tight mb-2">Generative AI Capabilities</h3>
         <p className="text-muted-foreground max-w-3xl">

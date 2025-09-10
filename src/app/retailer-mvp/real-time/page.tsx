@@ -1,10 +1,10 @@
 
 'use client';
-import { realTimeStockLevels, campaignModuleMetrics } from '@/lib/data';
+import { realTimeStockLevels, campaignModuleMetrics, behavioralInsights } from '@/lib/data';
 import RealTimeStockLevels from '@/components/dashboard/real-time-stock-levels';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Hand, Timer, MousePointerClick } from 'lucide-react';
+import { PieChart, Hand, Timer, MousePointerClick, Repeat, Gift, Trophy, Users } from 'lucide-react';
 import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell } from 'recharts';
 
 export default function RealTimePage() {
@@ -128,19 +128,52 @@ export default function RealTimePage() {
         </p>
       </div>
 
-       <Card>
-          <CardHeader>
-              <CardTitle>Coming Soon</CardTitle>
-              <CardDescription>
-                  This section is under development. Soon you'll be able to analyze customer journey flows, repeat engagement rates, and loyalty program interactions.
-              </CardDescription>
-          </CardHeader>
-          <CardContent>
-              <p>
-                  Stay tuned for powerful visualizations that will help you understand user behavior and build customer loyalty.
-              </p>
-          </CardContent>
-      </Card>
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Repeat Scans per Shopper</CardTitle>
+              <Repeat className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{behavioralInsights.repeatScansPerShopper}</div>
+              <p className="text-xs text-muted-foreground">Average scans per unique customer in a 30-day period.</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Redemption Frequency</CardTitle>
+              <Gift className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{behavioralInsights.redemptionFrequency} days</div>
+              <p className="text-xs text-muted-foreground">Average time between offer redemptions for a user.</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Top Redeemed Offers</CardTitle>
+               <Trophy className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+               <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1">
+                  {behavioralInsights.topRedeemedOffers.map((offer, i) => <li key={i} className="truncate">{offer}</li>)}
+               </ol>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Customer Segmentation</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm space-y-1">
+                <p><strong>High Value:</strong> {behavioralInsights.customerSegmentation.highValue}%</p>
+                <p><strong>Loyal:</strong> {behavioralInsights.customerSegmentation.loyal}%</p>
+                <p><strong>At Risk:</strong> {behavioralInsights.customerSegmentation.atRisk}%</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
     </div>
   );
 }

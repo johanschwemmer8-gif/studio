@@ -359,4 +359,19 @@ export const campaignModuleMetrics = {
   },
   timeToFirstInteraction: 12,
 };
+
+export const behavioralInsights = {
+    repeatScansPerShopper: 2.3,
+    redemptionFrequency: 45,
+    topRedeemedOffers: [
+        '10% off any Lifestyle item',
+        'Buy one, get one free on Tote Bags',
+        'R50 off your next purchase',
+    ],
+    customerSegmentation: {
+        highValue: 15,
+        loyal: 40,
+        atRisk: 25,
+    },
+};
     

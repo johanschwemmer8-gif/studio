@@ -60,7 +60,7 @@ export default function RoiPage() {
     });
   };
 
-  const scanFrequencyData = [
+  const monthlyScanData = [
     { name: 'Mar', scans: 980 },
     { name: 'Apr', scans: 390 },
     { name: 'May', scans: 480 },
@@ -73,6 +73,16 @@ export default function RoiPage() {
     { name: 'Dec', scans: 1500 },
     { name: 'Jan', scans: 1240 },
     { name: 'Feb', scans: 1139 },
+  ];
+
+  const dailyScanData = [
+    { name: 'Mon', scans: 220 },
+    { name: 'Tue', scans: 280 },
+    { name: 'Wed', scans: 350 },
+    { name: 'Thu', scans: 410 },
+    { name: 'Fri', scans: 580 },
+    { name: 'Sat', scans: 800 },
+    { name: 'Sun', scans: 650 },
   ];
 
   return (
@@ -204,13 +214,14 @@ export default function RoiPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ScanFrequencyChart data={scanFrequencyData} />
-        <TopProductsTable data={metrics.topProducts} />
+        <ScanFrequencyChart data={monthlyScanData} title="Monthly Scan Frequency" description="Total QR code scans over the current financial year." />
+        <ScanFrequencyChart data={dailyScanData} title="Daily Scan Frequency" description="Average QR code scans by day of the week." />
       </div>
-
-      <Separator />
-
-      <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <TopProductsTable data={metrics.topProducts} />
+        <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
+      </div>
     </div>
   );
 }

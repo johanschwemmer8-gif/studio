@@ -1,3 +1,4 @@
+
 'use client';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
@@ -14,8 +15,14 @@ import {
 } from '@/components/ui/chart';
 
 type ChartData = { name: string; scans: number }[];
+type ScanFrequencyChartProps = {
+  data: ChartData;
+  title: string;
+  description: string;
+};
 
-export default function ScanFrequencyChart({ data }: { data: ChartData }) {
+
+export default function ScanFrequencyChart({ data, title, description }: ScanFrequencyChartProps) {
   const chartConfig = {
     scans: {
       label: 'Scans',
@@ -26,9 +33,9 @@ export default function ScanFrequencyChart({ data }: { data: ChartData }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Scan Frequency</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>
-          Total QR code scans over the current financial year.
+          {description}
         </CardDescription>
       </CardHeader>
       <CardContent>

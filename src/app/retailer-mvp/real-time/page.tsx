@@ -1,6 +1,6 @@
 
 'use client';
-import { realTimeStockLevels, dataSyncLogs, systemUptime, lastSyncStatus } from '@/lib/data';
+import { realTimeStockLevels, dataSyncLogs, systemUptime, lastSyncStatus, moduleActivationLogs } from '@/lib/data';
 import RealTimeStockLevels from '@/components/dashboard/real-time-stock-levels';
 import DataSynchronizationLogs from '@/components/dashboard/data-synchronization-logs';
 import { Separator } from '@/components/ui/separator';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShieldCheck, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import ModuleActivationLogs from '@/components/dashboard/module-activation-logs';
 
 // This new component will ensure that date formatting only runs on the client
 function ClientFormattedDate({ timestamp }: { timestamp: string }) {
@@ -75,9 +76,14 @@ export default function RealTimePage() {
         </Card>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <RealTimeStockLevels data={realTimeStockLevels} />
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+            <ModuleActivationLogs logs={moduleActivationLogs} />
+        </div>
         <DataSynchronizationLogs logs={dataSyncLogs} />
+      </div>
+      <div className="grid gap-8 lg:grid-cols-1">
+        <RealTimeStockLevels data={realTimeStockLevels} />
       </div>
     </div>
   );

@@ -320,6 +320,13 @@ export const dataSyncLogs = [
   { id: '4', service: 'Microsoft Dynamics 365', status: 'Success' as const, timestamp: '2023-10-27T09:15:00Z' },
 ];
 
+export const moduleActivationLogs = [
+  { id: '1', module: 'A/B Testing', action: 'Activated' as const, user: 'admin@interact.io', timestamp: '2023-10-26T14:00:00Z' },
+  { id: '2', module: 'Retail Media Network', action: 'Deactivated' as const, user: 'admin@interact.io', timestamp: '2023-10-26T11:20:00Z' },
+  { id: '3', module: 'Performance Analysis', action: 'Activated' as const, user: 'admin@interact.io', timestamp: '2023-10-25T09:05:00Z' },
+];
+
+
 export const systemUptime = {
   status: 'Operational',
   uptime: 99.99,

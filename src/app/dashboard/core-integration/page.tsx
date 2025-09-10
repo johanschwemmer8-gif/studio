@@ -10,8 +10,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Cloud, Database, ShoppingBasket } from 'lucide-react';
+import { ArrowLeft, Cloud, Database, ShoppingBasket, KeyRound } from 'lucide-react';
 import Link from 'next/link';
+import ApiKeyManager from '@/components/dashboard/api-key-manager';
 
 export default function CoreIntegrationPage() {
 
@@ -33,6 +34,22 @@ export default function CoreIntegrationPage() {
       </div>
 
       <Separator />
+
+       <Card>
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                  <KeyRound className="text-primary" />
+                  API Key Management
+              </CardTitle>
+              <CardDescription>
+                  Generate and manage API keys for your retailers to provide secure access to iNteract services.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <ApiKeyManager />
+          </CardContent>
+      </Card>
+
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>

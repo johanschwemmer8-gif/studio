@@ -4,8 +4,14 @@ import { realTimeStockLevels, campaignModuleMetrics, behavioralInsights } from '
 import RealTimeStockLevels from '@/components/dashboard/real-time-stock-levels';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Hand, Timer, MousePointerClick, Repeat, Gift, Trophy, Users } from 'lucide-react';
+import { PieChart, Hand, Timer, MousePointerClick, Repeat, Gift, Trophy, Users, Sparkles, AlertTriangle } from 'lucide-react';
 import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { useState, useTransition } from 'react';
+import { analyzeCampaignPerformance, AnalyzeCampaignPerformanceOutput } from '@/ai/flows/analyze-campaign-performance';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import theme from '@/config/theme.json';
 
 export default function RealTimePage() {
   const engagementSplitData = [
@@ -13,6 +19,25 @@ export default function RealTimePage() {
     { name: 'Chatbot', value: campaignModuleMetrics.moduleEngagementSplit.chatbot },
   ];
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))'];
+
+  const [analysis, setAnalysis] = useState<AnalyzeCampaignPerformanceOutput | null>(null);
+  const [isAnalyzing, startAnalyzing] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const { optionalModules } = theme;
+
+
+  const handleAnalyzeMetrics = () => {
+    setError(null);
+    startAnalyzing(async () => {
+      try {
+        const result = await analyzeCampaignPerformance(campaignModuleMetrics);
+        setAnalysis(result);
+      } catch (e) {
+        console.error(e);
+        setError("We couldn't generate the analysis at this time. Please try again later.");
+      }
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -33,15 +58,74 @@ export default function RealTimePage() {
 
       <Separator />
 
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Campaign & Module Performance
-        </h2>
-        <p className="text-muted-foreground max-w-3xl">
-          Track the real-time performance of your active campaigns and enabled modules.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-2">
+            Campaign & Module Performance
+            </h2>
+            <p className="text-muted-foreground max-w-3xl">
+            Track the real-time performance of your active campaigns and enabled modules.
+            </p>
+        </div>
+        {optionalModules.performanceAnalysis && (
+            <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Analyze Performance
+            </Button>
+        )}
       </div>
-      
+
+       {isAnalyzing && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
+            <CardDescription>Our AI is analyzing your campaign performance metrics...</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <div className="pt-4 space-y-2">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {error && (
+          <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Analysis Failed</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+          </Alert>
+      )}
+
+      {analysis && (
+        <Card className="bg-accent/10 border-accent">
+            <CardHeader>
+                 <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
+                 <CardDescription>An AI-generated analysis of your campaign performance.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                    <h3 className="font-semibold mb-2">Findings</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.findings}</p>
+                </div>
+                <Separator />
+                <div>
+                    <h3 className="font-semibold mb-2">Conclusions</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.conclusions}</p>
+                </div>
+                <Separator />
+                 <div>
+                    <h3 className="font-semibold mb-2">Recommendations</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.recommendations}</p>
+                </div>
+            </CardContent>
+        </Card>
+      )}
+
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

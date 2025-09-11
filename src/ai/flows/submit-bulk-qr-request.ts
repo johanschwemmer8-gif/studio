@@ -64,10 +64,13 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     // App Check would also be enforced by the Firebase Functions runtime.
     //
     // Example:
-    // if (!context.app) {
-    //   throw new functions.https.HttpsError('failed-precondition', 'The function must be called from an App Check verified app.');
+    // if (context.app == undefined) {
+    //   throw new functions.https.HttpsError(
+    //     'failed-precondition',
+    //     'The function must be called from an App Check verified app.'
+    //   );
     // }
-    // if (!context.auth) { 
+    // if (context.auth == undefined) { 
     //   throw new functions.https.HttpsError('unauthenticated', 'Authentication required.'); 
     // }
     // const { uid, token } = context.auth;
@@ -147,5 +150,3 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     return { success: true, requestId: requestRef.id };
   }
 );
-
-    

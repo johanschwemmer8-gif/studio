@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates cross-sell product recommendations based on a scanned product.
@@ -33,6 +34,14 @@ const GenerateCrossSellRecommendationsOutputSchema = z.object({
 export type GenerateCrossSellRecommendationsOutput = z.infer<typeof GenerateCrossSellRecommendationsOutputSchema>;
 
 export async function generateCrossSellRecommendations(input: GenerateCrossSellRecommendationsInput): Promise<GenerateCrossSellRecommendationsOutput> {
+  // In a real Firebase environment, you would check for App Check token here.
+  // Example for a callable function:
+  // if (context.app == undefined) {
+  //   throw new functions.https.HttpsError(
+  //     'failed-precondition',
+  //     'The function must be called from an App Check verified app.'
+  //   );
+  // }
   return generateCrossSellRecommendationsFlow(input);
 }
 

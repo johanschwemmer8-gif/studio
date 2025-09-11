@@ -34,6 +34,14 @@ const ImportExternalQrCodesOutputSchema = z.object({
 export type ImportExternalQrCodesOutput = z.infer<typeof ImportExternalQrCodesOutputSchema>;
 
 export async function importExternalQrCodes(input: ImportExternalQrCodesInput): Promise<ImportExternalQrCodesOutput> {
+  // In a real Firebase environment, you would check for App Check token here.
+  // Example for a callable function:
+  // if (context.app == undefined) {
+  //   throw new functions.https.HttpsError(
+  //     'failed-precondition',
+  //     'The function must be called from an App Check verified app.'
+  //   );
+  // }
   return importExternalQrCodesFlow(input);
 }
 

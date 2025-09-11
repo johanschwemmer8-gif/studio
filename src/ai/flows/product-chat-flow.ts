@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A conversational AI flow for answering product-related questions.
@@ -35,6 +36,15 @@ export type ProductChatOutput = z.infer<typeof ProductChatOutputSchema>;
 
 
 export async function productChat(input: ProductChatInput): Promise<ProductChatOutput> {
+    // In a real Firebase environment, you would check for App Check token here.
+    // Example for a callable function:
+    // if (context.app == undefined) {
+    //   throw new functions.https.HttpsError(
+    //     'failed-precondition',
+    //     'The function must be called from an App Check verified app.'
+    //   );
+    // }
+
     const chatHistory = input.history.map((msg) => ({
         role: msg.role,
         content: [{text: msg.content}],

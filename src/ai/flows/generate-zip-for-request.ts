@@ -28,6 +28,12 @@ export type GenerateZipForRequestOutput = z.infer<typeof GenerateZipForRequestOu
 
 
 export async function generateZipForRequest(input: GenerateZipForRequestInput): Promise<GenerateZipForRequestOutput> {
+  // In a real Firebase environment, you would check for App Check token here.
+  // Example for an HTTPS function:
+  // if (req.header('X-Firebase-AppCheck') === undefined) {
+  //   res.status(403).send('Unauthorized');
+  //   return;
+  // }
   return generateZipForRequestFlow(input);
 }
 

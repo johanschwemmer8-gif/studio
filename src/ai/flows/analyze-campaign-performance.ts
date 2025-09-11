@@ -30,6 +30,14 @@ const AnalyzeCampaignPerformanceOutputSchema = z.object({
 export type AnalyzeCampaignPerformanceOutput = z.infer<typeof AnalyzeCampaignPerformanceOutputSchema>;
 
 export async function analyzeCampaignPerformance(input: AnalyzeCampaignPerformanceInput): Promise<AnalyzeCampaignPerformanceOutput> {
+  // In a real Firebase environment, you would check for App Check token here.
+  // Example for a callable function:
+  // if (context.app == undefined) {
+  //   throw new functions.https.HttpsError(
+  //     'failed-precondition',
+  //     'The function must be called from an App Check verified app.'
+  //   );
+  // }
   return analyzeCampaignPerformanceFlow(input);
 }
 

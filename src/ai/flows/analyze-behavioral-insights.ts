@@ -31,6 +31,14 @@ const AnalyzeBehavioralInsightsOutputSchema = z.object({
 export type AnalyzeBehavioralInsightsOutput = z.infer<typeof AnalyzeBehavioralInsightsOutputSchema>;
 
 export async function analyzeBehavioralInsights(input: AnalyzeBehavioralInsightsInput): Promise<AnalyzeBehavioralInsightsOutput> {
+  // In a real Firebase environment, you would check for App Check token here.
+  // Example for a callable function:
+  // if (context.app == undefined) {
+  //   throw new functions.https.HttpsError(
+  //     'failed-precondition',
+  //     'The function must be called from an App Check verified app.'
+  //   );
+  // }
   return analyzeBehavioralInsightsFlow(input);
 }
 

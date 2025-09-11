@@ -10,13 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { PlusCircle, Download, RefreshCw, Eye, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { PlusCircle, Download, RefreshCw, Eye, CheckCircle, AlertTriangle, Loader2, RefreshCcw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase-admin'; // This is a mock for client-side
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { generateZipForRequest } from '@/ai/flows/generate-zip-for-request';
+import { regenerateQrCode, RegenerateQrCodeOutput } from '@/ai/flows/regenerate-qr-code';
 import Image from 'next/image';
 
 // Mocks for client-side Firestore interaction
@@ -26,8 +27,11 @@ const mockDb = {
             id: id || `mock-${Math.random().toString(36).substring(7)}`,
             collection: (sub: string) => ({
                  onSnapshot: (callback: (snapshot: any) => void) => {
-                    // Simulate empty subcollection
-                    setTimeout(() => callback({ docs: [], empty: true }), 1000);
+                    const mockItems = JSON.parse(localStorage.getItem(`mockItems_${id}`) || '[]');
+                     setTimeout(() => callback({
+                        docs: mockItems.map((doc: any) => ({ id: doc.id, data: () => doc })),
+                        empty: mockItems.length === 0,
+                    }), 500);
                     return () => {}; // Unsubscribe function
                 },
             })
@@ -65,15 +69,19 @@ type BulkRequest = {
 };
 
 type QrItem = {
-    id: string;
+    qrCodeId: string;
+    status: 'PENDING' | 'DONE' | 'ERROR';
     signedUrl: string;
-}
+    lastRegeneratedAt?: string;
+};
 
 export default function QrManagementPage() {
     const [requests, setRequests] = useState<BulkRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<BulkRequest | null>(null);
     const [qrItems, setQrItems] = useState<QrItem[]>([]);
+    const [loadingItems, setLoadingItems] = useState(false);
+    const [regeneratingIds, setRegeneratingIds] = useState<string[]>([]);
     const [isSubmitting, startSubmitting] = useTransition();
     const [isZipping, startZipping] = useTransition();
     const [zipUrl, setZipUrl] = useState('');
@@ -95,10 +103,9 @@ export default function QrManagementPage() {
                     id: doc.id,
                     ...doc.data(),
                 }));
-                 // Mock itemsDone for progress
-                fetchedRequests.forEach(req => {
+                fetchedRequests.forEach(req => { // Mock progress
                     if (req.status === 'COMPLETED') req.itemsDone = req.totalRequested;
-                    else if (req.status === 'PROCESSING') req.itemsDone = Math.floor(req.totalRequested * Math.random());
+                    else if (req.status === 'PROCESSING') req.itemsDone = Math.floor(req.totalRequested * 0.75);
                     else req.itemsDone = 0;
                 });
                 setRequests(fetchedRequests);
@@ -106,30 +113,48 @@ export default function QrManagementPage() {
             });
         return () => unsubscribe();
     }, [firestore]);
+    
+    useEffect(() => {
+        if (selectedRequest) {
+            setLoadingItems(true);
+            const unsubscribe = firestore.collection('bulkQrRequests').doc(selectedRequest.id).collection('items')
+                .onSnapshot(snapshot => {
+                    const items: QrItem[] = snapshot.docs.map((doc: any) => ({
+                        qrCodeId: doc.id,
+                        ...doc.data(),
+                    }));
+                    
+                    // Mock data for preview if empty
+                    if (snapshot.empty && selectedRequest.status === 'COMPLETED') {
+                        const mockItems = Array.from({ length: Math.min(selectedRequest.totalRequested, 8) }).map((_, i) => ({
+                            qrCodeId: `mock_qr_${i}`,
+                            status: 'DONE' as const,
+                            signedUrl: `https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=mock${i}`
+                        }));
+                        setQrItems(mockItems);
+                    } else {
+                        setQrItems(items);
+                    }
+                    setLoadingItems(false);
+                });
+            return () => unsubscribe();
+        } else {
+            setQrItems([]);
+        }
+    }, [selectedRequest, firestore]);
 
 
     const onSubmit = (data: z.infer<typeof formSchema>) => {
         startSubmitting(async () => {
             try {
                 const result = await submitBulkQrRequest({
-                    retailerId: 'simulated-retailer-id', // Hardcoded for simulation
+                    retailerId: 'simulated-retailer-id',
                     ...data,
-                    options: {
-                        colorHex: data.colorHex,
-                        bgColorHex: data.bgColorHex,
-                    }
+                    options: { colorHex: data.colorHex, bgColorHex: data.bgColorHex }
                 });
                 toast({ title: 'Request Submitted', description: `Job ${result.requestId} has been queued.` });
                 
-                // Mock local state update
-                const mockNewRequest = {
-                    id: result.requestId,
-                    campaignId: data.campaignId,
-                    totalRequested: data.count,
-                    status: 'QUEUED' as const,
-                    createdAt: { toDate: () => new Date() },
-                    itemsDone: 0
-                };
+                const mockNewRequest = { id: result.requestId, campaignId: data.campaignId, totalRequested: data.count, status: 'QUEUED' as const, createdAt: { toDate: () => new Date() }, itemsDone: 0 };
                 const currentRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
                 localStorage.setItem('mockBulkQrRequests', JSON.stringify([mockNewRequest, ...currentRequests]));
                 setRequests(prev => [mockNewRequest, ...prev]);
@@ -149,13 +174,31 @@ export default function QrManagementPage() {
                 if (result.success && result.zipDataUri) {
                     setZipUrl(result.zipDataUri);
                     toast({ title: 'ZIP Ready!', description: 'Your download link is available.' });
-                } else {
-                    throw new Error(result.message);
-                }
+                } else { throw new Error(result.message); }
             } catch (error: any) {
                 toast({ title: 'ZIP Generation Failed', description: error.message, variant: 'destructive' });
             }
         });
+    };
+
+    const handleRegenerate = async (qrCodeId: string) => {
+        if (!selectedRequest) return;
+        setRegeneratingIds(prev => [...prev, qrCodeId]);
+        try {
+            const result = await regenerateQrCode({ requestId: selectedRequest.id, qrCodeId });
+            if (result.success) {
+                setQrItems(prevItems => prevItems.map(item =>
+                    item.qrCodeId === qrCodeId
+                        ? { ...item, signedUrl: result.signedUrl, lastRegeneratedAt: result.lastRegeneratedAt, status: 'DONE' }
+                        : item
+                ));
+                toast({ title: "QR Code Regenerated!", description: `Code ${qrCodeId} has been updated.` });
+            } else { throw new Error("Flow returned success: false"); }
+        } catch (error: any) {
+            toast({ title: 'Regeneration Failed', description: error.message, variant: 'destructive' });
+        } finally {
+            setRegeneratingIds(prev => prev.filter(id => id !== qrCodeId));
+        }
     };
 
     const StatusBadge = ({ status }: { status: BulkRequest['status'] }) => {
@@ -235,24 +278,24 @@ export default function QrManagementPage() {
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <p className="font-semibold">{req.campaignId}</p>
-                                                    <p className="text-sm text-muted-foreground">{req.totalRequested} codes requested on {req.createdAt.toDate().toLocaleDateString()}</p>
+                                                    <p className="text-sm text-muted-foreground">{req.totalRequested} codes requested on {new Date(req.createdAt.toDate()).toLocaleDateString()}</p>
                                                 </div>
                                                 <StatusBadge status={req.status} />
                                             </div>
                                             <Progress value={(req.itemsDone / req.totalRequested) * 100} className="mt-2" />
-                                            <div className="flex justify-end items-center gap-2 mt-2">
+                                            <div className="flex justify-between items-center gap-2 mt-2">
                                                 <p className="text-xs text-muted-foreground">{req.itemsDone} / {req.totalRequested} items complete</p>
-                                                {req.status === 'COMPLETED' && (
-                                                    <>
+                                                <div className="flex gap-2">
                                                      <Button variant="outline" size="sm" onClick={() => setSelectedRequest(req)}>
                                                         <Eye className="mr-2 h-4 w-4" /> View
                                                      </Button>
-                                                     <Button size="sm" disabled={isZipping} onClick={() => handleDownloadZip(req.id)}>
-                                                        {isZipping ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                                        Download ZIP
-                                                    </Button>
-                                                    </>
-                                                )}
+                                                    {req.status === 'COMPLETED' && (
+                                                        <Button size="sm" disabled={isZipping && selectedRequest?.id === req.id} onClick={() => { setSelectedRequest(req); handleDownloadZip(req.id); }}>
+                                                            {isZipping && selectedRequest?.id === req.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                            Download ZIP
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                              {selectedRequest?.id === req.id && zipUrl && (
                                                 <div className="mt-2 p-2 bg-green-500/10 border border-green-500/20 rounded-md text-center">
@@ -268,15 +311,43 @@ export default function QrManagementPage() {
                         </CardContent>
                     </Card>
                     
-                    {selectedRequest && selectedRequest.status === 'COMPLETED' && (
+                     {selectedRequest && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>QR Code Preview for: {selectedRequest.campaignId}</CardTitle>
-                                <CardDescription>A preview of the first few generated codes.</CardDescription>
+                                <CardTitle>QR Code Previews for: {selectedRequest.campaignId}</CardTitle>
+                                <CardDescription>A preview of generated codes. {selectedRequest.status !== 'COMPLETED' ? "Previews will appear as they are generated." : ""}</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-sm text-muted-foreground">Loading previews...</p>
-                                {/* In a real app, you would fetch and display the QR items here. */}
+                                {loadingItems ? <p className="text-sm text-muted-foreground">Loading previews...</p> : (
+                                    qrItems.length > 0 ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                        {qrItems.map(item => (
+                                            <div key={item.qrCodeId} className="space-y-2 text-center">
+                                                <div className="relative w-full aspect-square border rounded-md overflow-hidden">
+                                                    <Image src={item.signedUrl} alt={`QR Code ${item.qrCodeId}`} fill sizes="128px" />
+                                                    {regeneratingIds.includes(item.qrCodeId) && (
+                                                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                                                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {(item.status === 'DONE' || item.status === 'ERROR') && (
+                                                     <Button variant="outline" size="sm" className="w-full" onClick={() => handleRegenerate(item.qrCodeId)} disabled={regeneratingIds.includes(item.qrCodeId)}>
+                                                        <RefreshCcw className="mr-2 h-4 w-4" />
+                                                        Regenerate
+                                                    </Button>
+                                                )}
+                                                {item.lastRegeneratedAt && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Updated: {new Date(item.lastRegeneratedAt).toLocaleTimeString()}
+                                                    </p>
+                                                )}
+                                                {item.status === 'ERROR' && <Badge variant="destructive">Error</Badge>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                     ) : <p className="text-sm text-muted-foreground">No QR codes have been generated for this request yet.</p>
+                                )}
                             </CardContent>
                         </Card>
                     )}

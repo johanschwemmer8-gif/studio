@@ -13,6 +13,7 @@ import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
 import JSZip from 'jszip';
 import fetch from 'node-fetch';
+import * as admin from 'firebase-admin';
 
 const GenerateZipForRequestInputSchema = z.object({
   requestId: z.string().describe('The ID of the bulk QR request.'),
@@ -88,9 +89,21 @@ const generateZipForRequestFlow = ai.defineFlow(
     }
 
     const zip = new JSZip();
+    const manifestRows = [['qrCodeId', 'redirectUrl', 'storagePath', 'createdAt', 'checksum']];
+
 
     for (const itemDoc of itemsSnapshot.docs) {
       const item = itemDoc.data();
+      
+      // Add row to manifest
+      manifestRows.push([
+          item.qrCodeId,
+          item.redirectUrl,
+          item.storagePath,
+          requestData.createdAt.toDate().toISOString(), // Using request's creation time for all items
+          item.checksum || '',
+      ]);
+
       if (item.signedUrl) {
         try {
           const response = await fetch(item.signedUrl);
@@ -98,13 +111,18 @@ const generateZipForRequestFlow = ai.defineFlow(
             console.warn(`Failed to fetch image for ${item.qrCodeId}: ${response.statusText}`);
             continue; // Skip this file
           }
-          const imageBuffer = await response.buffer();
+          const imageBuffer = await response.arrayBuffer();
           zip.file(`${item.qrCodeId}.png`, imageBuffer);
         } catch (error: any) {
           console.error(`Error fetching or adding file for ${item.qrCodeId}:`, error.message);
         }
       }
     }
+    
+    // Add the manifest.csv to the zip
+    const csvContent = manifestRows.map(row => row.join(',')).join('\n');
+    zip.file('manifest.csv', csvContent);
+
 
     const zipContent = await zip.generateAsync({ type: 'base64' });
     const zipDataUri = `data:application/zip;base64,${zipContent}`;
@@ -124,7 +142,7 @@ const generateZipForRequestFlow = ai.defineFlow(
         actor,
         ip,
         userAgent,
-        timestamp: new Date(),
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
         details: {
             itemCount: itemsSnapshot.size
         }

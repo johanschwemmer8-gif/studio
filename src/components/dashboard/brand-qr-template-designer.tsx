@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -30,7 +31,23 @@ const templateDesignerSchema = z.object({
   brandId: z.string().min(1, 'Brand is required'),
   name: z.string().min(1, 'Template name is required'),
   description: z.string().optional(),
-  qrShape: z.enum(['square', 'rounded', 'dot', 'extra-rounded', 'classy']).default('square'),
+  qrShape: z
+    .enum([
+      'square',
+      'rounded',
+      'dot',
+      'extra-rounded',
+      'classy',
+      'classy-rounded',
+      'top-left-rounded',
+      'top-right-rounded',
+      'bottom-left-rounded',
+      'bottom-right-rounded',
+      'diamond',
+      'heart',
+      'star',
+    ])
+    .default('square'),
   colorHex: z.string().default('#000000'),
   bgColorHex: z.string().default('#FFFFFF'),
   gradient: z.object({
@@ -65,13 +82,27 @@ type BrandQrTemplateDesignerProps = {
 function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }) {
   const { colorHex, bgColorHex, qrShape, eyeStyle, logoDataUrl, logoSizeRatio, gradient, backgroundImageDataUrl, backgroundImageOpacity } = settings;
 
-  const shapeStyles: React.CSSProperties = {
-    square: { borderRadius: '0.25rem' },
-    rounded: { borderRadius: '1.5rem' },
-    'extra-rounded': { borderRadius: '50%' },
-    classy: { borderRadius: '0.5rem 0.5rem 1.5rem 0.5rem' },
-    dot: {}
-  }[qrShape || 'square'];
+  const getShapeStyles = (): React.CSSProperties => {
+    switch (qrShape) {
+      case 'square': return { borderRadius: '0.25rem' };
+      case 'rounded': return { borderRadius: '1.5rem' };
+      case 'extra-rounded': return { borderRadius: '50%' };
+      case 'classy': return { borderRadius: '0.5rem 0.5rem 1.5rem 0.5rem' };
+      case 'classy-rounded': return { borderRadius: '1.5rem 0.5rem 1.5rem 0.5rem' };
+      case 'top-left-rounded': return { borderRadius: '1.5rem 0.25rem 0.25rem 0.25rem' };
+      case 'top-right-rounded': return { borderRadius: '0.25rem 1.5rem 0.25rem 0.25rem' };
+      case 'bottom-left-rounded': return { borderRadius: '0.25rem 0.25rem 0.25rem 1.5rem' };
+      case 'bottom-right-rounded': return { borderRadius: '0.25rem 0.25rem 1.5rem 0.25rem' };
+      case 'diamond': return { clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' };
+      case 'heart': return { clipPath: 'path("M 96 40 C 96 21 81 6 64 6 C 53 6 44 11 38 19 L 32 28 L 26 19 C 20 11 11 6 0 6 C -17 6 -32 21 -32 40 C -32 68 -2 88 32 115 L 32 115 L 32 115 C 66 88 96 68 96 40 Z")' };
+      case 'star': return { clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' };
+      case 'dot':
+      default:
+        return { borderRadius: '0.25rem' };
+    }
+  };
+
+  const shapeStyles = getShapeStyles();
   
   const eyeShapeStyles: React.CSSProperties = {
     square: { borderRadius: 0 },
@@ -102,7 +133,7 @@ function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }
           style={{ 
             backgroundColor: bgColorHex,
             ...shapeStyles,
-            borderColor: colorHex,
+            borderColor: ['diamond', 'heart', 'star'].includes(qrShape || '') ? 'transparent' : colorHex,
           }}
         >
           {backgroundImageDataUrl && (
@@ -213,8 +244,8 @@ export default function BrandQrTemplateDesigner({
   const isGradientActive = useWatch({ control: form.control, name: 'gradient.active' });
 
   return (
-      <div className="md:grid md:grid-cols-3 md:gap-8">
-        <div className="md:col-span-2 space-y-8">
+      <div className="grid md:grid-cols-3 md:gap-8">
+        <div className="md:col-span-2 space-y-8 md:max-h-[80vh] md:overflow-y-auto md:pr-4">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
             <Card>
@@ -258,7 +289,7 @@ export default function BrandQrTemplateDesigner({
                         </div>
                         <FormItem field={form.register('gradient.angle')} label="Angle">
                           <Controller name="gradient.angle" control={form.control} render={({ field }) => (
-                              <Slider min={0} max={360} step={1} value={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                              <Slider min={0} max={360} step={1} value={[field.value ?? 0]} onValueChange={(v) => field.onChange(v[0])} />
                           )} />
                         </FormItem>
                      </div>
@@ -277,8 +308,16 @@ export default function BrandQrTemplateDesigner({
                                 <FormItem field={field} label="Square" value="square" type="radio" />
                                 <FormItem field={field} label="Rounded" value="rounded" type="radio" />
                                 <FormItem field={field} label="Extra Rounded" value="extra-rounded" type="radio" />
-                                <FormItem field={field} label="Classy" value="classy" type="radio" />
                                 <FormItem field={field} label="Dots" value="dot" type="radio" />
+                                <FormItem field={field} label="Classy" value="classy" type="radio" />
+                                <FormItem field={field} label="Classy Rounded" value="classy-rounded" type="radio" />
+                                <FormItem field={field} label="Top-Left Rounded" value="top-left-rounded" type="radio" />
+                                <FormItem field={field} label="Top-Right Rounded" value="top-right-rounded" type="radio" />
+                                <FormItem field={field} label="Bottom-Left Rounded" value="bottom-left-rounded" type="radio" />
+                                <FormItem field={field} label="Bottom-Right Rounded" value="bottom-right-rounded" type="radio" />
+                                <FormItem field={field} label="Diamond" value="diamond" type="radio" />
+                                <FormItem field={field} label="Heart" value="heart" type="radio" />
+                                <FormItem field={field} label="Star" value="star" type="radio" />
                             </RadioGroup>
                          )} />
                     </FormItem>
@@ -313,7 +352,7 @@ export default function BrandQrTemplateDesigner({
                      {watchedValues.logoDataUrl && (
                         <FormItem field={form.register('logoSizeRatio')} label="Logo Size">
                              <Controller name="logoSizeRatio" control={form.control} render={({ field }) => (
-                                <Slider min={0.1} max={0.3} step={0.05} value={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                                <Slider min={0.1} max={0.3} step={0.05} value={[field.value ?? 0.2]} onValueChange={(v) => field.onChange(v[0])} />
                              )} />
                         </FormItem>
                      )}
@@ -331,7 +370,7 @@ export default function BrandQrTemplateDesigner({
                           <div className="space-y-4 p-4 border rounded-md">
                              <FormItem field={form.register('backgroundImageOpacity')} label="Opacity">
                                  <Controller name="backgroundImageOpacity" control={form.control} render={({ field }) => (
-                                    <Slider min={0} max={1} step={0.1} value={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                                    <Slider min={0} max={1} step={0.1} value={[field.value ?? 1]} onValueChange={(v) => field.onChange(v[0])} />
                                  )} />
                             </FormItem>
                              <FormItem field={form.register('backgroundImageMode')} label="Image Mode">
@@ -398,4 +437,5 @@ function FormItem({ field, label, children, value, type }: { field: any, label: 
 
     return <div className="w-full">{itemContent}</div>;
 }
+
 

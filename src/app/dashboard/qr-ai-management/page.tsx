@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import FirestoreSchemaViewer from "@/components/dashboard/firestore-schema-viewer";
 
 type GeneratedQrCode = {
   url: string;
@@ -121,9 +120,6 @@ export default function QrAiManagementPage() {
                     )}
                 </div>
             </div>
-
-            <Separator />
-            <FirestoreSchemaViewer />
         </div>
     );
 }

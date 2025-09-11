@@ -29,7 +29,7 @@ const templateDesignerSchema = z.object({
   brandId: z.string().min(1, 'Brand is required'),
   name: z.string().min(1, 'Template name is required'),
   description: z.string().optional(),
-  qrShape: z.enum(['square', 'rounded', 'dot']).default('square'),
+  qrShape: z.enum(['square', 'rounded', 'dot', 'extra-rounded', 'classy']).default('square'),
   colorHex: z.string().default('#000000'),
   bgColorHex: z.string().default('#FFFFFF'),
   gradient: z.object({
@@ -65,6 +65,27 @@ function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }
   // like qrcode.react or a custom canvas implementation.
   const { colorHex, bgColorHex, qrShape, eyeStyle, logoDataUrl, logoSizeRatio } = settings;
 
+  const shapeStyles: React.CSSProperties = {
+    square: { borderRadius: '0.25rem' },
+    rounded: { borderRadius: '1.5rem' },
+    'extra-rounded': { borderRadius: '50%' },
+    classy: { borderRadius: '0.5rem 0.5rem 1.5rem 0.5rem' },
+    dot: {}
+  }[qrShape || 'square'];
+  
+  const eyeShapeStyles: React.CSSProperties = {
+    square: { borderRadius: 0 },
+    rounded: { borderRadius: '0.5rem' },
+    leaf: { borderRadius: '0.5rem 0 0.5rem 0' },
+  }[eyeStyle || 'square'];
+  
+  const innerEyeShapeStyles: React.CSSProperties = {
+    square: { borderRadius: 0 },
+    rounded: { borderRadius: '0.25rem' },
+     leaf: { borderRadius: '0.25rem 0 0.25rem 0' },
+  }[eyeStyle || 'square'];
+
+
   return (
     <Card className="sticky top-0">
       <CardHeader>
@@ -76,18 +97,18 @@ function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }
           className="w-48 h-48 border-4 flex items-center justify-center relative"
           style={{ 
             backgroundColor: bgColorHex,
-            borderRadius: qrShape === 'rounded' ? '1.5rem' : '0.25rem',
+            ...shapeStyles,
             borderColor: colorHex,
           }}
         >
-          <div className="absolute top-1 left-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, borderRadius: eyeStyle === 'rounded' ? '0.5rem' : 0 }}>
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, borderRadius: eyeStyle === 'rounded' ? '0.25rem' : 0 }}></div>
+          <div className="absolute top-1 left-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
           </div>
-          <div className="absolute top-1 right-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, borderRadius: eyeStyle === 'rounded' ? '0.5rem' : 0 }}>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, borderRadius: eyeStyle === 'rounded' ? '0.25rem' : 0 }}></div>
+          <div className="absolute top-1 right-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
           </div>
-           <div className="absolute bottom-1 left-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, borderRadius: eyeStyle === 'rounded' ? '0.5rem' : 0 }}>
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, borderRadius: eyeStyle === 'rounded' ? '0.25rem' : 0 }}></div>
+           <div className="absolute bottom-1 left-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
           </div>
           {logoDataUrl && (
             <Image src={logoDataUrl} alt="logo preview" layout="fill" objectFit="contain" style={{ transform: `scale(${logoSizeRatio})`}} />
@@ -178,12 +199,14 @@ export default function BrandQrTemplateDesigner({
   };
 
   return (
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
+      <div className="md:grid md:grid-cols-3 md:gap-8 space-y-8 md:space-y-0">
+        <div className="md:col-span-2 space-y-8">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
             <Card>
-                <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
+                <CardHeader>
+                    <CardTitle>Basic Information</CardTitle>
+                </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
                          {/* TODO: Populate this from brand data */}
@@ -212,9 +235,11 @@ export default function BrandQrTemplateDesigner({
                 <CardContent className="space-y-6">
                     <FormItem field={form.register('qrShape')} label="QR Code Shape">
                          <Controller name="qrShape" control={form.control} render={({ field }) => (
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4">
                                 <FormItem field={field} label="Square" value="square" type="radio" />
                                 <FormItem field={field} label="Rounded" value="rounded" type="radio" />
+                                <FormItem field={field} label="Extra Rounded" value="extra-rounded" type="radio" />
+                                <FormItem field={field} label="Classy" value="classy" type="radio" />
                                 <FormItem field={field} label="Dots" value="dot" type="radio" />
                             </RadioGroup>
                          )} />
@@ -305,3 +330,4 @@ function FormItem({ field, label, children, value, type }: { field: any, label: 
         </div>
     );
 }
+

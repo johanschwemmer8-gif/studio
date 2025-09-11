@@ -17,8 +17,6 @@ const QrOptionsSchema = z.object({
   colorHex: z.string().optional(),
   bgColorHex: z.string().optional(),
   logoPath: z.string().url().optional(),
-  moduleShape: z.string().optional(),
-  eyeStyle: z.string().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).default('M'),
   aiTone: z.string().optional(),
   aiGoal: z.string().optional(),

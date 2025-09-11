@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,18 +22,9 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
+import BrandQrTemplateDesigner from './brand-qr-template-designer';
 
-
-function BrandQrTemplateDesigner() {
-    // This is a placeholder for the actual template designer UI.
-    return (
-        <div className="p-4 border-2 border-dashed rounded-lg text-center text-muted-foreground">
-            <p>Brand QR Template Designer component will go here.</p>
-            <p className="text-sm">This will include controls for color, shape, logo, etc.</p>
-        </div>
-    );
-}
 
 function TemplatePreview({ template }: { template: QrTemplate }) {
     const { colorHex = '#000000', bgColorHex = '#FFFFFF', logoPath } = template.defaults || {};
@@ -60,7 +50,7 @@ function TemplatePreview({ template }: { template: QrTemplate }) {
     )
 }
 
-function TemplateCard({ template }: { template: QrTemplate }) {
+function TemplateCard({ template, onEdit }: { template: QrTemplate, onEdit: (id: string) => void }) {
     const { toast } = useToast();
     
     const handleAction = (action: string) => {
@@ -83,7 +73,7 @@ function TemplateCard({ template }: { template: QrTemplate }) {
                 <Button variant="outline" size="sm" onClick={() => handleAction('Apply')}>
                     <Send className="mr-2 h-3.5 w-3.5" /> Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleAction('Edit')}>
+                <Button variant="outline" size="sm" onClick={() => onEdit(template.templateId)}>
                     <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
                 </Button>
                  <Button variant="outline" size="sm" onClick={() => handleAction('Duplicate')}>
@@ -101,6 +91,8 @@ function TemplateCard({ template }: { template: QrTemplate }) {
 export default function BrandQrTemplateGallery() {
     const [templates, setTemplates] = useState<QrTemplate[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDesignerOpen, setIsDesignerOpen] = useState(false);
+    const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>(undefined);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -124,6 +116,28 @@ export default function BrandQrTemplateGallery() {
         fetchTemplates();
     }, [toast]);
     
+    const handleCreateNew = () => {
+        setEditingTemplateId(undefined);
+        setIsDesignerOpen(true);
+    };
+
+    const handleEdit = (templateId: string) => {
+        setEditingTemplateId(templateId);
+        setIsDesignerOpen(true);
+    };
+
+    const handleDesignerClose = (refresh?: boolean) => {
+        setIsDesignerOpen(false);
+        setEditingTemplateId(undefined);
+        if (refresh) {
+            // Refetch templates
+            setLoading(true);
+            getQrTemplates({ retailerId: 'simulated-retailer-id' })
+                .then(setTemplates)
+                .finally(() => setLoading(false));
+        }
+    };
+    
     const globalTemplates = templates.filter(t => t.retailerId === 'GLOBAL');
     const retailerTemplates = templates.filter(t => t.retailerId !== 'GLOBAL');
 
@@ -134,24 +148,21 @@ export default function BrandQrTemplateGallery() {
                     <h2 className="text-2xl font-bold tracking-tight mb-2">Brand QR Templates</h2>
                     <p className="text-muted-foreground max-w-3xl">Design and manage reusable QR code styles for each of your brands.</p>
                 </div>
-                 <Dialog>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <PlusCircle className="mr-2" />
-                            Create New Template
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl">
-                        <DialogHeader>
-                            <DialogTitle>Create New Brand QR Template</DialogTitle>
-                            <DialogDescription>
-                                Design a new reusable template for your QR codes.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <BrandQrTemplateDesigner />
-                    </DialogContent>
-                </Dialog>
+                 <Button onClick={handleCreateNew}>
+                    <PlusCircle className="mr-2" />
+                    Create New Template
+                </Button>
             </div>
+
+            <Dialog open={isDesignerOpen} onOpenChange={setIsDesignerOpen}>
+                <DialogContent className="max-w-4xl h-[90vh]">
+                    <BrandQrTemplateDesigner
+                        templateId={editingTemplateId}
+                        onSave={() => handleDesignerClose(true)}
+                        onCancel={() => handleDesignerClose(false)}
+                    />
+                </DialogContent>
+            </Dialog>
 
             <Separator />
 
@@ -168,7 +179,7 @@ export default function BrandQrTemplateGallery() {
                          {retailerTemplates.length > 0 ? (
                              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {retailerTemplates.map(template => (
-                                    <TemplateCard key={template.templateId} template={template} />
+                                    <TemplateCard key={template.templateId} template={template} onEdit={handleEdit} />
                                 ))}
                             </div>
                          ) : (
@@ -186,7 +197,7 @@ export default function BrandQrTemplateGallery() {
                         <h3 className="text-xl font-semibold mb-4">Global Templates</h3>
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {globalTemplates.map(template => (
-                                <TemplateCard key={template.templateId} template={template} />
+                                <TemplateCard key={template.templateId} template={template} onEdit={handleEdit} />
                             ))}
                         </div>
                     </div>

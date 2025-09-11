@@ -25,10 +25,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { getQrTemplates } from '@/ai/flows/get-qr-templates';
-import type { QrTemplate } from '@/ai/flows/save-qr-template';
+import type { QrTemplate } from '@/lib/schemas/qr-templates';
 import { saveQrTemplate } from '@/ai/flows/save-qr-template';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 const qrOptionsSchema = z.object({
     colorHex: z.string().optional(),
@@ -84,20 +85,27 @@ export default function QrManagementPage() {
         const fetchTemplates = async () => {
             const fetchedTemplates = await getQrTemplates({ retailerId: 'simulated-retailer-id' });
             setTemplates(fetchedTemplates);
+            // Pre-select the first global template by default
+            const firstGlobal = fetchedTemplates.find(t => t.retailerId === 'GLOBAL');
+            if (firstGlobal) {
+                handleApplyTemplate(firstGlobal, false);
+            }
         };
         fetchTemplates();
     }, []);
 
-    const handleApplyTemplate = (template: QrTemplate) => {
+    const handleApplyTemplate = (template: QrTemplate, showToast = true) => {
         form.reset({
             ...form.getValues(), // keep campaignId, count, baseRedirect
             options: template.defaults as FormValues['options'],
         });
         setSelectedTemplateId(template.templateId);
-         toast({
-            title: "Template Applied",
-            description: `Settings from "${template.name}" have been applied to the form.`,
-        });
+         if (showToast) {
+            toast({
+                title: "Template Applied",
+                description: `Settings from "${template.name}" have been applied to the form.`,
+            });
+        }
     };
     
     const templateForm = useForm<z.infer<typeof newTemplateSchema>>({
@@ -163,6 +171,12 @@ export default function QrManagementPage() {
             setIsSubmitting(false);
         }
     };
+    
+    const generateQrPreviewUrl = (template: QrTemplate) => {
+        const qrColor = template.defaults.colorHex?.replace('#', '') || '000000';
+        const qrBgColor = template.defaults.bgColorHex?.replace('#', '') || 'ffffff';
+        return `https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=example&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${template.defaults.errorCorrection || 'M'}&margin=0`;
+    }
 
     return (
         <div className="space-y-8">
@@ -198,32 +212,41 @@ export default function QrManagementPage() {
                                             )}
                                             onClick={() => handleApplyTemplate(template)}
                                         >
-                                            <CardHeader className="pb-2">
+                                            <CardHeader className="pb-4">
                                                 <CardTitle className="text-base flex justify-between items-start">
                                                     <span>{template.name}</span>
                                                     {template.retailerId === 'GLOBAL' && <Badge variant="secondary">Global</Badge>}
                                                 </CardTitle>
                                             </CardHeader>
                                             <CardContent className="text-xs text-muted-foreground space-y-3 flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <Paintbrush className="h-4 w-4" />
-                                                    <div className="flex items-center gap-1">
-                                                        <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: template.defaults.bgColorHex }}></div>
-                                                        <div className="h-4 w-4 rounded-sm border" style={{ backgroundColor: template.defaults.colorHex }}></div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-start gap-2">
-                                                    <Sparkles className="h-4 w-4 mt-0.5"/>
-                                                    <div>
-                                                        <p><strong>Tone:</strong> {template.defaults.aiTone}</p>
-                                                        <p><strong>Goal:</strong> {template.defaults.aiGoal}</p>
+                                                <div className="flex items-center gap-4">
+                                                     <div className="p-1 border rounded-md bg-white">
+                                                        <Image
+                                                            src={generateQrPreviewUrl(template)}
+                                                            alt={`${template.name} QR Code Preview`}
+                                                            width={48}
+                                                            height={48}
+                                                        />
+                                                     </div>
+                                                     <div className="space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Paintbrush className="h-4 w-4" />
+                                                            <div className="flex items-center gap-1">
+                                                                <div className="h-4 w-4 rounded-full border" style={{ backgroundColor: template.defaults.bgColorHex }}></div>
+                                                                <div className="h-4 w-4 rounded-sm border" style={{ backgroundColor: template.defaults.colorHex }}></div>
+                                                            </div>
+                                                        </div>
+                                                         <div className="flex items-start gap-2">
+                                                            <Sparkles className="h-4 w-4 mt-0.5"/>
+                                                            <p><strong>Tone:</strong> {template.defaults.aiTone}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </CardContent>
                                             <CardFooter className="p-2">
                                                  <Button size="sm" variant="ghost" className="w-full justify-start text-primary">
                                                     {selectedTemplateId === template.templateId && <Check className="mr-2"/>}
-                                                    {selectedTemplateId === template.templateId ? "Applied" : "Apply"}
+                                                    {selectedTemplateId === template.templateId ? "Applied" : "Apply Template"}
                                                 </Button>
                                             </CardFooter>
                                         </Card>

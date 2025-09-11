@@ -31,7 +31,6 @@ const getQrTemplatesFlow = ai.defineFlow(
     outputSchema: z.array(QrTemplateSchema),
   },
   async ({ retailerId }) => {
-    const db = admin.firestore();
     
     // Authorization Check (conceptual)
     const callerRetailerId = 'simulated-retailer-id';
@@ -56,6 +55,20 @@ const getQrTemplatesFlow = ai.defineFlow(
             defaults: { colorHex: '#FFFFFF', bgColorHex: '#000000', errorCorrection: 'M', aiTone: 'Playful', aiGoal: 'Increase engagement' },
             retailerId: 'GLOBAL',
         },
+        {
+            templateId: 'global-blue',
+            name: 'Ocean Blue',
+            description: 'A cool, blue-themed professional design.',
+            defaults: { colorHex: '#0A4D68', bgColorHex: '#E0F4FF', errorCorrection: 'Q', aiTone: 'Calm and Trustworthy', aiGoal: 'Build brand trust' },
+            retailerId: 'GLOBAL',
+        },
+        {
+            templateId: 'global-eco',
+            name: 'Eco-Friendly Green',
+            description: 'A natural, earthy design for sustainable products.',
+            defaults: { colorHex: '#2C5E1A', bgColorHex: '#F0FDF4', errorCorrection: 'M', aiTone: 'Natural and eco-conscious', aiGoal: 'Highlight sustainability' },
+            retailerId: 'GLOBAL',
+        },
     ];
 
     const mockRetailerTemplates: QrTemplate[] = [
@@ -65,10 +78,24 @@ const getQrTemplatesFlow = ai.defineFlow(
             description: 'Bright orange style for the summer promotion.',
             defaults: { colorHex: '#FF8C00', bgColorHex: '#FFFFFF', errorCorrection: 'Q', aiTone: 'Excited and urgent', aiGoal: 'Clear old stock' },
             retailerId: 'simulated-retailer-id',
+        },
+        {
+            templateId: 'retailer-premium',
+            name: 'Premium & Dark',
+            description: 'A sophisticated dark theme for luxury items.',
+            defaults: { colorHex: '#E0C097', bgColorHex: '#1C1C1C', errorCorrection: 'H', aiTone: 'Elegant and exclusive', aiGoal: 'Promote luxury products' },
+            retailerId: 'simulated-retailer-id',
         }
     ];
 
     // Simulate querying templates for the specific retailer plus global ones
+    // In a real app, you would fetch from Firestore:
+    // const db = admin.firestore();
+    // const globalSnapshot = await db.collection('qrTemplates').where('retailerId', '==', 'GLOBAL').get();
+    // const retailerSnapshot = await db.collection('qrTemplates').where('retailerId', '==', retailerId).get();
+    // const globalTemplates = globalSnapshot.docs.map(doc => doc.data() as QrTemplate);
+    // const retailerTemplates = retailerSnapshot.docs.map(doc => doc.data() as QrTemplate);
+
     return [...mockGlobalTemplates, ...mockRetailerTemplates];
   }
 );

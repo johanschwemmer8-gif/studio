@@ -93,7 +93,6 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     //     throw new Error('Tenant configuration not found.');
     //   }
     //   const tenantData = tenantDoc.data();
-    //   const { dailyLimit, usedToday, resetAt } = tenantData;
     //
     //   // Check if reset is needed
     //   if (new Date() > resetAt.toDate()) {

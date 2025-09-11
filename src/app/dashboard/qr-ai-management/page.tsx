@@ -119,6 +119,16 @@ export default function QrAiManagementPage() {
                             </CardContent>
                         </Card>
                     )}
+                    <Separator />
+                    <div>
+                        <h3 className="text-xl font-bold tracking-tight mb-2">
+                            Firestore Data Structures
+                        </h3>
+                        <p className="text-muted-foreground max-w-3xl mb-6">
+                           A reference for the core Firestore collections related to QR code management and analytics.
+                        </p>
+                        <FirestoreSchemaViewer />
+                    </div>
                 </div>
             </div>
         </div>

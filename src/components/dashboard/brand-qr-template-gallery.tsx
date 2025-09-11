@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -156,6 +157,12 @@ export default function BrandQrTemplateGallery() {
 
             <Dialog open={isDesignerOpen} onOpenChange={setIsDesignerOpen}>
                 <DialogContent className="max-w-4xl h-[90vh]">
+                     <DialogHeader>
+                        <DialogTitle>{editingTemplateId ? 'Edit' : 'Create'} QR Template</DialogTitle>
+                        <DialogDescription>
+                            Design a reusable QR code style for your brand.
+                        </DialogDescription>
+                    </DialogHeader>
                     <BrandQrTemplateDesigner
                         templateId={editingTemplateId}
                         onSave={() => handleDesignerClose(true)}

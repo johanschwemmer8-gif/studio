@@ -178,12 +178,7 @@ export default function BrandQrTemplateDesigner({
   };
 
   return (
-    <div className="h-full flex flex-col">
-       <div className="flex-shrink-0 mb-4">
-        <h2 className="text-2xl font-bold">{templateId ? 'Edit' : 'Create'} QR Template</h2>
-        <p className="text-muted-foreground">Design a reusable QR code style for your brand.</p>
-      </div>
-
+    <div className="h-full flex flex-col pt-4">
       <div className="flex-1 grid md:grid-cols-3 gap-8 overflow-hidden">
         <div className="md:col-span-2 overflow-y-auto pr-4">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

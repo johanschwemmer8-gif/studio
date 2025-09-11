@@ -83,13 +83,19 @@ const processBulkQrQueueFlow = ai.defineFlow(
         const qrOptions = requestData.options || {};
         const qrColor = qrOptions.colorHex ? qrOptions.colorHex.replace('#', '') : '000000';
         const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
-        const qrError = qrOptions.errorCorrection || 'M';
+        // Enforce 'H' error correction if a logo is present, otherwise use option or default.
+        const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
 
         const qrData = `${requestData.baseRedirect}?qr=${qrCodeId}`;
         const encodedQrData = encodeURIComponent(qrData);
         
         // This URL simulates generating and getting a public URL. In a real scenario, we'd upload to GCS.
-        const generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
+        let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
+        
+        // Append logo URL if it exists
+        if (qrOptions.logoPath) {
+            generatedQrUrl += `&logo=${encodeURIComponent(qrOptions.logoPath)}`;
+        }
 
         const storagePath = `qr/${requestData.retailerId}/${requestData.campaignId}/${qrCodeId}.png`;
 

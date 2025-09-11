@@ -38,6 +38,9 @@ const generateBulkQrCodesFlow = ai.defineFlow(
     outputSchema: GenerateBulkQrCodesOutputSchema,
   },
   async (data) => {
+    if (!db) {
+        throw new Error('Firestore is not initialized. Check Firebase Admin SDK configuration.');
+    }
     const { retailerId, campaignId, quantity, baseUrl, customParams } = data;
     const batch = db.batch();
     const batchId = `batch-${Date.now()}`;

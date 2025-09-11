@@ -1,5 +1,3 @@
-
-'use server';
 /**
  * @fileoverview Initializes the Firebase Admin SDK for server-side operations.
  */
@@ -13,4 +11,4 @@ if (!admin.apps.length) {
   }
 }
 
-export const db = admin.firestore();
+export const db = admin.apps.length ? admin.firestore() : undefined;

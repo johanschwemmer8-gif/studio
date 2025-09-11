@@ -48,7 +48,7 @@ type BulkGenerateFormValues = z.infer<typeof bulkGenerateSchema>;
 const externalImportSchema = z.object({
   retailerId: z.string().min(1, { message: 'Retailer ID is required.' }),
   campaignId: z.string().min(1, { message: 'Campaign ID is required.' }),
-  file: z.instanceof(FileList).refine(files => files?.length === 1, 'CSV file is required.'),
+  file: z.any().refine(files => files?.length === 1, 'CSV file is required.'),
 });
 
 type ExternalImportFormValues = z.infer<typeof externalImportSchema>;
@@ -120,7 +120,14 @@ export default function QrAiManagementPage() {
 
     const onExternalImportSubmit = (values: ExternalImportFormValues) => {
         const file = values.file[0];
-        if (!file) return;
+        if (!file) {
+             toast({
+                title: 'Import Error',
+                description: 'Please select a CSV file to import.',
+                variant: 'destructive'
+            });
+            return;
+        }
 
         setImportError(null);
         startImporting(async () => {
@@ -449,4 +456,5 @@ export default function QrAiManagementPage() {
         </div>
     );
 
-    
+}
+

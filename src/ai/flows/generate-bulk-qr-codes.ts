@@ -1,21 +1,22 @@
 
 'use server';
 /**
- * @fileOverview A Genkit flow for bulk-generating QR code documents in Firestore.
+ * @fileOverview A Genkit flow to submit a bulk QR code generation request.
  *
- * - generateBulkQrCodes - A function to create a specified number of QR code documents based on the new schema.
- * - GenerateBulkQrCodesInput - The input type for the flow.
- * - GenerateBulkQrCodesOutput - The return type for the flow.
+ * - submitBulkQrRequest - A callable function to queue a new bulk QR code job.
+ * - SubmitBulkQrRequestInput - The input type for the flow.
+ * - SubmitBulkQrRequestOutput - The return type for the flow.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
 
+// Define the schema for the options map
 const QrOptionsSchema = z.object({
   colorHex: z.string().optional(),
   bgColorHex: z.string().optional(),
-  logoPath: z.string().optional(),
+  logoPath: z.string().url().optional(),
   moduleShape: z.string().optional(),
   eyeStyle: z.string().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).default('M'),
@@ -25,39 +26,52 @@ const QrOptionsSchema = z.object({
   redirectType: z.enum(['permanent', 'temporary']).default('temporary'),
 });
 
-const GenerateBulkQrCodesInputSchema = z.object({
+// Define the input schema for the callable function
+const SubmitBulkQrRequestInputSchema = z.object({
   retailerId: z.string().describe('The ID of the retailer for this batch.'),
   campaignId: z.string().describe('The ID of the campaign for this batch.'),
-  quantity: z.number().int().min(1).max(500).describe('The number of QR codes to generate (max 500).'),
-  baseUrl: z.string().url().describe('The base URL for the target link.'),
-  customParams: z.string().optional().describe('A string of custom URL parameters to append (e.g., "utm_source=instore&utm_medium=qr").'),
+  count: z.number().int().min(1).max(500, "Cannot request more than 500 codes at a time.").describe('The number of QR codes to generate (max 500).'),
+  baseRedirect: z.string().url().refine(s => s.startsWith('https://'), "Base redirect URL must be HTTPS."),
   options: QrOptionsSchema.optional(),
-  createdBy: z.string().describe('The UID or email of the user creating the request.'),
+  // createdBy would be derived from the auth context in a real scenario
 });
-export type GenerateBulkQrCodesInput = z.infer<typeof GenerateBulkQrCodesInputSchema>;
+export type SubmitBulkQrRequestInput = z.infer<typeof SubmitBulkQrRequestInputSchema>;
 
-const GenerateBulkQrCodesOutputSchema = z.object({
+// Define the output schema
+const SubmitBulkQrRequestOutputSchema = z.object({
   success: z.boolean(),
   requestId: z.string(),
-  count: z.number(),
 });
-export type GenerateBulkQrCodesOutput = z.infer<typeof GenerateBulkQrCodesOutputSchema>;
+export type SubmitBulkQrRequestOutput = z.infer<typeof SubmitBulkQrRequestOutputSchema>;
 
-export async function generateBulkQrCodes(input: GenerateBulkQrCodesInput): Promise<GenerateBulkQrCodesOutput> {
-  return generateBulkQrCodesFlow(input);
+// The main exported function that acts as our callable endpoint
+export async function submitBulkQrRequest(input: SubmitBulkQrRequestInput): Promise<SubmitBulkQrRequestOutput> {
+  return submitBulkQrRequestFlow(input);
 }
 
-const generateBulkQrCodesFlow = ai.defineFlow(
+const submitBulkQrRequestFlow = ai.defineFlow(
   {
-    name: 'generateBulkQrCodesFlow',
-    inputSchema: GenerateBulkQrCodesInputSchema,
-    outputSchema: GenerateBulkQrCodesOutputSchema,
+    name: 'submitBulkQrRequestFlow',
+    inputSchema: SubmitBulkQrRequestInputSchema,
+    outputSchema: SubmitBulkQrRequestOutputSchema,
   },
   async (data) => {
     if (!db) {
         throw new Error('Firestore is not initialized. Check Firebase Admin SDK configuration.');
     }
-    const { retailerId, campaignId, quantity, baseUrl, customParams, options, createdBy } = data;
+    
+    // In a real Firebase Callable Function, you'd get the auth context here.
+    // For example: if (!context.auth) { throw new Error('Authentication required.'); }
+    // const { uid, token } = context.auth;
+    const createdBy = 'simulated-user@example.com'; // Placeholder for auth.token.email or auth.uid
+    // const callerRetailerId = token.retailerId; // From custom claims
+    
+    // // Enforce tenant matching
+    // if (callerRetailerId !== data.retailerId) {
+    //   throw new Error('User is not authorized to create requests for this retailer.');
+    // }
+
+    const { retailerId, campaignId, count, baseRedirect, options } = data;
     
     const requestRef = db.collection('bulkQrRequests').doc();
     const batch = db.batch();
@@ -65,46 +79,24 @@ const generateBulkQrCodesFlow = ai.defineFlow(
     const requestData = {
         retailerId,
         campaignId,
-        totalRequested: quantity,
+        totalRequested: count,
         status: 'QUEUED',
         createdAt: new Date(),
-        createdBy,
+        updatedAt: new Date(),
+        createdBy: createdBy, // In a real scenario, use UID from auth context
         options: options || {},
     };
     batch.set(requestRef, requestData);
 
-    for (let i = 0; i < quantity; i++) {
-      const qrRef = db.collection('qrcodes').doc();
-      const itemRef = requestRef.collection('items').doc(qrRef.id);
+    // Create N item stubs
+    for (let i = 0; i < count; i++) {
+      const qrCodeId = db.collection('qrcodes').doc().id; // Pre-generate a unique ID
+      const itemRef = requestRef.collection('items').doc(qrCodeId);
       
-      const targetUrl = new URL(baseUrl);
-      targetUrl.searchParams.append('id', qrRef.id);
-      if (customParams) {
-          const params = new URLSearchParams(customParams);
-          params.forEach((value, key) => {
-              targetUrl.searchParams.append(key, value);
-          });
-      }
-
-      const qrData = {
-        retailerId,
-        campaignId,
-        qrCodeId: qrRef.id,
-        requestId: requestRef.id,
-        redirectUrl: targetUrl.toString(),
-        storagePath: '',
-        signedUrl: '',
-        scanCount: 0,
-        createdAt: new Date(),
-        expiresAt: options?.expiresAt ? new Date(options.expiresAt) : null,
-        meta: {},
-      };
-      batch.set(qrRef, qrData);
-
       const itemData = {
           index: i,
-          qrCodeId: qrRef.id,
-          redirectUrl: targetUrl.toString(),
+          qrCodeId: qrCodeId,
+          redirectUrl: '', // To be filled by processor
           signedUrl: '',
           storagePath: '',
           status: 'PENDING',
@@ -117,11 +109,6 @@ const generateBulkQrCodesFlow = ai.defineFlow(
 
     await batch.commit();
     
-    // In a real scenario, you might update the status to COMPLETED
-    // after a separate processing step. For this simulation, we'll
-    // just update it here after the batch write.
-    await requestRef.update({ status: 'COMPLETED' });
-    
-    return { success: true, requestId: requestRef.id, count: quantity };
+    return { success: true, requestId: requestRef.id };
   }
 );

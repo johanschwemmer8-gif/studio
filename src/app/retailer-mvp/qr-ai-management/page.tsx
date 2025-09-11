@@ -20,7 +20,7 @@ import { Download, Trash2, QrCode, Sparkles, AlertTriangle, Copy, Check, Upload,
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { generateBulkQrCodes, GenerateBulkQrCodesOutput } from "@/ai/flows/generate-bulk-qr-codes";
 import { importExternalQrCodes, ImportExternalQrCodesOutput } from "@/ai/flows/import-external-qr-codes";
@@ -448,4 +448,5 @@ export default function QrAiManagementPage() {
             </div>
         </div>
     );
-}
+
+    

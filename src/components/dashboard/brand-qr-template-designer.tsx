@@ -66,7 +66,7 @@ function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }
   const { colorHex, bgColorHex, qrShape, eyeStyle, logoDataUrl, logoSizeRatio } = settings;
 
   return (
-    <Card className="sticky top-6">
+    <Card className="sticky top-0">
       <CardHeader>
         <CardTitle>Live Preview</CardTitle>
         <CardDescription>A real-time preview of your QR code style.</CardDescription>
@@ -178,9 +178,8 @@ export default function BrandQrTemplateDesigner({
   };
 
   return (
-    <div className="h-full flex flex-col pt-4">
-      <div className="flex-1 grid md:grid-cols-3 gap-8 overflow-hidden">
-        <div className="md:col-span-2 overflow-y-auto pr-4">
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="md:col-span-2">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
             <Card>
@@ -275,7 +274,6 @@ export default function BrandQrTemplateDesigner({
           <LivePreview settings={watchedValues} />
         </div>
       </div>
-    </div>
   );
 }
 

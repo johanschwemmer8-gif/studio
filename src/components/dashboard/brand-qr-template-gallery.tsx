@@ -16,7 +16,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Tooltip,
@@ -156,18 +155,20 @@ export default function BrandQrTemplateGallery() {
             </div>
 
             <Dialog open={isDesignerOpen} onOpenChange={setIsDesignerOpen}>
-                <DialogContent className="max-w-4xl h-[90vh]">
-                     <DialogHeader>
+                <DialogContent className="max-w-4xl grid-rows-[auto,1fr] p-0 max-h-[90vh]">
+                     <DialogHeader className="p-6 pb-0">
                         <DialogTitle>{editingTemplateId ? 'Edit' : 'Create'} QR Template</DialogTitle>
                         <DialogDescription>
                             Design a reusable QR code style for your brand.
                         </DialogDescription>
                     </DialogHeader>
-                    <BrandQrTemplateDesigner
-                        templateId={editingTemplateId}
-                        onSave={() => handleDesignerClose(true)}
-                        onCancel={() => handleDesignerClose(false)}
-                    />
+                    <div className="grid-rows-1 overflow-y-auto p-6">
+                        <BrandQrTemplateDesigner
+                            templateId={editingTemplateId}
+                            onSave={() => handleDesignerClose(true)}
+                            onCancel={() => handleDesignerClose(false)}
+                        />
+                    </div>
                 </DialogContent>
             </Dialog>
 

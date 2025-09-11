@@ -12,14 +12,13 @@ import '@/ai/flows/process-bulk-qr-queue.ts';
 import '@/ai/flows/generate-zip-for-request.ts';
 import '@/ai/flows/regenerate-qr-code.ts';
 import '@/ai/flows/generate-campaign-ai.ts';
-import '@/ai/flows/get-analytics-summary.ts';
-import '@/ai/flows/get-qr-code-details.ts';
 import '@/ai/flows/save-qr-template.ts';
 import '@/ai/flows/get-qr-templates.ts';
 import '@/ai/flows/generate-bulk-qr-codes.ts';
 import '@/ai/flows/import-external-qr-codes.ts';
 import '@/ai/flows/delete-bulk-qr-request.ts';
 import '@/ai/flows/get-scan-events.ts';
+
 
 
 

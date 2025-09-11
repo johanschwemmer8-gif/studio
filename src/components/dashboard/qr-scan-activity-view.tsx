@@ -20,8 +20,8 @@ import Papa from 'papaparse';
 export default function QrScanActivityView() {
     const [events, setEvents] = useState<GetScanEventsOutput>([]);
     const [loading, startLoading] = useTransition();
-    const [retailerFilter, setRetailerFilter] = useState('');
-    const [campaignFilter, setCampaignFilter] = useState('');
+    const [retailerFilter, setRetailerFilter] = useState<string | undefined>(undefined);
+    const [campaignFilter, setCampaignFilter] = useState<string | undefined>(undefined);
     const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 7), to: new Date() });
     
     const { toast } = useToast();
@@ -30,8 +30,8 @@ export default function QrScanActivityView() {
         startLoading(async () => {
             try {
                 const result = await getScanEvents({
-                    retailerId: retailerFilter || undefined,
-                    campaignId: campaignFilter || undefined,
+                    retailerId: retailerFilter,
+                    campaignId: campaignFilter,
                     startDate: dateRange?.from?.toISOString(),
                     endDate: dateRange?.to?.toISOString(),
                 });
@@ -78,17 +78,17 @@ export default function QrScanActivityView() {
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg">
-                    <Select value={retailerFilter} onValueChange={setRetailerFilter}>
+                    <Select value={retailerFilter || 'all'} onValueChange={(value) => setRetailerFilter(value === 'all' ? undefined : value)}>
                         <SelectTrigger><SelectValue placeholder="All Retailers" /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Retailers</SelectItem>
+                            <SelectItem value="all">All Retailers</SelectItem>
                             {uniqueRetailers.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                     <Select value={campaignFilter} onValueChange={setCampaignFilter}>
+                     <Select value={campaignFilter || 'all'} onValueChange={(value) => setCampaignFilter(value === 'all' ? undefined : value)}>
                         <SelectTrigger><SelectValue placeholder="All Campaigns" /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Campaigns</SelectItem>
+                            <SelectItem value="all">All Campaigns</SelectItem>
                             {uniqueCampaigns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                         </SelectContent>
                     </Select>

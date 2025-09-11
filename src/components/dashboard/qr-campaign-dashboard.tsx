@@ -5,7 +5,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle } from 'lucide-react';
+import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '../ui/skeleton';
+import Link from 'next/link';
 
 // This is a mock/stub for Firestore client-side interaction.
 // In a real app, this would be replaced by the Firebase JS SDK.
@@ -263,8 +264,8 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
                     {filteredItems.map(item => {
                         const isRegenerating = regeneratingIds.includes(item.qrCodeId);
                         return (
-                            <Card key={item.qrCodeId} className="group relative">
-                                <CardContent className="p-2">
+                            <Card key={item.qrCodeId} className="group relative flex flex-col">
+                                <CardContent className="p-2 flex-1">
                                      <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
                                         {item.status === 'PENDING' ? (
                                             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -276,14 +277,21 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
                                         ) : (
                                             <Image src={item.signedUrl} alt={item.qrCodeId} width={200} height={200} className="w-full h-full object-contain" />
                                         )}
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
                                              <Button 
                                                 size="sm"
                                                 disabled={isRegenerating || (item.status !== 'DONE' && item.status !== 'ERROR')}
                                                 onClick={() => handleRegenerate(item.qrCodeId)}
+                                                className="w-full"
                                              >
                                                 {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
                                                 Regenerate
+                                            </Button>
+                                             <Button asChild size="sm" variant="secondary" className="w-full" disabled={item.status !== 'DONE'}>
+                                                <Link href={`/retailer-mvp/qr-analytics/${item.qrCodeId}`}>
+                                                    <BarChart2 className="mr-2 h-4 w-4"/>
+                                                    View Scans
+                                                </Link>
                                             </Button>
                                         </div>
                                     </div>

@@ -77,14 +77,6 @@ export default function RetailerSidebar() {
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Design and manage QR styles for each brand">
-                    <Link href="/retailer-mvp/brands">
-                        <Paintbrush />
-                        <span>Brand QR Templates</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
             {optionalModules.abTesting && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="A/B Testing">

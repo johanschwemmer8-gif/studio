@@ -46,6 +46,6 @@
     "retailMediaNetwork": true,
     "performanceAnalysis": true,
     "retailerAdmin": true,
-    "qrAiManagement": true
+    "qrAiManagement": false
   }
 }

@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
@@ -55,6 +55,14 @@ export default function RetailerSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Scan Analytics">
+                <Link href="/retailer-mvp/qr-analytics">
+                  <BarChart2 />
+                  <span>Scan Analytics</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Visuals & Reporting">
                 <Link href="/retailer-mvp/visuals-reporting">

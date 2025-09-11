@@ -10,12 +10,9 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
-import type { QrTemplate } from './save-qr-template';
-import { QrTemplateSchema } from './save-qr-template';
+import type { QrTemplate } from '@/lib/schemas/qr-templates';
+import { QrTemplateSchema, GetQrTemplatesInputSchema } from '@/lib/schemas/qr-templates';
 
-export const GetQrTemplatesInputSchema = z.object({
-  retailerId: z.string(),
-});
 export type GetQrTemplatesInput = z.infer<typeof GetQrTemplatesInputSchema>;
 
 export async function getQrTemplates(input: GetQrTemplatesInput): Promise<QrTemplate[]> {

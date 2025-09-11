@@ -6,36 +6,15 @@
  * - saveQrTemplate - A callable function to create a new QR template.
  * - SaveQrTemplateInput - The input type for the function.
  * - SaveQrTemplateOutput - The return type for the function.
- * - QrTemplateSchema - The Zod schema for a QR template object.
- * - QrTemplate - The TypeScript type for a QR template object.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
+import { SaveQrTemplateInputSchema, SaveQrTemplateOutputSchema } from '@/lib/schemas/qr-templates';
 
-export const QrTemplateSchema = z.object({
-  templateId: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  defaults: z.any(),
-  retailerId: z.string(),
-});
-export type QrTemplate = z.infer<typeof QrTemplateSchema>;
-
-export const SaveQrTemplateInputSchema = z.object({
-  retailerId: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  defaults: z.any(),
-});
 export type SaveQrTemplateInput = z.infer<typeof SaveQrTemplateInputSchema>;
-
-export const SaveQrTemplateOutputSchema = z.object({
-  success: z.boolean(),
-  templateId: z.string(),
-});
 export type SaveQrTemplateOutput = z.infer<typeof SaveQrTemplateOutputSchema>;
 
 

@@ -23,8 +23,8 @@ export type ProcessBulkQrQueueOutput = z.infer<typeof ProcessBulkQrQueueOutputSc
 
 // The main exported function to be called
 export async function processBulkQrQueue(): Promise<ProcessBulkQrQueueOutput> {
-  // In a real Firebase environment, you would check for App Check token here.
-  // This would likely be a Pub/Sub or Task Queue function, which uses IAM for security.
+  // In a real Firebase environment, this would likely be a Pub/Sub or Task Queue function, 
+  // which uses IAM for security instead of direct auth checks.
   return processBulkQrQueueFlow();
 }
 
@@ -35,7 +35,7 @@ const generateQrForItem = (item: any, requestData: any) => {
     const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
     const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
 
-    const qrData = `${requestData.baseRedirect}?qr=${qrCodeId}`;
+    const qrData = `${item.redirectUrl}`; // The redirectUrl is already pre-built
     const encodedQrData = encodeURIComponent(qrData);
 
     let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
@@ -44,14 +44,15 @@ const generateQrForItem = (item: any, requestData: any) => {
         generatedQrUrl += `&logo=${encodeURIComponent(qrOptions.logoPath)}`;
     }
     
+    // In a real implementation, this would be the path in Cloud Storage
     const storagePath = `qr/${requestData.retailerId}/${requestData.campaignId}/${qrCodeId}.png`;
 
     return {
         status: 'DONE',
-        redirectUrl: qrData,
         storagePath: storagePath,
-        signedUrl: generatedQrUrl,
-        checksum: '', // Placeholder
+        // The generated URL acts as our "signedUrl" for this simulation
+        signedUrl: generatedQrUrl, 
+        checksum: '', // Placeholder for a real checksum/hash
         error: admin.firestore.FieldValue.delete(), // Clear previous error
     };
 };
@@ -71,9 +72,9 @@ const processBulkQrQueueFlow = ai.defineFlow(
     let itemsRetriedCount = 0;
     let processedRequestId: string | undefined = undefined;
 
-    // --- 1. Process PENDING items from a QUEUED request ---
+    // --- 1. Process a QUEUED request ---
     const requestsRef = db.collection('bulkQrRequests');
-    const queuedRequestQuery = requestsRef.where('status', '==', 'QUEUED').limit(1);
+    const queuedRequestQuery = requestsRef.where('status', '==', 'QUEUED').orderBy('createdAt').limit(1);
     const queuedSnapshot = await queuedRequestQuery.get();
 
     if (!queuedSnapshot.empty) {
@@ -105,14 +106,14 @@ const processBulkQrQueueFlow = ai.defineFlow(
                     const updateData = generateQrForItem(itemData, requestData);
                     batch.update(itemDoc.ref, updateData);
 
-                    // Create document in the master qrcodes collection
+                    // Mirror document to the master qrcodes collection
                     const qrMasterRef = db.collection('qrcodes').doc(itemData.qrCodeId);
                     batch.set(qrMasterRef, {
                         retailerId: requestData.retailerId,
                         campaignId: requestData.campaignId,
                         qrCodeId: itemData.qrCodeId,
                         requestId: requestDoc.id,
-                        redirectUrl: updateData.redirectUrl,
+                        redirectUrl: itemData.redirectUrl,
                         storagePath: updateData.storagePath,
                         signedUrl: updateData.signedUrl,
                         scanCount: 0,
@@ -124,6 +125,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
                 await batch.commit();
             }
 
+            // Check if the entire request is complete
             const allItemsSnapshot = await itemsRef.get();
             const allItemsDone = allItemsSnapshot.docs.every(doc => doc.data().status === 'DONE');
             if (allItemsDone) {
@@ -139,7 +141,6 @@ const processBulkQrQueueFlow = ai.defineFlow(
                 });
             }
             console.error(`Failed to process request ${processedRequestId}:`, error);
-            // Continue to retry logic even if main processing fails
         }
     }
     
@@ -165,7 +166,6 @@ const processBulkQrQueueFlow = ai.defineFlow(
             
             try {
                 const updateData = generateQrForItem(itemData, requestData);
-                
                 const batch = db.batch();
 
                 // Update item subcollection document
@@ -181,14 +181,11 @@ const processBulkQrQueueFlow = ai.defineFlow(
                     campaignId: requestData.campaignId,
                     qrCodeId: itemData.qrCodeId,
                     requestId: requestDoc.id,
-                    redirectUrl: updateData.redirectUrl,
+                    redirectUrl: itemData.redirectUrl,
                     storagePath: updateData.storagePath,
                     signedUrl: updateData.signedUrl,
-                    scanCount: 0,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                    expiresAt: requestData.options?.expiresAt ? new Date(requestData.options.expiresAt) : null,
-                    meta: {},
-                }, { merge: true }); // Use merge to avoid overwriting existing scan counts on retry
+                    // Keep existing scanCount on retry
+                }, { merge: true });
 
                 await batch.commit();
 

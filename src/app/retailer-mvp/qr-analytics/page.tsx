@@ -11,6 +11,7 @@ import { Bar, BarChart as RechartsBarChart, CartesianGrid, Legend, Line, LineCha
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 type AnalyticsData = Omit<GetAnalyticsSummaryOutput, 'scansByDay'> & {
     scansByDay: { date: Date; count: number }[];
@@ -36,7 +37,7 @@ export default function QrAnalyticsPage() {
     const [data, setData] = useState<AnalyticsData | null>(null);
     const [loading, startLoading] = useTransition();
 
-    useEffect(() => {
+    const fetchAnalytics = () => {
         startLoading(async () => {
             const result = await getAnalyticsSummary({
                 retailerId: 'simulated-retailer-id',
@@ -50,6 +51,10 @@ export default function QrAnalyticsPage() {
             };
             setData(formattedResult);
         });
+    }
+
+    useEffect(() => {
+        fetchAnalytics();
     }, [range, campaignFilter]);
     
     const allCampaignIds = data?.topCampaignsByScans.map(c => c.campaignId) || [];
@@ -60,7 +65,7 @@ export default function QrAnalyticsPage() {
         const csvRows = [
             headers.join(','),
             ...data.topQrCodesByScans.map(row => 
-                [row.qrCodeId, row.count, row.campaignId].join(',')
+                [row.qrCodeId, row.count, campaignFilter || 'multiple'].join(',')
             )
         ];
         const csvString = csvRows.join('\n');
@@ -83,7 +88,9 @@ export default function QrAnalyticsPage() {
                         Analyze QR code performance, track scan trends, and identify your top campaigns.
                     </p>
                 </div>
-                 {loading && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+                 <Button onClick={fetchAnalytics} variant="outline" size="icon" disabled={loading}>
+                    <RefreshCcw className={loading ? "animate-spin" : ""} />
+                 </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -118,7 +125,7 @@ export default function QrAnalyticsPage() {
                     [...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)
                 ) : (
                     <>
-                        <AnalyticsMetricCard title="Total Scans" value={data.totalScans} icon={QrCode} />
+                        <AnalyticsMetricCard title="Total Scans" value={data.totalScans.toLocaleString()} icon={QrCode} />
                         <AnalyticsMetricCard title="Top Campaign" value={data.topCampaignsByScans[0]?.campaignId || 'N/A'} icon={TrendingUp} />
                         <AnalyticsMetricCard title="ZIP Downloads" value={data.zipDownloadCountsByDay.reduce((acc, curr) => acc + curr.count, 0)} icon={Download} />
                         <AnalyticsMetricCard title="Regenerations" value={data.regenerationCountsByRequest.reduce((acc, curr) => acc + curr.count, 0)} icon={RefreshCcw} />
@@ -156,7 +163,7 @@ export default function QrAnalyticsPage() {
                              <ResponsiveContainer width="100%" height={250}>
                                 <RechartsBarChart data={data.topCampaignsByScans.slice(0, 5)}>
                                     <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="campaignId" angle={-45} textAnchor="end" height={60} />
+                                    <XAxis dataKey="campaignId" angle={-45} textAnchor="end" height={60} interval={0} />
                                     <YAxis />
                                     <Tooltip content={<ChartTooltipContent />} />
                                     <Bar dataKey="count" fill="hsl(var(--primary))" name="Scans" />
@@ -170,7 +177,7 @@ export default function QrAnalyticsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Top 20 Scanned QR Codes</CardTitle>
-                    <CardDescription>The most popular individual QR codes in this period.</CardDescription>
+                    <CardDescription>The most popular individual QR codes in this period. Click an ID to see detailed stats.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {loading || !data ? <Skeleton className="h-96 w-full" /> : (
@@ -185,8 +192,12 @@ export default function QrAnalyticsPage() {
                             <TableBody>
                                 {data.topQrCodesByScans.slice(0, 20).map((qr) => (
                                     <TableRow key={qr.qrCodeId}>
-                                        <TableCell className="font-mono text-xs">{qr.qrCodeId}</TableCell>
-                                        <TableCell>{qr.campaignId}</TableCell>
+                                        <TableCell className="font-mono text-xs">
+                                            <Link href={`/retailer-mvp/qr-analytics/${qr.qrCodeId}`} className="hover:underline text-primary">
+                                                {qr.qrCodeId}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell>{data.topCampaignsByScans.find(c => c.campaignId === campaignFilter)?.campaignId || 'multiple'}</TableCell>
                                         <TableCell className="text-right font-bold">{qr.count}</TableCell>
                                     </TableRow>
                                 ))}

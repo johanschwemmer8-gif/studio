@@ -1,3 +1,4 @@
+
 import { config } from 'dotenv';
 config();
 
@@ -12,3 +13,4 @@ import '@/ai/flows/generate-zip-for-request.ts';
 import '@/ai/flows/regenerate-qr-code.ts';
 import '@/ai/flows/generate-campaign-ai.ts';
 import '@/ai/flows/get-analytics-summary.ts';
+import '@/ai/flows/get-qr-code-details.ts';

@@ -402,7 +402,7 @@ export default function QrAiManagementPage() {
                                 <CardDescription>
                                     A list of all single QR codes you have generated for testing.
                                 </CardDescription>
-                            </Header>
+                            </CardHeader>
                             <CardContent>
                                 <Table>
                                     <TableHeader>
@@ -442,3 +442,5 @@ export default function QrAiManagementPage() {
         </div>
     );
 }
+
+    

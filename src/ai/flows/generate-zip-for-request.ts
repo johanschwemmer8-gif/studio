@@ -109,6 +109,24 @@ const generateZipForRequestFlow = ai.defineFlow(
     const zipContent = await zip.generateAsync({ type: 'base64' });
     const zipDataUri = `data:application/zip;base64,${zipContent}`;
 
+    // === Log the download event ===
+    const downloadLogRef = db.collection('zipDownloads').doc();
+    // In a real function, these would come from the request context.
+    const downloadedBy = 'simulated-user@example.com'; // Placeholder from auth context (e.g., context.auth.token.email)
+    const ipAddress = '127.0.0.1'; // Placeholder from request headers (e.g., req.ip)
+    const userAgent = 'Simulated User Agent'; // Placeholder from request headers (e.g., req.get('User-Agent'))
+
+    await downloadLogRef.set({
+        requestId,
+        retailerId: requestData.retailerId,
+        campaignId: requestData.campaignId,
+        downloadedBy,
+        ipAddress,
+        userAgent,
+        timestamp: new Date(),
+    });
+    // === End logging ===
+
     return {
       success: true,
       message: `Successfully generated ZIP file for request ${requestId}.`,

@@ -5,60 +5,60 @@ import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Loader2, Download, RefreshCw } from 'lucide-react';
+import { Eye, Loader2, Download, RefreshCw, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { generateZipForRequest } from '@/ai/flows/generate-zip-for-request';
 import { processBulkQrQueue } from '@/ai/flows/process-bulk-qr-queue';
 import { regenerateQrCode } from '@/ai/flows/regenerate-qr-code';
+import { Badge } from '../ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '../ui/skeleton';
 
 // This is a mock/stub for Firestore client-side interaction.
 // In a real app, this would be replaced by the Firebase JS SDK.
 const createMockDb = () => {
-    const listeners: ((data: any) => void)[] = [];
-    let mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
-
-    const triggerListeners = () => {
-        const data = { docs: mockRequests.map((doc: any) => ({ id: doc.id, data: () => doc })), empty: mockRequests.length === 0 };
-        listeners.forEach(cb => cb(data));
-    };
-    
-    // Simulate a processor running in the background
-    setInterval(async () => {
-        try {
-            await processBulkQrQueue(); // Call the Genkit flow
-            // Note: In a real app, this would trigger a Firestore snapshot update automatically.
-            // Here we would need a way to re-fetch or get updated data.
-            // For this simulation, we'll rely on manual refresh for queue processing.
-        } catch (e) {
-            console.error("Mock processor failed:", e);
-        }
-    }, 15000); // Run every 15 seconds
-
+    // ... (mock db logic)
     return {
         collection: (name: string) => ({
             where: (field: string, op: string, value: any) => ({
                 orderBy: (field: string, dir: string) => ({
                     onSnapshot: (callback: (snapshot: any) => void) => {
-                        listeners.push(callback);
-                        // Initial call
+                        const mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
                         setTimeout(() => {
-                           mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
                            callback({
                                 docs: mockRequests.map((doc: any) => ({ id: doc.id, data: () => doc })),
                                 empty: mockRequests.length === 0,
                            })
                         }, 100);
-                        
-                        // Return an unsubscribe function
-                        return () => {
-                            const index = listeners.indexOf(callback);
-                            if (index > -1) listeners.splice(index, 1);
-                        };
+                        // Return an empty unsubscribe function for this mock
+                        return () => {};
                     },
                 }),
             }),
+             doc: (id: string) => ({
+                collection: (subName: string) => ({
+                    onSnapshot: (callback: (snapshot: any) => void) => {
+                        const mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
+                        const request = mockRequests.find((r: any) => r.id === id);
+                        const items = request ? request.items : [];
+                         setTimeout(() => {
+                           callback({
+                                docs: items.map((doc: any) => ({ id: doc.qrCodeId, data: () => doc })),
+                                empty: items.length === 0,
+                           })
+                        }, 100);
+                        return () => {};
+                    }
+                })
+            })
         }),
     };
 };
@@ -75,18 +75,129 @@ type BulkRequest = {
 
 type QrItem = {
     qrCodeId: string;
+    redirectUrl: string;
     status: 'PENDING' | 'DONE' | 'ERROR';
     signedUrl: string;
     regeneratedAt?: { toDate: () => Date };
 };
 
+function QrRequestDetails({ requestId }: { requestId: string }) {
+    const [items, setItems] = useState<QrItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [regeneratingIds, setRegeneratingIds] = useState<string[]>([]);
+    const { toast } = useToast();
+    const firestore = createMockDb();
+
+    useEffect(() => {
+        setLoading(true);
+        const unsubscribe = firestore.collection('bulkQrRequests').doc(requestId).collection('items').onSnapshot(snapshot => {
+            const fetchedItems: QrItem[] = snapshot.docs.map((doc: any) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            setItems(fetchedItems);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [requestId]);
+
+    const handleRegenerate = async (qrCodeId: string) => {
+        setRegeneratingIds(prev => [...prev, qrCodeId]);
+        try {
+            const result = await regenerateQrCode({ requestId, qrCodeId });
+            if (result.success) {
+                toast({
+                    title: "QR Code Regenerated",
+                    description: `Successfully regenerated ${qrCodeId}.`,
+                });
+                setItems(prev => prev.map(item => item.qrCodeId === qrCodeId ? { ...item, signedUrl: result.signedUrl, regeneratedAt: { toDate: () => new Date(result.regeneratedAt)} } : item));
+            } else {
+                 throw new Error('Regeneration failed on the server.');
+            }
+        } catch (error: any) {
+             toast({
+                title: "Regeneration Failed",
+                description: error.message,
+                variant: 'destructive',
+            });
+        } finally {
+            setRegeneratingIds(prev => prev.filter(id => id !== qrCodeId));
+        }
+    }
+
+    const filteredItems = items.filter(item => statusFilter === 'ALL' || item.status === statusFilter);
+
+    if (loading) {
+        return (
+             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-4">
+             <div className="w-full sm:w-64">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Filter by status..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ALL">All Statuses</SelectItem>
+                        <SelectItem value="DONE">Done</SelectItem>
+                        <SelectItem value="ERROR">Error</SelectItem>
+                        <SelectItem value="PENDING">Pending</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            {filteredItems.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No QR codes match the filter.</p>
+            ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {filteredItems.map(item => {
+                        const isRegenerating = regeneratingIds.includes(item.qrCodeId);
+                        return (
+                            <Card key={item.qrCodeId} className="group relative">
+                                <CardContent className="p-2">
+                                     <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
+                                        {item.status === 'PENDING' ? (
+                                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                        ) : (
+                                            <Image src={item.signedUrl} alt={item.qrCodeId} width={200} height={200} className="w-full h-full object-contain" />
+                                        )}
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                             <Button 
+                                                size="sm"
+                                                disabled={isRegenerating || (item.status !== 'DONE' && item.status !== 'ERROR')}
+                                                onClick={() => handleRegenerate(item.qrCodeId)}
+                                             >
+                                                {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                                Regenerate
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="p-2 flex-col items-start text-xs">
+                                    <Badge variant={item.status === 'DONE' ? 'default' : item.status === 'ERROR' ? 'destructive' : 'secondary'} className="mb-1">
+                                        {item.status}
+                                    </Badge>
+                                    <p className="font-mono text-muted-foreground truncate w-full">{item.qrCodeId}</p>
+                                    {item.regeneratedAt && <p className="text-blue-500">Regen: {new Date(item.regeneratedAt.toDate()).toLocaleTimeString()}</p>}
+                                </CardFooter>
+                            </Card>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function QrCampaignDashboard() {
     const [requests, setRequests] = useState<BulkRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<BulkRequest | null>(null);
-    const [qrItems, setQrItems] = useState<QrItem[]>([]);
-    const [loadingItems, setLoadingItems] = useState(false);
-    const [regeneratingIds, setRegeneratingIds] = useState<string[]>([]);
     const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
 
     const { toast } = useToast();
@@ -140,31 +251,6 @@ export default function QrCampaignDashboard() {
             setDownloadingIds(prev => prev.filter(id => id !== requestId));
         }
     };
-    
-    const handleRegenerate = async (requestId: string, qrCodeId: string) => {
-        setRegeneratingIds(prev => [...prev, qrCodeId]);
-        try {
-            const result = await regenerateQrCode({ requestId, qrCodeId });
-            if (result.success) {
-                toast({
-                    title: "QR Code Regenerated",
-                    description: `Successfully regenerated ${qrCodeId}.`,
-                });
-                // Optimistically update the UI
-                setQrItems(prev => prev.map(item => item.qrCodeId === qrCodeId ? { ...item, signedUrl: result.signedUrl, regeneratedAt: { toDate: () => new Date(result.regeneratedAt)} } : item));
-            } else {
-                 throw new Error('Regeneration failed on the server.');
-            }
-        } catch (error: any) {
-             toast({
-                title: "Regeneration Failed",
-                description: error.message,
-                variant: 'destructive',
-            });
-        } finally {
-            setRegeneratingIds(prev => prev.filter(id => id !== qrCodeId));
-        }
-    }
 
     if (loading) {
         return <div className="text-center text-muted-foreground">Loading campaigns...</div>
@@ -225,16 +311,20 @@ export default function QrCampaignDashboard() {
 
             {selectedRequest && (
                 <Card>
-                    <CardHeader>
-                        <CardTitle>QR Code Previews for: {selectedRequest.campaignId}</CardTitle>
-                        <CardDescription>
-                            A preview of generated codes.
-                            {selectedRequest.status !== 'COMPLETED' && "Previews will appear as they are generated."}
-                        </CardDescription>
+                    <CardHeader className="flex items-start justify-between">
+                        <div>
+                            <CardTitle>QR Code Previews for: {selectedRequest.campaignId}</CardTitle>
+                            <CardDescription>
+                                A preview of generated codes.
+                                {selectedRequest.status !== 'COMPLETED' && " Previews will appear as they are generated."}
+                            </CardDescription>
+                        </div>
+                         <Button variant="ghost" size="icon" onClick={() => setSelectedRequest(null)}>
+                            <X className="h-4 w-4"/>
+                        </Button>
                     </CardHeader>
                     <CardContent>
-                        {/* Here you can show the items, this part is simplified */}
-                        <p className="text-sm text-muted-foreground">Detailed item view is under construction. Click the "View" button on another request to dismiss.</p>
+                       <QrRequestDetails requestId={selectedRequest.id} />
                     </CardContent>
                 </Card>
             )}

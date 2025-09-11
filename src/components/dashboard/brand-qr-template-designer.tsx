@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -244,7 +243,7 @@ export default function BrandQrTemplateDesigner({
   const isGradientActive = useWatch({ control: form.control, name: 'gradient.active' });
 
   return (
-      <div className="grid md:grid-cols-3 md:gap-8">
+      <div className="md:grid md:grid-cols-3 md:gap-8">
         <div className="md:col-span-2 space-y-8 md:max-h-[80vh] md:overflow-y-auto md:pr-4">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
@@ -284,8 +283,20 @@ export default function BrandQrTemplateDesigner({
                    {isGradientActive ? (
                      <div className="space-y-4 p-4 border rounded-md">
                         <div className="grid md:grid-cols-2 gap-4">
-                          <FormItem field={form.register('gradient.from')} label="From" type="color" />
-                          <FormItem field={form.register('gradient.to')} label="To" type="color" />
+                          <Controller
+                            name="gradient.from"
+                            control={form.control}
+                            render={({ field }) => (
+                              <FormItem field={field} label="From" type="color" />
+                            )}
+                          />
+                          <Controller
+                            name="gradient.to"
+                            control={form.control}
+                            render={({ field }) => (
+                              <FormItem field={field} label="To" type="color" />
+                            )}
+                          />
                         </div>
                         <FormItem field={form.register('gradient.angle')} label="Angle">
                           <Controller name="gradient.angle" control={form.control} render={({ field }) => (
@@ -294,7 +305,13 @@ export default function BrandQrTemplateDesigner({
                         </FormItem>
                      </div>
                    ) : (
-                      <FormItem field={form.register('colorHex')} label="Foreground Color" type="color" />
+                      <Controller
+                        name="colorHex"
+                        control={form.control}
+                        render={({ field }) => (
+                          <FormItem field={field} label="Foreground Color" type="color" />
+                        )}
+                      />
                    )}
                 </CardContent>
             </Card>
@@ -337,8 +354,20 @@ export default function BrandQrTemplateDesigner({
                          )} />
                     </FormItem>
                      <div className="grid md:grid-cols-2 gap-4">
-                        <FormItem field={form.register('eyeColors.outer')} label="Outer Eye Color" type="color" />
-                        <FormItem field={form.register('eyeColors.inner')} label="Inner Eye Color" type="color" />
+                        <Controller
+                            name="eyeColors.outer"
+                            control={form.control}
+                            render={({ field }) => (
+                                <FormItem field={field} label="Outer Eye Color" type="color" />
+                            )}
+                        />
+                        <Controller
+                            name="eyeColors.inner"
+                            control={form.control}
+                            render={({ field }) => (
+                                <FormItem field={field} label="Inner Eye Color" type="color" />
+                            )}
+                        />
                     </div>
                 </CardContent>
             </Card>
@@ -362,7 +391,13 @@ export default function BrandQrTemplateDesigner({
             <Card>
                  <CardHeader><CardTitle>Background</CardTitle></CardHeader>
                  <CardContent className="space-y-4">
-                      <FormItem field={form.register('bgColorHex')} label="Background Color" type="color" />
+                      <Controller
+                        name="bgColorHex"
+                        control={form.control}
+                        render={({ field }) => (
+                            <FormItem field={field} label="Background Color" type="color" />
+                        )}
+                      />
                       <FormItem field={form.register('backgroundImageDataUrl')} label="Background Image">
                          <Input type="file" accept="image/png, image/jpeg" onChange={(e) => handleFileUpload(e, 'backgroundImageDataUrl')} />
                       </FormItem>
@@ -418,8 +453,19 @@ function FormItem({ field, label, children, value, type }: { field: any, label: 
                 <div className="space-y-2">
                     <Label htmlFor={field.name}>{label}</Label>
                     <div className="flex items-center gap-2">
-                        <Input id={field.name} type="color" className="w-12 h-10 p-1" {...field} />
-                        <Input className="flex-1" {...field} />
+                        <Input
+                            id={`${field.name}-color-picker`}
+                            type="color"
+                            className="w-12 h-10 p-1"
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value)}
+                        />
+                        <Input
+                            id={field.name}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            className="flex-1"
+                        />
                     </div>
                 </div>
             );
@@ -438,4 +484,4 @@ function FormItem({ field, label, children, value, type }: { field: any, label: 
     return <div className="w-full">{itemContent}</div>;
 }
 
-
+    

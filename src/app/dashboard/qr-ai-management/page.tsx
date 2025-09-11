@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,9 +16,6 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import AllQrRequestsAdminView from "@/components/dashboard/all-qr-requests-admin-view";
-import QrRequestItemAdminView from "@/components/dashboard/qr-request-item-admin-view";
-import QrScanActivityView from "@/components/dashboard/qr-scan-activity-view";
 
 type GeneratedQrCode = {
   url: string;
@@ -123,18 +119,6 @@ export default function QrAiManagementPage() {
                     )}
                 </div>
             </div>
-            
-            <Separator />
-
-            <QrScanActivityView />
-
-            <Separator />
-
-            <AllQrRequestsAdminView />
-
-            <Separator />
-
-             <QrRequestItemAdminView requestId="test-request-id" onBack={() => {}} />
 
         </div>
     );

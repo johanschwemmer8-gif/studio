@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import { subHours, subDays } from 'date-fns';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -102,17 +103,3 @@ const getScanEventsFlow = ai.defineFlow(
     }).slice(0, filters.limit);
   }
 );
-
-
-// Helper functions for mock data generation
-function subHours(date: Date, hours: number): Date {
-    const newDate = new Date(date);
-    newDate.setHours(newDate.getHours() - hours);
-    return newDate;
-}
-
-function subDays(date: Date, days: number): Date {
-    const newDate = new Date(date);
-    newDate.setDate(newDate.getDate() - days);
-    return newDate;
-}

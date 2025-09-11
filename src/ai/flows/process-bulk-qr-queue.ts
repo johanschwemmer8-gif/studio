@@ -17,6 +17,7 @@ const ProcessBulkQrQueueOutputSchema = z.object({
   message: z.string(),
   processedRequestId: z.string().optional(),
   itemsProcessed: z.number().optional(),
+  itemsRetried: z.number().optional(),
 });
 export type ProcessBulkQrQueueOutput = z.infer<typeof ProcessBulkQrQueueOutputSchema>;
 
@@ -24,6 +25,35 @@ export type ProcessBulkQrQueueOutput = z.infer<typeof ProcessBulkQrQueueOutputSc
 export async function processBulkQrQueue(): Promise<ProcessBulkQrQueueOutput> {
   return processBulkQrQueueFlow();
 }
+
+const generateQrForItem = (item: any, requestData: any) => {
+    const { qrCodeId } = item;
+    const qrOptions = requestData.options || {};
+    const qrColor = qrOptions.colorHex ? qrOptions.colorHex.replace('#', '') : '000000';
+    const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
+    const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
+
+    const qrData = `${requestData.baseRedirect}?qr=${qrCodeId}`;
+    const encodedQrData = encodeURIComponent(qrData);
+
+    let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
+
+    if (qrOptions.logoPath) {
+        generatedQrUrl += `&logo=${encodeURIComponent(qrOptions.logoPath)}`;
+    }
+    
+    const storagePath = `qr/${requestData.retailerId}/${requestData.campaignId}/${qrCodeId}.png`;
+
+    return {
+        status: 'DONE',
+        redirectUrl: qrData,
+        storagePath: storagePath,
+        signedUrl: generatedQrUrl,
+        checksum: '', // Placeholder
+        error: admin.firestore.FieldValue.delete(), // Clear previous error
+    };
+};
+
 
 const processBulkQrQueueFlow = ai.defineFlow(
   {
@@ -35,101 +65,113 @@ const processBulkQrQueueFlow = ai.defineFlow(
       throw new Error('Firestore is not initialized.');
     }
 
-    const requestsRef = db.collection('bulkQrRequests');
-    // Find a request that is currently queued
-    const query = requestsRef.where('status', '==', 'QUEUED').limit(1);
-    const querySnapshot = await query.get();
-
-    if (querySnapshot.empty) {
-      return { success: true, message: 'No queued requests to process.' };
-    }
-
-    const requestDoc = querySnapshot.docs[0];
-    const requestId = requestDoc.id;
-
     let itemsProcessedCount = 0;
+    let itemsRetriedCount = 0;
+    let processedRequestId: string | undefined = undefined;
 
-    try {
-      // Use a transaction to atomically lock the request
-      await db.runTransaction(async (transaction) => {
-        const doc = await transaction.get(requestDoc.ref);
-        if (doc.data()?.status !== 'QUEUED') {
-          throw new Error('Request was locked by another process.');
-        }
-        transaction.update(requestDoc.ref, { 
-            status: 'PROCESSING',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      });
+    // --- 1. Process PENDING items from a QUEUED request ---
+    const requestsRef = db.collection('bulkQrRequests');
+    const queuedRequestQuery = requestsRef.where('status', '==', 'QUEUED').limit(1);
+    const queuedSnapshot = await queuedRequestQuery.get();
 
-      const requestData = requestDoc.data();
-      const itemsRef = requestDoc.ref.collection('items');
-      const pendingItemsQuery = itemsRef.where('status', '==', 'PENDING').limit(100);
-      const pendingItemsSnapshot = await pendingItemsQuery.get();
-      
-      if (pendingItemsSnapshot.empty) {
-         await requestDoc.ref.update({ status: 'COMPLETED', updatedAt: new Date() });
-         return { success: true, message: `Request ${requestId} had no pending items. Marked as COMPLETED.`, processedRequestId: requestId, itemsProcessed: 0 };
-      }
+    if (!queuedSnapshot.empty) {
+        const requestDoc = queuedSnapshot.docs[0];
+        processedRequestId = requestDoc.id;
 
-      itemsProcessedCount = pendingItemsSnapshot.size;
-      const batch = db.batch();
-
-      for (const itemDoc of pendingItemsSnapshot.docs) {
-        const item = itemDoc.data();
-        const { qrCodeId, index } = item;
-
-        // Construct QR code URL with options
-        const qrOptions = requestData.options || {};
-        const qrColor = qrOptions.colorHex ? qrOptions.colorHex.replace('#', '') : '000000';
-        const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
-        // Enforce 'H' error correction if a logo is present, otherwise use option or default.
-        const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
-
-        const qrData = `${requestData.baseRedirect}?qr=${qrCodeId}`;
-        const encodedQrData = encodeURIComponent(qrData);
-        
-        // This URL simulates generating and getting a public URL. In a real scenario, we'd upload to GCS.
-        let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
-        
-        // Append logo URL if it exists
-        if (qrOptions.logoPath) {
-            generatedQrUrl += `&logo=${encodeURIComponent(qrOptions.logoPath)}`;
-        }
-
-        const storagePath = `qr/${requestData.retailerId}/${requestData.campaignId}/${qrCodeId}.png`;
-
-        batch.update(itemDoc.ref, {
-          status: 'DONE',
-          redirectUrl: qrData,
-          storagePath: storagePath,
-          signedUrl: generatedQrUrl, // Using the public URL as a stand-in for a signed URL
-          checksum: '', // Placeholder for MD5 hash
-        });
-      }
-      
-      await batch.commit();
-
-      // Check if all items are now done
-      const allItemsSnapshot = await itemsRef.get();
-      const allItemsDone = allItemsSnapshot.docs.every(doc => doc.data().status === 'DONE');
-      
-      if (allItemsDone) {
-        await requestDoc.ref.update({ status: 'COMPLETED', updatedAt: new Date() });
-      }
-
-      return { success: true, message: `Successfully processed ${itemsProcessedCount} items for request ${requestId}.`, processedRequestId: requestId, itemsProcessed: itemsProcessedCount };
-
-    } catch (error: any) {
-        if (requestId) {
-            await requestsRef.doc(requestId).update({
-                status: 'FAILED',
-                error: error.message,
-                updatedAt: new Date()
+        try {
+            await db.runTransaction(async (transaction) => {
+                const doc = await transaction.get(requestDoc.ref);
+                if (doc.data()?.status !== 'QUEUED') {
+                    throw new Error('Request was locked by another process.');
+                }
+                transaction.update(requestDoc.ref, {
+                    status: 'PROCESSING',
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
             });
+
+            const requestData = requestDoc.data();
+            const itemsRef = requestDoc.ref.collection('items');
+            const pendingItemsQuery = itemsRef.where('status', '==', 'PENDING').limit(100);
+            const pendingItemsSnapshot = await pendingItemsQuery.get();
+
+            if (!pendingItemsSnapshot.empty) {
+                itemsProcessedCount = pendingItemsSnapshot.size;
+                const batch = db.batch();
+                for (const itemDoc of pendingItemsSnapshot.docs) {
+                    const updateData = generateQrForItem(itemDoc.data(), requestData);
+                    batch.update(itemDoc.ref, updateData);
+                }
+                await batch.commit();
+            }
+
+            const allItemsSnapshot = await itemsRef.get();
+            const allItemsDone = allItemsSnapshot.docs.every(doc => doc.data().status === 'DONE');
+            if (allItemsDone) {
+                await requestDoc.ref.update({ status: 'COMPLETED', updatedAt: new Date() });
+            }
+
+        } catch (error: any) {
+            if (processedRequestId) {
+                await requestsRef.doc(processedRequestId).update({
+                    status: 'FAILED',
+                    error: error.message,
+                    updatedAt: new Date()
+                });
+            }
+            console.error(`Failed to process request ${processedRequestId}:`, error);
+            // Continue to retry logic even if main processing fails
         }
-        console.error(`Failed to process request ${requestId}:`, error);
-        return { success: false, message: `Failed to process request ${requestId}: ${error.message}`, processedRequestId: requestId };
     }
+    
+    // --- 2. Process ERRORED items in retry mode ---
+    const erroredItemsQuery = db.collectionGroup('items')
+                                .where('status', '==', 'ERROR')
+                                .where('retryCount', '<', 3)
+                                .limit(50);
+                                
+    const erroredItemsSnapshot = await erroredItemsQuery.get();
+    
+    if (!erroredItemsSnapshot.empty) {
+        itemsRetriedCount = erroredItemsSnapshot.size;
+        for (const itemDoc of erroredItemsSnapshot.docs) {
+            const itemData = itemDoc.data();
+            const requestRef = itemDoc.ref.parent.parent; // items -> {requestId} -> bulkQrRequests
+            if (!requestRef) continue;
+
+            const requestDoc = await requestRef.get();
+            if (!requestDoc.exists) continue;
+
+            const requestData = requestDoc.data()!;
+            
+            try {
+                const updateData = generateQrForItem(itemData, requestData);
+                await itemDoc.ref.update({
+                    ...updateData,
+                    retryCount: admin.firestore.FieldValue.increment(1)
+                });
+            } catch (error: any) {
+                await itemDoc.ref.update({
+                    error: error.message,
+                    retryCount: admin.firestore.FieldValue.increment(1)
+                });
+            }
+        }
+    }
+    
+    const messages = [];
+    if (itemsProcessedCount > 0) messages.push(`Processed ${itemsProcessedCount} items for request ${processedRequestId}.`);
+    if (itemsRetriedCount > 0) messages.push(`Retried ${itemsRetriedCount} errored items.`);
+    if (messages.length === 0) messages.push('No new or errored items to process.');
+
+    return {
+      success: true,
+      message: messages.join(' '),
+      processedRequestId,
+      itemsProcessed: itemsProcessedCount,
+      itemsRetried: itemsRetriedCount,
+    };
   }
 );
+
+    

@@ -5,7 +5,6 @@ import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {
   try {
-    // This will use Application Default Credentials
     admin.initializeApp();
   } catch (error) {
     console.error('Firebase Admin initialization error:', error);

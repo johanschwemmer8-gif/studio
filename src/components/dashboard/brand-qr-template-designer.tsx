@@ -109,7 +109,21 @@ export default function BrandQrTemplateDesigner({
 
   const form = useForm<TemplateDesignerValues>({
     resolver: zodResolver(templateDesignerSchema),
-    defaultValues: templateDesignerSchema.parse({}),
+    defaultValues: {
+      brandId: '',
+      name: '',
+      description: '',
+      qrShape: 'square',
+      colorHex: '#000000',
+      bgColorHex: '#FFFFFF',
+      eyeStyle: 'square',
+      logoSizeRatio: 0.2,
+      backgroundImageOpacity: 1,
+      backgroundImageMode: 'cover',
+      quietZone: 10,
+      exportFormats: ['PNG'],
+      dpi: '300'
+    },
   });
 
   const watchedValues = form.watch();

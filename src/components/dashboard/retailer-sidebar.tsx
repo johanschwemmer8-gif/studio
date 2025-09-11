@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2 } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, Paintbrush } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
@@ -74,6 +74,14 @@ export default function RetailerSidebar() {
                     <Link href="/retailer-mvp/qr-management">
                         <QrCode />
                         <span>QR Management</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Design and manage QR styles for each brand">
+                    <Link href="/retailer-mvp/brands">
+                        <Paintbrush />
+                        <span>Brand QR Templates</span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>

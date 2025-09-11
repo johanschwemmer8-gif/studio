@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode } from 'lucide-react';
 import Link from 'next/link';
 import theme from '@/config/theme.json';
 import Image from 'next/image';
@@ -61,6 +61,14 @@ export default function DashboardLayout({
                   <span>Retailer's Dashboard Management</span>
                 </Link>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="QR & AI Management">
+                    <Link href="/dashboard/qr-ai-management">
+                        <QrCode />
+                        <span>QR & AI Management</span>
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="AOE Security">

@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Download, Trash2, QrCode, Sparkles, AlertTriangle, Copy, Check } from 'lucide-react';
+import { Download, Trash2, QrCode, Sparkles, AlertTriangle, Copy } from 'lucide-react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,7 +24,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { generateBulkQrCodes, GenerateBulkQrCodesOutput } from "@/ai/flows/generate-bulk-qr-codes";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type GeneratedQrCode = {
@@ -262,7 +261,7 @@ export default function QrAiManagementPage() {
                                 <CardDescription>
                                     A list of all single QR codes you have generated for testing.
                                 </CardDescription>
-                            </CardHeader>
+                            </Header>
                             <CardContent>
                                 <Table>
                                     <TableHeader>

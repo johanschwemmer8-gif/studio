@@ -10,9 +10,11 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
-import * as admin from 'firebase-admin';
+import { admin } from '@/lib/firebase-admin';
 
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 const GetAnalyticsSummaryInputSchema = z.object({
   retailerId: z.string(),
@@ -66,9 +68,7 @@ const getAnalyticsSummaryFlow = ai.defineFlow(
     outputSchema: GetAnalyticsSummaryOutputSchema,
   },
   async ({ retailerId, campaignId, range }) => {
-    if (!db) {
-      throw new Error('Firestore is not initialized.');
-    }
+    const db = admin.firestore();
     
     // Authorization Check
     // In a real function, you'd get the caller's retailerId from their custom claim

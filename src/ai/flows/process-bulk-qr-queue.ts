@@ -8,8 +8,11 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
-import * as admin from 'firebase-admin';
+import { admin } from '@/lib/firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 // Output schema for the flow
 const ProcessBulkQrQueueOutputSchema = z.object({
@@ -64,10 +67,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
     outputSchema: ProcessBulkQrQueueOutputSchema,
   },
   async () => {
-    if (!db) {
-      throw new Error('Firestore is not initialized.');
-    }
-
+    const db = admin.firestore();
     let itemsProcessedCount = 0;
     let itemsRetriedCount = 0;
     let processedRequestId: string | undefined = undefined;

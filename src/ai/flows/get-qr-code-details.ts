@@ -10,7 +10,11 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
+import { admin } from '@/lib/firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 const GetQrCodeDetailsInputSchema = z.object({
   retailerId: z.string(),
@@ -56,9 +60,7 @@ const getQrCodeDetailsFlow = ai.defineFlow(
     outputSchema: GetQrCodeDetailsOutputSchema,
   },
   async ({ retailerId, qrCodeId }) => {
-    if (!db) {
-      throw new Error('Firestore is not initialized.');
-    }
+    const db = admin.firestore();
     
     // Authorization Check
     const callerRetailerId = 'simulated-retailer-id'; // placeholder

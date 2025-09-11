@@ -10,10 +10,13 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
+import { admin } from '@/lib/firebase-admin';
 import JSZip from 'jszip';
 import fetch from 'node-fetch';
-import * as admin from 'firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 const GenerateZipForRequestInputSchema = z.object({
   requestId: z.string().describe('The ID of the bulk QR request.'),
@@ -46,9 +49,7 @@ const generateZipForRequestFlow = ai.defineFlow(
     outputSchema: GenerateZipForRequestOutputSchema,
   },
   async ({ requestId }) => {
-    if (!db) {
-      throw new Error('Firestore is not initialized.');
-    }
+    const db = admin.firestore();
 
     // In a real Firebase Callable Function, you'd get the auth context here.
     // App Check would also be enforced by the Firebase Functions runtime.

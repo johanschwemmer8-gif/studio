@@ -3,12 +3,7 @@
  */
 import * as admin from 'firebase-admin';
 
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp();
-  } catch (error) {
-    console.error('Firebase Admin initialization error:', error);
-  }
-}
+// The SDK is initialized in each flow to ensure it's ready before use.
+// This file is now primarily for the admin export.
 
-export const db = admin.apps.length ? admin.firestore() : undefined;
+export { admin };

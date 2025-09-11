@@ -1,18 +1,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-admin';
-import * as admin from 'firebase-admin';
+import { admin } from '@/lib/firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { qrCodeId: string } }
 ) {
   const { qrCodeId } = params;
-
-  if (!db) {
-    console.error('Firestore not initialized');
-    return NextResponse.redirect(new URL('/error?code=500', request.url));
-  }
+  const db = admin.firestore();
 
   if (!qrCodeId) {
     return NextResponse.redirect(new URL('/error?code=400', request.url));

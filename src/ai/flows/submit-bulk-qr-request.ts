@@ -10,8 +10,11 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
-import * as admin from 'firebase-admin';
+import { admin } from '@/lib/firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 // Define the schema for the options map
 const QrOptionsSchema = z.object({
@@ -63,9 +66,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     outputSchema: SubmitBulkQrRequestOutputSchema,
   },
   async (data) => {
-    if (!db) {
-        throw new Error('Firestore is not initialized. Check Firebase Admin SDK configuration.');
-    }
+    const db = admin.firestore();
     
     // In a real Firebase Callable Function, you'd get the auth context here.
     // App Check would also be enforced by the Firebase Functions runtime.

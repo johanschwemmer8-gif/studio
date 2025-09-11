@@ -10,8 +10,11 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
-import * as admin from 'firebase-admin';
+import { admin } from '@/lib/firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 const AIOutputsSchema = z.object({
   landingCopy: z.string().describe('Engaging and brief copy for the campaign landing page.'),
@@ -66,9 +69,7 @@ const generateCampaignAIFlow = ai.defineFlow(
     outputSchema: AIOutputsSchema,
   },
   async ({ requestId }) => {
-    if (!db) {
-      throw new Error('Firestore is not initialized.');
-    }
+    const db = admin.firestore();
 
     const requestRef = db.collection('bulkQrRequests').doc(requestId);
     

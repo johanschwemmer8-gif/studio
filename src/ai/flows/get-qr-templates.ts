@@ -9,9 +9,13 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
+import { admin } from '@/lib/firebase-admin';
 import type { QrTemplate } from '@/lib/schemas/qr-templates';
 import { QrTemplateSchema, GetQrTemplatesInputSchema } from '@/lib/schemas/qr-templates';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 export type GetQrTemplatesInput = z.infer<typeof GetQrTemplatesInputSchema>;
 
@@ -27,9 +31,7 @@ const getQrTemplatesFlow = ai.defineFlow(
     outputSchema: z.array(QrTemplateSchema),
   },
   async ({ retailerId }) => {
-    if (!db) {
-      throw new Error('Firestore is not initialized.');
-    }
+    const db = admin.firestore();
     
     // Authorization Check (conceptual)
     const callerRetailerId = 'simulated-retailer-id';

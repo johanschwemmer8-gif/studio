@@ -10,8 +10,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
+import { admin } from '@/lib/firebase-admin';
 import Papa from 'papaparse';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 const QrCodeRecordSchema = z.object({
   id: z.string(),
@@ -52,9 +56,7 @@ const importExternalQrCodesFlow = ai.defineFlow(
     outputSchema: ImportExternalQrCodesOutputSchema,
   },
   async (data) => {
-    if (!db) {
-        throw new Error('Firestore is not initialized. Check Firebase Admin SDK configuration.');
-    }
+    const db = admin.firestore();
     const { retailerId, campaignId, csvData } = data;
     const batch = db.batch();
     const batchId = `ext-batch-${Date.now()}`;

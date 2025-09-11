@@ -10,8 +10,11 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase-admin';
-import * as admin from 'firebase-admin';
+import { admin } from '@/lib/firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 // Re-usable QR generation logic
 const generateQrForItem = (item: any, requestData: any) => {
@@ -72,9 +75,7 @@ const regenerateQrCodeFlow = ai.defineFlow(
     outputSchema: RegenerateQrCodeOutputSchema,
   },
   async ({ requestId, qrCodeId }) => {
-    if (!db) {
-      throw new Error('Firestore is not initialized.');
-    }
+    const db = admin.firestore();
     
     // In a real Firebase Callable Function, you'd get the auth context here.
     // App Check would also be enforced by the Firebase Functions runtime.

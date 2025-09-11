@@ -5,27 +5,18 @@
  *
  * - getQrTemplates - Fetches templates available to a retailer.
  * - GetQrTemplatesInput - The input type for the function.
- * - QrTemplate - The shape of a single template object.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
+import type { QrTemplate } from './save-qr-template';
+import { QrTemplateSchema } from './save-qr-template';
 
 export const GetQrTemplatesInputSchema = z.object({
   retailerId: z.string(),
 });
 export type GetQrTemplatesInput = z.infer<typeof GetQrTemplatesInputSchema>;
-
-export const QrTemplateSchema = z.object({
-  templateId: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  defaults: z.any(),
-  retailerId: z.string(),
-});
-export type QrTemplate = z.infer<typeof QrTemplateSchema>;
-
 
 export async function getQrTemplates(input: GetQrTemplatesInput): Promise<QrTemplate[]> {
   return getQrTemplatesFlow(input);

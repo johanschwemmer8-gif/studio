@@ -24,7 +24,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { getQrTemplates, QrTemplate } from '@/ai/flows/get-qr-templates';
+import { getQrTemplates } from '@/ai/flows/get-qr-templates';
+import type { QrTemplate } from '@/ai/flows/save-qr-template';
 import { saveQrTemplate } from '@/ai/flows/save-qr-template';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';

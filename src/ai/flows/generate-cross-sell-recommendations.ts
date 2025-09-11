@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { retryWithBackoff } from '../utils';
 
 const GenerateCrossSellRecommendationsInputSchema = z.object({
   productName: z.string().describe('The name of the product scanned.'),
@@ -59,7 +60,12 @@ const generateCrossSellRecommendationsFlow = ai.defineFlow(
     outputSchema: GenerateCrossSellRecommendationsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    return retryWithBackoff(async () => {
+        const {output} = await prompt(input);
+        if (!output) {
+            throw new Error("No output from prompt.");
+        }
+        return output;
+    });
   }
 );

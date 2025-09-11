@@ -2,7 +2,7 @@
 /**
  * @fileoverview Initializes the Firebase Admin SDK for server-side operations.
  */
-import { admin } from 'firebase-admin';
+import admin from 'firebase-admin';
 
 // In a real Firebase environment (like Cloud Functions or Cloud Run),
 // the Admin SDK is initialized without arguments.
@@ -75,4 +75,5 @@ const createMockDb = () => {
 const db = process.env.NODE_ENV === 'production' ? admin.firestore() : createMockDb();
 
 export { admin, db };
+
 

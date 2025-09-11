@@ -14,3 +14,5 @@ import '@/ai/flows/regenerate-qr-code.ts';
 import '@/ai/flows/generate-campaign-ai.ts';
 import '@/ai/flows/get-analytics-summary.ts';
 import '@/ai/flows/get-qr-code-details.ts';
+import '@/ai/flows/save-qr-template.ts';
+import '@/ai/flows/get-qr-templates.ts';

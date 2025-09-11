@@ -18,3 +18,5 @@ import '@/ai/flows/save-qr-template.ts';
 import '@/ai/flows/get-qr-templates.ts';
 import '@/ai/flows/generate-bulk-qr-codes.ts';
 import '@/ai/flows/import-external-qr-codes.ts';
+import '@/ai/flows/delete-bulk-qr-request.ts';
+

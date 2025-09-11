@@ -3,15 +3,15 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Loader2, Download, RefreshCw, X } from 'lucide-react';
+import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { generateZipForRequest } from '@/ai/flows/generate-zip-for-request';
-import { processBulkQrQueue } from '@/ai/flows/process-bulk-qr-queue';
 import { regenerateQrCode } from '@/ai/flows/regenerate-qr-code';
+import { generateCampaignAI, type GenerateCampaignAIOutput } from '@/ai/flows/generate-campaign-ai';
 import { Badge } from '../ui/badge';
 import {
   Select,
@@ -44,6 +44,18 @@ const createMockDb = () => {
                 }),
             }),
              doc: (id: string) => ({
+                onSnapshot: (callback: (snapshot: any) => void) => {
+                     const mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
+                     const request = mockRequests.find((r: any) => r.id === id);
+                     setTimeout(() => {
+                        callback({
+                            id: id,
+                            exists: !!request,
+                            data: () => request,
+                        })
+                     }, 100);
+                     return () => {};
+                },
                 collection: (subName: string) => ({
                     onSnapshot: (callback: (snapshot: any) => void) => {
                         const mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
@@ -70,7 +82,10 @@ type BulkRequest = {
     totalRequested: number;
     status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
     createdAt: { toDate: () => Date };
-    itemsDone: number; // This will be calculated client-side
+    itemsDone: number;
+    aiStatus?: 'PENDING' | 'READY' | 'ERROR';
+    aiOutputs?: GenerateCampaignAIOutput;
+    aiError?: string;
 };
 
 type QrItem = {
@@ -81,17 +96,20 @@ type QrItem = {
     regeneratedAt?: { toDate: () => Date };
 };
 
-function QrRequestDetails({ requestId }: { requestId: string }) {
+function QrRequestDetails({ request }: { request: BulkRequest }) {
     const [items, setItems] = useState<QrItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [regeneratingIds, setRegeneratingIds] = useState<string[]>([]);
     const { toast } = useToast();
     const firestore = createMockDb();
+    
+    const [currentRequest, setCurrentRequest] = useState(request);
+    const [isAiRegenerating, startAiRegenerating] = useTransition();
 
     useEffect(() => {
         setLoading(true);
-        const unsubscribe = firestore.collection('bulkQrRequests').doc(requestId).collection('items').onSnapshot(snapshot => {
+        const unsubscribeItems = firestore.collection('bulkQrRequests').doc(request.id).collection('items').onSnapshot(snapshot => {
             const fetchedItems: QrItem[] = snapshot.docs.map((doc: any) => ({
                 id: doc.id,
                 ...doc.data(),
@@ -99,19 +117,29 @@ function QrRequestDetails({ requestId }: { requestId: string }) {
             setItems(fetchedItems);
             setLoading(false);
         });
-        return () => unsubscribe();
-    }, [requestId]);
+
+        const unsubscribeRequest = firestore.collection('bulkQrRequests').doc(request.id).onSnapshot(doc => {
+            if (doc.exists) {
+                setCurrentRequest({ id: doc.id, ...doc.data() } as BulkRequest);
+            }
+        });
+
+        return () => {
+            unsubscribeItems();
+            unsubscribeRequest();
+        };
+    }, [request.id]);
 
     const handleRegenerate = async (qrCodeId: string) => {
         setRegeneratingIds(prev => [...prev, qrCodeId]);
         try {
-            const result = await regenerateQrCode({ requestId, qrCodeId });
+            const result = await regenerateQrCode({ requestId: request.id, qrCodeId });
             if (result.success) {
                 toast({
                     title: "QR Code Regenerated",
                     description: `Successfully regenerated ${qrCodeId}.`,
                 });
-                setItems(prev => prev.map(item => item.qrCodeId === qrCodeId ? { ...item, signedUrl: result.signedUrl, regeneratedAt: { toDate: () => new Date(result.regeneratedAt)} } : item));
+                // The onSnapshot listener will handle the UI update automatically.
             } else {
                  throw new Error('Regeneration failed on the server.');
             }
@@ -125,33 +153,110 @@ function QrRequestDetails({ requestId }: { requestId: string }) {
             setRegeneratingIds(prev => prev.filter(id => id !== qrCodeId));
         }
     }
+    
+    const handleRegenerateAI = () => {
+        startAiRegenerating(async () => {
+            try {
+                await generateCampaignAI({ requestId: request.id });
+                toast({
+                    title: "AI Content Regenerating",
+                    description: "The AI is generating new content for your campaign."
+                });
+            } catch (error: any) {
+                 toast({
+                    title: "AI Regeneration Failed",
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            }
+        });
+    }
 
     const filteredItems = items.filter(item => statusFilter === 'ALL' || item.status === statusFilter);
 
-    if (loading) {
-        return (
-             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}
-            </div>
-        )
-    }
-
     return (
-        <div className="space-y-4">
-             <div className="w-full sm:w-64">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Filter by status..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="ALL">All Statuses</SelectItem>
-                        <SelectItem value="DONE">Done</SelectItem>
-                        <SelectItem value="ERROR">Error</SelectItem>
-                        <SelectItem value="PENDING">Pending</SelectItem>
-                    </SelectContent>
-                </Select>
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="text-accent" />
+                        AI-Powered Campaign Content
+                    </CardTitle>
+                    <CardDescription>
+                        Use our AI to generate engaging copy for your campaign based on your goals.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     {currentRequest.aiStatus === 'PENDING' && !isAiRegenerating && (
+                        <div className="flex items-center justify-center flex-col gap-2 text-muted-foreground p-8 text-center">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                            <p>AI content generation is pending...</p>
+                            <p className="text-xs">This will start after the request is processed.</p>
+                        </div>
+                    )}
+
+                    {(currentRequest.aiStatus === 'READY' || (isAiRegenerating && currentRequest.aiOutputs)) && currentRequest.aiOutputs && (
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <h4 className="font-semibold text-sm">Landing Page Copy</h4>
+                                    <p className="text-muted-foreground text-sm p-3 bg-muted/50 rounded-md mt-1">{currentRequest.aiOutputs.landingCopy}</p>
+                                </div>
+                                 <div>
+                                    <h4 className="font-semibold text-sm">Call-to-Action (CTA)</h4>
+                                    <p className="text-muted-foreground text-sm p-3 bg-muted/50 rounded-md mt-1 font-medium">{currentRequest.aiOutputs.cta}</p>
+                                </div>
+                            </div>
+                             <div>
+                                <h4 className="font-semibold text-sm">Scan Trigger Ideas</h4>
+                                <ul className="list-disc pl-5 mt-2 space-y-2 text-sm text-muted-foreground">
+                                    {currentRequest.aiOutputs.scanTriggers.map((trigger, i) => <li key={i}>{trigger}</li>)}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {currentRequest.aiStatus === 'ERROR' && (
+                         <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>AI Generation Failed</AlertTitle>
+                            <AlertDescription>{currentRequest.aiError || 'An unknown error occurred.'}</AlertDescription>
+                        </Alert>
+                    )}
+
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleRegenerateAI} disabled={isAiRegenerating}>
+                        {isAiRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        {currentRequest.aiOutputs ? 'Regenerate AI Content' : 'Generate AI Content'}
+                    </Button>
+                </CardFooter>
+            </Card>
+
+            <Separator />
+            
+            <div>
+                 <h3 className="text-lg font-semibold">QR Code Previews</h3>
+                <div className="w-full sm:w-64 mt-2">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Filter by status..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">All Statuses</SelectItem>
+                            <SelectItem value="DONE">Done</SelectItem>
+                            <SelectItem value="ERROR">Error</SelectItem>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
-            {filteredItems.length === 0 ? (
+
+            {loading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}
+                </div>
+            ) : filteredItems.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">No QR codes match the filter.</p>
             ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -163,6 +268,11 @@ function QrRequestDetails({ requestId }: { requestId: string }) {
                                      <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
                                         {item.status === 'PENDING' ? (
                                             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                        ) : item.status === 'ERROR' ? (
+                                             <div className="text-center text-destructive p-2">
+                                                <AlertTriangle className="h-8 w-8 mx-auto" />
+                                                <p className="text-xs mt-2">Generation Failed</p>
+                                             </div>
                                         ) : (
                                             <Image src={item.signedUrl} alt={item.qrCodeId} width={200} height={200} className="w-full h-full object-contain" />
                                         )}
@@ -313,10 +423,10 @@ export default function QrCampaignDashboard() {
                 <Card>
                     <CardHeader className="flex items-start justify-between">
                         <div>
-                            <CardTitle>QR Code Previews for: {selectedRequest.campaignId}</CardTitle>
+                            <CardTitle>Details for: {selectedRequest.campaignId}</CardTitle>
                             <CardDescription>
-                                A preview of generated codes.
-                                {selectedRequest.status !== 'COMPLETED' && " Previews will appear as they are generated."}
+                                Manage AI content and view individual QR code statuses for this campaign.
+                                {selectedRequest.status !== 'COMPLETED' && " Previews will update as they are generated."}
                             </CardDescription>
                         </div>
                          <Button variant="ghost" size="icon" onClick={() => setSelectedRequest(null)}>
@@ -324,7 +434,7 @@ export default function QrCampaignDashboard() {
                         </Button>
                     </CardHeader>
                     <CardContent>
-                       <QrRequestDetails requestId={selectedRequest.id} />
+                       <QrRequestDetails request={selectedRequest} />
                     </CardContent>
                 </Card>
             )}

@@ -126,6 +126,9 @@ const submitBulkQrRequestFlow = ai.defineFlow(
         updatedAt: new Date(),
         createdBy: createdBy,
         options: options || {},
+        aiStatus: 'PENDING',
+        aiOutputs: {},
+        aiError: '',
     };
     batch.set(requestRef, requestData);
 
@@ -154,3 +157,4 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     return { success: true, requestId: requestRef.id };
   }
 );
+

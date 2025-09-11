@@ -35,8 +35,8 @@ const qrOptionsSchema = z.object({
 
 const formSchema = z.object({
     campaignId: z.string().min(1, "Campaign ID is required."),
-    count: z.number().min(1).max(500, "Count must be between 1 and 500."),
-    baseRedirect: z.string().url("Must be a valid HTTPS URL.").refine(s => s.startsWith('https://'), "Base redirect URL must be HTTPS."),
+    count: z.coerce.number().int().min(1, "Count must be at least 1.").max(500, "Count must be 500 or less."),
+    baseRedirect: z.string().url("Must be a valid URL.").refine(s => s.startsWith('https://'), "Base redirect URL must be HTTPS."),
     options: qrOptionsSchema.optional(),
 });
 
@@ -66,14 +66,17 @@ export default function QrManagementPage() {
         try {
             const result = await submitBulkQrRequest({
                 ...values,
-                retailerId: 'simulated-retailer-id',
+                retailerId: 'simulated-retailer-id', // This would be from the user's session
             });
             toast({
                 title: "Request Submitted",
                 description: `Bulk QR request for ${values.count} codes has been queued with ID: ${result.requestId}`,
             });
             setIsDialogOpen(false);
-            form.reset();
+            form.reset({ // Reset with new random campaign ID
+                ...form.getValues(),
+                campaignId: `campaign-${Math.random().toString(36).substring(2, 8)}`
+            });
         } catch (error: any) {
             console.error("Failed to submit request:", error);
             toast({
@@ -126,7 +129,7 @@ export default function QrManagementPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Number of Codes</FormLabel>
-                                            <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl>
+                                            <FormControl><Input type="number" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}

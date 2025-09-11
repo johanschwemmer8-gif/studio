@@ -23,6 +23,8 @@ export type ProcessBulkQrQueueOutput = z.infer<typeof ProcessBulkQrQueueOutputSc
 
 // The main exported function to be called
 export async function processBulkQrQueue(): Promise<ProcessBulkQrQueueOutput> {
+  // In a real Firebase environment, you would check for App Check token here.
+  // This would likely be a Pub/Sub or Task Queue function, which uses IAM for security.
   return processBulkQrQueueFlow();
 }
 
@@ -99,8 +101,25 @@ const processBulkQrQueueFlow = ai.defineFlow(
                 itemsProcessedCount = pendingItemsSnapshot.size;
                 const batch = db.batch();
                 for (const itemDoc of pendingItemsSnapshot.docs) {
-                    const updateData = generateQrForItem(itemDoc.data(), requestData);
+                    const itemData = itemDoc.data();
+                    const updateData = generateQrForItem(itemData, requestData);
                     batch.update(itemDoc.ref, updateData);
+
+                    // Create document in the master qrcodes collection
+                    const qrMasterRef = db.collection('qrcodes').doc(itemData.qrCodeId);
+                    batch.set(qrMasterRef, {
+                        retailerId: requestData.retailerId,
+                        campaignId: requestData.campaignId,
+                        qrCodeId: itemData.qrCodeId,
+                        requestId: requestDoc.id,
+                        redirectUrl: updateData.redirectUrl,
+                        storagePath: updateData.storagePath,
+                        signedUrl: updateData.signedUrl,
+                        scanCount: 0,
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                        expiresAt: requestData.options?.expiresAt ? new Date(requestData.options.expiresAt) : null,
+                        meta: {},
+                    });
                 }
                 await batch.commit();
             }
@@ -146,10 +165,33 @@ const processBulkQrQueueFlow = ai.defineFlow(
             
             try {
                 const updateData = generateQrForItem(itemData, requestData);
-                await itemDoc.ref.update({
+                
+                const batch = db.batch();
+
+                // Update item subcollection document
+                batch.update(itemDoc.ref, {
                     ...updateData,
                     retryCount: admin.firestore.FieldValue.increment(1)
                 });
+
+                // Update or create document in master qrcodes collection
+                const qrMasterRef = db.collection('qrcodes').doc(itemData.qrCodeId);
+                batch.set(qrMasterRef, {
+                    retailerId: requestData.retailerId,
+                    campaignId: requestData.campaignId,
+                    qrCodeId: itemData.qrCodeId,
+                    requestId: requestDoc.id,
+                    redirectUrl: updateData.redirectUrl,
+                    storagePath: updateData.storagePath,
+                    signedUrl: updateData.signedUrl,
+                    scanCount: 0,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    expiresAt: requestData.options?.expiresAt ? new Date(requestData.options.expiresAt) : null,
+                    meta: {},
+                }, { merge: true }); // Use merge to avoid overwriting existing scan counts on retry
+
+                await batch.commit();
+
             } catch (error: any) {
                 await itemDoc.ref.update({
                     error: error.message,
@@ -173,5 +215,3 @@ const processBulkQrQueueFlow = ai.defineFlow(
     };
   }
 );
-
-    

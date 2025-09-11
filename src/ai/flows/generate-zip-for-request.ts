@@ -49,6 +49,20 @@ const generateZipForRequestFlow = ai.defineFlow(
       throw new Error('Firestore is not initialized.');
     }
 
+    // In a real Firebase Callable Function, you'd get the auth context here.
+    // App Check would also be enforced by the Firebase Functions runtime.
+    //
+    // Example:
+    // if (!context.app) {
+    //   throw new functions.https.HttpsError('failed-precondition', 'The function must be called from an App Check verified app.');
+    // }
+    // if (!context.auth) { 
+    //   throw new functions.https.HttpsError('unauthenticated', 'Authentication required.'); 
+    // }
+    // const { uid, token } = context.auth;
+    // const callerRetailerId = token.retailerId; // From custom claims
+    const callerRetailerId = 'simulated-retailer-id'; // Placeholder for custom claim
+
     const requestRef = db.collection('bulkQrRequests').doc(requestId);
     const requestDoc = await requestRef.get();
 
@@ -57,15 +71,14 @@ const generateZipForRequestFlow = ai.defineFlow(
     }
 
     const requestData = requestDoc.data();
+    
+    // Authorization check: Ensure the caller's retailerId matches the request's retailerId.
+    if (requestData?.retailerId !== callerRetailerId) {
+        return { success: false, message: `User is not authorized to access this request.` };
+    }
+
     if (!requestData || requestData.status !== 'COMPLETED') {
         return { success: false, message: `Request ${requestId} is not completed.` };
-    }
-    
-    // Authorization check (simulated)
-    const currentUserId = 'simulated-user@example.com';
-    const currentUserRetailerId = 'simulated-retailer-id';
-    if (requestData.retailerId !== currentUserRetailerId) {
-        return { success: false, message: `User is not authorized to access this request.` };
     }
 
     const itemsSnapshot = await requestRef.collection('items').where('status', '==', 'DONE').get();

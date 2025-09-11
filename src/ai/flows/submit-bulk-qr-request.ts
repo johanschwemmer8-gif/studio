@@ -78,7 +78,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     const createdBy = 'simulated-user@example.com'; // Placeholder for auth.token.email or auth.uid
     const callerRetailerId = 'simulated-retailer-id'; // Placeholder for custom claim
     
-    // Enforce tenant matching
+    // Authorization check: Enforce tenant matching.
     if (callerRetailerId !== data.retailerId) {
       throw new Error('User is not authorized to create requests for this retailer.');
     }

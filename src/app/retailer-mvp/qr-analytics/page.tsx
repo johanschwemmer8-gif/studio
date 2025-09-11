@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 
 type AnalyticsData = Omit<GetAnalyticsSummaryOutput, 'scansByDay'> & {
     scansByDay: { date: Date; count: number }[];

@@ -93,7 +93,7 @@ export default function FirestoreSchemaViewer() {
                             <Link className="h-4 w-4 text-blue-500"/>
                             Composite Index
                         </h4>
-                        <p className="text-xs text-muted-foreground">For efficient querying, a composite index should be created on <Badge variant="secondary">retailerId</Badge> + <Badge variant="secondary">campaignId</Badge>.</p>
+                        <div className="text-xs text-muted-foreground">For efficient querying, a composite index should be created on <Badge variant="secondary">retailerId</Badge> + <Badge variant="secondary">campaignId</Badge>.</div>
                     </div>
                 </CardContent>
             </Card>

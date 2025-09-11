@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
 
 // Define the schema for the options map
 const QrOptionsSchema = z.object({
@@ -136,7 +137,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
       const itemData = {
           index: i,
           qrCodeId: qrCodeId,
-          redirectUrl: '', // To be filled by processor
+          redirectUrl: `${baseRedirect}?qr=${qrCodeId}`, // To be filled by processor
           signedUrl: '',
           storagePath: '',
           status: 'PENDING',

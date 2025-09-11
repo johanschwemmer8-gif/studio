@@ -14,7 +14,6 @@ import { PlusCircle, Download, RefreshCw, Eye, CheckCircle, AlertTriangle, Loade
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase-admin'; // This is a mock for client-side
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { generateZipForRequest } from '@/ai/flows/generate-zip-for-request';
 import { regenerateQrCode, RegenerateQrCodeOutput } from '@/ai/flows/regenerate-qr-code';
@@ -86,7 +85,7 @@ export default function QrManagementPage() {
     const [isZipping, startZipping] = useTransition();
     const [zipUrl, setZipUrl] = useState('');
     const { toast } = useToast();
-    const firestore = db || mockDb; // Use mock if admin SDK is not available
+    const firestore = mockDb;
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),

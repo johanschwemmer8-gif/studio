@@ -61,21 +61,55 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     }
     
     // In a real Firebase Callable Function, you'd get the auth context here.
-    // For example: if (!context.auth) { throw new Error('Authentication required.'); }
-    // const { uid, token } = context.auth;
-    const createdBy = 'simulated-user@example.com'; // Placeholder for auth.token.email or auth.uid
-    // const callerRetailerId = token.retailerId; // From custom claims
-    
-    // // Enforce tenant matching
-    // if (callerRetailerId !== data.retailerId) {
-    //   throw new Error('User is not authorized to create requests for this retailer.');
+    // App Check would also be enforced by the Firebase Functions runtime.
+    //
+    // Example:
+    // if (!context.app) {
+    //   throw new functions.https.HttpsError('failed-precondition', 'The function must be called from an App Check verified app.');
     // }
+    // if (!context.auth) { 
+    //   throw new functions.https.HttpsError('unauthenticated', 'Authentication required.'); 
+    // }
+    // const { uid, token } = context.auth;
+    // const callerRetailerId = token.retailerId; // From custom claims
+    const createdBy = 'simulated-user@example.com'; // Placeholder for auth.token.email or auth.uid
+    const callerRetailerId = 'simulated-retailer-id'; // Placeholder for custom claim
+    
+    // Enforce tenant matching
+    if (callerRetailerId !== data.retailerId) {
+      throw new Error('User is not authorized to create requests for this retailer.');
+    }
 
     const { retailerId, campaignId, count, baseRedirect, options } = data;
     
     const requestRef = db.collection('bulkQrRequests').doc();
-    const batch = db.batch();
+    
+    // === Conceptual Quota Check ===
+    // In a real implementation, this would be a transaction.
+    // const tenantRef = db.collection('tenants').doc(retailerId);
+    // await db.runTransaction(async (transaction) => {
+    //   const tenantDoc = await transaction.get(tenantRef);
+    //   if (!tenantDoc.exists) {
+    //     throw new Error('Tenant configuration not found.');
+    //   }
+    //   const tenantData = tenantDoc.data();
+    //   const { dailyLimit, usedToday, resetAt } = tenantData;
+    //
+    //   // Check if reset is needed
+    //   if (new Date() > resetAt.toDate()) {
+    //      // reset usedToday and update resetAt, handle logic here
+    //   }
+    //
+    //   if (usedToday + count > dailyLimit) {
+    //     throw new Error('Daily quota exceeded.');
+    //   }
+    //
+    //   transaction.update(tenantRef, { usedToday: admin.firestore.FieldValue.increment(count) });
+    // });
+    // === End Conceptual Quota Check ===
 
+
+    const batch = db.batch();
     const requestData = {
         retailerId,
         campaignId,
@@ -83,7 +117,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
         status: 'QUEUED',
         createdAt: new Date(),
         updatedAt: new Date(),
-        createdBy: createdBy, // In a real scenario, use UID from auth context
+        createdBy: createdBy,
         options: options || {},
     };
     batch.set(requestRef, requestData);

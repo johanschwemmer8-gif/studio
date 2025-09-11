@@ -70,7 +70,7 @@ function TemplateCard({ template, onEdit }: { template: QrTemplate, onEdit: (id:
             <CardContent className="flex-grow flex items-center justify-center">
                 <TemplatePreview template={template} />
             </CardContent>
-            <CardFooter className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <CardFooter className="grid grid-cols-2 gap-2">
                 <Button variant="outline" size="sm" onClick={() => handleAction('Apply')}>
                     <Send className="mr-2 h-3.5 w-3.5" /> Apply
                 </Button>

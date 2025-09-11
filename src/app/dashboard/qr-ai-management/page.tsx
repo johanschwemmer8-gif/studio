@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import AllQrRequestsAdminView from "@/components/dashboard/all-qr-requests-admin-view";
+import QrRequestItemAdminView from "@/components/dashboard/qr-request-item-admin-view";
 
 type GeneratedQrCode = {
   url: string;
@@ -125,6 +126,11 @@ export default function QrAiManagementPage() {
             <Separator />
 
             <AllQrRequestsAdminView />
+
+            <Separator />
+
+             <QrRequestItemAdminView requestId="test-request-id" onBack={() => {}} />
+
         </div>
     );
 }

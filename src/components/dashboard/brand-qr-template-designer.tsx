@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Loader2, Square, Circle, Dot, Eye, Upload, Image as ImageIcon, Eraser } from 'lucide-react';
+import { Save, Loader2, Square, Circle, Dot, Eye, Upload, Image as ImageIcon, Eraser, Palette } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Select,
@@ -24,6 +24,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { saveQrTemplate } from '@/ai/flows/save-qr-template';
 import Image from 'next/image';
 import { Textarea } from '../ui/textarea';
+import { cn } from '@/lib/utils';
 
 const templateDesignerSchema = z.object({
   brandId: z.string().min(1, 'Brand is required'),
@@ -33,8 +34,9 @@ const templateDesignerSchema = z.object({
   colorHex: z.string().default('#000000'),
   bgColorHex: z.string().default('#FFFFFF'),
   gradient: z.object({
-    from: z.string().optional(),
-    to: z.string().optional(),
+    active: z.boolean().default(false),
+    from: z.string().default('#000000'),
+    to: z.string().default('#000000'),
     angle: z.number().min(0).max(360).default(0),
   }).optional(),
   eyeStyle: z.enum(['square', 'rounded', 'leaf']).default('square'),
@@ -61,9 +63,7 @@ type BrandQrTemplateDesignerProps = {
 };
 
 function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }) {
-  // This is a simplified preview. A real implementation would use a library
-  // like qrcode.react or a custom canvas implementation.
-  const { colorHex, bgColorHex, qrShape, eyeStyle, logoDataUrl, logoSizeRatio } = settings;
+  const { colorHex, bgColorHex, qrShape, eyeStyle, logoDataUrl, logoSizeRatio, gradient, backgroundImageDataUrl, backgroundImageOpacity } = settings;
 
   const shapeStyles: React.CSSProperties = {
     square: { borderRadius: '0.25rem' },
@@ -84,6 +84,10 @@ function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }
     rounded: { borderRadius: '0.25rem' },
      leaf: { borderRadius: '0.25rem 0 0.25rem 0' },
   }[eyeStyle || 'square'];
+  
+  const foregroundStyle = gradient?.active 
+    ? { background: `linear-gradient(${gradient.angle}deg, ${gradient.from}, ${gradient.to})` }
+    : { backgroundColor: colorHex };
 
 
   return (
@@ -94,26 +98,31 @@ function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }
       </CardHeader>
       <CardContent className="flex items-center justify-center p-4">
         <div 
-          className="w-48 h-48 border-4 flex items-center justify-center relative"
+          className="w-48 h-48 border-4 flex items-center justify-center relative overflow-hidden"
           style={{ 
             backgroundColor: bgColorHex,
             ...shapeStyles,
             borderColor: colorHex,
           }}
         >
-          <div className="absolute top-1 left-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
+          {backgroundImageDataUrl && (
+              <Image src={backgroundImageDataUrl} alt="background" layout="fill" objectFit={settings.backgroundImageMode} style={{ opacity: backgroundImageOpacity }} />
+          )}
+          <div className="absolute top-1 left-1 w-10 h-10 border-2 z-10" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 z-10" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
           </div>
-          <div className="absolute top-1 right-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
+          <div className="absolute top-1 right-1 w-10 h-10 border-2 z-10" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 z-10" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
           </div>
-           <div className="absolute bottom-1 left-1 w-10 h-10 border-2" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
+           <div className="absolute bottom-1 left-1 w-10 h-10 border-2 z-10" style={{ backgroundColor: bgColorHex, borderColor: settings.eyeColors?.outer || colorHex, ...eyeShapeStyles }}>
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 z-10" style={{ backgroundColor: settings.eyeColors?.inner || colorHex, ...innerEyeShapeStyles }}></div>
           </div>
           {logoDataUrl && (
-            <Image src={logoDataUrl} alt="logo preview" layout="fill" objectFit="contain" style={{ transform: `scale(${logoSizeRatio})`}} />
+            <div className="absolute inset-0 flex items-center justify-center z-20" style={{ transform: `scale(${logoSizeRatio})`}}>
+              <Image src={logoDataUrl} alt="logo preview" width={100} height={100} objectFit="contain" />
+            </div>
           )}
-           {qrShape === 'dot' ? <Circle className="w-16 h-16" style={{ color: colorHex }} fill={colorHex} /> : <Square className="w-20 h-20" style={{ color: colorHex }} fill={colorHex} />}
+           {qrShape === 'dot' ? <Circle className="w-16 h-16 relative z-10" style={{ color: colorHex }} fill={colorHex} /> : <div className="w-24 h-24 relative z-10" style={foregroundStyle} />}
         </div>
       </CardContent>
     </Card>
@@ -137,8 +146,11 @@ export default function BrandQrTemplateDesigner({
       qrShape: 'square',
       colorHex: '#000000',
       bgColorHex: '#FFFFFF',
+      gradient: { active: false, from: '#000000', to: '#000000', angle: 0},
       eyeStyle: 'square',
+      logoDataUrl: '',
       logoSizeRatio: 0.2,
+      backgroundImageDataUrl: '',
       backgroundImageOpacity: 1,
       backgroundImageMode: 'cover',
       quietZone: 10,
@@ -197,9 +209,11 @@ export default function BrandQrTemplateDesigner({
       setIsLoading(false);
     }
   };
+  
+  const isGradientActive = useWatch({ control: form.control, name: 'gradient.active' });
 
   return (
-      <div className="md:grid md:grid-cols-3 md:gap-8 space-y-8 md:space-y-0">
+      <div className="md:grid md:grid-cols-3 md:gap-8">
         <div className="md:col-span-2 space-y-8">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
@@ -209,7 +223,6 @@ export default function BrandQrTemplateDesigner({
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
-                         {/* TODO: Populate this from brand data */}
                         <Controller name="brandId" control={form.control} render={({ field }) => (
                             <FormItem field={field} label="Brand">
                                 <Select onValueChange={field.onChange} value={field.value}>
@@ -231,6 +244,31 @@ export default function BrandQrTemplateDesigner({
             </Card>
 
             <Card>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Palette />Foreground Styling</CardTitle></CardHeader>
+                <CardContent className="space-y-6">
+                   <FormItem field={form.register('gradient.active')} label="Enable Gradient">
+                     <Controller name="gradient.active" control={form.control} render={({ field }) => <Checkbox checked={field.value} onCheckedChange={field.onChange} />} />
+                   </FormItem>
+
+                   {isGradientActive ? (
+                     <div className="space-y-4 p-4 border rounded-md">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <FormItem field={form.register('gradient.from')} label="From" type="color" />
+                          <FormItem field={form.register('gradient.to')} label="To" type="color" />
+                        </div>
+                        <FormItem field={form.register('gradient.angle')} label="Angle">
+                          <Controller name="gradient.angle" control={form.control} render={({ field }) => (
+                              <Slider min={0} max={360} step={1} value={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                          )} />
+                        </FormItem>
+                     </div>
+                   ) : (
+                      <FormItem field={form.register('colorHex')} label="Foreground Color" type="color" />
+                   )}
+                </CardContent>
+            </Card>
+
+            <Card>
                 <CardHeader><CardTitle>QR Styling</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
                     <FormItem field={form.register('qrShape')} label="QR Code Shape">
@@ -244,10 +282,6 @@ export default function BrandQrTemplateDesigner({
                             </RadioGroup>
                          )} />
                     </FormItem>
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <FormItem field={form.register('colorHex')} label="Foreground Color" type="color" />
-                        <FormItem field={form.register('bgColorHex')} label="Background Color" type="color" />
-                    </div>
                 </CardContent>
             </Card>
             
@@ -270,8 +304,8 @@ export default function BrandQrTemplateDesigner({
                 </CardContent>
             </Card>
 
-            <Card>
-                 <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon /> Logo</CardTitle></CardHeader>
+             <Card>
+                 <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon /> Branding</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                      <FormItem field={form.register('logoDataUrl')} label="Upload Logo">
                          <Input type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={(e) => handleFileUpload(e, 'logoDataUrl')} />
@@ -284,6 +318,34 @@ export default function BrandQrTemplateDesigner({
                         </FormItem>
                      )}
                 </CardContent>
+            </Card>
+
+            <Card>
+                 <CardHeader><CardTitle>Background</CardTitle></CardHeader>
+                 <CardContent className="space-y-4">
+                      <FormItem field={form.register('bgColorHex')} label="Background Color" type="color" />
+                      <FormItem field={form.register('backgroundImageDataUrl')} label="Background Image">
+                         <Input type="file" accept="image/png, image/jpeg" onChange={(e) => handleFileUpload(e, 'backgroundImageDataUrl')} />
+                      </FormItem>
+                      {watchedValues.backgroundImageDataUrl && (
+                          <div className="space-y-4 p-4 border rounded-md">
+                             <FormItem field={form.register('backgroundImageOpacity')} label="Opacity">
+                                 <Controller name="backgroundImageOpacity" control={form.control} render={({ field }) => (
+                                    <Slider min={0} max={1} step={0.1} value={[field.value]} onValueChange={(v) => field.onChange(v[0])} />
+                                 )} />
+                            </FormItem>
+                             <FormItem field={form.register('backgroundImageMode')} label="Image Mode">
+                                 <Controller name="backgroundImageMode" control={form.control} render={({ field }) => (
+                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                                        <FormItem field={field} label="Cover" value="cover" type="radio" />
+                                        <FormItem field={field} label="Tile" value="tile" type="radio" />
+                                        <FormItem field={field} label="Contain" value="contain" type="radio" />
+                                    </RadioGroup>
+                                 )} />
+                            </FormItem>
+                          </div>
+                      )}
+                 </CardContent>
             </Card>
             
             <div className="flex gap-4">
@@ -302,32 +364,37 @@ export default function BrandQrTemplateDesigner({
   );
 }
 
-// Helper component to reduce boilerplate
 function FormItem({ field, label, children, value, type }: { field: any, label: string, children?: React.ReactNode, value?: string, type?: string }) {
-    if (type === 'radio') {
-        return (
-            <div className="flex items-center space-x-2">
-                <RadioGroupItem value={value!} id={`${field.name}-${value}`} />
-                <Label htmlFor={`${field.name}-${value}`}>{label}</Label>
-            </div>
-        )
-    }
-     if (type === 'color') {
+    const itemContent = (() => {
+        if (type === 'radio') {
+            return (
+                <div className="flex items-center space-x-2">
+                    <RadioGroupItem value={value!} id={`${field.name}-${value}`} />
+                    <Label htmlFor={`${field.name}-${value}`} className="font-normal">{label}</Label>
+                </div>
+            );
+        }
+        if (type === 'color') {
+            return (
+                <div className="space-y-2">
+                    <Label htmlFor={field.name}>{label}</Label>
+                    <div className="flex items-center gap-2">
+                        <Input id={field.name} type="color" className="w-12 h-10 p-1" {...field} />
+                        <Input className="flex-1" {...field} />
+                    </div>
+                </div>
+            );
+        }
         return (
             <div className="space-y-2">
-                <Label htmlFor={field.name}>{label}</Label>
-                 <div className="flex items-center gap-2">
-                    <Input id={field.name} type="color" className="w-12 h-10 p-1" {...field} />
-                    <Input className="flex-1" {...field} />
-                 </div>
+                <div className="flex items-center justify-between">
+                   <Label htmlFor={field.name}>{label}</Label>
+                   {field.name === 'gradient.active' && <span className="text-xs text-muted-foreground">Enable to use gradients</span>}
+                </div>
+                {children}
             </div>
-        )
-    }
-    return (
-        <div className="space-y-2">
-            <Label htmlFor={field.name}>{label}</Label>
-            {children}
-        </div>
-    );
-}
+        );
+    })();
 
+    return <div className="w-full">{itemContent}</div>;
+}

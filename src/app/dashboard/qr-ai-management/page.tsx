@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
+import FirestoreSchemaViewer from "@/components/dashboard/firestore-schema-viewer";
 
 type GeneratedQrCode = {
   url: string;
@@ -62,7 +63,10 @@ export default function QrAiManagementPage() {
                             </PhoneMockup>
                         </CardContent>
                     </Card>
-                     <Card>
+                </div>
+                {/* RESULTS */}
+                <div className="lg:col-span-2 space-y-8">
+                    <Card>
                         <CardHeader>
                             <CardTitle>Single QR Code Generator</CardTitle>
                             <CardDescription>
@@ -73,9 +77,6 @@ export default function QrAiManagementPage() {
                             <QrCodeGenerator onQrGenerated={handleQrGenerated} />
                         </CardContent>
                     </Card>
-                </div>
-                {/* RESULTS */}
-                <div className="lg:col-span-2 space-y-8">
                     {generatedCodes.length > 0 && (
                         <Card>
                             <CardHeader>

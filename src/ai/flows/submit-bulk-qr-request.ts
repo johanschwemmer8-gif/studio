@@ -98,20 +98,20 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     //   if (!tenantDoc.exists) {
     //     throw new Error('Tenant configuration not found.');
     //   }
-    //   const tenantData = tenantDoc.data();
-    //   const { dailyLimit, usedToday, resetAt } = tenantData;
+    //   const tenantData = tenantDoc.data() as { dailyLimit: number; usedToday: number; resetAt: admin.firestore.Timestamp };
     //
-    //   // Check if reset is needed
-    //   if (new Date() > resetAt.toDate()) {
-    //      // reset usedToday and update resetAt, handle logic here
+    //   // Logic to reset 'usedToday' if 'resetAt' is in the past would go here.
+    //   if (new Date() > tenantData.resetAt.toDate()) {
+    //      // implement daily reset logic
     //   }
     //
-    //   if (usedToday + count > dailyLimit) {
-    //     throw new Error('Daily quota exceeded.');
+    //   if (tenantData.usedToday + count > tenantData.dailyLimit) {
+    //     throw new Error('Daily QR code generation limit exceeded.');
     //   }
     //
     //   transaction.update(tenantRef, { usedToday: admin.firestore.FieldValue.increment(count) });
     // });
+    // Also, you'd validate the baseRedirect against the allowedDomains array here.
     // === End Conceptual Quota Check ===
 
 
@@ -143,7 +143,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
           error: '',
           checksum: '',
           params: {},
-          retryCount: 0, // Initialize retry count
+          retryCount: 0,
       };
       batch.set(itemRef, itemData);
     }

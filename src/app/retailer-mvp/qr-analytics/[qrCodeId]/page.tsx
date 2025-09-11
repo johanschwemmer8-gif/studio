@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar, FileText, Globe, Link as LinkIcon, Loader2, QrCode, Tag, UserAgent, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { Line, LineChart as RechartsLineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
@@ -80,6 +80,12 @@ export default function QrScanDrilldownPage() {
         document.body.removeChild(link);
     };
 
+    const chartConfig = {
+      scans: {
+        label: "Scans",
+        color: "hsl(var(--primary))",
+      },
+    };
 
     return (
         <div className="space-y-8">
@@ -125,15 +131,15 @@ export default function QrScanDrilldownPage() {
                                 <CardTitle>Scans Over Time</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ResponsiveContainer width="100%" height={200}>
-                                    <LineChart data={data.scansByDay}>
+                                <ChartContainer config={chartConfig} className="h-[200px] w-full">
+                                    <RechartsLineChart data={data.scansByDay} margin={{ left: 12, right: 12 }}>
                                         <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="date" tickFormatter={(d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
-                                        <YAxis allowDecimals={false} />
-                                        <Tooltip content={<ChartTooltipContent />} />
-                                        <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" name="Scans" />
-                                    </LineChart>
-                                </ResponsiveContainer>
+                                        <XAxis dataKey="date" tickFormatter={(d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} tickLine={false} axisLine={false} />
+                                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                                        <Tooltip content={<ChartTooltipContent hideIndicator />} />
+                                        <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" name="Scans" strokeWidth={2} dot={false}/>
+                                    </RechartsLineChart>
+                                </ChartContainer>
                             </CardContent>
                         </Card>
                         <Card>
@@ -186,4 +192,3 @@ export default function QrScanDrilldownPage() {
         </div>
     );
 }
-

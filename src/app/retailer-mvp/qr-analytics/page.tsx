@@ -7,9 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { getAnalyticsSummary, GetAnalyticsSummaryOutput } from '@/ai/flows/get-analytics-summary';
 import { BarChart, Download, FileText, LineChart, Loader2, QrCode, RefreshCcw, TrendingUp, Users } from 'lucide-react';
-import { Bar, BarChart as RechartsBarChart, CartesianGrid, Legend, Line, LineChart as RechartsLineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart as RechartsBarChart, CartesianGrid, Legend, Line, LineChart as RechartsLineChart, Tooltip, XAxis, YAxis } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -79,6 +79,19 @@ export default function QrAnalyticsPage() {
         link.click();
         document.body.removeChild(link);
     };
+    
+    const lineChartConfig = {
+      scans: {
+        label: "Scans",
+        color: "hsl(var(--primary))",
+      },
+    };
+    const barChartConfig = {
+      scans: {
+        label: "Scans",
+        color: "hsl(var(--primary))",
+      },
+    };
 
     return (
         <div className="space-y-8">
@@ -142,15 +155,15 @@ export default function QrAnalyticsPage() {
                     </CardHeader>
                     <CardContent>
                          {loading || !data ? <Skeleton className="h-64 w-full" /> : (
-                            <ResponsiveContainer width="100%" height={250}>
-                                <RechartsLineChart data={data.scansByDay}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" tickFormatter={(d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} />
-                                    <YAxis />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" name="Scans" />
+                            <ChartContainer config={lineChartConfig} className="h-[250px] w-full">
+                                <RechartsLineChart data={data.scansByDay} margin={{ left: 12, right: 12 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="date" tickFormatter={(d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} tickLine={false} axisLine={false} />
+                                    <YAxis tickLine={false} axisLine={false} />
+                                    <Tooltip content={<ChartTooltipContent hideIndicator />} />
+                                    <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} name="Scans" dot={false} />
                                 </RechartsLineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </CardContent>
                 </Card>
@@ -161,15 +174,15 @@ export default function QrAnalyticsPage() {
                     </CardHeader>
                     <CardContent>
                         {loading || !data ? <Skeleton className="h-64 w-full" /> : (
-                             <ResponsiveContainer width="100%" height={250}>
-                                <RechartsBarChart data={data.topCampaignsByScans.slice(0, 5)}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="campaignId" angle={-45} textAnchor="end" height={60} interval={0} />
-                                    <YAxis />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="count" fill="hsl(var(--primary))" name="Scans" />
+                             <ChartContainer config={barChartConfig} className="h-[250px] w-full">
+                                <RechartsBarChart data={data.topCampaignsByScans.slice(0, 5)} margin={{ left: 12, right: 12 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="campaignId" angle={-45} textAnchor="end" height={60} interval={0} tickLine={false} axisLine={false}/>
+                                    <YAxis tickLine={false} axisLine={false}/>
+                                    <Tooltip content={<ChartTooltipContent hideIndicator />} />
+                                    <Bar dataKey="count" fill="hsl(var(--primary))" name="Scans" radius={4} />
                                 </RechartsBarChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </CardContent>
                 </Card>

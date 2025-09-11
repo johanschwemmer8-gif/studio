@@ -72,7 +72,7 @@ const createMockDb = () => {
 
 // Use the mock DB in a non-production environment.
 // In production (e.g., on Firebase App Hosting), it would use the real Admin SDK.
-const db = process.env.NODE_ENV === 'production' ? admin.firestore() : createMockDb();
+const db = process.env.NODE_ENV === 'production' ? admin.firestore() : undefined;
 
 export { admin, db };
 

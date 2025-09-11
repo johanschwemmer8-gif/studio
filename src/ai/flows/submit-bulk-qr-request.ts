@@ -44,6 +44,14 @@ export type SubmitBulkQrRequestOutput = z.infer<typeof SubmitBulkQrRequestOutput
 
 // The main exported function that acts as our callable endpoint
 export async function submitBulkQrRequest(input: SubmitBulkQrRequestInput): Promise<SubmitBulkQrRequestOutput> {
+  // In a real Firebase environment, you would check for App Check token here.
+  // Example for a callable function:
+  // if (context.app == undefined) {
+  //   throw new functions.https.HttpsError(
+  //     'failed-precondition',
+  //     'The function must be called from an App Check verified app.'
+  //   );
+  // }
   return submitBulkQrRequestFlow(input);
 }
 
@@ -62,13 +70,10 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     // App Check would also be enforced by the Firebase Functions runtime.
     //
     // Example:
-    // if (context.app == undefined) {
-    //   throw new functions.https.HttpsError(
-    //     'failed-precondition',
-    //     'The function must be called from an App Check verified app.'
-    //   );
+    // if (!context.app) {
+    //   throw new functions.https.HttpsError('failed-precondition', 'The function must be called from an App Check verified app.');
     // }
-    // if (context.auth == undefined) { 
+    // if (!context.auth) { 
     //   throw new functions.https.HttpsError('unauthenticated', 'Authentication required.'); 
     // }
     // const { uid, token } = context.auth;

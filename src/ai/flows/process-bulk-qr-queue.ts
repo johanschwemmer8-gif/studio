@@ -113,13 +113,15 @@ const processBulkQrQueueFlow = ai.defineFlow(
                         campaignId: requestData.campaignId,
                         qrCodeId: itemData.qrCodeId,
                         requestId: requestDoc.id,
-                        redirectUrl: itemData.redirectUrl,
+                        redirectUrl: itemData.originalTargetUrl, // Use originalTargetUrl for final destination
                         storagePath: updateData.storagePath,
                         signedUrl: updateData.signedUrl,
                         scanCount: 0,
                         createdAt: admin.firestore.FieldValue.serverTimestamp(),
                         expiresAt: requestData.options?.expiresAt ? new Date(requestData.options.expiresAt) : null,
-                        meta: {},
+                        meta: {
+                            originalUrl: itemData.originalTargetUrl, // Keep original target here too
+                        },
                     });
                 }
                 await batch.commit();
@@ -181,7 +183,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
                     campaignId: requestData.campaignId,
                     qrCodeId: itemData.qrCodeId,
                     requestId: requestDoc.id,
-                    redirectUrl: itemData.redirectUrl,
+                    redirectUrl: itemData.originalTargetUrl, // Use originalTargetUrl for final destination
                     storagePath: updateData.storagePath,
                     signedUrl: updateData.signedUrl,
                     // Keep existing scanCount on retry

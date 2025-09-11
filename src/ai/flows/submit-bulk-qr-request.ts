@@ -140,7 +140,8 @@ const submitBulkQrRequestFlow = ai.defineFlow(
       const itemData = {
           index: i,
           qrCodeId: qrCodeId,
-          redirectUrl: `${baseRedirect}?qr=${qrCodeId}`, // To be filled by processor
+          redirectUrl: `/track/${qrCodeId}`, 
+          originalTargetUrl: `${baseRedirect}?qr=${qrCodeId}`,
           signedUrl: '',
           storagePath: '',
           status: 'PENDING',
@@ -157,4 +158,3 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     return { success: true, requestId: requestRef.id };
   }
 );
-

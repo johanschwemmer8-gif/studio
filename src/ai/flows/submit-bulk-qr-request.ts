@@ -10,11 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { admin } from '@/lib/firebase-admin';
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
+import { db } from '@/lib/firebase-admin';
 
 // Define the schema for the options map
 const QrOptionsSchema = z.object({
@@ -66,7 +62,9 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     outputSchema: SubmitBulkQrRequestOutputSchema,
   },
   async (data) => {
-    const db = admin.firestore();
+    if (!db) {
+        throw new Error('Firestore is not initialized. Check Firebase Admin SDK configuration.');
+    }
     
     // In a real Firebase Callable Function, you'd get the auth context here.
     // App Check would also be enforced by the Firebase Functions runtime.
@@ -83,7 +81,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     const createdBy = 'simulated-user@example.com'; // Placeholder for auth.token.email or auth.uid
     const callerRetailerId = 'simulated-retailer-id'; // Placeholder for custom claim
     
-    // Authorization check: Enforce tenant matching.
+    // Enforce tenant matching
     if (callerRetailerId !== data.retailerId) {
       throw new Error('User is not authorized to create requests for this retailer.');
     }
@@ -100,20 +98,19 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     //   if (!tenantDoc.exists) {
     //     throw new Error('Tenant configuration not found.');
     //   }
-    //   const tenantData = tenantDoc.data() as { dailyLimit: number; usedToday: number; resetAt: admin.firestore.Timestamp };
+    //   const tenantData = tenantDoc.data();
     //
-    //   // Logic to reset 'usedToday' if 'resetAt' is in the past would go here.
-    //   if (new Date() > tenantData.resetAt.toDate()) {
-    //      // implement daily reset logic
+    //   // Check if reset is needed
+    //   if (new Date() > resetAt.toDate()) {
+    //      // reset usedToday and update resetAt, handle logic here
     //   }
     //
-    //   if (tenantData.usedToday + count > tenantData.dailyLimit) {
-    //     throw new Error('Daily QR code generation limit exceeded.');
+    //   if (usedToday + count > dailyLimit) {
+    //     throw new Error('Daily quota exceeded.');
     //   }
     //
     //   transaction.update(tenantRef, { usedToday: admin.firestore.FieldValue.increment(count) });
     // });
-    // Also, you'd validate the baseRedirect against the allowedDomains array here.
     // === End Conceptual Quota Check ===
 
 

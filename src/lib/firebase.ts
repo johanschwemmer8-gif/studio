@@ -16,22 +16,28 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "your-app-id",
 };
 
+// Check if the config has been populated
+const isConfigValid = firebaseConfig.projectId && firebaseConfig.projectId !== 'your-project-id';
+
 // Initialize Firebase
 let app: FirebaseApp;
-if (!getApps().length) {
+if (isConfigValid && !getApps().length) {
   app = initializeApp(firebaseConfig);
-} else {
+} else if (isConfigValid) {
   app = getApps()[0];
 }
 
-const db = getFirestore(app);
+// @ts-ignore
+const db = isConfigValid ? getFirestore(app) : null;
 
-// Initialize Analytics and Remote Config only on the client side
-const analytics = typeof window !== 'undefined' && isAnalyticsSupported() 
+// Initialize Analytics and Remote Config only on the client side and if the config is valid
+const analytics = isConfigValid && typeof window !== 'undefined' && isAnalyticsSupported() 
+  // @ts-ignore
   ? getAnalytics(app) 
   : null;
   
-const remoteConfig = typeof window !== 'undefined' 
+const remoteConfig = isConfigValid && typeof window !== 'undefined' 
+  // @ts-ignore
   ? getRemoteConfig(app) 
   : null;
 

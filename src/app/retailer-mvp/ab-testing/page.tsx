@@ -66,6 +66,16 @@ export default function ABTestingPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!db) {
+        toast({
+            title: 'Firebase Not Connected',
+            description: 'Please configure your Firebase credentials to use the A/B Testing feature.',
+            variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+    }
+
     setLoading(true);
     const q = query(collection(db, 'experiments'), orderBy('startDate', 'desc'));
     
@@ -91,6 +101,10 @@ export default function ABTestingPage() {
   
   const handleCreateExperiment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!db) {
+        toast({ title: 'Error', description: 'Firebase is not connected.', variant: 'destructive' });
+        return;
+    }
     const formData = new FormData(event.currentTarget);
     const data = Object.fromEntries(formData.entries());
 
@@ -165,6 +179,8 @@ export default function ABTestingPage() {
                     <TableBody>
                          {loading ? (
                              <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                         ) : !db ? (
+                            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Please configure Firebase to view experiments.</TableCell></TableRow>
                          ) : experiments.length === 0 ? (
                             <TableRow><TableCell colSpan={5} className="h-24 text-center">No experiments found.</TableCell></TableRow>
                          ) : (

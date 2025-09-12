@@ -32,7 +32,9 @@ export const registerDisplay = ai.defineFlow(
   async ({ retailerId, storeId }) => {
     const db = admin.firestore();
     
-    const displayId = `display_${storeId.toLowerCase().replace(/[\s\W]/g, '_')}_${Math.random().toString(36).substring(2, 7)}`;
+    // Sanitize the storeId to make it a valid path segment in Firestore
+    const sanitizedStoreId = storeId.toLowerCase().replace(/[\s\W]/g, '_');
+    const displayId = `display_${sanitizedStoreId}_${Math.random().toString(36).substring(2, 7)}`;
     const displayRef = db.collection('displays').doc(displayId);
 
     try {

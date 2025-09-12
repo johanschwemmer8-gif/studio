@@ -37,9 +37,10 @@ export default function RetailerMvpLayout({
           </Button>
         </header>
         <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">{children}</main>
-         <footer className="p-4 text-center text-xs text-muted-foreground border-t relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 9 6" className="opacity-20">
+         <footer className="p-4 text-center text-xs text-muted-foreground border-t">
+            <div className="flex items-center justify-center gap-2">
+                <span>Powered by iNteract AOE. Made in South Africa.</span>
+                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="12" viewBox="0 0 9 6" className="inline-block">
                     <path fill="#DE3831" d="M0 0h9v3H0z"/>
                     <path fill="#002395" d="M0 3h9v3H0z"/>
                     <path fill="#FFF" d="M0 2h9v2H0z"/>
@@ -48,7 +49,6 @@ export default function RetailerMvpLayout({
                     <path d="M0 1.2V4.8L1.8 3zM3 3L0 0h1.5L4.5 3 1.5 6H0z" fill="#000"/>
                 </svg>
             </div>
-            <span className="relative">Powered by iNteract AOE. Made in South Africa</span>
         </footer>
       </SidebarInset>
     </SidebarProvider>

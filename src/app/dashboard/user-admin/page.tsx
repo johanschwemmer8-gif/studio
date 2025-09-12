@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -57,6 +56,7 @@ export default function UserAdminPage() {
   const [landingLogoPreview, setLandingLogoPreview] = useState<string | null>(null);
   const [landingLogoWidth, setLandingLogoWidth] = useState(128);
   const [landingLogoAlign, setLandingLogoAlign] = useState('flex-start');
+  const [landingLogoPadding, setLandingLogoPadding] = useState(8);
 
   const { toast } = useToast();
 
@@ -74,6 +74,8 @@ export default function UserAdminPage() {
     if (savedLandingWidth) setLandingLogoWidth(Number(savedLandingWidth));
     const savedLandingAlign = localStorage.getItem('landing-page-logo-align');
     if (savedLandingAlign) setLandingLogoAlign(savedLandingAlign);
+    const savedLandingPadding = localStorage.getItem('landing-page-logo-padding');
+    if (savedLandingPadding) setLandingLogoPadding(Number(savedLandingPadding));
   }, []);
 
   const handleCreateUser = (event: React.FormEvent<HTMLFormElement>) => {
@@ -122,10 +124,12 @@ export default function UserAdminPage() {
               localStorage.setItem('landing-page-logo', landingLogoPreview);
               localStorage.setItem('landing-page-logo-width', String(landingLogoWidth));
               localStorage.setItem('landing-page-logo-align', landingLogoAlign);
+              localStorage.setItem('landing-page-logo-padding', String(landingLogoPadding));
           } else {
               localStorage.removeItem('landing-page-logo');
               localStorage.removeItem('landing-page-logo-width');
               localStorage.removeItem('landing-page-logo-align');
+              localStorage.removeItem('landing-page-logo-padding');
           }
           window.dispatchEvent(new CustomEvent('logoUpdated', { detail: { key: 'landing-page-logo' }}));
           toast({ title: "Landing Page Logo Saved" });
@@ -245,6 +249,10 @@ export default function UserAdminPage() {
                         Right
                     </Label>
                 </RadioGroup>
+            </div>
+            <div>
+                <Label htmlFor="landing-logo-padding">Logo Vertical Position: {landingLogoPadding}px</Label>
+                <Slider id="landing-logo-padding" min={0} max={64} step={2} value={[landingLogoPadding]} onValueChange={(value) => setLandingLogoPadding(value[0])}/>
             </div>
              <Button onClick={() => handleSaveLogo('landing')}>
                 <Save className="mr-2 h-4 w-4" />

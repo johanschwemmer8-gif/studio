@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
@@ -74,6 +74,12 @@ export default function AIPerformanceMonitor() {
   const [testPrompt, setTestPrompt] = useState('');
   const [testResponse, setTestResponse] = useState('');
   const [isTesting, setIsTesting] = useState(false);
+  const [customerIds, setCustomerIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    // Generate customer IDs on the client-side to avoid hydration mismatch
+    setCustomerIds(Array.from({ length: 5 }, () => Math.floor(1000 + Math.random() * 9000)));
+  }, []);
 
   const handleTestPrompt = () => {
     if (!testPrompt) return;
@@ -116,7 +122,7 @@ export default function AIPerformanceMonitor() {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Users className="h-4 w-4 text-muted-foreground"/>
-                                            <p className="text-sm font-medium">Customer #{Math.floor(1000 + Math.random() * 9000)}</p>
+                                            <p className="text-sm font-medium">Customer #{customerIds[i] || '...'}</p>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-yellow-500">
                                             {[...Array(5)].map((_, j) => <Star key={j} className={`h-4 w-4 ${j < 4 ? 'fill-current' : ''}`} />)}

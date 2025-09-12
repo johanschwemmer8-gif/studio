@@ -33,6 +33,7 @@ import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timest
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 type Campaign = {
@@ -44,6 +45,18 @@ type Campaign = {
     clicks: number;
     startDate: Timestamp;
     endDate?: Timestamp;
+    conversions: number;
+    totalRevenue: number;
+};
+
+type AggregateMetrics = {
+    totalRoas: number;
+    totalClicks: number;
+    totalImpressions: number;
+    totalConversions: number;
+    overallCtr: number;
+    overallConversionRate: number;
+    topProducts: any[];
 };
 
 const analyticsChartData = [
@@ -53,13 +66,35 @@ const analyticsChartData = [
   { name: 'Week 4', impressions: 2780, clicks: 390 },
 ];
 
-const topProductsData = [
-    { id: 'prod_1', name: 'Eco-Friendly Water Bottle', clicks: 450, conversions: 50, revenue: 1250 },
-    { id: 'prod_2', name: 'Wireless Charging Pad', clicks: 320, conversions: 42, revenue: 1890 },
-    { id: 'prod_3', name: 'Organic Cotton Tote Bag', clicks: 280, conversions: 35, revenue: 525 },
-];
+function formatNumber(num: number, options?: Intl.NumberFormatOptions) {
+    return new Intl.NumberFormat('en-US', options).format(num);
+}
 
-function AnalyticsDashboard() {
+function AnalyticsDashboard({ metrics, campaigns, loading }: { metrics: AggregateMetrics; campaigns: Campaign[]; loading: boolean }) {
+
+    if (loading) {
+        return (
+            <div className="space-y-6">
+                 <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold">Analytics Overview</h2>
+                    <Skeleton className="h-10 w-64" />
+                </div>
+                <Skeleton className="h-36 w-full" />
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+                </div>
+                <Skeleton className="h-96 w-full" />
+                <Skeleton className="h-80 w-full" />
+            </div>
+        )
+    }
+
+    const topProductsData = campaigns.flatMap((c, i) => ([
+        { id: `prod_${i}_1`, name: `Product A from ${c.campaignName}`, clicks: Math.floor(c.clicks / 2), conversions: Math.floor(c.conversions / 2), revenue: c.totalRevenue / 2 },
+        { id: `prod_${i}_2`, name: `Product B from ${c.campaignName}`, clicks: Math.floor(c.clicks / 2), conversions: Math.floor(c.conversions / 2), revenue: c.totalRevenue / 2 },
+    ])).sort((a,b) => b.revenue - a.revenue).slice(0, 3);
+
+
     return (
         <div className="space-y-6">
              <div className="flex justify-between items-center">
@@ -71,8 +106,7 @@ function AnalyticsDashboard() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Campaigns</SelectItem>
-                            <SelectItem value="summer-sale">Summer Sale Campaign</SelectItem>
-                            <SelectItem value="winter-clearance">Winter Clearance</SelectItem>
+                            {campaigns.map(c => <SelectItem key={c.id} value={c.id}>{c.campaignName}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
@@ -83,17 +117,17 @@ function AnalyticsDashboard() {
                     <CardTitle>Total Return on Ad Spend (ROAS)</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-5xl font-bold">4.2x</p>
-                    <p className="text-sm opacity-80">For every R1 spent, you earned R4.20 back.</p>
+                    <p className="text-5xl font-bold">{metrics.totalRoas.toFixed(2)}x</p>
+                    <p className="text-sm opacity-80">For every R1 spent, you earned R{metrics.totalRoas.toFixed(2)} back.</p>
                 </CardContent>
             </Card>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <MetricCard title="Total Clicks" value="12,450" icon={Users} />
-                <MetricCard title="Total Impressions" value="1.2M" icon={Eye} />
-                <MetricCard title="Click-Through Rate (CTR)" value="1.04%" icon={TrendingUp} />
-                <MetricCard title="Total Conversions" value="872" icon={CheckCircle} />
-                <MetricCard title="Conversion Rate" value="7.00%" icon={Percent} />
+                <MetricCard title="Total Clicks" value={formatNumber(metrics.totalClicks)} icon={Users} />
+                <MetricCard title="Total Impressions" value={formatNumber(metrics.totalImpressions)} icon={Eye} />
+                <MetricCard title="Click-Through Rate (CTR)" value={`${metrics.overallCtr.toFixed(2)}%`} icon={TrendingUp} />
+                <MetricCard title="Total Conversions" value={formatNumber(metrics.totalConversions)} icon={CheckCircle} />
+                <MetricCard title="Conversion Rate" value={`${metrics.overallConversionRate.toFixed(2)}%`} icon={Percent} />
             </div>
             
             <Card>
@@ -118,7 +152,7 @@ function AnalyticsDashboard() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Top Performing Products</CardTitle>
+                    <CardTitle>Top Performing Sponsored Products</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -169,6 +203,15 @@ export default function RetailMediaNetworkPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<AggregateMetrics>({
+      totalRoas: 0,
+      totalClicks: 0,
+      totalImpressions: 0,
+      totalConversions: 0,
+      overallCtr: 0,
+      overallConversionRate: 0,
+      topProducts: []
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -187,10 +230,34 @@ export default function RetailMediaNetworkPage() {
     
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const campaignsData: Campaign[] = [];
+      let totalBudget = 0, totalRevenue = 0, totalClicks = 0, totalImpressions = 0, totalConversions = 0;
+
       querySnapshot.forEach((doc) => {
-        campaignsData.push({ id: doc.id, ...doc.data() } as Campaign);
+        const campaign = { id: doc.id, ...doc.data() } as Campaign;
+        campaignsData.push(campaign);
+
+        totalBudget += campaign.budget || 0;
+        totalRevenue += campaign.totalRevenue || 0;
+        totalClicks += campaign.clicks || 0;
+        totalImpressions += campaign.impressions || 0;
+        totalConversions += campaign.conversions || 0;
       });
+
+      const totalRoas = totalBudget > 0 ? totalRevenue / totalBudget : 0;
+      const overallCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+      const overallConversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
+      
       setCampaigns(campaignsData);
+      setMetrics({
+          totalRoas,
+          totalClicks,
+          totalImpressions,
+          totalConversions,
+          overallCtr,
+          overallConversionRate,
+          topProducts: [] // This would be calculated separately
+      });
+
       setLoading(false);
     }, (error) => {
       console.error("Error fetching campaigns: ", error);
@@ -221,6 +288,8 @@ export default function RetailMediaNetworkPage() {
       startDate: serverTimestamp(),
       impressions: 0,
       clicks: 0,
+      conversions: 0,
+      totalRevenue: 0,
       sponsoredProducts: [], // Placeholder for now
     };
 
@@ -447,11 +516,9 @@ export default function RetailMediaNetworkPage() {
               </div>
         </TabsContent>
         <TabsContent value="analytics">
-            <AnalyticsDashboard />
+            <AnalyticsDashboard metrics={metrics} campaigns={campaigns} loading={loading} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-    

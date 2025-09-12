@@ -29,7 +29,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-2 p-2">
             <Link href="/dashboard" className="flex items-center gap-2">
               <Image
-                src="https://placehold.co/150x50/475569/ffffff?text=AOE+Logo"
+                src="https://storage.googleapis.com/project-spark-b249622a-1365-44f2-a279-5b7218641a99/uploads/resources/image_1720780287319_59218.png"
                 alt="iNteract AOE Logo"
                 width={128}
                 height={32}

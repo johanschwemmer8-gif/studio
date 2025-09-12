@@ -21,6 +21,7 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   Tooltip,
   TooltipContent,
@@ -40,7 +41,7 @@ import {
   Loader2,
   Download,
   AlertTriangle,
-  FilePattern,
+  FilePenLine,
   Settings,
   Link,
   Type
@@ -95,7 +96,7 @@ const LiveQrPreview = ({ style }: { style: StyleValues }) => {
                     className="absolute w-full h-full"
                     style={{
                         background: useGradient ? `linear-gradient(${gradientAngle}deg, ${color1}, ${color2})` : color1,
-                        WebkitMask: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cGF0aCBkPSJNMCAwIGg0MHY0MEgwVjB6TTUwIDAgeDQwdjQwSDUwVjB6TTAgNTAgaDQwdjQwSDBWNTB6TTk1IDYwIGgtNSB2NSBoNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NSBoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVIMTB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NSBoLTUgdjVoLTUgdjVoLTUgdjVIMCB2LTQ1aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1VjU1aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1VjQ1aDV2LTVoNXYtNWg1VjMwSDcwVjI1aDVWMjBoNVYxNWg1VjEwaDVWNSIvPjwvc3ZnPg==") no-repeat center',
+                        WebkitMask: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cGF0aCBkPSJNMCAwIGg0MHY0MEgwVjB6TTUwIDAgeDQwdjQwSDUwVjB6TTAgNTAgaDQwdjQwSDBWNTB6TTk1IDYwIGgtNSB2NSBoNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NSBoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVIMTB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NSBoLTUgdjVoLTUgdjVoLTUgdjVIMCB2LTQ1aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1VjU1aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1VjQ1aDV2LTVoNXYtNWg1VjMwSDcwVjI1aDVWMjBoNVYxNWg1VjEwaDVWNSIvPjwvc3ZnPg==") no-repeat center',
                         mask: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cGF0aCBkPSJNMCAwIGg0MHY0MEgwVjB6TTUwIDAgeDQwdjQwSDUwVjB6TTAgNTAgaDQwdjQwSDBWNTB6TTk1IDYwIGgtNSB2NSBoNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NSBoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVoLTUgdjVIMTB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NWgtNSB2NSBoLTUgdjVoLTUgdjVoLTUgdjVIMCB2LTQ1aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1VjU1aDV2LTVoNXYtNWg1di01aDV2LTVoNXYtNWg1VjQ1aDV2LTVoNXYtNWg1VjMwSDcwVjI1aDVWMjBoNVYxNWg1VjEwaDVWNSIvPjwvc3ZnPg==") no-repeat center'
                     }}
                 ></div>
@@ -279,13 +280,13 @@ export default function BulkQRCodeGenerator() {
                                 <TabsList>
                                     <TabsTrigger value="manual"><Type className="mr-2"/> Manual Input</TabsTrigger>
                                     <TabsTrigger value="csv"><FileText className="mr-2"/> CSV Upload</TabsTrigger>
-                                    <TabsTrigger value="pattern" disabled><FilePattern className="mr-2"/> Pattern Generator</TabsTrigger>
+                                    <TabsTrigger value="pattern" disabled><FilePenLine className="mr-2"/> Pattern Generator</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="manual">
                                     <Card>
                                         <CardHeader><CardTitle>Enter URLs</CardTitle><CardDescription>Enter one URL per line.</CardDescription></CardHeader>
                                         <CardContent>
-                                            <Textarea {...form.register('manualList')} rows={10} placeholder="https://example.com/product/1&#10;https://example.com/product/2" />
+                                            <Textarea {...form.register('manualList')} rows={10} placeholder="https://example.com/product/1\nhttps://example.com/product/2" />
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
@@ -398,3 +399,5 @@ export default function BulkQRCodeGenerator() {
         </TooltipProvider>
     );
 }
+
+    

@@ -20,3 +20,4 @@ import '@/ai/flows/delete-bulk-qr-request.ts';
 import '@/ai/flows/get-scan-events.ts';
 import '@/ai/flows/scan-analytics.ts';
 import '@/ai/flows/get-scan-interaction.ts';
+import '@/ai/flows/log-ab-test-conversion.ts';

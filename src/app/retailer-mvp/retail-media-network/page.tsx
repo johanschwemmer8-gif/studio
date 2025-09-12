@@ -29,7 +29,7 @@ import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar, Load
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp, where, getDocs } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -199,21 +199,10 @@ function MetricCard({ title, value, icon: Icon }: { title: string; value: string
 }
 
 type Product = {
-    id: string;
-    name: string;
-    sku: string;
+  id: string;
+  name: string;
+  sku: string;
 };
-
-const dummyProducts: Product[] = [
-      { id: 'prod_1', name: 'Eco-Friendly Water Bottle', sku: 'product_SKU_123' },
-      { id: 'prod_2', name: 'Wireless Charging Pad', sku: 'product_SKU_456' },
-      { id: 'prod_3', name: 'Organic Cotton Tote Bag', sku: 'product_SKU_789' },
-      { id: 'prod_4', name: 'Smart Fitness Tracker', sku: 'product_SKU_101' },
-      { id: 'prod_5', name: 'Aromatherapy Diffuser', sku: 'product_SKU_112' },
-      { id: 'prod_6', name: 'Bamboo Cutlery Set', sku: 'product_SKU_131' },
-      { id: 'prod_7', name: 'Noise-Cancelling Headphones', sku: 'product_SKU_415' },
-      { id: 'prod_8', name: 'Reusable Coffee Cup', sku: 'product_SKU_161' },
-];
 
 
 export default function RetailMediaNetworkPage() {
@@ -235,19 +224,53 @@ export default function RetailMediaNetworkPage() {
 
   // State for product selection
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
-  const filteredProducts = useMemo(() => {
-    if (!searchTerm) return [];
-    return dummyProducts.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        p.sku.toLowerCase().includes(searchTerm.toLowerCase())
-    ).filter(p => !selectedProducts.some(sp => sp.id === p.id)); // Exclude already selected
-  }, [searchTerm, selectedProducts]);
+  // Debounce search term
+    useEffect(() => {
+        if (!searchTerm.trim() || !db) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        const debounceTimer = setTimeout(async () => {
+            const productsRef = collection(db, 'products');
+            // A simple "starts-with" search query
+            const q = query(productsRef, 
+                where('name', '>=', searchTerm), 
+                where('name', '<=', searchTerm + '\uf8ff'),
+                limit(10)
+            );
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                const productsData = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                } as Product));
+
+                // Exclude already selected products
+                const availableProducts = productsData.filter(p => !selectedProducts.some(sp => sp.id === p.id));
+                setSearchResults(availableProducts);
+            } catch (error) {
+                console.error("Error searching products:", error);
+                toast({ title: "Search Error", description: "Could not fetch products.", variant: "destructive" });
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(debounceTimer);
+    }, [searchTerm, selectedProducts, toast]);
+
 
   const addProduct = (product: Product) => {
     setSelectedProducts(prev => [...prev, product]);
     setSearchTerm('');
+    setSearchResults([]);
   };
 
   const removeProduct = (productId: string) => {
@@ -392,7 +415,14 @@ export default function RetailMediaNetworkPage() {
              {/* Main Dashboard View */}
               <div className={cn(showDetails && 'hidden')}>
                 <div className="flex justify-end items-start mb-6">
-                  <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                  <Dialog open={isModalOpen} onOpenChange={(isOpen) => {
+                      setIsModalOpen(isOpen);
+                      if (!isOpen) {
+                          setSelectedProducts([]);
+                          setSearchTerm('');
+                          setSearchResults([]);
+                      }
+                  }}>
                     <DialogTrigger asChild>
                       <Button>
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -430,18 +460,19 @@ export default function RetailMediaNetworkPage() {
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <Input 
                                             id="product-search-input" 
-                                            placeholder="Search by product name or SKU..." 
+                                            placeholder="Search by product name..." 
                                             className="pl-10"
                                             value={searchTerm}
                                             onChange={e => setSearchTerm(e.target.value)}
                                         />
                                     </div>
                                     
-                                    {searchTerm && (
+                                    {(isSearching || searchResults.length > 0) && (
                                         <Card id="product-search-results" className="shadow-none">
                                             <ScrollArea className="h-48">
                                                 <CardContent className="p-2">
-                                                    {filteredProducts.length > 0 ? filteredProducts.map(product => (
+                                                    {isSearching ? <div className="text-center p-4"><Loader2 className="animate-spin mx-auto"/></div>
+                                                    : searchResults.length > 0 ? searchResults.map(product => (
                                                         <div key={product.id} className="flex items-center justify-between p-2 hover:bg-muted rounded-md">
                                                             <div>
                                                                 <p className="text-sm font-medium">{product.name}</p>
@@ -449,7 +480,8 @@ export default function RetailMediaNetworkPage() {
                                                             </div>
                                                             <Button type="button" size="sm" onClick={() => addProduct(product)}>Add</Button>
                                                         </div>
-                                                    )) : <p className="text-center text-sm text-muted-foreground py-4">No products found.</p>}
+                                                    )) : null }
+                                                    {!isSearching && searchResults.length === 0 && searchTerm && <p className="text-center text-sm text-muted-foreground py-4">No products found.</p>}
                                                 </CardContent>
                                             </ScrollArea>
                                         </Card>
@@ -618,6 +650,3 @@ export default function RetailMediaNetworkPage() {
     </div>
   );
 }
-
-
-    

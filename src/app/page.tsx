@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -27,7 +26,7 @@ function LandingPageLogo() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoWidth, setLogoWidth] = useState<number>(128);
     const [logoAlign, setLogoAlign] = useState('flex-start');
-    const [logoPadding, setLogoPadding] = useState(8);
+    const [logoPadding, setLogoPadding] = useState(0);
 
     useEffect(() => {
         const savedLogo = localStorage.getItem('landing-page-logo');
@@ -78,12 +77,8 @@ function LandingPageLogo() {
         'text-right': logoAlign === 'flex-end',
     });
 
-    const headerStyle = {
-      paddingTop: `${logoPadding}px`,
-    };
-
     return (
-        <header className="absolute top-0 left-0 right-0 z-10" style={headerStyle}>
+        <header className="w-full">
             <div className={logoContainerClass}>
                 <Link href="/" className="font-bold text-lg inline-block">
                     {logoUrl ? (
@@ -142,7 +137,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-       <div className="absolute top-0 left-0 right-0 flex justify-between items-start z-10">
+       <div className="absolute top-0 left-0 right-0 flex justify-between items-start z-10 p-2">
           <LandingPageLogo />
            <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
               <DialogTrigger asChild>

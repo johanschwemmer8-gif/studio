@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -25,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar, Loader2, TrendingUp, Percent, CheckCircle } from 'lucide-react';
+import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar, Loader2, TrendingUp, Percent, CheckCircle, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 type Campaign = {
@@ -47,6 +48,7 @@ type Campaign = {
     endDate?: Timestamp;
     conversions: number;
     totalRevenue: number;
+    sponsoredProducts: string[];
 };
 
 type AggregateMetrics = {
@@ -196,6 +198,23 @@ function MetricCard({ title, value, icon: Icon }: { title: string; value: string
     );
 }
 
+type Product = {
+    id: string;
+    name: string;
+    sku: string;
+};
+
+const dummyProducts: Product[] = [
+      { id: 'prod_1', name: 'Eco-Friendly Water Bottle', sku: 'product_SKU_123' },
+      { id: 'prod_2', name: 'Wireless Charging Pad', sku: 'product_SKU_456' },
+      { id: 'prod_3', name: 'Organic Cotton Tote Bag', sku: 'product_SKU_789' },
+      { id: 'prod_4', name: 'Smart Fitness Tracker', sku: 'product_SKU_101' },
+      { id: 'prod_5', name: 'Aromatherapy Diffuser', sku: 'product_SKU_112' },
+      { id: 'prod_6', name: 'Bamboo Cutlery Set', sku: 'product_SKU_131' },
+      { id: 'prod_7', name: 'Noise-Cancelling Headphones', sku: 'product_SKU_415' },
+      { id: 'prod_8', name: 'Reusable Coffee Cup', sku: 'product_SKU_161' },
+];
+
 
 export default function RetailMediaNetworkPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -213,6 +232,28 @@ export default function RetailMediaNetworkPage() {
       topProducts: []
   });
   const { toast } = useToast();
+
+  // State for product selection
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return [];
+    return dummyProducts.filter(p => 
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    ).filter(p => !selectedProducts.some(sp => sp.id === p.id)); // Exclude already selected
+  }, [searchTerm, selectedProducts]);
+
+  const addProduct = (product: Product) => {
+    setSelectedProducts(prev => [...prev, product]);
+    setSearchTerm('');
+  };
+
+  const removeProduct = (productId: string) => {
+    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
+  };
+
 
   useEffect(() => {
     if (!db) {
@@ -290,7 +331,7 @@ export default function RetailMediaNetworkPage() {
       clicks: 0,
       conversions: 0,
       totalRevenue: 0,
-      sponsoredProducts: [], // Placeholder for now
+      sponsoredProducts: selectedProducts.map(p => p.sku),
     };
 
     try {
@@ -300,6 +341,7 @@ export default function RetailMediaNetworkPage() {
         description: 'New campaign has been created in Draft status.',
       });
       setIsModalOpen(false);
+      setSelectedProducts([]); // Reset for next time
     } catch (error) {
       console.error("Error adding document: ", error);
       toast({
@@ -381,13 +423,57 @@ export default function RetailMediaNetworkPage() {
                               <Label htmlFor="target-audience">Target Audience</Label>
                               <Textarea id="target-audience" name="target-audience" rows={3} placeholder="Describe the target audience (e.g., location, demographics, interests)." />
                           </div>
-                          <div>
-                              <Label>Sponsored Products</Label>
-                              <Card className="mt-2">
-                                <CardContent className="p-4 text-center text-sm text-muted-foreground">
-                                    Product selection feature coming soon.
-                                </CardContent>
-                              </Card>
+                          <div id="product-selection-container">
+                                <Label>Sponsored Products</Label>
+                                <div className="mt-2 border rounded-md p-4 space-y-4">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input 
+                                            id="product-search-input" 
+                                            placeholder="Search by product name or SKU..." 
+                                            className="pl-10"
+                                            value={searchTerm}
+                                            onChange={e => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    
+                                    {searchTerm && (
+                                        <Card id="product-search-results" className="shadow-none">
+                                            <ScrollArea className="h-48">
+                                                <CardContent className="p-2">
+                                                    {filteredProducts.length > 0 ? filteredProducts.map(product => (
+                                                        <div key={product.id} className="flex items-center justify-between p-2 hover:bg-muted rounded-md">
+                                                            <div>
+                                                                <p className="text-sm font-medium">{product.name}</p>
+                                                                <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
+                                                            </div>
+                                                            <Button type="button" size="sm" onClick={() => addProduct(product)}>Add</Button>
+                                                        </div>
+                                                    )) : <p className="text-center text-sm text-muted-foreground py-4">No products found.</p>}
+                                                </CardContent>
+                                            </ScrollArea>
+                                        </Card>
+                                    )}
+
+                                    {selectedProducts.length > 0 && (
+                                        <div>
+                                            <h4 className="text-sm font-semibold mb-2">Selected Products</h4>
+                                            <div className="space-y-2">
+                                                {selectedProducts.map(product => (
+                                                    <div key={product.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                                                         <div>
+                                                            <p className="text-sm font-medium">{product.name}</p>
+                                                            <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
+                                                        </div>
+                                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeProduct(product.id)}>
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                           </div>
                       </form>
                       <DialogFooter>
@@ -459,6 +545,16 @@ export default function RetailMediaNetworkPage() {
                             Live performance metrics for this campaign.
                         </CardDescription>
                     </CardHeader>
+                    <CardContent>
+                        {selectedCampaign?.sponsoredProducts && selectedCampaign.sponsoredProducts.length > 0 && (
+                            <div>
+                                <h4 className="font-semibold mb-2">Sponsored Products</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedCampaign.sponsoredProducts.map(sku => <Badge key={sku} variant="secondary">{sku}</Badge>)}
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
                 </Card>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -522,3 +618,6 @@ export default function RetailMediaNetworkPage() {
     </div>
   );
 }
+
+
+    

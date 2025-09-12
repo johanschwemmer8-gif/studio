@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import AIProfileManager from "@/components/dashboard/ai-profile-manager";
 
 type GeneratedQrCode = {
   url: string;
@@ -119,10 +118,6 @@ export default function QrAiManagementPage() {
                             </CardContent>
                         </Card>
                     )}
-
-                    <Separator />
-                    
-                    <AIProfileManager />
                 </div>
             </div>
 

@@ -28,11 +28,20 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Loader2, Link as LinkIcon, Tv, MonitorSmartphone, MapPin, Building2, Clock, Circle, AlertTriangle, Settings, Power } from 'lucide-react';
 import { getDisplays, type Display } from '@/ai/flows/get-displays';
 import { registerDisplay } from '@/ai/flows/register-display';
+import { assignDisplayConfig } from '@/ai/flows/assign-display-config';
 import { storesByRegion } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { cn } from '@/lib/utils';
 import { differenceInMinutes, formatDistanceToNow } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+type InStoreConfig = {
+    id: string;
+    configId: string;
+    configName: string;
+};
 
 function ClientFormattedDate({ timestamp, isRelative }: { timestamp: string, isRelative?: boolean }) {
   const [formattedDate, setFormattedDate] = useState('');
@@ -68,11 +77,14 @@ const getStatusInfo = (lastPing: string): { status: 'Online' | 'Offline' | 'Erro
 
 export default function DisplayManager() {
   const [displays, setDisplays] = useState<Display[]>([]);
+  const [inStoreConfigs, setInStoreConfigs] = useState<InStoreConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTroubleshootModalOpen, setIsTroubleshootModalOpen] = useState(false);
   const [selectedDisplay, setSelectedDisplay] = useState<Display | null>(null);
+  const [updatingConfigId, setUpdatingConfigId] = useState<string | null>(null);
+
   const { toast } = useToast();
   
   const allStores = storesByRegion.flatMap(region => region.stores.map(store => ({ ...store, province: region.province })));
@@ -92,12 +104,23 @@ export default function DisplayManager() {
 
   useEffect(() => {
     fetchDisplays();
+    if (!db) return;
+
+    const q = query(collection(db, 'inStoreConfigs'), orderBy('lastUpdated', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const configsData: InStoreConfig[] = [];
+        snapshot.forEach(doc => {
+            configsData.push({ id: doc.id, ...doc.data() } as InStoreConfig);
+        });
+        setInStoreConfigs(configsData);
+    });
+
+    return () => unsubscribe();
   }, [toast]);
 
-  // Refresh status every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-        setDisplays(prev => [...prev]); // Trigger re-render to re-calculate status
+        setDisplays(prev => [...prev]);
     }, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -116,7 +139,7 @@ export default function DisplayManager() {
                 title: 'Display Registered',
                 description: `New display with ID ${result.displayId} has been created.`,
             });
-            fetchDisplays(); // Refresh the list
+            fetchDisplays();
             setIsModalOpen(false);
         } else {
             throw new Error(result.message || 'Failed to register display.');
@@ -132,6 +155,24 @@ export default function DisplayManager() {
     setSelectedDisplay(display);
     setIsTroubleshootModalOpen(true);
   }
+
+  const handleConfigChange = async (displayId: string, newConfigId: string) => {
+      setUpdatingConfigId(displayId);
+      try {
+          const result = await assignDisplayConfig({ displayId, configId: newConfigId, retailerId: 'ret_123xyz' });
+          if (result.success) {
+              toast({ title: 'Success', description: 'Display configuration updated.'});
+              // Optimistically update UI
+              setDisplays(prev => prev.map(d => d.displayId === displayId ? {...d, contentConfigId: newConfigId } : d));
+          } else {
+              throw new Error(result.message || 'Failed to update configuration.');
+          }
+      } catch (error: any) {
+          toast({ title: 'Update Failed', description: error.message, variant: 'destructive'});
+      } finally {
+          setUpdatingConfigId(null);
+      }
+  };
 
   return (
     <Card>
@@ -181,7 +222,7 @@ export default function DisplayManager() {
             <TableRow>
               <TableHead>Display ID</TableHead>
               <TableHead>Store Location</TableHead>
-              <TableHead>Assigned Content</TableHead>
+              <TableHead className="w-[300px]">Assigned Content</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Last Seen</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -195,6 +236,7 @@ export default function DisplayManager() {
             ) : (
               displays.map((display) => {
                 const statusInfo = getStatusInfo(display.lastPing);
+                const isUpdating = updatingConfigId === display.displayId;
                 return (
                     <TableRow key={display.displayId}>
                     <TableCell className="font-mono text-xs">{display.displayId}</TableCell>
@@ -205,11 +247,24 @@ export default function DisplayManager() {
                         </div>
                     </TableCell>
                     <TableCell>
-                        {display.contentConfigId ? (
-                            <code className="text-xs font-mono p-1 rounded-sm bg-muted">{display.contentConfigId}</code>
-                        ) : (
-                            <span className="text-xs text-muted-foreground italic">None</span>
-                        )}
+                       <Select 
+                            value={display.contentConfigId} 
+                            onValueChange={(newConfigId) => handleConfigChange(display.displayId, newConfigId)}
+                            disabled={isUpdating}
+                        >
+                            <SelectTrigger className="w-full">
+                                <div className="flex items-center gap-2">
+                                    {isUpdating && <Loader2 className="h-4 w-4 animate-spin"/>}
+                                    <SelectValue placeholder="Assign content..." />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">None</SelectItem>
+                                {inStoreConfigs.map(config => (
+                                    <SelectItem key={config.id} value={config.configId}>{config.configName}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </TableCell>
                      <TableCell>
                         <Badge variant="outline" className={cn("gap-1.5", statusInfo.color)}>
@@ -227,10 +282,6 @@ export default function DisplayManager() {
                          <Button variant="outline" size="sm" onClick={() => handleOpenTroubleshoot(display)}>
                             <Settings className="mr-2 h-3.5 w-3.5"/>
                             Troubleshoot
-                        </Button>
-                        <Button variant="outline" size="sm" disabled>
-                            <LinkIcon className="mr-2 h-3.5 w-3.5"/>
-                            Assign Content
                         </Button>
                     </TableCell>
                     </TableRow>

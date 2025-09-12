@@ -30,7 +30,9 @@ import '@/ai/flows/process-subscription-payment.ts';
 import '@/ai/flows/get-displays.ts';
 import '@/ai/flows/register-display.ts';
 import '@/ai/flows/remote-display-command.ts';
+import '@/ai/flows/assign-display-config.ts';
 import { seedBillingData } from '@/lib/seed-billing';
 
 // Seed data on startup
 seedBillingData().catch(console.error);
+

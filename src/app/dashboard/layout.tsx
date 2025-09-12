@@ -97,6 +97,14 @@ export default function DashboardLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="iNteract Admin Panel">
+                <Link href="/dashboard/admin">
+                  <Cog />
+                  <span>iNteract Admin Panel</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
              <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="iNteract User Admin">
                 <Link href="/dashboard/user-admin">

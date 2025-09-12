@@ -35,6 +35,7 @@ import { db } from '@/lib/firebase';
 import { collection, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { processSubscriptionPayment } from '@/ai/flows/process-subscription-payment';
 
 
 type Invoice = {
@@ -59,9 +60,9 @@ type Subscription = {
 };
 
 const subscriptionPlans = [
-    { name: 'Basic', price: 'R499', features: ['Up to 1,000 QRs', 'Basic Analytics', 'Email Support'] },
-    { name: 'Pro', price: 'R1,250', features: ['Up to 10,000 QRs', 'Advanced Analytics', 'AI Recommendations', 'Phone Support'], current: true },
-    { name: 'Enterprise', price: 'Custom', features: ['Unlimited QRs', 'Dedicated Account Manager', 'Custom Integrations', 'SLA'] },
+    { id: 'basic', name: 'Basic', price: 'R499', features: ['Up to 1,000 QRs', 'Basic Analytics', 'Email Support'] },
+    { id: 'pro', name: 'Pro', price: 'R1,250', features: ['Up to 10,000 QRs', 'Advanced Analytics', 'AI Recommendations', 'Phone Support'], current: true },
+    { id: 'enterprise', name: 'Enterprise', price: 'Custom', features: ['Unlimited QRs', 'Dedicated Account Manager', 'Custom Integrations', 'SLA'] },
 ];
 
 export default function BillingPage() {
@@ -69,6 +70,7 @@ export default function BillingPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isChangingPlan, setIsChangingPlan] = useState(false);
   const { toast } = useToast();
 
   const retailerId = 'ret_123xyz'; // In a real app, get this from auth context
@@ -85,6 +87,7 @@ export default function BillingPage() {
         if (doc.exists()) {
             setSubscription(doc.data() as Subscription);
         } else {
+            // In a real app, you might want to create a default subscription here
             console.warn(`Subscription for retailer ${retailerId} not found.`);
         }
     }, (error) => {
@@ -110,17 +113,26 @@ export default function BillingPage() {
     };
   }, [toast, retailerId]);
   
-  const currentPlan = subscriptionPlans.find(p => p.name.toLowerCase().includes(subscription?.planId || '')) || subscriptionPlans[1];
+  const currentPlan = subscriptionPlans.find(p => p.id.toLowerCase() === subscription?.planId?.toLowerCase()) || subscriptionPlans[1];
 
-  const handlePlanChange = (newPlanId: string) => {
-      console.log(`Calling cloud function to change plan to ${newPlanId} for retailer ${retailerId}`);
-      // In a real app, you would call a Firebase Cloud Function here:
-      // const changePlan = httpsCallable(functions, 'changeSubscriptionPlan');
-      // changePlan({ retailerId, newPlanId })
-      //   .then(() => toast({ title: "Success", description: "Your plan change request has been submitted." }))
-      //   .catch((error) => toast({ title: "Error", description: error.message, variant: 'destructive' }));
-      toast({ title: "Plan Change Requested", description: `Request to change to ${newPlanId} has been simulated.` });
-      setIsPlanModalOpen(false);
+  const handlePlanChange = async (newPlanId: string) => {
+      setIsChangingPlan(true);
+      try {
+          const { sessionId } = await processSubscriptionPayment({ planId: newPlanId, retailerId });
+          toast({ title: "Redirecting to Checkout", description: "Please complete your payment to change your plan." });
+          
+          // In a real application, you would use the Stripe.js library
+          // to redirect to the checkout session.
+          // For this simulation, we'll just log the ID.
+          console.log(`(Simulation) Redirecting to Stripe Checkout with session ID: ${sessionId}`);
+          
+          setIsPlanModalOpen(false);
+
+      } catch(error: any) {
+          toast({ title: "Plan Change Failed", description: error.message || 'Could not initiate plan change.', variant: "destructive" });
+      } finally {
+          setIsChangingPlan(false);
+      }
   };
 
   return (
@@ -191,7 +203,12 @@ export default function BillingPage() {
                                     </ul>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full" disabled={plan.name === currentPlan.name} onClick={() => handlePlanChange(plan.name.toLowerCase())}>
+                                    <Button 
+                                        className="w-full" 
+                                        disabled={plan.name === currentPlan.name || isChangingPlan} 
+                                        onClick={() => handlePlanChange(plan.id)}
+                                    >
+                                        {isChangingPlan && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         {plan.name === currentPlan.name ? 'Current Plan' : 'Select Plan'}
                                     </Button>
                                 </CardFooter>

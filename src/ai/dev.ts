@@ -23,4 +23,5 @@ import '@/ai/flows/get-scan-interaction.ts';
 import '@/ai/flows/log-ab-test-conversion.ts';
 import '@/ai/flows/log-ad-click.ts';
 import '@/ai/flows/log-purchase-conversion.ts';
+import '@/ai/flows/sync-products.ts';
 

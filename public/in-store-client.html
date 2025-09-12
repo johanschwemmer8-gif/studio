@@ -1,272 +1,291 @@
-<!--
-  This client-side HTML file is intended to be run on a physical in-store display.
-  It fetches its configuration from Firestore in real-time.
--->
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>iNteract-AOE In-Store Display</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iNteract AOE In-Store Display</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <style>
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-        background-color: #000;
-        color: #fff;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-          Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-          'Segoe UI Symbol';
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-      }
-      #content {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      #staticImage,
-      #videoPlayer {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      #promptContainer {
-        padding: 2rem;
-        font-size: 2.5vw;
-      }
-      #loading {
-        font-size: 2rem;
-      }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #content-container {
+            width: 100%;
+            height: 100%;
+        }
+        #content-container img, #content-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .ai-prompt-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .ai-prompt-text {
+            font-size: 2.5vw;
+            font-style: italic;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        .product-card {
+            background-color: #1a1a1a;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .product-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 0.25rem;
+        }
+        .product-card .name {
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+        .product-card .price {
+            color: #29ABE2;
+            margin-top: 0.25rem;
+        }
     </style>
-  </head>
-  <body>
-    <div id="content">
-      <div id="loading">Loading Display...</div>
-      <img id="staticImage" style="display: none" />
-      <div id="promptContainer" style="display: none"></div>
-      <video id="videoPlayer" style="display: none" autoplay muted loop></video>
+</head>
+<body>
+    <div id="content-container">
+        <p>Initializing Display...</p>
     </div>
 
-    <!-- 
-      This script is using the Firebase Web SDK (version 9).
-      In a production environment, you would bundle this using a tool like Webpack or Rollup.
-      For this example, we're using the CDN for simplicity.
-    -->
-    <script type="module">
-      import {
-        initializeApp
-      } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
-      import {
-        getFirestore,
-        doc,
-        onSnapshot,
-        updateDoc,
-        serverTimestamp,
-        collection,
-        query,
-        orderBy,
-        limit,
-        deleteDoc,
-      } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
+    <script>
+        const firebaseConfig = {
+            "projectId": "interact-aoe-kidkn",
+            "appId": "1:783333671853:web:53f7f226c95ac08fbd5724",
+            "storageBucket": "interact-aoe-kidkn.firebasestorage.app",
+            "apiKey": "AIzaSyAuB__O0Bo4uQLeyZ3UH2wYpbEbcuGevFI",
+            "authDomain": "interact-aoe-kidkn.firebaseapp.com",
+            "measurementId": "",
+            "messagingSenderId": "783333671853"
+        };
+        
+        let db;
+        let displayId;
 
-      const firebaseConfig = {
-        "projectId": "interact-aoe-kidkn",
-        "appId": "1:783333671853:web:53f7f226c95ac08fbd5724",
-        "storageBucket": "interact-aoe-kidkn.firebasestorage.app",
-        "apiKey": "AIzaSyAuB__O0Bo4uQLeyZ3UH2wYpbEbcuGevFI",
-        "authDomain": "interact-aoe-kidkn.firebaseapp.com",
-        "measurementId": "",
-        "messagingSenderId": "783333671853"
-      };
+        function initialize() {
+            try {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
 
-      const contentEl = document.getElementById('content');
-      const loadingEl = document.getElementById('loading');
-      const staticImageEl = document.getElementById('staticImage');
-      const promptContainerEl = document.getElementById('promptContainer');
-      const videoPlayerEl = document.getElementById('videoPlayer');
+                const urlParams = new URLSearchParams(window.location.search);
+                displayId = urlParams.get('displayId');
 
-      let db;
+                if (!displayId) {
+                    renderError('No displayId provided in URL. Please add ?displayId=your_id');
+                    return;
+                }
 
-      /**
-       * Updates the on-screen content based on the config object.
-       */
-      function renderContent(config) {
-        // Hide all content elements first
-        staticImageEl.style.display = 'none';
-        promptContainerEl.style.display = 'none';
-        videoPlayerEl.style.display = 'none';
-        loadingEl.style.display = 'none';
+                document.title = `Display - ${displayId}`;
 
-        if (!config || !config.type) {
-            loadingEl.style.display = 'block';
-            loadingEl.textContent = 'No active configuration found.';
-            return;
+                listenForDisplayDoc();
+                listenForCommands();
+                setInterval(ping, 5 * 60 * 1000); // Ping every 5 minutes
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                renderError('Could not connect to Firebase. Check console for details.');
+            }
+        }
+        
+        function listenForDisplayDoc() {
+            const displayRef = db.collection('displays').doc(displayId);
+            
+            displayRef.onSnapshot(doc => {
+                if (!doc.exists) {
+                    renderError(`Display with ID ${displayId} is not registered.`);
+                    return;
+                }
+                const displayData = doc.data();
+                if (displayData.contentConfigId) {
+                    listenForContentConfig(displayData.contentConfigId, displayData.retailerId);
+                } else {
+                    renderContent({ type: 'static_text', text: 'Display is idle. Assign content from the dashboard.' });
+                }
+            }, error => {
+                console.error("Error listening to display document:", error);
+                renderError('Error connecting to display data.');
+            });
         }
 
-        switch (config.type) {
-          case 'static_image':
-            if (config.imageUrl) {
-              staticImageEl.src = config.imageUrl;
-              staticImageEl.style.display = 'block';
+        let unsubscribeContent;
+        function listenForContentConfig(configId, retailerId) {
+             if (unsubscribeContent) {
+                unsubscribeContent();
             }
-            break;
-          case 'dynamic_ai_prompt':
-             if (config.prompt) {
-              promptContainerEl.textContent = config.prompt;
-              promptContainerEl.style.display = 'block';
-            }
-            break;
-          case 'promotional_video':
-            if (config.videoUrl) {
-                videoPlayerEl.src = config.videoUrl;
-                videoPlayerEl.style.display = 'block';
-            }
-            break;
-          case 'product_showcase':
-            if (config.productSku) {
-                 promptContainerEl.innerHTML = `
-                    <h2>Now Showcasing</h2>
-                    <h1>${config.productSku}</h1>
-                 `;
-                 promptContainerEl.style.display = 'block';
-            }
-            break;
-          default:
-            loadingEl.textContent = `Unknown content type: ${config.type}`;
-            loadingEl.style.display = 'block';
+
+            const configRef = db.collection('inStoreConfigs').where('configId', '==', configId).limit(1);
+            
+            unsubscribeContent = configRef.onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    renderError(`Content configuration with ID ${configId} not found.`);
+                    return;
+                }
+                const configDoc = snapshot.docs[0];
+                const configData = configDoc.data();
+                renderContent(configData.contentSlot, retailerId);
+            }, error => {
+                console.error("Error listening to content config:", error);
+                renderError('Error loading content configuration.');
+            });
         }
-      }
+        
+        let unsubscribeProducts;
+        function renderContent(content, retailerId) {
+            if (unsubscribeProducts) {
+                unsubscribeProducts();
+            }
 
-      /**
-       * Sets up a real-time listener for remote commands.
-       */
-       function listenForCommands(displayId) {
-        const commandsRef = collection(db, `displays/${displayId}/remoteCommands`);
-        const q = query(commandsRef, orderBy('issuedAt', 'desc'), limit(10));
+            const container = document.getElementById('content-container');
+            container.innerHTML = '';
+            
+            switch (content.type) {
+                case 'static_image':
+                    container.innerHTML = `<img src="${content.imageUrl}" alt="Display Content">`;
+                    break;
+                case 'dynamic_ai_prompt':
+                    container.innerHTML = `<div class="ai-prompt-container"><p class="ai-prompt-text">${content.promptText}</p></div>`;
+                    break;
+                case 'promotional_video':
+                    container.innerHTML = `<video src="${content.videoUrl}" autoplay muted loop playsinline></video>`;
+                    break;
+                case 'dynamic_content':
+                     renderDynamicContent(container, content.dynamicType, retailerId);
+                     break;
+                case 'static_text':
+                default:
+                    container.innerHTML = `<p>${content.text || 'No content assigned.'}</p>`;
+                    break;
+            }
+        }
+        
+        function renderDynamicContent(container, dynamicType, retailerId) {
+            let query = db.collection('products').where('retailerId', '==', retailerId);
 
-        onSnapshot(q, (snapshot) => {
-            snapshot.docChanges().forEach(async (change) => {
-                if (change.type === "added") {
-                    const commandData = change.doc.data();
-                    const commandRef = doc(db, `displays/${displayId}/remoteCommands`, change.doc.id);
+            if (dynamicType === 'top_selling_products') {
+                query = query.orderBy('salesCount', 'desc').limit(10);
+            } else if (dynamicType === 'low_inventory_items') {
+                query = query.orderBy('stock', 'asc').limit(10);
+            } else {
+                renderError('Unknown dynamic content type.');
+                return;
+            }
 
-                    if (commandData.status !== 'PENDING') return;
+            unsubscribeProducts = query.onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    container.innerHTML = `<p>No products to display for this category.</p>`;
+                    return;
+                }
+                
+                const grid = document.createElement('div');
+                grid.className = 'product-grid';
 
-                    console.log(`Received command: ${commandData.command}`);
+                snapshot.forEach(doc => {
+                    const product = doc.data();
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.innerHTML = `
+                        <img src="${product.imageUrl}" alt="${product.name}">
+                        <div class="name">${product.name}</div>
+                        <div class="price">R${product.price.toFixed(2)}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+                container.innerHTML = '';
+                container.appendChild(grid);
+
+            }, error => {
+                console.error("Error fetching dynamic products:", error);
+                renderError("Could not load dynamic product list.");
+            });
+        }
+
+
+        function listenForCommands() {
+             const commandsRef = db.collection('displays').doc(displayId).collection('remoteCommands');
+             commandsRef.where('status', '==', 'PENDING').orderBy('issuedAt', 'desc').limit(1).onSnapshot(snapshot => {
+                if (snapshot.empty) return;
+
+                snapshot.forEach(async doc => {
+                    const commandData = doc.data();
+                    console.log('Received command:', commandData.command);
 
                     try {
-                        // Acknowledge the command first
-                        await updateDoc(commandRef, { status: 'ACKNOWLEDGED' });
+                        // Mark as acknowledged to prevent re-execution
+                        await doc.ref.update({ status: 'ACKNOWLEDGED' });
 
                         switch (commandData.command) {
                             case 'RESTART':
                             case 'REFRESH_CONTENT':
-                                // Wait a moment before reloading to ensure the status update propagates.
-                                setTimeout(() => window.location.reload(true), 500);
+                                location.reload();
                                 break;
-                            default:
-                                console.warn(`Unknown command: ${commandData.command}`);
-                                await updateDoc(commandRef, { status: 'FAILED', error: 'Unknown command' });
+                            // Add other command handlers here
                         }
                         
-                        // After successful execution (or if it's a reload), delete the command.
-                        // For reload, this line might not be reached, so a cleanup process is good.
-                        await deleteDoc(commandRef);
-                        console.log(`Command ${change.doc.id} executed and deleted.`);
+                        // Clean up after execution
+                        await doc.ref.update({ status: 'COMPLETED' });
+                        await doc.ref.delete();
 
-                    } catch(error) {
-                        console.error("Error processing command: ", error);
-                        if (commandRef) {
-                            await updateDoc(commandRef, { status: 'FAILED', error: error.message });
-                        }
+                    } catch (error) {
+                        console.error("Failed to process command:", error);
+                        await doc.ref.update({ status: 'FAILED' });
                     }
-                }
+                });
+            }, error => {
+                console.error("Error listening for commands:", error);
             });
-        }, (error) => {
-            console.error("Error listening for commands: ", error);
-            contentEl.innerHTML = `<h2>Command Listener Failed</h2><p>${error.message}</p>`;
-        });
-      }
-
-      try {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const displayId = urlParams.get('displayId');
-
-        if (!displayId) {
-          throw new Error('displayId parameter is missing from the URL.');
         }
-        
-        loadingEl.textContent = `Initializing Display: ${displayId}`;
 
-        // Listen for remote commands
-        listenForCommands(displayId);
-
-        // Ping the server every 60 seconds to keep status 'online'
-        setInterval(() => {
-            const displayRef = doc(db, 'displays', displayId);
-            updateDoc(displayRef, {
-                lastPing: serverTimestamp()
-            }).catch(console.error);
-        }, 60000);
-        
-        // --- Firestore Real-time Listeners ---
-
-        const displayRef = doc(db, 'displays', displayId);
-        
-        // 1. Listen to the display document to get the contentConfigId
-        onSnapshot(displayRef, (displayDoc) => {
-            if (!displayDoc.exists()) {
-                throw new Error(`Display with ID ${displayId} not found.`);
-            }
-            const displayData = displayDoc.data();
-            const configId = displayData.contentConfigId;
-
-            if (!configId) {
-                renderContent(null); // No config assigned
-                return;
-            }
-
-            const configRef = doc(db, 'inStoreConfigs', configId);
-            
-            // 2. Listen to the config document to get the content
-            onSnapshot(configRef, (configDoc) => {
-                if (configDoc.exists()) {
-                     const configData = configDoc.data();
-                     // Render content only if this config is active
-                     if (configData.isActive) {
-                         renderContent(configData.contentSlot);
-                     } else {
-                         renderContent(null); // Config is not active
-                     }
-                } else {
-                    renderContent(null); // Config not found
-                }
-            }, (error) => {
-                console.error("Error fetching config doc:", error);
-                contentEl.innerHTML = `<h2>Error Loading Content</h2><p>${error.message}</p>`;
+        function ping() {
+            if (!db || !displayId) return;
+            const displayRef = db.collection('displays').doc(displayId);
+            displayRef.update({ lastPing: new Date() }).catch(error => {
+                console.error("Ping failed:", error);
             });
+        }
 
-        }, (error) => {
-            console.error("Error fetching display doc:", error);
-            contentEl.innerHTML = `<h2>Error Loading Display</h2><p>${error.message}</p>`;
-        });
+        function renderError(message) {
+            const container = document.getElementById('content-container');
+            container.innerHTML = `<p style="color: red;">${message}</p>`;
+        }
 
-      } catch (error) {
-        console.error('Firebase Initialization Error:', error);
-        contentEl.innerHTML = `<h2>Initialization Failed</h2><p>${error.message}</p>`;
-      }
+        document.addEventListener('DOMContentLoaded', initialize);
     </script>
-  </body>
+</body>
 </html>
+
+    

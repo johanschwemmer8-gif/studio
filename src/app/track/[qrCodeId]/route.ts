@@ -20,7 +20,9 @@ export async function GET(
   const qrRef = db.collection('qrcodes').doc(qrCodeId);
 
   try {
-    const redirectUrl = await db.runTransaction(async (transaction) => {
+    // We still log the scan here, but now we redirect to the interaction page
+    // instead of the final destination. The interaction page will handle the final redirect.
+    const qrData = await db.runTransaction(async (transaction) => {
         const qrDoc = await transaction.get(qrRef);
 
         if (!qrDoc.exists) {
@@ -36,63 +38,64 @@ export async function GET(
                 scanCount: admin.firestore.FieldValue.increment(1)
             });
 
-            // Log scan event for external QR
             const scanEventRef = db.collection('scanEvents').doc();
             transaction.set(scanEventRef, {
                 qrCodeId,
                 retailerId: externalData.retailerId,
                 campaignId: externalData.campaignId,
-                requestId: externalData.batchId, // Using batchId as requestId
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 userAgent: request.headers.get('user-agent') || '',
                 ip: request.ip || '',
                 referrer: request.headers.get('referer') || '',
             });
             
-            return externalData.originalUrl;
+            // For external codes, we still redirect directly as they might not have AI profiles.
+            return { redirectUrl: externalData.originalUrl, immediate: true };
         }
         
-        const qrData = qrDoc.data()!;
+        const data = qrDoc.data()!;
         
-        // Check for expiration
-        if (qrData.expiresAt && qrData.expiresAt.toDate() < new Date()) {
-            return '/error?code=expired'; // Special URL for expired codes
+        if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
+            return { redirectUrl: '/error?code=expired', immediate: true };
         }
         
-        // 1. Increment scanCount on the qrcode document
         transaction.update(qrRef, {
             scanCount: admin.firestore.FieldValue.increment(1)
         });
         
-        // 2. Write a new document to scanEvents
         const scanEventRef = db.collection('scanEvents').doc();
         transaction.set(scanEventRef, {
-            qrCodeId: qrData.qrCodeId,
-            retailerId: qrData.retailerId,
-            campaignId: qrData.campaignId,
-            requestId: qrData.requestId,
+            qrCodeId: data.qrCodeId,
+            retailerId: data.retailerId,
+            campaignId: data.campaignId,
+            requestId: data.requestId,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             userAgent: request.headers.get('user-agent') || '',
             ip: request.ip || '',
             referrer: request.headers.get('referer') || '',
-            details: {},
         });
         
-        return qrData.redirectUrl;
+        // If an AI profile is attached, redirect to the interaction screen.
+        // Otherwise, redirect directly to the product page.
+        if (data.aiProfileId) {
+             return { redirectUrl: `/scan/${qrCodeId}`, immediate: false };
+        } else {
+             return { redirectUrl: data.redirectUrl, immediate: true };
+        }
     });
 
-    if (redirectUrl === null) {
+    if (qrData === null) {
         return NextResponse.redirect(new URL('/error?code=404', request.url));
     }
-    if (redirectUrl === '/error?code=expired') {
-        return NextResponse.redirect(new URL(redirectUrl, request.url));
-    }
 
-    return NextResponse.redirect(new URL(redirectUrl), 302);
+    // For immediate redirects, we use the original URL.
+    // For interaction screen, we use the app's own URL structure.
+    const redirectTarget = qrData.immediate ? new URL(qrData.redirectUrl) : new URL(qrData.redirectUrl, request.url);
+
+    return NextResponse.redirect(redirectTarget, 302);
 
   } catch (error) {
     console.error(`Transaction failed for qrCodeId ${qrCodeId}:`, error);
-    // Redirect to a generic error page
     return NextResponse.redirect(new URL('/error?code=500', request.url));
   }
 }

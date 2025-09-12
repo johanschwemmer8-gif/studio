@@ -25,11 +25,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar, Loader2 } from 'lucide-react';
+import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar, Loader2, TrendingUp, Percent, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 
 type Campaign = {
@@ -42,6 +45,123 @@ type Campaign = {
     startDate: Timestamp;
     endDate?: Timestamp;
 };
+
+const analyticsChartData = [
+  { name: 'Week 1', impressions: 4000, clicks: 240 },
+  { name: 'Week 2', impressions: 3000, clicks: 139 },
+  { name: 'Week 3', impressions: 2000, clicks: 980 },
+  { name: 'Week 4', impressions: 2780, clicks: 390 },
+];
+
+const topProductsData = [
+    { id: 'prod_1', name: 'Eco-Friendly Water Bottle', clicks: 450, conversions: 50, revenue: 1250 },
+    { id: 'prod_2', name: 'Wireless Charging Pad', clicks: 320, conversions: 42, revenue: 1890 },
+    { id: 'prod_3', name: 'Organic Cotton Tote Bag', clicks: 280, conversions: 35, revenue: 525 },
+];
+
+function AnalyticsDashboard() {
+    return (
+        <div className="space-y-6">
+             <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Analytics Overview</h2>
+                <div className="w-64">
+                    <Select>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a Campaign" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Campaigns</SelectItem>
+                            <SelectItem value="summer-sale">Summer Sale Campaign</SelectItem>
+                            <SelectItem value="winter-clearance">Winter Clearance</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <Card className="bg-primary text-primary-foreground">
+                <CardHeader>
+                    <CardTitle>Total Return on Ad Spend (ROAS)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-5xl font-bold">4.2x</p>
+                    <p className="text-sm opacity-80">For every R1 spent, you earned R4.20 back.</p>
+                </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <MetricCard title="Total Clicks" value="12,450" icon={Users} />
+                <MetricCard title="Total Impressions" value="1.2M" icon={Eye} />
+                <MetricCard title="Click-Through Rate (CTR)" value="1.04%" icon={TrendingUp} />
+                <MetricCard title="Total Conversions" value="872" icon={CheckCircle} />
+                <MetricCard title="Conversion Rate" value="7.00%" icon={Percent} />
+            </div>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>Clicks & Impressions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <ResponsiveContainer width="100%" height={300}>
+                        <RechartsBarChart data={analyticsChartData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                            <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                            <Tooltip />
+                            <Legend />
+                            <RechartsBar yAxisId="left" dataKey="impressions" fill="#8884d8" name="Impressions" />
+                            <RechartsBar yAxisId="right" dataKey="clicks" fill="#82ca9d" name="Clicks" />
+                        </RechartsBarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Top Performing Products</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Product</TableHead>
+                                <TableHead>Clicks</TableHead>
+                                <TableHead>Conversions</TableHead>
+                                <TableHead className="text-right">Revenue Generated</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {topProductsData.map(product => (
+                                <TableRow key={product.id}>
+                                    <TableCell className="font-medium">{product.name}</TableCell>
+                                    <TableCell>{product.clicks}</TableCell>
+                                    <TableCell>{product.conversions}</TableCell>
+                                    <TableCell className="text-right">R{product.revenue.toLocaleString()}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+function MetricCard({ title, value, icon: Icon }: { title: string; value: string | number; icon: React.ElementType }) {
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center justify-between">
+                    {title} <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-2xl font-bold">{value}</p>
+            </CardContent>
+        </Card>
+    );
+}
+
 
 export default function RetailMediaNetworkPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -147,178 +267,191 @@ export default function RetailMediaNetworkPage() {
 
   return (
     <div className="space-y-8">
-      {/* Main Dashboard View */}
-      <div className={cn(showDetails && 'hidden')}>
-        <div className="flex justify-between items-start mb-6">
-          <div>
-              <h1 className="text-3xl font-bold text-foreground">Retail Media Network</h1>
-              <p className="text-muted-foreground mt-2">Manage and monitor your retail media network campaigns and performance.</p>
-          </div>
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create New Campaign
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                  <DialogTitle>Create New Ad Campaign</DialogTitle>
-                  <DialogDescription>Define a new campaign to run on your retail media network.</DialogDescription>
-              </DialogHeader>
-              <form id="create-campaign-form" onSubmit={handleCreateCampaign} className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                  <div>
-                      <Label htmlFor="campaign-name">Campaign Name</Label>
-                      <Input id="campaign-name" name="campaign-name" required />
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                          <Label htmlFor="budget">Budget (R)</Label>
-                          <Input id="budget" name="budget" type="number" required />
-                      </div>
-                      <div>
-                        <Label htmlFor="campaign-duration">Campaign Duration</Label>
-                        <Input id="campaign-duration" name="campaign-duration" type="text" placeholder="e.g., Start Date - End Date"/>
-                      </div>
-                  </div>
-                  <div>
-                      <Label htmlFor="target-audience">Target Audience</Label>
-                      <Textarea id="target-audience" name="target-audience" rows={3} placeholder="Describe the target audience (e.g., location, demographics, interests)." />
-                  </div>
-                  <div>
-                      <Label>Sponsored Products</Label>
-                      <Card className="mt-2">
-                        <CardContent className="p-4 text-center text-sm text-muted-foreground">
-                            Product selection feature coming soon.
-                        </CardContent>
-                      </Card>
-                  </div>
-              </form>
-              <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                  <Button type="submit" form="create-campaign-form">
-                      Create Campaign
-                  </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+      <div>
+          <h1 className="text-3xl font-bold text-foreground">Retail Media Network</h1>
+          <p className="text-muted-foreground mt-2">Manage your ad campaigns and analyze their performance.</p>
+      </div>
+      
+      <Tabs defaultValue="campaigns" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+        <TabsContent value="campaigns">
+             {/* Main Dashboard View */}
+              <div className={cn(showDetails && 'hidden')}>
+                <div className="flex justify-end items-start mb-6">
+                  <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create New Campaign
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                          <DialogTitle>Create New Ad Campaign</DialogTitle>
+                          <DialogDescription>Define a new campaign to run on your retail media network.</DialogDescription>
+                      </DialogHeader>
+                      <form id="create-campaign-form" onSubmit={handleCreateCampaign} className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                          <div>
+                              <Label htmlFor="campaign-name">Campaign Name</Label>
+                              <Input id="campaign-name" name="campaign-name" required />
+                          </div>
+                          <div className="grid md:grid-cols-2 gap-4">
+                              <div>
+                                  <Label htmlFor="budget">Budget (R)</Label>
+                                  <Input id="budget" name="budget" type="number" required />
+                              </div>
+                              <div>
+                                <Label htmlFor="campaign-duration">Campaign Duration</Label>
+                                <Input id="campaign-duration" name="campaign-duration" type="text" placeholder="e.g., Start Date - End Date"/>
+                              </div>
+                          </div>
+                          <div>
+                              <Label htmlFor="target-audience">Target Audience</Label>
+                              <Textarea id="target-audience" name="target-audience" rows={3} placeholder="Describe the target audience (e.g., location, demographics, interests)." />
+                          </div>
+                          <div>
+                              <Label>Sponsored Products</Label>
+                              <Card className="mt-2">
+                                <CardContent className="p-4 text-center text-sm text-muted-foreground">
+                                    Product selection feature coming soon.
+                                </CardContent>
+                              </Card>
+                          </div>
+                      </form>
+                      <DialogFooter>
+                          <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                          <Button type="submit" form="create-campaign-form">
+                              Create Campaign
+                          </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Ad Campaigns</CardTitle>
-                <CardDescription>An overview of all your ongoing and past campaigns.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Campaign Name</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Budget</TableHead>
-                            <TableHead>Impressions</TableHead>
-                            <TableHead>Clicks</TableHead>
-                            <TableHead>CTR</TableHead>
-                            <TableHead>Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                             <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                        ) : !db ? (
-                            <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">Please configure Firebase to view campaigns.</TableCell></TableRow>
-                        ) : campaigns.length === 0 ? (
-                            <TableRow><TableCell colSpan={7} className="h-24 text-center">No campaigns found.</TableCell></TableRow>
-                        ) : (
-                            campaigns.map(campaign => (
-                                <TableRow key={campaign.id}>
-                                    <TableCell className="font-medium">{campaign.campaignName}</TableCell>
-                                    <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                                    <TableCell>R{campaign.budget.toLocaleString()}</TableCell>
-                                    <TableCell>{campaign.impressions.toLocaleString()}</TableCell>
-                                    <TableCell>{campaign.clicks.toLocaleString()}</TableCell>
-                                    <TableCell>{calculateCTR(campaign.clicks, campaign.impressions)}</TableCell>
-                                    <TableCell>
-                                        <Button variant="link" className="p-0 h-auto" onClick={() => handleViewDetails(campaign)}>View Details</Button>
-                                    </TableCell>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Ad Campaigns</CardTitle>
+                        <CardDescription>An overview of all your ongoing and past campaigns.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Campaign Name</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Budget</TableHead>
+                                    <TableHead>Impressions</TableHead>
+                                    <TableHead>Clicks</TableHead>
+                                    <TableHead>CTR</TableHead>
+                                    <TableHead>Actions</TableHead>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-      </div>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                     <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                                ) : !db ? (
+                                    <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">Please configure Firebase to view campaigns.</TableCell></TableRow>
+                                ) : campaigns.length === 0 ? (
+                                    <TableRow><TableCell colSpan={7} className="h-24 text-center">No campaigns found.</TableCell></TableRow>
+                                ) : (
+                                    campaigns.map(campaign => (
+                                        <TableRow key={campaign.id}>
+                                            <TableCell className="font-medium">{campaign.campaignName}</TableCell>
+                                            <TableCell>{getStatusBadge(campaign.status)}</TableCell>
+                                            <TableCell>R{campaign.budget.toLocaleString()}</TableCell>
+                                            <TableCell>{campaign.impressions.toLocaleString()}</TableCell>
+                                            <TableCell>{campaign.clicks.toLocaleString()}</TableCell>
+                                            <TableCell>{calculateCTR(campaign.clicks, campaign.impressions)}</TableCell>
+                                            <TableCell>
+                                                <Button variant="link" className="p-0 h-auto" onClick={() => handleViewDetails(campaign)}>View Details</Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+              </div>
 
-      {/* Experiment Details View */}
-      <div className={cn(!showDetails && 'hidden', 'space-y-6')}>
-        <Button variant="ghost" onClick={handleBackToDashboard} className="mb-4 -ml-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-        </Button>
+              {/* Experiment Details View */}
+              <div className={cn(!showDetails && 'hidden', 'space-y-6')}>
+                <Button variant="ghost" onClick={handleBackToDashboard} className="mb-4 -ml-4">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+                </Button>
 
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-3xl">{selectedCampaign?.campaignName}</CardTitle>
-                <CardDescription>
-                    Live performance metrics for this campaign.
-                </CardDescription>
-            </CardHeader>
-        </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-3xl">{selectedCampaign?.campaignName}</CardTitle>
+                        <CardDescription>
+                            Live performance metrics for this campaign.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Budget</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-bold">R{selectedCampaign?.budget.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">Total allocated budget</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Impressions</CardTitle>
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-bold">{selectedCampaign?.impressions.toLocaleString()}</p>
-                     <p className="text-xs text-muted-foreground">Total times the ad was shown</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Clicks</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-bold">{selectedCampaign?.clicks.toLocaleString()}</p>
-                     <p className="text-xs text-muted-foreground">Total clicks on the ad</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Click-Through Rate</CardTitle>
-                    <BarChart className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-bold">{calculateCTR(selectedCampaign?.clicks || 0, selectedCampaign?.impressions || 0)}</p>
-                     <p className="text-xs text-muted-foreground">Ratio of clicks to impressions</p>
-                </CardContent>
-            </Card>
-        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Budget</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-2xl font-bold">R{selectedCampaign?.budget.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">Total allocated budget</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Impressions</CardTitle>
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-2xl font-bold">{selectedCampaign?.impressions.toLocaleString()}</p>
+                             <p className="text-xs text-muted-foreground">Total times the ad was shown</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Clicks</CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-2xl font-bold">{selectedCampaign?.clicks.toLocaleString()}</p>
+                             <p className="text-xs text-muted-foreground">Total clicks on the ad</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Click-Through Rate</CardTitle>
+                            <BarChart className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-2xl font-bold">{calculateCTR(selectedCampaign?.clicks || 0, selectedCampaign?.impressions || 0)}</p>
+                             <p className="text-xs text-muted-foreground">Ratio of clicks to impressions</p>
+                        </CardContent>
+                    </Card>
+                </div>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Performance Over Time</CardTitle>
-                <CardDescription>Feature coming soon: A chart visualizing live data on impressions, clicks, conversions, and ROI.</CardDescription>
-            </CardHeader>
-            <CardContent className="h-64 flex items-center justify-center bg-muted/50 rounded-md">
-                <p className="text-muted-foreground">Chart will be displayed here.</p>
-            </CardContent>
-        </Card>
-      </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Performance Over Time</CardTitle>
+                        <CardDescription>Feature coming soon: A chart visualizing live data on impressions, clicks, conversions, and ROI.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-64 flex items-center justify-center bg-muted/50 rounded-md">
+                        <p className="text-muted-foreground">Chart will be displayed here.</p>
+                    </CardContent>
+                </Card>
+              </div>
+        </TabsContent>
+        <TabsContent value="analytics">
+            <AnalyticsDashboard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
+}
 
     

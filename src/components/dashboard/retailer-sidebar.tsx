@@ -15,18 +15,16 @@ import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
 
-export default function RetailerSidebar() {
+export default function RetailerSidebar({
+    children,
+}: {
+    children?: React.ReactNode;
+}) {
   const { optionalModules } = theme;
 
   return (
       <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2 p-2">
-            <Link href="/" className="font-bold text-lg">
-               Retailer MVP
-            </Link>
-          </div>
-        </SidebarHeader>
+        {children}
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>

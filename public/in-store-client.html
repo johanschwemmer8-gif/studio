@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iNteract In-Store Display</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #content-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        #content-container img, #content-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .text-content {
+            padding: 2rem;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        .loading-text {
+            font-size: 1.5rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div id="content-container">
+        <p class="loading-text">Initializing Display...</p>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            "projectId": "interact-aoe-kidkn",
+            "appId": "1:783333671853:web:53f7f226c95ac08fbd5724",
+            "storageBucket": "interact-aoe-kidkn.firebasestorage.app",
+            "apiKey": "AIzaSyAuB__O0Bo4uQLeyZ3UH2wYpbEbcuGevFI",
+            "authDomain": "interact-aoe-kidkn.firebaseapp.com",
+            "messagingSenderId": "783333671853"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const contentContainer = document.getElementById('content-container');
+
+        // 1. Get displayId from URL parameter
+        const params = new URLSearchParams(window.location.search);
+        const displayId = params.get('displayId');
+
+        if (!displayId) {
+            contentContainer.innerHTML = `<div class="text-content" style="color: red;">Error: displayId parameter is missing.</div>`;
+        } else {
+            console.log(`Initializing display with ID: ${displayId}`);
+            
+            const displayDocRef = doc(db, "displays", displayId);
+            let contentUnsubscribe = null;
+
+            // 2. Use a real-time listener on the displays document
+            const displayUnsubscribe = onSnapshot(displayDocRef, (displayDoc) => {
+                if (!displayDoc.exists()) {
+                    contentContainer.innerHTML = `<div class="text-content" style="color: red;">Error: Display ID '${displayId}' not found.</div>`;
+                    return;
+                }
+
+                console.log("Display document updated:", displayDoc.data());
+                const displayData = displayDoc.data();
+                const contentConfigId = displayData.contentConfigId;
+
+                // Unsubscribe from previous content listener if it exists
+                if (contentUnsubscribe) {
+                    contentUnsubscribe();
+                }
+
+                if (contentConfigId) {
+                    // 3. Use another listener for the inStoreConfigs document
+                    const contentDocRef = doc(db, "inStoreConfigs", contentConfigId);
+                    console.log(`Listening to content config: ${contentConfigId}`);
+
+                    contentUnsubscribe = onSnapshot(contentDocRef, (contentDoc) => {
+                        if (!contentDoc.exists()) {
+                            contentContainer.innerHTML = `<p class="loading-text">Waiting for content...</p>`;
+                            return;
+                        }
+                        console.log("Content document updated:", contentDoc.data());
+                        const contentData = contentDoc.data();
+                        
+                        // 5. Dynamically render the content
+                        renderContent(contentData.contentSlot);
+                    });
+                } else {
+                     contentContainer.innerHTML = `<p class="loading-text">No content assigned.</p>`;
+                }
+            });
+
+            // 6. Periodically update the lastPing
+            setInterval(async () => {
+                try {
+                    await updateDoc(displayDocRef, {
+                        lastPing: serverTimestamp(),
+                        status: 'online'
+                    });
+                    console.log('Ping sent.');
+                } catch (error) {
+                    console.error("Failed to send ping:", error);
+                    // No need to update status to offline here, a backend function would do that if pings stop.
+                }
+            }, 60000); // Ping every 60 seconds
+        }
+
+        function renderContent(contentSlot) {
+            if (!contentSlot || !contentSlot.type) {
+                contentContainer.innerHTML = `<p class="loading-text">Invalid content format.</p>`;
+                return;
+            }
+
+            let html = '';
+            switch (contentSlot.type) {
+                case 'static_image':
+                    html = `<img src="${contentSlot.imageUrl}" alt="Display Content">`;
+                    break;
+                case 'dynamic_ai_prompt':
+                    html = `<div class="text-content">✨ ${contentSlot.prompt}</div>`;
+                    break;
+                case 'promotional_video':
+                    // Note: Videos will autoplay, might be muted by browser policy.
+                    html = `<video src="${contentSlot.videoUrl}" autoplay muted loop playsinline></video>`;
+                    break;
+                case 'product_showcase':
+                     html = `<div class="text-content">Now Showcasing: ${contentSlot.productSku}</div>`;
+                     break;
+                default:
+                    html = `<p class="loading-text">Unsupported content type: ${contentSlot.type}</p>`;
+            }
+            contentContainer.innerHTML = html;
+        }
+
+    </script>
+</body>
+</html>

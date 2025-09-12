@@ -15,10 +15,10 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -191,7 +191,9 @@ export default function DisplayManager() {
                 <form onSubmit={handleRegisterDisplay}>
                     <DialogHeader>
                         <DialogTitle>Register a New Display</DialogTitle>
-                        <DialogDescription>Select the store where this display will be located. A unique ID will be generated.</DialogDescription>
+                        <DialogDescription>
+                            Select the store where this display will be located. A unique ID will be generated upon registration.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
                         <Label htmlFor="storeId">Store Location</Label>

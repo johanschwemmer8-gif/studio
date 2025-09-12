@@ -33,6 +33,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 type User = {
   name: string;
@@ -46,6 +47,7 @@ export default function UserAdminPage() {
   const [users, setUsers] = useState<User[]>([
     { name: 'Admin User', email: 'admin@interact.io', role: 'Administrator' },
   ]);
+  const { toast } = useToast();
 
   const handleCreateUser = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,6 +56,10 @@ export default function UserAdminPage() {
     const email = (form.elements.namedItem('email') as HTMLInputElement).value;
 
     setUsers([...users, { name, email, role: 'Administrator' }]);
+    toast({
+        title: "User Created",
+        description: `${name} has been added to the user list.`,
+    });
     form.reset();
     setIsDialogOpen(false); 
   };

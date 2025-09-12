@@ -83,7 +83,7 @@ function LandingPageLogo() {
     };
 
     return (
-        <header className="absolute top-0 left-0 right-0 flex justify-between z-10 items-start">
+        <header className="absolute top-0 left-0 right-0 z-10" style={headerStyle}>
             <div className={logoContainerClass}>
                 <Link href="/" className="font-bold text-lg inline-block">
                     {logoUrl ? (
@@ -100,54 +100,6 @@ function LandingPageLogo() {
                     )}
                 </Link>
             </div>
-             <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="mr-4 mt-2">iNteract Dashboard</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                    <form onSubmit={handleLogin}>
-                    <DialogHeader>
-                        <DialogTitle>Admin Login</DialogTitle>
-                        <DialogDescription>
-                        Enter your credentials to access the iNteract Admin Panel.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="email" className="text-right">
-                            Email
-                        </Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            defaultValue="admin@interact.io"
-                            className="col-span-3"
-                            required
-                        />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="password" className="text-right">
-                            Password
-                        </Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            defaultValue="password"
-                            className="col-span-3"
-                            required
-                        />
-                        </div>
-                    </div>
-                    <DialogFooter className="sm:justify-between">
-                        <div className="flex gap-2">
-                            <Button type="button" variant="link" className="p-0 h-auto font-normal">Create new User</Button>
-                            <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={handleForgotPassword}>Forgot password?</Button>
-                        </div>
-                        <Button type="submit">Log in</Button>
-                    </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </header>
     );
 }
@@ -190,7 +142,58 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <LandingPageLogo />
+       <div className="absolute top-0 left-0 right-0 flex justify-between items-start z-10">
+          <LandingPageLogo />
+           <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
+              <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="mr-4 mt-2">iNteract Dashboard</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                  <form onSubmit={handleLogin}>
+                  <DialogHeader>
+                      <DialogTitle>Admin Login</DialogTitle>
+                      <DialogDescription>
+                      Enter your credentials to access the iNteract Admin Panel.
+                      </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="email" className="text-right">
+                          Email
+                      </Label>
+                      <Input
+                          id="email"
+                          type="email"
+                          defaultValue="admin@interact.io"
+                          className="col-span-3"
+                          required
+                      />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="password" className="text-right">
+                          Password
+                      </Label>
+                      <Input
+                          id="password"
+                          type="password"
+                          defaultValue="password"
+                          className="col-span-3"
+                          required
+                      />
+                      </div>
+                  </div>
+                  <DialogFooter className="sm:justify-between">
+                      <div className="flex gap-2">
+                          <Button type="button" variant="link" className="p-0 h-auto font-normal">Create new User</Button>
+                          <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={handleForgotPassword}>Forgot password?</Button>
+                      </div>
+                      <Button type="submit" size="sm">Log in</Button>
+                  </DialogFooter>
+                  </form>
+              </DialogContent>
+          </Dialog>
+      </div>
+
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="text-center">
           <h2 className="text-4xl md:text-5xl font-bold tracking-tighter mb-4">

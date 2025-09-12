@@ -17,12 +17,10 @@ import {
 type ChartData = { name: string; scans: number }[];
 type ScanFrequencyChartProps = {
   data: ChartData;
-  title: string;
-  description: string;
 };
 
 
-export default function ScanFrequencyChart({ data, title, description }: ScanFrequencyChartProps) {
+export default function ScanFrequencyChart({ data }: ScanFrequencyChartProps) {
   const chartConfig = {
     scans: {
       label: 'Scans',
@@ -33,9 +31,9 @@ export default function ScanFrequencyChart({ data, title, description }: ScanFre
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>Scan Frequency</CardTitle>
         <CardDescription>
-          {description}
+          Total QR code scans over the last 12 months.
         </CardDescription>
       </CardHeader>
       <CardContent>

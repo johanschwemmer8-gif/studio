@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag, Sparkles, AlertTriangle, DollarSign, BarChart, Gift, Repeat } from 'lucide-react';
-import ScanFrequencyChart from '@/components/dashboard/scan-frequency-chart';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { dashboardMetrics } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
@@ -221,8 +220,8 @@ export default function RoiPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <TimeBasedPerformanceChart data={monthlyEngagementConversionData} title="Monthly Engagement & Conversion" description="Engagement and conversion rates by month." />
-        <TimeBasedPerformanceChart data={dailyEngagementConversionData} title="Daily Engagement & Conversion" description="Engagement and conversion rates by day of the week." />
+        <TimeBasedPerformanceChart data={monthlyEngagementConversionData} title="Monthly Engagement &amp; Conversion" description="Engagement and conversion rates by month." />
+        <TimeBasedPerformanceChart data={dailyEngagementConversionData} title="Daily Engagement &amp; Conversion" description="Engagement and conversion rates by day of the week." />
       </div>
       
       <div className="grid grid-cols-1 gap-8">

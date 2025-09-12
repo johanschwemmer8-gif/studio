@@ -85,14 +85,6 @@ export default function RetailerSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="In-Store Config">
-                <Link href="/retailer-mvp/in-store-config">
-                  <Settings />
-                  <span>In-Store Config</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
             {optionalModules.abTesting && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="A/B Testing">

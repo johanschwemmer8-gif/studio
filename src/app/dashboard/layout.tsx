@@ -16,6 +16,48 @@ import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield,
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
+
+function SidebarLogo() {
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        // This effect runs only on the client side
+        const savedLogo = localStorage.getItem('interact-aoe-logo');
+        if (savedLogo) {
+            setLogoUrl(savedLogo);
+        }
+        
+        const handleStorageChange = () => {
+            const updatedLogo = localStorage.getItem('interact-aoe-logo');
+            setLogoUrl(updatedLogo);
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        
+        // Custom event to handle updates within the same tab
+        window.addEventListener('logoUpdated', handleStorageChange);
+
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('logoUpdated', handleStorageChange);
+        };
+    }, []);
+
+    return (
+         <Link href="/dashboard" className="flex items-center gap-2 px-2">
+            {logoUrl ? (
+                <Image src={logoUrl} alt="iNteract AOE Logo" width={128} height={50} className="w-32 h-auto" />
+            ) : (
+                 <div className="w-32 h-12 bg-muted rounded-md flex items-center justify-center">
+                    <span className="text-sm text-muted-foreground">Logo</span>
+                </div>
+            )}
+        </Link>
+    );
+}
+
 
 export default function DashboardLayout({
   children,
@@ -27,12 +69,7 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="p-2">
-             <Link href="/dashboard" className="flex items-center gap-2 px-2">
-                {/* This is where you can add your logo image */}
-                 <div className="w-32 h-12 bg-muted rounded-md flex items-center justify-center">
-                    <span className="text-sm text-muted-foreground">Logo</span>
-                </div>
-            </Link>
+            <SidebarLogo />
           </div>
         </SidebarHeader>
         <SidebarContent>

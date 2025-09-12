@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, UserPlus, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit, Eye, EyeOff, Upload, Save, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import {
   Dialog,
@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 type User = {
   name: string;
@@ -47,7 +48,16 @@ export default function UserAdminPage() {
   const [users, setUsers] = useState<User[]>([
     { name: 'Admin User', email: 'admin@interact.io', role: 'Administrator' },
   ]);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Load the saved logo from localStorage when the component mounts
+    const savedLogo = localStorage.getItem('interact-aoe-logo');
+    if (savedLogo) {
+      setLogoPreview(savedLogo);
+    }
+  }, []);
 
   const handleCreateUser = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -63,7 +73,36 @@ export default function UserAdminPage() {
     form.reset();
     setIsDialogOpen(false); 
   };
+  
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              setLogoPreview(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+      }
+  };
 
+  const handleSaveLogo = () => {
+      if (logoPreview) {
+          localStorage.setItem('interact-aoe-logo', logoPreview);
+           // Dispatch a custom event to notify other components (like the layout) instantly
+          window.dispatchEvent(new CustomEvent('logoUpdated'));
+          toast({
+              title: "Logo Saved",
+              description: "Your new logo has been saved and applied."
+          });
+      } else {
+          localStorage.removeItem('interact-aoe-logo');
+          window.dispatchEvent(new CustomEvent('logoUpdated'));
+           toast({
+              title: "Logo Removed",
+              description: "The logo has been removed."
+          });
+      }
+  };
 
   return (
     <div className="space-y-8">
@@ -81,8 +120,41 @@ export default function UserAdminPage() {
           Manage platform administrators, retailer users, and their associated permissions.
         </p>
       </div>
-
+      
       <Separator />
+
+      <Card>
+        <CardHeader>
+            <CardTitle>Brand Settings</CardTitle>
+            <CardDescription>Manage your global brand settings, like the main logo.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div>
+                <Label htmlFor="logo-upload">Platform Logo</Label>
+                <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 p-4 border rounded-lg">
+                    <div className="flex-shrink-0 w-32 h-16 bg-muted rounded-md flex items-center justify-center">
+                        {logoPreview ? (
+                            <Image src={logoPreview} alt="Logo Preview" width={128} height={64} className="object-contain h-full" />
+                        ) : (
+                            <div className="text-xs text-muted-foreground flex flex-col items-center gap-1">
+                                <ImageIcon className="h-6 w-6" />
+                                <span>Logo Preview</span>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex-1 w-full">
+                        <Input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
+                        <p className="text-xs text-muted-foreground mt-2">Upload a .png, .jpg, or .svg file. Max size: 1MB.</p>
+                    </div>
+                </div>
+            </div>
+             <Button onClick={handleSaveLogo}>
+                <Save className="mr-2 h-4 w-4" />
+                Save Logo
+            </Button>
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader className="flex flex-row justify-between items-start">

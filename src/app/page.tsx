@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { QrCode } from 'lucide-react';
 
 function LandingPageLogo() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -70,7 +72,7 @@ function LandingPageLogo() {
         };
     }, []);
 
-    const logoContainerClass = cn('w-full px-4 py-2', {
+    const logoContainerClass = cn('w-full px-2 py-2', {
         'text-left': logoAlign === 'flex-start',
         'text-center': logoAlign === 'center',
         'text-right': logoAlign === 'flex-end',
@@ -81,7 +83,7 @@ function LandingPageLogo() {
     };
 
     return (
-        <header style={headerStyle} className="absolute top-0 left-0 right-0 flex justify-between z-10">
+        <header className="absolute top-0 left-0 right-0 flex justify-between z-10 items-start">
             <div className={logoContainerClass}>
                 <Link href="/" className="font-bold text-lg inline-block">
                     {logoUrl ? (
@@ -100,7 +102,7 @@ function LandingPageLogo() {
             </div>
              <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="ghost" className="mr-4 mt-2">iNteract Dashboard</Button>
+                    <Button variant="ghost" size="sm" className="mr-4 mt-2">iNteract Dashboard</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                     <form onSubmit={handleLogin}>

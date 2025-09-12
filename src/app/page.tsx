@@ -70,14 +70,14 @@ function LandingPageLogo() {
         };
     }, []);
 
-    const logoContainerClass = cn('w-full', {
+    const logoContainerClass = cn('w-full px-4', {
         'text-left': logoAlign === 'flex-start',
         'text-center': logoAlign === 'center',
         'text-right': logoAlign === 'flex-end',
     });
 
     const headerStyle = {
-      padding: `${logoPadding}px`,
+      paddingTop: `${logoPadding}px`,
     };
 
     return (
@@ -100,7 +100,7 @@ function LandingPageLogo() {
             </div>
              <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="ghost">iNteract Dashboard</Button>
+                    <Button variant="ghost" className="mr-4">iNteract Dashboard</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                     <form onSubmit={handleLogin}>

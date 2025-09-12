@@ -40,41 +40,6 @@ export default function RetailerMvpLayout({
          <footer className="p-4 text-center text-xs text-muted-foreground border-t">
             <div className="flex items-center justify-center gap-2">
                 <span>Powered by iNteract AOE. Made in South Africa.</span>
-                 <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 900 600"
-                    className="h-3 w-auto"
-                >
-                    <rect fill="#DE3831" width="900" height="600" />
-                    <rect fill="#FFFFFF" y="200" width="900" height="200" />
-                    <path
-                        d="M0,200h900M0,400h900"
-                        stroke="#002395"
-                        strokeWidth="100"
-                    />
-                    <path
-                        d="M0,0 L450,300 L0,600 z"
-                        fill="#007A4D"
-                    />
-                    <path
-                        d="M0,0 L450,300 L0,600"
-                        stroke="#FFFFFF"
-                        strokeWidth="66.6"
-                        fill="none"
-                    />
-                     <path
-                        d="M0,0 L450,300 L0,600"
-                        stroke="#FFB612"
-                        strokeWidth="40"
-                        fill="none"
-                    />
-                     <path
-                        d="M0,0 L450,300 L0,600"
-                        stroke="#000000"
-                        strokeWidth="20"
-                        fill="none"
-                    />
-                </svg>
             </div>
         </footer>
       </SidebarInset>

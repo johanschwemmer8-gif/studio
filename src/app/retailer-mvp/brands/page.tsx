@@ -1,3 +1,4 @@
+
 'use client';
 
 import BrandQrTemplateGallery from '@/components/dashboard/brand-qr-template-gallery';

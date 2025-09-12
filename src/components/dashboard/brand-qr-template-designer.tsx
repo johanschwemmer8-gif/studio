@@ -483,5 +483,3 @@ function FormItem({ field, label, children, value, type }: { field: any, label: 
 
     return <div className="w-full">{itemContent}</div>;
 }
-
-    

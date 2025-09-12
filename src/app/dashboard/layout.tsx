@@ -136,7 +136,10 @@ export default function DashboardLayout({
             <SearchBar />
           </div>
         </header>
-        <main className="p-4 sm:p-6 lg:p-8 bg-background">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">{children}</main>
+        <footer className="p-4 text-center text-xs text-muted-foreground border-t">
+            Powered by iNteract AOE. Made in South Africa
+        </footer>
       </SidebarInset>
     </SidebarProvider>
   );

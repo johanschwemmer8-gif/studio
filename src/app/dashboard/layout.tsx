@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, Globe } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, Globe, Store } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
@@ -121,6 +121,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/core-integration">
                   <DatabaseZap />
                   <span>iNteract Core Integration</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Retailer Management">
+                <Link href="/dashboard/retailer-management">
+                  <Store />
+                  <span>Retailer Management</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

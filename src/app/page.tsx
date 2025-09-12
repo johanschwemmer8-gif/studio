@@ -38,17 +38,20 @@ function LandingPageLogo() {
             if (e.key === 'interact-aoe-logo') setLogoUrl(e.newValue);
             if (e.key === 'interact-aoe-logo-width') setLogoWidth(Number(e.newValue || 128));
         };
-        window.addEventListener('storage', handleStorageChange);
-        window.addEventListener('logoUpdated', () => {
+        
+        const handleCustomEvent = () => {
             const updatedLogo = localStorage.getItem('interact-aoe-logo');
             setLogoUrl(updatedLogo);
             const updatedWidth = localStorage.getItem('interact-aoe-logo-width');
             setLogoWidth(Number(updatedWidth || 128));
-        });
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('logoUpdated', handleCustomEvent);
 
         return () => {
             window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('logoUpdated', () => {});
+            window.removeEventListener('logoUpdated', handleCustomEvent);
         };
     }, []);
 
@@ -101,7 +104,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
+      <header className="absolute top-0 left-0 right-0 p-2 flex justify-between items-center z-10">
         <LandingPageLogo />
         <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
           <DialogTrigger asChild>

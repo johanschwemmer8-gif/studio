@@ -1,162 +1,272 @@
-<!DOCTYPE html>
+<!--
+  This client-side HTML file is intended to be run on a physical in-store display.
+  It fetches its configuration from Firestore in real-time.
+-->
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iNteract In-Store Display</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iNteract-AOE In-Store Display</title>
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-        #content-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        #content-container img, #content-container video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .text-content {
-            padding: 2rem;
-            font-size: 3rem;
-            font-weight: bold;
-        }
-        .loading-text {
-            font-size: 1.5rem;
-            color: #888;
-        }
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        background-color: #000;
+        color: #fff;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+          'Segoe UI Symbol';
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      #content {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #staticImage,
+      #videoPlayer {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      #promptContainer {
+        padding: 2rem;
+        font-size: 2.5vw;
+      }
+      #loading {
+        font-size: 2rem;
+      }
     </style>
-</head>
-<body>
-    <div id="content-container">
-        <p class="loading-text">Initializing Display...</p>
+  </head>
+  <body>
+    <div id="content">
+      <div id="loading">Loading Display...</div>
+      <img id="staticImage" style="display: none" />
+      <div id="promptContainer" style="display: none"></div>
+      <video id="videoPlayer" style="display: none" autoplay muted loop></video>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- 
+      This script is using the Firebase Web SDK (version 9).
+      In a production environment, you would bundle this using a tool like Webpack or Rollup.
+      For this example, we're using the CDN for simplicity.
+    -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        
-        const firebaseConfig = {
-            "projectId": "interact-aoe-kidkn",
-            "appId": "1:783333671853:web:53f7f226c95ac08fbd5724",
-            "storageBucket": "interact-aoe-kidkn.firebasestorage.app",
-            "apiKey": "AIzaSyAuB__O0Bo4uQLeyZ3UH2wYpbEbcuGevFI",
-            "authDomain": "interact-aoe-kidkn.firebaseapp.com",
-            "messagingSenderId": "783333671853"
-        };
+      import {
+        initializeApp
+      } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+      import {
+        getFirestore,
+        doc,
+        onSnapshot,
+        updateDoc,
+        serverTimestamp,
+        collection,
+        query,
+        orderBy,
+        limit,
+        deleteDoc,
+      } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const contentContainer = document.getElementById('content-container');
+      const firebaseConfig = {
+        "projectId": "interact-aoe-kidkn",
+        "appId": "1:783333671853:web:53f7f226c95ac08fbd5724",
+        "storageBucket": "interact-aoe-kidkn.firebasestorage.app",
+        "apiKey": "AIzaSyAuB__O0Bo4uQLeyZ3UH2wYpbEbcuGevFI",
+        "authDomain": "interact-aoe-kidkn.firebaseapp.com",
+        "measurementId": "",
+        "messagingSenderId": "783333671853"
+      };
 
-        // 1. Get displayId from URL parameter
-        const params = new URLSearchParams(window.location.search);
-        const displayId = params.get('displayId');
+      const contentEl = document.getElementById('content');
+      const loadingEl = document.getElementById('loading');
+      const staticImageEl = document.getElementById('staticImage');
+      const promptContainerEl = document.getElementById('promptContainer');
+      const videoPlayerEl = document.getElementById('videoPlayer');
 
-        if (!displayId) {
-            contentContainer.innerHTML = `<div class="text-content" style="color: red;">Error: displayId parameter is missing.</div>`;
-        } else {
-            console.log(`Initializing display with ID: ${displayId}`);
-            
-            const displayDocRef = doc(db, "displays", displayId);
-            let contentUnsubscribe = null;
+      let db;
 
-            // 2. Use a real-time listener on the displays document
-            const displayUnsubscribe = onSnapshot(displayDocRef, (displayDoc) => {
-                if (!displayDoc.exists()) {
-                    contentContainer.innerHTML = `<div class="text-content" style="color: red;">Error: Display ID '${displayId}' not found.</div>`;
-                    return;
-                }
+      /**
+       * Updates the on-screen content based on the config object.
+       */
+      function renderContent(config) {
+        // Hide all content elements first
+        staticImageEl.style.display = 'none';
+        promptContainerEl.style.display = 'none';
+        videoPlayerEl.style.display = 'none';
+        loadingEl.style.display = 'none';
 
-                console.log("Display document updated:", displayDoc.data());
-                const displayData = displayDoc.data();
-                const contentConfigId = displayData.contentConfigId;
-
-                // Unsubscribe from previous content listener if it exists
-                if (contentUnsubscribe) {
-                    contentUnsubscribe();
-                }
-
-                if (contentConfigId) {
-                    // 3. Use another listener for the inStoreConfigs document
-                    const contentDocRef = doc(db, "inStoreConfigs", contentConfigId);
-                    console.log(`Listening to content config: ${contentConfigId}`);
-
-                    contentUnsubscribe = onSnapshot(contentDocRef, (contentDoc) => {
-                        if (!contentDoc.exists()) {
-                            contentContainer.innerHTML = `<p class="loading-text">Waiting for content...</p>`;
-                            return;
-                        }
-                        console.log("Content document updated:", contentDoc.data());
-                        const contentData = contentDoc.data();
-                        
-                        // 5. Dynamically render the content
-                        renderContent(contentData.contentSlot);
-                    });
-                } else {
-                     contentContainer.innerHTML = `<p class="loading-text">No content assigned.</p>`;
-                }
-            });
-
-            // 6. Periodically update the lastPing
-            setInterval(async () => {
-                try {
-                    await updateDoc(displayDocRef, {
-                        lastPing: serverTimestamp(),
-                        status: 'online'
-                    });
-                    console.log('Ping sent.');
-                } catch (error) {
-                    console.error("Failed to send ping:", error);
-                    // No need to update status to offline here, a backend function would do that if pings stop.
-                }
-            }, 60000); // Ping every 60 seconds
+        if (!config || !config.type) {
+            loadingEl.style.display = 'block';
+            loadingEl.textContent = 'No active configuration found.';
+            return;
         }
 
-        function renderContent(contentSlot) {
-            if (!contentSlot || !contentSlot.type) {
-                contentContainer.innerHTML = `<p class="loading-text">Invalid content format.</p>`;
+        switch (config.type) {
+          case 'static_image':
+            if (config.imageUrl) {
+              staticImageEl.src = config.imageUrl;
+              staticImageEl.style.display = 'block';
+            }
+            break;
+          case 'dynamic_ai_prompt':
+             if (config.prompt) {
+              promptContainerEl.textContent = config.prompt;
+              promptContainerEl.style.display = 'block';
+            }
+            break;
+          case 'promotional_video':
+            if (config.videoUrl) {
+                videoPlayerEl.src = config.videoUrl;
+                videoPlayerEl.style.display = 'block';
+            }
+            break;
+          case 'product_showcase':
+            if (config.productSku) {
+                 promptContainerEl.innerHTML = `
+                    <h2>Now Showcasing</h2>
+                    <h1>${config.productSku}</h1>
+                 `;
+                 promptContainerEl.style.display = 'block';
+            }
+            break;
+          default:
+            loadingEl.textContent = `Unknown content type: ${config.type}`;
+            loadingEl.style.display = 'block';
+        }
+      }
+
+      /**
+       * Sets up a real-time listener for remote commands.
+       */
+       function listenForCommands(displayId) {
+        const commandsRef = collection(db, `displays/${displayId}/remoteCommands`);
+        const q = query(commandsRef, orderBy('issuedAt', 'desc'), limit(10));
+
+        onSnapshot(q, (snapshot) => {
+            snapshot.docChanges().forEach(async (change) => {
+                if (change.type === "added") {
+                    const commandData = change.doc.data();
+                    const commandRef = doc(db, `displays/${displayId}/remoteCommands`, change.doc.id);
+
+                    if (commandData.status !== 'PENDING') return;
+
+                    console.log(`Received command: ${commandData.command}`);
+
+                    try {
+                        // Acknowledge the command first
+                        await updateDoc(commandRef, { status: 'ACKNOWLEDGED' });
+
+                        switch (commandData.command) {
+                            case 'RESTART':
+                            case 'REFRESH_CONTENT':
+                                // Wait a moment before reloading to ensure the status update propagates.
+                                setTimeout(() => window.location.reload(true), 500);
+                                break;
+                            default:
+                                console.warn(`Unknown command: ${commandData.command}`);
+                                await updateDoc(commandRef, { status: 'FAILED', error: 'Unknown command' });
+                        }
+                        
+                        // After successful execution (or if it's a reload), delete the command.
+                        // For reload, this line might not be reached, so a cleanup process is good.
+                        await deleteDoc(commandRef);
+                        console.log(`Command ${change.doc.id} executed and deleted.`);
+
+                    } catch(error) {
+                        console.error("Error processing command: ", error);
+                        if (commandRef) {
+                            await updateDoc(commandRef, { status: 'FAILED', error: error.message });
+                        }
+                    }
+                }
+            });
+        }, (error) => {
+            console.error("Error listening for commands: ", error);
+            contentEl.innerHTML = `<h2>Command Listener Failed</h2><p>${error.message}</p>`;
+        });
+      }
+
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const displayId = urlParams.get('displayId');
+
+        if (!displayId) {
+          throw new Error('displayId parameter is missing from the URL.');
+        }
+        
+        loadingEl.textContent = `Initializing Display: ${displayId}`;
+
+        // Listen for remote commands
+        listenForCommands(displayId);
+
+        // Ping the server every 60 seconds to keep status 'online'
+        setInterval(() => {
+            const displayRef = doc(db, 'displays', displayId);
+            updateDoc(displayRef, {
+                lastPing: serverTimestamp()
+            }).catch(console.error);
+        }, 60000);
+        
+        // --- Firestore Real-time Listeners ---
+
+        const displayRef = doc(db, 'displays', displayId);
+        
+        // 1. Listen to the display document to get the contentConfigId
+        onSnapshot(displayRef, (displayDoc) => {
+            if (!displayDoc.exists()) {
+                throw new Error(`Display with ID ${displayId} not found.`);
+            }
+            const displayData = displayDoc.data();
+            const configId = displayData.contentConfigId;
+
+            if (!configId) {
+                renderContent(null); // No config assigned
                 return;
             }
 
-            let html = '';
-            switch (contentSlot.type) {
-                case 'static_image':
-                    html = `<img src="${contentSlot.imageUrl}" alt="Display Content">`;
-                    break;
-                case 'dynamic_ai_prompt':
-                    html = `<div class="text-content">✨ ${contentSlot.prompt}</div>`;
-                    break;
-                case 'promotional_video':
-                    // Note: Videos will autoplay, might be muted by browser policy.
-                    html = `<video src="${contentSlot.videoUrl}" autoplay muted loop playsinline></video>`;
-                    break;
-                case 'product_showcase':
-                     html = `<div class="text-content">Now Showcasing: ${contentSlot.productSku}</div>`;
-                     break;
-                default:
-                    html = `<p class="loading-text">Unsupported content type: ${contentSlot.type}</p>`;
-            }
-            contentContainer.innerHTML = html;
-        }
+            const configRef = doc(db, 'inStoreConfigs', configId);
+            
+            // 2. Listen to the config document to get the content
+            onSnapshot(configRef, (configDoc) => {
+                if (configDoc.exists()) {
+                     const configData = configDoc.data();
+                     // Render content only if this config is active
+                     if (configData.isActive) {
+                         renderContent(configData.contentSlot);
+                     } else {
+                         renderContent(null); // Config is not active
+                     }
+                } else {
+                    renderContent(null); // Config not found
+                }
+            }, (error) => {
+                console.error("Error fetching config doc:", error);
+                contentEl.innerHTML = `<h2>Error Loading Content</h2><p>${error.message}</p>`;
+            });
 
+        }, (error) => {
+            console.error("Error fetching display doc:", error);
+            contentEl.innerHTML = `<h2>Error Loading Display</h2><p>${error.message}</p>`;
+        });
+
+      } catch (error) {
+        console.error('Firebase Initialization Error:', error);
+        contentEl.innerHTML = `<h2>Initialization Failed</h2><p>${error.message}</p>`;
+      }
     </script>
-</body>
+  </body>
 </html>

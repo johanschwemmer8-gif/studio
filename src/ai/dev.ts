@@ -19,3 +19,4 @@ import '@/ai/flows/import-external-qr-codes.ts';
 import '@/ai/flows/delete-bulk-qr-request.ts';
 import '@/ai/flows/get-scan-events.ts';
 import '@/ai/flows/scan-analytics.ts';
+

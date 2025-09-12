@@ -3,6 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import ScanAnalytics from '@/components/dashboard/scan-analytics';
 
 export default function QrAnalyticsPage() {
     return (
@@ -16,19 +17,7 @@ export default function QrAnalyticsPage() {
 
             <Separator />
             
-            <Card>
-                <CardHeader>
-                    <CardTitle>Coming Soon</CardTitle>
-                    <CardDescription>
-                        The analytics section is currently under construction.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p>
-                        Detailed analytics and drilldown capabilities for your QR code campaigns will be available here shortly.
-                    </p>
-                </CardContent>
-            </Card>
+            <ScanAnalytics />
 
         </div>
     );

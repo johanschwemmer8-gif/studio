@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iNteract-AOE In-Store Display</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .product-card {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div id="content-container" class="w-full h-full max-w-7xl max-h-[1024px] aspect-video flex items-center justify-center">
+       <!-- Dynamic content will be injected here -->
+       <div class="text-center">
+            <h1 class="text-4xl font-bold">iNteract-AOE Display</h1>
+            <p class="text-2xl mt-2">Initializing...</p>
+       </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // --- CONFIGURATION ---
+        const displayId = new URLSearchParams(window.location.search).get('displayId') || 'display_sandton_001';
+        const retailerId = 'ret_123xyz';
+        const storeId = 'Sandton City';
+
+        const firebaseConfig = {
+            "projectId": "interact-aoe-kidkn",
+            "appId": "1:783333671853:web:53f7f226c95ac08fbd5724",
+            "storageBucket": "interact-aoe-kidkn.firebasestorage.app",
+            "apiKey": "AIzaSyAuB__O0Bo4uQLeyZ3UH2wYpbEbcuGevFI",
+            "authDomain": "interact-aoe-kidkn.firebaseapp.com",
+            "measurementId": "",
+            "messagingSenderId": "783333671853"
+        };
+
+        // --- INITIALIZATION ---
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const displayRef = db.collection('displays').doc(displayId);
+        
+        let currentConfigUnsubscribe = null;
+        let dynamicContentUnsubscribe = null;
+
+        // --- CORE LOGIC ---
+        function initializeDisplay() {
+            if (!displayId) {
+                document.getElementById('content-container').innerHTML = '<h1 class="text-red-500 text-2xl">Error: No Display ID provided.</h1>';
+                return;
+            }
+            
+            // 1. Listen for changes on the display document itself
+            displayRef.onSnapshot(doc => {
+                if (!doc.exists) {
+                    console.error("Display document not found!");
+                    return;
+                }
+                const displayData = doc.data();
+                updateHeartbeat(displayData.status);
+
+                const configId = displayData.contentConfigId;
+
+                // If config has changed, unsubscribe from old and subscribe to new
+                if (doc.metadata.hasPendingWrites === false) { // Avoid running on local cache changes
+                    listenForConfig(configId);
+                }
+            }, err => {
+                console.error("Error listening to display document:", err);
+            });
+
+            // 2. Listen for remote commands
+            listenForCommands();
+        }
+
+        function listenForCommands() {
+            const commandsRef = displayRef.collection('remoteCommands').orderBy('issuedAt', 'desc').limit(1);
+
+            commandsRef.onSnapshot(snapshot => {
+                if (snapshot.empty) return;
+
+                snapshot.forEach(async doc => {
+                    const commandData = doc.data();
+                    if (commandData.status === 'PENDING') {
+                        console.log(`Received command: ${commandData.command}`);
+                        
+                        try {
+                           await doc.ref.update({ status: 'ACKNOWLEDGED' });
+
+                            switch (commandData.command) {
+                                case 'REFRESH_CONTENT':
+                                case 'RESTART':
+                                    location.reload();
+                                    break;
+                                default:
+                                    console.warn(`Unknown command: ${commandData.command}`);
+                            }
+
+                            // Mark as completed and delete
+                            await doc.ref.update({ status: 'COMPLETED' });
+                            await doc.ref.delete();
+                            
+                        } catch (error) {
+                            console.error("Error processing command: ", error);
+                            await doc.ref.update({ status: 'FAILED', error: error.message });
+                        }
+                    }
+                });
+            });
+        }
+        
+        function listenForConfig(configId) {
+             // Unsubscribe from previous listeners to prevent multiple triggers
+            if (currentConfigUnsubscribe) currentConfigUnsubscribe();
+            if (dynamicContentUnsubscribe) dynamicContentUnsubscribe();
+
+            if (!configId) {
+                renderContent(null); // Render default screen if no config
+                return;
+            }
+
+            const configRef = db.collection('inStoreConfigs').where('configId', '==', configId).limit(1);
+            
+            currentConfigUnsubscribe = configRef.onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    console.warn(`Config ID "${configId}" not found.`);
+                    renderContent(null);
+                    return;
+                }
+                const configDoc = snapshot.docs[0];
+                renderContent(configDoc.data().contentSlot);
+            }, err => {
+                console.error("Error listening to config document:", err);
+            });
+        }
+
+        function renderContent(contentConfig) {
+            const container = document.getElementById('content-container');
+            container.innerHTML = ''; // Clear previous content
+
+            if (!contentConfig || !contentConfig.type) {
+                container.innerHTML = '<div class="text-center"><p class="text-2xl">Awaiting Configuration...</p></div>';
+                return;
+            }
+
+            switch (contentConfig.type) {
+                case 'static_image':
+                    if (contentConfig.imageUrl) {
+                        const img = document.createElement('img');
+                        img.src = contentConfig.imageUrl;
+                        img.className = "w-full h-full object-contain fade-in";
+                        container.appendChild(img);
+                    }
+                    break;
+                case 'dynamic_ai_prompt':
+                     container.innerHTML = `
+                        <div class="text-center space-y-4 fade-in">
+                            <h2 class="text-5xl font-bold text-yellow-300">AI Powered Display</h2>
+                            <p class="text-xl text-gray-300 italic">"${contentConfig.prompt}"</p>
+                        </div>
+                    `;
+                    break;
+                case 'promotional_video':
+                    const video = document.createElement('video');
+                    video.src = contentConfig.videoUrl;
+                    video.autoplay = true;
+                    video.loop = true;
+                    video.muted = true;
+                    video.className = "w-full h-full object-cover fade-in";
+                    container.appendChild(video);
+                    break;
+                case 'dynamic_content':
+                    if (dynamicContentUnsubscribe) dynamicContentUnsubscribe(); // Unsubscribe from previous listener
+                    
+                    let query = db.collection('products').where('retailerId', '==', retailerId);
+
+                    if (contentConfig.dynamicType === 'top_selling_products') {
+                        query = query.orderBy('salesCount', 'desc');
+                    } else if (contentConfig.dynamicType === 'low_inventory_items') {
+                        query = query.where('isAvailable', '==', true).orderBy('inventoryCount', 'asc');
+                    }
+                    
+                    dynamicContentUnsubscribe = query.limit(6).onSnapshot(snapshot => {
+                        if (snapshot.empty) {
+                             container.innerHTML = '<div class="text-center fade-in"><p class="text-3xl font-bold">Check out our newest products!</p></div>';
+                        } else {
+                            const products = snapshot.docs.map(doc => doc.data());
+                            container.innerHTML = renderProductShowcase(products);
+                        }
+                    }, err => {
+                        console.error(`Error fetching ${contentConfig.dynamicType}:`, err);
+                        container.innerHTML = `<div class="text-red-500">Error loading content.</div>`;
+                    });
+                    break;
+                default:
+                    container.innerHTML = '<div class="text-red-500">Unknown content type.</div>';
+            }
+        }
+        
+        function renderProductShowcase(products) {
+            const productGridHTML = products.map(product => `
+                <div class="product-card">
+                    <img src="${product.imageUrl}" alt="${product.name}" class="w-full h-48 object-cover rounded-md mb-4" />
+                    <h3 class="text-lg font-semibold truncate">${product.name}</h3>
+                    <p class="text-xl font-bold text-yellow-300">R${product.price.toFixed(2)}</p>
+                </div>
+            `).join('');
+
+            return `
+                <div class="w-full h-full p-4 fade-in">
+                    <h2 class="text-4xl font-bold text-center mb-6">Top Selling Products</h2>
+                    <div class="grid grid-cols-3 gap-6">
+                        ${productGridHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateHeartbeat(status) {
+            // In a real app, you might update a visual indicator. For now, we log.
+            console.log(`Display status: ${status}. Pinging server...`);
+            displayRef.update({
+                lastPing: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'online'
+            }).catch(err => console.error("Heartbeat failed:", err));
+        }
+
+        // --- START ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDisplay();
+            // Send a heartbeat ping every 60 seconds
+            setInterval(() => {
+                displayRef.get().then(doc => {
+                    if (doc.exists) updateHeartbeat(doc.data().status);
+                })
+            }, 60000);
+        });
+
+    </script>
+</body>
+</html>
+
+    

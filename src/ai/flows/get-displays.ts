@@ -7,7 +7,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
-import { Timestamp } from 'firebase-admin/firestore';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -23,7 +22,7 @@ const DisplaySchema = z.object({
     storeId: z.string(),
     contentConfigId: z.string().optional(),
     status: z.enum(['online', 'offline', 'error']),
-    lastPing: z.any(),
+    lastPing: z.string(),
 });
 export type Display = z.infer<typeof DisplaySchema>;
 
@@ -43,7 +42,10 @@ export const getDisplays = ai.defineFlow(
     // if (snapshot.empty) {
     //   return [];
     // }
-    // return snapshot.docs.map(doc => doc.data() as Display);
+    // return snapshot.docs.map(doc => {
+    //   const data = doc.data();
+    //   return { ...data, lastPing: data.lastPing.toDate().toISOString() } as Display;
+    // });
 
     // Mock data for prototyping:
     const now = new Date();
@@ -54,7 +56,7 @@ export const getDisplays = ai.defineFlow(
         storeId: 'Sandton City',
         contentConfigId: 'config_1716386400000',
         status: 'online',
-        lastPing: Timestamp.fromDate(now),
+        lastPing: now.toISOString(),
       },
       {
         displayId: 'display_waterfront_002',
@@ -62,7 +64,7 @@ export const getDisplays = ai.defineFlow(
         storeId: 'V&A Waterfront',
         contentConfigId: 'config_1716386400000',
         status: 'offline',
-        lastPing: Timestamp.fromDate(new Date(now.getTime() - 2 * 60 * 60 * 1000)), // 2 hours ago
+        lastPing: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
       },
       {
         displayId: 'display_gateway_003',
@@ -70,7 +72,7 @@ export const getDisplays = ai.defineFlow(
         storeId: 'Gateway Theatre of Shopping',
         contentConfigId: '',
         status: 'error',
-        lastPing: Timestamp.fromDate(new Date(now.getTime() - 24 * 60 * 60 * 1000)), // 1 day ago
+        lastPing: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
       },
     ];
   }

@@ -31,14 +31,12 @@ import { registerDisplay } from '@/ai/flows/register-display';
 import { storesByRegion } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-function ClientFormattedDate({ timestamp }: { timestamp: any }) {
+function ClientFormattedDate({ timestamp }: { timestamp: string }) {
   const [formattedDate, setFormattedDate] = useState('');
 
   useEffect(() => {
-    if (timestamp && typeof timestamp.toDate === 'function') {
-      setFormattedDate(new Date(timestamp.toDate()).toLocaleString());
-    } else if (timestamp) {
-       setFormattedDate(new Date(timestamp).toLocaleString());
+    if (timestamp) {
+      setFormattedDate(new Date(timestamp).toLocaleString());
     }
   }, [timestamp]);
 

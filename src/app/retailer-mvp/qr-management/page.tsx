@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,37 +18,15 @@ export default function QrManagementPage() {
             
             <Card>
                 <CardHeader>
-                    <CardTitle>Bulk Campaign Management</CardTitle>
+                    <CardTitle>QR Code Management</CardTitle>
                     <CardDescription>
                         This section is under development.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <p>
-                        Comprehensive tools for generating, managing, and analyzing your bulk QR code campaigns will be available here shortly.
+                        Comprehensive tools for generating, managing, and analyzing your QR code campaigns will be available here shortly.
                     </p>
-                </CardContent>
-            </Card>
-
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Paintbrush className="text-primary" />
-                        Brand QR Templates
-                    </CardTitle>
-                    <CardDescription>
-                        Design and manage QR code styles for each of your brands to ensure a consistent customer experience.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground mb-4">
-                        Click the button below to access the brand template designer.
-                    </p>
-                    <Button asChild>
-                        <Link href="/retailer-mvp/brands">
-                           Manage Templates
-                        </Link>
-                    </Button>
                 </CardContent>
             </Card>
 

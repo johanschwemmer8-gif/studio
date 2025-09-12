@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -13,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, MonitorSmartphone, Globe } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, Globe } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
@@ -43,7 +42,10 @@ function SidebarLogo() {
             }
         };
 
-        const handleCustomEvent = () => {
+        const handleCustomEvent = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail.key !== 'interact-aoe-logo') return;
+
             const updatedLogo = localStorage.getItem('interact-aoe-logo');
             setLogoUrl(updatedLogo);
             const updatedWidth = localStorage.getItem('interact-aoe-logo-width');

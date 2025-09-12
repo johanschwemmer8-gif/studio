@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, UserPlus, Trash2, Edit, Eye, EyeOff, Upload, Save, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Edit, Eye, EyeOff, Save, Image as ImageIcon, AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd } from 'lucide-react';
 import Link from 'next/link';
 import {
   Dialog,
@@ -36,6 +36,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 type User = {
   name: string;
@@ -49,20 +51,29 @@ export default function UserAdminPage() {
   const [users, setUsers] = useState<User[]>([
     { name: 'Admin User', email: 'admin@interact.io', role: 'Administrator' },
   ]);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [logoWidth, setLogoWidth] = useState(128);
+  const [dashboardLogoPreview, setDashboardLogoPreview] = useState<string | null>(null);
+  const [dashboardLogoWidth, setDashboardLogoWidth] = useState(128);
+  
+  const [landingLogoPreview, setLandingLogoPreview] = useState<string | null>(null);
+  const [landingLogoWidth, setLandingLogoWidth] = useState(128);
+  const [landingLogoAlign, setLandingLogoAlign] = useState('flex-start');
+
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load the saved logo from localStorage when the component mounts
-    const savedLogo = localStorage.getItem('interact-aoe-logo');
-    if (savedLogo) {
-      setLogoPreview(savedLogo);
-    }
-    const savedWidth = localStorage.getItem('interact-aoe-logo-width');
-    if (savedWidth) {
-        setLogoWidth(Number(savedWidth));
-    }
+    // Load dashboard logo
+    const savedDashboardLogo = localStorage.getItem('interact-aoe-logo');
+    if (savedDashboardLogo) setDashboardLogoPreview(savedDashboardLogo);
+    const savedDashboardWidth = localStorage.getItem('interact-aoe-logo-width');
+    if (savedDashboardWidth) setDashboardLogoWidth(Number(savedDashboardWidth));
+
+    // Load landing page logo
+    const savedLandingLogo = localStorage.getItem('landing-page-logo');
+    if (savedLandingLogo) setLandingLogoPreview(savedLandingLogo);
+    const savedLandingWidth = localStorage.getItem('landing-page-logo-width');
+    if (savedLandingWidth) setLandingLogoWidth(Number(savedLandingWidth));
+    const savedLandingAlign = localStorage.getItem('landing-page-logo-align');
+    if (savedLandingAlign) setLandingLogoAlign(savedLandingAlign);
   }, []);
 
   const handleCreateUser = (event: React.FormEvent<HTMLFormElement>) => {
@@ -80,35 +91,44 @@ export default function UserAdminPage() {
     setIsDialogOpen(false); 
   };
   
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>, type: 'dashboard' | 'landing') => {
       const file = event.target.files?.[0];
       if (file) {
           const reader = new FileReader();
           reader.onloadend = () => {
-              setLogoPreview(reader.result as string);
+              if (type === 'dashboard') {
+                  setDashboardLogoPreview(reader.result as string);
+              } else {
+                  setLandingLogoPreview(reader.result as string);
+              }
           };
           reader.readAsDataURL(file);
       }
   };
 
-  const handleSaveLogo = () => {
-      if (logoPreview) {
-          localStorage.setItem('interact-aoe-logo', logoPreview);
-          localStorage.setItem('interact-aoe-logo-width', String(logoWidth));
-           // Dispatch a custom event to notify other components (like the layout) instantly
-          window.dispatchEvent(new CustomEvent('logoUpdated'));
-          toast({
-              title: "Logo Saved",
-              description: "Your new logo and size settings have been saved."
-          });
+  const handleSaveLogo = (type: 'dashboard' | 'landing') => {
+      if (type === 'dashboard') {
+          if (dashboardLogoPreview) {
+              localStorage.setItem('interact-aoe-logo', dashboardLogoPreview);
+              localStorage.setItem('interact-aoe-logo-width', String(dashboardLogoWidth));
+          } else {
+              localStorage.removeItem('interact-aoe-logo');
+              localStorage.removeItem('interact-aoe-logo-width');
+          }
+          window.dispatchEvent(new CustomEvent('logoUpdated', { detail: { key: 'interact-aoe-logo' }}));
+          toast({ title: "Dashboard Logo Saved" });
       } else {
-          localStorage.removeItem('interact-aoe-logo');
-          localStorage.removeItem('interact-aoe-logo-width');
-          window.dispatchEvent(new CustomEvent('logoUpdated'));
-           toast({
-              title: "Logo Removed",
-              description: "The logo has been removed."
-          });
+          if (landingLogoPreview) {
+              localStorage.setItem('landing-page-logo', landingLogoPreview);
+              localStorage.setItem('landing-page-logo-width', String(landingLogoWidth));
+              localStorage.setItem('landing-page-logo-align', landingLogoAlign);
+          } else {
+              localStorage.removeItem('landing-page-logo');
+              localStorage.removeItem('landing-page-logo-width');
+              localStorage.removeItem('landing-page-logo-align');
+          }
+          window.dispatchEvent(new CustomEvent('logoUpdated', { detail: { key: 'landing-page-logo' }}));
+          toast({ title: "Landing Page Logo Saved" });
       }
   };
 
@@ -133,22 +153,22 @@ export default function UserAdminPage() {
 
       <Card>
         <CardHeader>
-            <CardTitle>Brand Settings</CardTitle>
-            <CardDescription>Manage your global brand settings, like the main logo.</CardDescription>
+            <CardTitle>Dashboard Brand Settings</CardTitle>
+            <CardDescription>Manage your global brand settings for the main dashboard, like the logo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div>
-                <Label htmlFor="logo-upload">Platform Logo</Label>
+                <Label htmlFor="dashboard-logo-upload">Platform Logo</Label>
                 <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 p-4 border rounded-lg">
                     <div className="flex-shrink-0 w-48 h-20 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                        {logoPreview ? (
+                        {dashboardLogoPreview ? (
                             <Image 
-                                src={logoPreview} 
+                                src={dashboardLogoPreview} 
                                 alt="Logo Preview" 
-                                width={logoWidth} 
-                                height={logoWidth / (128/50)}
+                                width={dashboardLogoWidth} 
+                                height={dashboardLogoWidth / (128/50)}
                                 className="h-auto"
-                                style={{ width: `${logoWidth}px` }}
+                                style={{ width: `${dashboardLogoWidth}px` }}
                             />
                         ) : (
                             <div className="text-xs text-muted-foreground flex flex-col items-center gap-1">
@@ -158,25 +178,77 @@ export default function UserAdminPage() {
                         )}
                     </div>
                     <div className="flex-1 w-full space-y-4">
-                        <Input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
+                        <Input id="dashboard-logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={(e) => handleLogoUpload(e, 'dashboard')} />
                          <div>
-                            <Label htmlFor="logo-size">Logo Width: {logoWidth}px</Label>
+                            <Label htmlFor="dashboard-logo-size">Logo Width: {dashboardLogoWidth}px</Label>
                             <Slider
-                                id="logo-size"
+                                id="dashboard-logo-size"
                                 min={40}
                                 max={240}
                                 step={2}
-                                value={[logoWidth]}
-                                onValueChange={(value) => setLogoWidth(value[0])}
+                                value={[dashboardLogoWidth]}
+                                onValueChange={(value) => setDashboardLogoWidth(value[0])}
                             />
                         </div>
                         <p className="text-xs text-muted-foreground">Upload a .png, .jpg, or .svg file. Max size: 1MB.</p>
                     </div>
                 </div>
             </div>
-             <Button onClick={handleSaveLogo}>
+             <Button onClick={() => handleSaveLogo('dashboard')}>
                 <Save className="mr-2 h-4 w-4" />
-                Save Logo Settings
+                Save Dashboard Logo
+            </Button>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+            <CardTitle>Login Page Brand Settings</CardTitle>
+            <CardDescription>Customize the logo and its position on the public-facing login/landing page.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div>
+                <Label htmlFor="landing-logo-upload">Landing Page Logo</Label>
+                <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 p-4 border rounded-lg">
+                    <div className="flex-shrink-0 w-48 h-20 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                        {landingLogoPreview ? (
+                            <Image src={landingLogoPreview} alt="Landing Logo Preview" width={landingLogoWidth} height={landingLogoWidth / (128/50)} className="h-auto" style={{ width: `${landingLogoWidth}px` }}/>
+                        ) : (
+                            <div className="text-xs text-muted-foreground flex flex-col items-center gap-1"><ImageIcon className="h-6 w-6" /><span>Logo Preview</span></div>
+                        )}
+                    </div>
+                    <div className="flex-1 w-full space-y-4">
+                        <Input id="landing-logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={(e) => handleLogoUpload(e, 'landing')} />
+                         <div>
+                            <Label htmlFor="landing-logo-size">Logo Width: {landingLogoWidth}px</Label>
+                            <Slider id="landing-logo-size" min={40} max={240} step={2} value={[landingLogoWidth]} onValueChange={(value) => setLandingLogoWidth(value[0])}/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <Label>Logo Position</Label>
+                 <RadioGroup value={landingLogoAlign} onValueChange={setLandingLogoAlign} className="grid sm:grid-cols-3 gap-4 mt-2">
+                    <Label htmlFor="align-left" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'flex-start' && "border-primary")}>
+                        <RadioGroupItem value="flex-start" id="align-left" className="sr-only" />
+                        <AlignHorizontalJustifyStart className="mb-3 h-6 w-6" />
+                        Left
+                    </Label>
+                     <Label htmlFor="align-center" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'center' && "border-primary")}>
+                        <RadioGroupItem value="center" id="align-center" className="sr-only" />
+                        <AlignHorizontalJustifyCenter className="mb-3 h-6 w-6" />
+                        Center
+                    </Label>
+                     <Label htmlFor="align-right" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'flex-end' && "border-primary")}>
+                        <RadioGroupItem value="flex-end" id="align-right" className="sr-only" />
+                        <AlignHorizontalJustifyEnd className="mb-3 h-6 w-6" />
+                        Right
+                    </Label>
+                </RadioGroup>
+            </div>
+             <Button onClick={() => handleSaveLogo('landing')}>
+                <Save className="mr-2 h-4 w-4" />
+                Save Landing Page Logo
             </Button>
         </CardContent>
       </Card>

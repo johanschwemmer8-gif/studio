@@ -19,31 +19,39 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 function LandingPageLogo() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoWidth, setLogoWidth] = useState<number>(128);
+    const [logoAlign, setLogoAlign] = useState('flex-start');
 
     useEffect(() => {
-        const savedLogo = localStorage.getItem('interact-aoe-logo');
-        if (savedLogo) {
-            setLogoUrl(savedLogo);
-        }
-        const savedWidth = localStorage.getItem('interact-aoe-logo-width');
-        if (savedWidth) {
-            setLogoWidth(Number(savedWidth));
-        }
+        const savedLogo = localStorage.getItem('landing-page-logo');
+        if (savedLogo) setLogoUrl(savedLogo);
+
+        const savedWidth = localStorage.getItem('landing-page-logo-width');
+        if (savedWidth) setLogoWidth(Number(savedWidth));
+        
+        const savedAlign = localStorage.getItem('landing-page-logo-align');
+        if (savedAlign) setLogoAlign(savedAlign);
 
         const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'interact-aoe-logo') setLogoUrl(e.newValue);
-            if (e.key === 'interact-aoe-logo-width') setLogoWidth(Number(e.newValue || 128));
+            if (e.key === 'landing-page-logo') setLogoUrl(e.newValue);
+            if (e.key === 'landing-page-logo-width') setLogoWidth(Number(e.newValue || 128));
+            if (e.key === 'landing-page-logo-align') setLogoAlign(e.newValue || 'flex-start');
         };
         
-        const handleCustomEvent = () => {
-            const updatedLogo = localStorage.getItem('interact-aoe-logo');
+        const handleCustomEvent = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail.key !== 'landing-page-logo') return;
+
+            const updatedLogo = localStorage.getItem('landing-page-logo');
             setLogoUrl(updatedLogo);
-            const updatedWidth = localStorage.getItem('interact-aoe-logo-width');
+            const updatedWidth = localStorage.getItem('landing-page-logo-width');
             setLogoWidth(Number(updatedWidth || 128));
+            const updatedAlign = localStorage.getItem('landing-page-logo-align');
+            setLogoAlign(updatedAlign || 'flex-start');
         };
 
         window.addEventListener('storage', handleStorageChange);
@@ -55,21 +63,29 @@ function LandingPageLogo() {
         };
     }, []);
 
+    const logoContainerClass = cn('w-full', {
+        'text-left': logoAlign === 'flex-start',
+        'text-center': logoAlign === 'center',
+        'text-right': logoAlign === 'flex-end',
+    });
+
     return (
-        <Link href="/" className="font-bold text-lg">
-            {logoUrl ? (
-                <Image
-                    src={logoUrl}
-                    alt="iNteract AOE Logo"
-                    width={logoWidth}
-                    height={logoWidth / (128 / 50)} // Maintain aspect ratio
-                    className="h-auto"
-                    style={{ width: `${logoWidth}px` }}
-                />
-            ) : (
-                <span>iNteract AOE</span>
-            )}
-        </Link>
+        <div className={logoContainerClass}>
+            <Link href="/" className="font-bold text-lg inline-block">
+                {logoUrl ? (
+                    <Image
+                        src={logoUrl}
+                        alt="iNteract AOE Logo"
+                        width={logoWidth}
+                        height={logoWidth / (128 / 50)} // Maintain aspect ratio
+                        className="h-auto"
+                        style={{ width: `${logoWidth}px` }}
+                    />
+                ) : (
+                    <span>iNteract AOE</span>
+                )}
+            </Link>
+        </div>
     );
 }
 

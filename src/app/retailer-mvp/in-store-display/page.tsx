@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { analytics, remoteConfig } from '@/lib/firebase';
 import { fetchAndActivate, getString } from 'firebase/remote-config';
 import { logEvent } from 'firebase/analytics';
@@ -17,16 +17,39 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, Sparkles, Tv } from 'lucide-react';
+import { Save, Sparkles, Tv, Loader2, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
 import DisplayManager from '@/components/dashboard/display-manager';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 type ContentType = 'static_image' | 'dynamic_ai_prompt' | 'promotional_video' | 'product_showcase';
+
+type InStoreConfig = {
+    id: string;
+    configName: string;
+    contentSlot: any;
+    lastUpdated: Timestamp;
+};
 
 function LivePreview({ config }: { config: any }) {
   return (
@@ -72,19 +95,34 @@ export default function InStoreDisplayPage() {
   
   const [contentType, setContentType] = useState<ContentType>('dynamic_ai_prompt');
   const [config, setConfig] = useState<any>({type: 'dynamic_ai_prompt', prompt: 'Highlight today\'s best deals.'});
+  const [configName, setConfigName] = useState('');
   const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  
+  const [inStoreConfigs, setInStoreConfigs] = useState<InStoreConfig[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(true);
 
-   useEffect(() => {
-    if (!db) return;
-    const unsubscribe = onSnapshot(collection(db, 'inStoreConfigs'), (snapshot) => {
-        if (!snapshot.empty) {
-            // Get the latest config
-            const latestDoc = snapshot.docs[snapshot.docs.length - 1];
-            setConfig(latestDoc.data().contentSlot);
-        }
+  useEffect(() => {
+    if (!db) {
+        setLoadingConfigs(false);
+        return;
+    }
+    const q = query(collection(db, 'inStoreConfigs'), orderBy('lastUpdated', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const configsData: InStoreConfig[] = [];
+        snapshot.forEach(doc => {
+            configsData.push({ id: doc.id, ...doc.data() } as InStoreConfig);
+        });
+        setInStoreConfigs(configsData);
+        setLoadingConfigs(false);
+    }, (error) => {
+        console.error("Error fetching configs: ", error);
+        toast({ title: 'Error', description: 'Could not fetch configurations.', variant: 'destructive'});
+        setLoadingConfigs(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (remoteConfig) {
@@ -139,26 +177,39 @@ export default function InStoreDisplayPage() {
     }
   };
   
-  const handleSave = async () => {
+  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
+     event.preventDefault();
      if (!db) {
         toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
         return;
     }
+    if (!configName.trim()) {
+        toast({ title: 'Error', description: 'Configuration Name is required.', variant: 'destructive'});
+        return;
+    }
+
+    setIsSaving(true);
     try {
         await addDoc(collection(db, 'inStoreConfigs'), {
             retailerId: 'ret_123xyz',
             configId: `config_${Date.now()}`,
+            configName: configName,
             contentSlot: config,
-            isActive: false, // Default to inactive, activate from the management table
+            isActive: false, 
             lastUpdated: serverTimestamp()
         });
         toast({
             title: "Configuration Saved!",
-            description: "The new in-store display content has been saved.",
+            description: `"${configName}" has been saved.`,
         });
+        setIsConfigModalOpen(false);
+        setConfigName('');
+        setConfig({type: 'dynamic_ai_prompt', prompt: 'Highlight today\'s best deals.'});
     } catch (error) {
         console.error("Error saving config: ", error);
         toast({ title: 'Error', description: 'Failed to save configuration.', variant: 'destructive'});
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -171,76 +222,126 @@ export default function InStoreDisplayPage() {
             </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 items-start">
-            <div className="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Content Configuration</CardTitle>
-                        <CardDescription>Select a content type and define its settings.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label htmlFor="content-type">Content Type</Label>
-                            <Select onValueChange={handleContentTypeChange} value={contentType}>
-                                <SelectTrigger id="content-type">
-                                    <SelectValue placeholder="Select a content type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="dynamic_ai_prompt">Dynamic AI Prompt</SelectItem>
-                                    <SelectItem value="static_image">Static Image</SelectItem>
-                                    <SelectItem value="promotional_video">Promotional Video</SelectItem>
-                                    <SelectItem value="product_showcase">Product Showcase</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        
-                        {contentType === 'dynamic_ai_prompt' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="ai-prompt">AI Prompt</Label>
-                                <Textarea 
-                                    id="ai-prompt" 
-                                    placeholder="e.g., 'Show a welcome message and highlight products on sale.'"
-                                    value={config.prompt || ''}
-                                    onChange={e => handleConfigChange('prompt', e.target.value)}
-                                />
+        <Card>
+            <CardHeader className="flex flex-row justify-between items-start">
+                <div>
+                    <CardTitle>Content Configurations</CardTitle>
+                    <CardDescription>Manage the library of content to be shown on your displays.</CardDescription>
+                </div>
+                <Dialog open={isConfigModalOpen} onOpenChange={setIsConfigModalOpen}>
+                    <DialogTrigger asChild>
+                         <Button><PlusCircle className="mr-2"/> Create New Configuration</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl grid-rows-[auto,1fr] p-0 max-h-[90vh]">
+                         <DialogHeader className="p-6 pb-0">
+                            <DialogTitle>Create New Content Configuration</DialogTitle>
+                            <DialogDescription>Define the content and settings for a new display configuration.</DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleSave} className="grid md:grid-cols-3 md:gap-8 overflow-y-auto p-6">
+                            <div className="md:col-span-2 space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Configuration Details</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="configName" className="font-semibold">Configuration Name</Label>
+                                            <Input 
+                                                id="configName"
+                                                placeholder="e.g., 'Summer Sale Welcome Screen'"
+                                                value={configName}
+                                                onChange={e => setConfigName(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Content Setup</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div>
+                                            <Label htmlFor="content-type">Content Type</Label>
+                                            <Select onValueChange={handleContentTypeChange} value={contentType}>
+                                                <SelectTrigger id="content-type"><SelectValue placeholder="Select a content type" /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="dynamic_ai_prompt">Dynamic AI Prompt</SelectItem>
+                                                    <SelectItem value="static_image">Static Image</SelectItem>
+                                                    <SelectItem value="promotional_video">Promotional Video</SelectItem>
+                                                    <SelectItem value="product_showcase">Product Showcase</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        
+                                        {contentType === 'dynamic_ai_prompt' && (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="ai-prompt">AI Prompt</Label>
+                                                <Textarea id="ai-prompt" placeholder="e.g., 'Show a welcome message and highlight products on sale.'" value={config.prompt || ''} onChange={e => handleConfigChange('prompt', e.target.value)} />
+                                            </div>
+                                        )}
+                                        {contentType === 'static_image' && (
+                                             <div className="space-y-2">
+                                                <Label htmlFor="image-upload">Image</Label>
+                                                <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} />
+                                            </div>
+                                        )}
+                                        {contentType === 'promotional_video' && (
+                                             <div className="space-y-4">
+                                                <div className="space-y-2"><Label htmlFor="video-headline">Headline</Label><Input id="video-headline" placeholder="e.g., 'Unmissable Summer Deals!'" value={config.videoHeadline || ''} onChange={e => handleConfigChange('videoHeadline', e.target.value)} /></div>
+                                                <div className="space-y-2"><Label htmlFor="video-url">Video URL</Label><Input id="video-url" placeholder="https://example.com/video.mp4" value={config.videoUrl || ''} onChange={e => handleConfigChange('videoUrl', e.target.value)} /></div>
+                                            </div>
+                                        )}
+                                        {contentType === 'product_showcase' && (
+                                            <div className="space-y-2"><Label htmlFor="product-sku">Product SKU</Label><Input id="product-sku" placeholder="Enter product SKU to showcase" value={config.productSku || ''} onChange={e => handleConfigChange('productSku', e.target.value)} /></div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
-                        )}
-                        {contentType === 'static_image' && (
-                             <div className="space-y-2">
-                                <Label htmlFor="image-upload">Image</Label>
-                                <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} />
+                            <div className="md:col-span-1">
+                                <LivePreview config={config} />
                             </div>
+                            <DialogFooter className="col-span-full">
+                                <Button type="submit" size="lg" disabled={isSaving}>
+                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                    <Save className="mr-2 h-4 w-4"/>
+                                    Save Configuration
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </CardHeader>
+            <CardContent>
+                 <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Configuration Name</TableHead>
+                            <TableHead>Last Updated</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {loadingConfigs ? (
+                            <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                        ) : inStoreConfigs.length === 0 ? (
+                            <TableRow><TableCell colSpan={3} className="h-24 text-center text-muted-foreground">No configurations created yet.</TableCell></TableRow>
+                        ) : (
+                            inStoreConfigs.map(cfg => (
+                                <TableRow key={cfg.id}>
+                                    <TableCell className="font-medium">{cfg.configName}</TableCell>
+                                    <TableCell>{cfg.lastUpdated ? new Date(cfg.lastUpdated.toDate()).toLocaleString() : 'N/A'}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
                         )}
-                        {contentType === 'promotional_video' && (
-                             <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="video-headline">Headline</Label>
-                                    <Input id="video-headline" placeholder="e.g., 'Unmissable Summer Deals!'" value={config.videoHeadline || ''} onChange={e => handleConfigChange('videoHeadline', e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="video-url">Video URL</Label>
-                                    <Input id="video-url" placeholder="https://example.com/video.mp4" value={config.videoUrl || ''} onChange={e => handleConfigChange('videoUrl', e.target.value)} />
-                                </div>
-                            </div>
-                        )}
-                        {contentType === 'product_showcase' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="product-sku">Product SKU</Label>
-                                <Input id="product-sku" placeholder="Enter product SKU to showcase" value={config.productSku || ''} onChange={e => handleConfigChange('productSku', e.target.value)} />
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-                <Button onClick={handleSave} size="lg">
-                    <Save className="mr-2 h-4 w-4"/>
-                    Save & Publish Configuration
-                </Button>
-            </div>
-
-            <div>
-                <LivePreview config={config} />
-            </div>
-        </div>
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
 
         <Separator />
         

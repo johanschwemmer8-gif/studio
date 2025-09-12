@@ -1,3 +1,4 @@
+
 import { findProductById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -8,6 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProductChatbot from '@/components/product/product-chatbot';
 import theme from '@/config/theme.json';
+import SponsoredProduct from '@/components/product/sponsored-product';
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const product = findProductById(params.id);
@@ -50,11 +52,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             {optionalModules.productChatbot && <ProductChatbot product={product} />}
           </div>
         </div>
+        
         {optionalModules.aiRecommendations && (
             <div className="mt-12 lg:mt-16">
                 <AiRecommendations product={product} />
             </div>
         )}
+
+        {optionalModules.retailMediaNetwork && <SponsoredProduct />}
       </div>
     </div>
   );

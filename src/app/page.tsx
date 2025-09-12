@@ -81,7 +81,7 @@ function LandingPageLogo() {
     };
 
     return (
-        <header style={headerStyle} className="absolute top-0 left-0 right-0 flex justify-between items-center z-10">
+        <header style={headerStyle} className="absolute top-0 left-0 right-0 flex justify-between z-10">
             <div className={logoContainerClass}>
                 <Link href="/" className="font-bold text-lg inline-block">
                     {logoUrl ? (

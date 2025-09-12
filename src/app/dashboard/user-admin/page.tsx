@@ -35,6 +35,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { Slider } from '@/components/ui/slider';
 
 type User = {
   name: string;
@@ -49,6 +50,7 @@ export default function UserAdminPage() {
     { name: 'Admin User', email: 'admin@interact.io', role: 'Administrator' },
   ]);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoWidth, setLogoWidth] = useState(128);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,6 +58,10 @@ export default function UserAdminPage() {
     const savedLogo = localStorage.getItem('interact-aoe-logo');
     if (savedLogo) {
       setLogoPreview(savedLogo);
+    }
+    const savedWidth = localStorage.getItem('interact-aoe-logo-width');
+    if (savedWidth) {
+        setLogoWidth(Number(savedWidth));
     }
   }, []);
 
@@ -88,14 +94,16 @@ export default function UserAdminPage() {
   const handleSaveLogo = () => {
       if (logoPreview) {
           localStorage.setItem('interact-aoe-logo', logoPreview);
+          localStorage.setItem('interact-aoe-logo-width', String(logoWidth));
            // Dispatch a custom event to notify other components (like the layout) instantly
           window.dispatchEvent(new CustomEvent('logoUpdated'));
           toast({
               title: "Logo Saved",
-              description: "Your new logo has been saved and applied."
+              description: "Your new logo and size settings have been saved."
           });
       } else {
           localStorage.removeItem('interact-aoe-logo');
+          localStorage.removeItem('interact-aoe-logo-width');
           window.dispatchEvent(new CustomEvent('logoUpdated'));
            toast({
               title: "Logo Removed",
@@ -132,9 +140,16 @@ export default function UserAdminPage() {
             <div>
                 <Label htmlFor="logo-upload">Platform Logo</Label>
                 <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 p-4 border rounded-lg">
-                    <div className="flex-shrink-0 w-32 h-16 bg-muted rounded-md flex items-center justify-center">
+                    <div className="flex-shrink-0 w-48 h-20 bg-muted rounded-md flex items-center justify-center overflow-hidden">
                         {logoPreview ? (
-                            <Image src={logoPreview} alt="Logo Preview" width={128} height={64} className="object-contain h-full" />
+                            <Image 
+                                src={logoPreview} 
+                                alt="Logo Preview" 
+                                width={logoWidth} 
+                                height={logoWidth / (128/50)}
+                                className="h-auto"
+                                style={{ width: `${logoWidth}px` }}
+                            />
                         ) : (
                             <div className="text-xs text-muted-foreground flex flex-col items-center gap-1">
                                 <ImageIcon className="h-6 w-6" />
@@ -142,15 +157,26 @@ export default function UserAdminPage() {
                             </div>
                         )}
                     </div>
-                    <div className="flex-1 w-full">
+                    <div className="flex-1 w-full space-y-4">
                         <Input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
-                        <p className="text-xs text-muted-foreground mt-2">Upload a .png, .jpg, or .svg file. Max size: 1MB.</p>
+                         <div>
+                            <Label htmlFor="logo-size">Logo Width: {logoWidth}px</Label>
+                            <Slider
+                                id="logo-size"
+                                min={40}
+                                max={180}
+                                step={2}
+                                value={[logoWidth]}
+                                onValueChange={(value) => setLogoWidth(value[0])}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Upload a .png, .jpg, or .svg file. Max size: 1MB.</p>
                     </div>
                 </div>
             </div>
              <Button onClick={handleSaveLogo}>
                 <Save className="mr-2 h-4 w-4" />
-                Save Logo
+                Save Logo Settings
             </Button>
         </CardContent>
       </Card>

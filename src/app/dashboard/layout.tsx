@@ -21,6 +21,7 @@ import { useState, useEffect } from 'react';
 
 function SidebarLogo() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [logoWidth, setLogoWidth] = useState<number>(128);
 
     useEffect(() => {
         // This effect runs only on the client side
@@ -28,10 +29,16 @@ function SidebarLogo() {
         if (savedLogo) {
             setLogoUrl(savedLogo);
         }
+        const savedWidth = localStorage.getItem('interact-aoe-logo-width');
+        if (savedWidth) {
+            setLogoWidth(Number(savedWidth));
+        }
         
         const handleStorageChange = () => {
             const updatedLogo = localStorage.getItem('interact-aoe-logo');
             setLogoUrl(updatedLogo);
+            const updatedWidth = localStorage.getItem('interact-aoe-logo-width');
+            setLogoWidth(Number(updatedWidth || 128));
         };
 
         window.addEventListener('storage', handleStorageChange);
@@ -47,9 +54,16 @@ function SidebarLogo() {
     }, []);
 
     return (
-         <Link href="/dashboard" className="flex items-center gap-2 px-2">
+         <Link href="/dashboard" className="flex items-center justify-center gap-2 px-2 h-12">
             {logoUrl ? (
-                <Image src={logoUrl} alt="iNteract AOE Logo" width={128} height={50} className="w-32 h-auto" />
+                <Image 
+                    src={logoUrl} 
+                    alt="iNteract AOE Logo" 
+                    width={logoWidth} 
+                    height={logoWidth / (128/50)} // Maintain aspect ratio
+                    className="h-auto"
+                    style={{ width: `${logoWidth}px` }}
+                />
             ) : (
                  <div className="w-32 h-12 bg-muted rounded-md flex items-center justify-center">
                     <span className="text-sm text-muted-foreground">Logo</span>

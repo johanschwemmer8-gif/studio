@@ -1,7 +1,7 @@
 
 'use client';
 
-import AIProfileManager from '@/components/dashboard/ai-profile-manager';
+import AIConfigurationPanel from '@/components/dashboard/ai-configuration-panel';
 import BulkQRCodeGenerator from '@/components/dashboard/bulk-qr-code-generator';
 import QrCampaignDashboard from '@/components/dashboard/qr-campaign-dashboard';
 import { Separator } from '@/components/ui/separator';
@@ -13,7 +13,7 @@ export default function QrManagementPage() {
             <Separator />
             <QrCampaignDashboard />
             <Separator />
-            <AIProfileManager />
+            <AIConfigurationPanel />
         </div>
     );
 }

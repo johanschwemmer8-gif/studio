@@ -7,8 +7,6 @@ This document outlines the Firestore schema for managing dynamic content on in-s
 -   **Collection Path**: `/inStoreConfigs`
 -   **Document ID**: Auto-generated unique ID.
 
-Each document in this collection represents a single content configuration that can be assigned to one or more displays.
-
 ### Document Fields
 
 | Field Name      | Type      | Description                                                                 |
@@ -17,9 +15,10 @@ Each document in this collection represents a single content configuration that 
 | `configId`      | `string`  | A unique ID for this configuration.                                         |
 | `configName`    | `string`  | A user-friendly name for the configuration (e.g., 'Summer Sale Welcome').   |
 | `contentSlot`   | `map`     | An object containing the configuration for a specific content slot.         |
-| `contentSlot.type` | `string` | The type of content, e.g., 'dynamic_ai_prompt', 'static_image'.            |
+| `contentSlot.type` | `string` | The type of content, e.g., 'dynamic_ai_prompt', 'static_image', 'dynamic_content'.            |
 | `contentSlot.promptText` | `string` | The prompt for an AI-driven display.                                      |
 | `contentSlot.imageUrl` | `string` | A URL to a static image to display.                                       |
+| `contentSlot.dynamicType` | `string` | The type of dynamic content to show, e.g., 'top_selling_products'. |
 | `isActive`      | `boolean` | A flag to quickly activate or deactivate this content across all displays.  |
 | `lastUpdated`   | `timestamp`| The timestamp of when this configuration was last saved.                      |
 
@@ -54,3 +53,19 @@ Here is an example of what a document in the `inStoreConfigs` collection might l
   "lastUpdated": "2024-05-21T11:00:00Z"
 }
 ```
+
+```json
+{
+  "retailerId": "ret_123abc",
+  "configId": "config_1716386400002",
+  "configName": "Best Sellers Showcase",
+  "contentSlot": {
+    "type": "dynamic_content",
+    "dynamicType": "top_selling_products"
+  },
+  "isActive": true,
+  "lastUpdated": "2024-05-23T09:00:00Z"
+}
+```
+
+    

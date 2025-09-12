@@ -42,7 +42,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-type ContentType = 'static_image' | 'dynamic_ai_prompt' | 'promotional_video' | 'product_showcase';
+type ContentType = 'static_image' | 'dynamic_ai_prompt' | 'promotional_video' | 'product_showcase' | 'dynamic_content';
 
 type InStoreConfig = {
     id: string;
@@ -79,6 +79,13 @@ function LivePreview({ config }: { config: any }) {
                  {config.type === 'product_showcase' && (
                     <div className="space-y-4">
                          <h3 className="text-xl font-bold">Showcasing: {config.productSku}</h3>
+                    </div>
+                )}
+                {config.type === 'dynamic_content' && (
+                    <div className="space-y-4">
+                        <Sparkles className="h-12 w-12 mx-auto text-accent" />
+                        <h3 className="text-xl font-bold">Dynamic Content</h3>
+                        <p className="text-sm text-muted-foreground capitalize">Displaying: {config.dynamicType?.replace(/_/g, ' ')}</p>
                     </div>
                 )}
             </div>
@@ -270,6 +277,7 @@ export default function InStoreDisplayPage() {
                                                     <SelectItem value="static_image">Static Image</SelectItem>
                                                     <SelectItem value="promotional_video">Promotional Video</SelectItem>
                                                     <SelectItem value="product_showcase">Product Showcase</SelectItem>
+                                                    <SelectItem value="dynamic_content">Dynamic Content</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -294,6 +302,18 @@ export default function InStoreDisplayPage() {
                                         )}
                                         {contentType === 'product_showcase' && (
                                             <div className="space-y-2"><Label htmlFor="product-sku">Product SKU</Label><Input id="product-sku" placeholder="Enter product SKU to showcase" value={config.productSku || ''} onChange={e => handleConfigChange('productSku', e.target.value)} /></div>
+                                        )}
+                                        {contentType === 'dynamic_content' && (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="dynamic-type">Dynamic Content Type</Label>
+                                                <Select onValueChange={(value) => handleConfigChange('dynamicType', value)} value={config.dynamicType}>
+                                                    <SelectTrigger id="dynamic-type"><SelectValue placeholder="Select a dynamic type" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="top_selling_products">Top Selling Products</SelectItem>
+                                                        <SelectItem value="low_inventory_items">Low Inventory Items</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         )}
                                     </CardContent>
                                 </Card>
@@ -378,3 +398,5 @@ export default function InStoreDisplayPage() {
     </div>
   );
 }
+
+    

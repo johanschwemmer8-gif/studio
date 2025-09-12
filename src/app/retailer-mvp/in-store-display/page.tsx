@@ -265,6 +265,13 @@ export default function InStoreDisplayPage() {
         </Card>
 
         <Separator />
+
+         <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-2">Live Display Status</h2>
+            <p className="text-muted-foreground max-w-3xl">
+                Monitor the real-time status of all registered in-store display devices.
+            </p>
+        </div>
         
         <DisplayManager />
     </div>

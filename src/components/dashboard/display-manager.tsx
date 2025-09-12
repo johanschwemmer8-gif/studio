@@ -25,20 +25,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Loader2, Link, Tv, MonitorSmartphone, MapPin, Building2, Clock } from 'lucide-react';
+import { PlusCircle, Loader2, Link as LinkIcon, Tv, MonitorSmartphone, MapPin, Building2, Clock, Circle, AlertTriangle, Settings, Power } from 'lucide-react';
 import { getDisplays, type Display } from '@/ai/flows/get-displays';
 import { registerDisplay } from '@/ai/flows/register-display';
 import { storesByRegion } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { cn } from '@/lib/utils';
+import { differenceInMinutes, formatDistanceToNow } from 'date-fns';
 
-function ClientFormattedDate({ timestamp }: { timestamp: string }) {
+function ClientFormattedDate({ timestamp, isRelative }: { timestamp: string, isRelative?: boolean }) {
   const [formattedDate, setFormattedDate] = useState('');
 
   useEffect(() => {
     if (timestamp) {
-      setFormattedDate(new Date(timestamp).toLocaleString());
+        const date = new Date(timestamp);
+        if (isRelative) {
+            setFormattedDate(formatDistanceToNow(date, { addSuffix: true }));
+        } else {
+            setFormattedDate(date.toLocaleString());
+        }
     }
-  }, [timestamp]);
+  }, [timestamp, isRelative]);
 
   if (!formattedDate) {
     return <span className="text-xs italic">pending...</span>;
@@ -47,11 +54,24 @@ function ClientFormattedDate({ timestamp }: { timestamp: string }) {
   return <span>{formattedDate}</span>;
 }
 
+const getStatusInfo = (lastPing: string): { status: 'Online' | 'Offline' | 'Error'; color: string; icon: React.ReactNode } => {
+    const minutesSincePing = differenceInMinutes(new Date(), new Date(lastPing));
+    if (minutesSincePing <= 5) {
+        return { status: 'Online', color: 'text-green-500', icon: <Circle className="h-3 w-3 fill-current" /> };
+    }
+    if (minutesSincePing <= 30) {
+        return { status: 'Offline', color: 'text-yellow-500', icon: <Circle className="h-3 w-3 fill-current" /> };
+    }
+    return { status: 'Error', color: 'text-red-500', icon: <AlertTriangle className="h-4 w-4" /> };
+};
+
 export default function DisplayManager() {
   const [displays, setDisplays] = useState<Display[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTroubleshootModalOpen, setIsTroubleshootModalOpen] = useState(false);
+  const [selectedDisplay, setSelectedDisplay] = useState<Display | null>(null);
   const { toast } = useToast();
   
   const allStores = storesByRegion.flatMap(region => region.stores.map(store => ({ ...store, province: region.province })));
@@ -72,6 +92,14 @@ export default function DisplayManager() {
   useEffect(() => {
     fetchDisplays();
   }, [toast]);
+
+  // Refresh status every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+        setDisplays(prev => [...prev]); // Trigger re-render to re-calculate status
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
   
   const handleRegisterDisplay = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -97,6 +125,11 @@ export default function DisplayManager() {
     } finally {
         setIsRegistering(false);
     }
+  }
+
+  const handleOpenTroubleshoot = (display: Display) => {
+    setSelectedDisplay(display);
+    setIsTroubleshootModalOpen(true);
   }
 
   return (
@@ -159,45 +192,91 @@ export default function DisplayManager() {
             ) : displays.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No displays registered yet.</TableCell></TableRow>
             ) : (
-              displays.map((display) => (
-                <TableRow key={display.displayId}>
-                  <TableCell className="font-mono text-xs">{display.displayId}</TableCell>
-                  <TableCell>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Building2 className="h-4 w-4"/>
-                        {display.storeId}
-                      </div>
-                  </TableCell>
-                  <TableCell>
-                    {display.contentConfigId ? (
-                        <code className="text-xs font-mono p-1 rounded-sm bg-muted">{display.contentConfigId}</code>
-                    ) : (
-                        <span className="text-xs text-muted-foreground italic">None</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={display.status === 'online' ? 'default' : 'secondary'} className={display.status === 'online' ? 'bg-green-500/20 text-green-700' : ''}>
-                        {display.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                        <Clock className="h-4 w-4"/>
-                        <ClientFormattedDate timestamp={display.lastPing} />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm" disabled>
-                        <Link className="mr-2 h-3.5 w-3.5"/>
-                        Assign Content
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              displays.map((display) => {
+                const statusInfo = getStatusInfo(display.lastPing);
+                return (
+                    <TableRow key={display.displayId}>
+                    <TableCell className="font-mono text-xs">{display.displayId}</TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Building2 className="h-4 w-4"/>
+                            {display.storeId}
+                        </div>
+                    </TableCell>
+                    <TableCell>
+                        {display.contentConfigId ? (
+                            <code className="text-xs font-mono p-1 rounded-sm bg-muted">{display.contentConfigId}</code>
+                        ) : (
+                            <span className="text-xs text-muted-foreground italic">None</span>
+                        )}
+                    </TableCell>
+                     <TableCell>
+                        <Badge variant="outline" className={cn("gap-1.5", statusInfo.color)}>
+                            {statusInfo.icon}
+                            {statusInfo.status}
+                        </Badge>
+                     </TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <Clock className="h-4 w-4"/>
+                            <ClientFormattedDate timestamp={display.lastPing} isRelative={true} />
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-right space-x-1">
+                         <Button variant="outline" size="sm" onClick={() => handleOpenTroubleshoot(display)}>
+                            <Settings className="mr-2 h-3.5 w-3.5"/>
+                            Troubleshoot
+                        </Button>
+                        <Button variant="outline" size="sm" disabled>
+                            <LinkIcon className="mr-2 h-3.5 w-3.5"/>
+                            Assign Content
+                        </Button>
+                    </TableCell>
+                    </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
       </CardContent>
+
+      <Dialog open={isTroubleshootModalOpen} onOpenChange={setIsTroubleshootModalOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Troubleshoot Display</DialogTitle>
+                <DialogDescription>
+                    Diagnostic information for display ID: <code className="font-mono text-xs bg-muted p-1 rounded">{selectedDisplay?.displayId}</code>
+                </DialogDescription>
+            </DialogHeader>
+            <div className="text-sm space-y-4 py-4">
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Store:</span>
+                    <span className="font-medium">{selectedDisplay?.storeId}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last Ping:</span>
+                    <span className="font-medium">{selectedDisplay?.lastPing && new Date(selectedDisplay.lastPing).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Current Status:</span>
+                    <span className="font-medium">{selectedDisplay && getStatusInfo(selectedDisplay.lastPing).status}</span>
+                </div>
+                <Separator />
+                <div>
+                    <h4 className="font-semibold mb-2">Next Steps:</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                        <li>Ensure the device is powered on and connected to the internet.</li>
+                        <li>Check the device's logs for any error messages.</li>
+                        <li>Attempt to remotely restart the device.</li>
+                        <li>If the issue persists, contact support with the Display ID.</li>
+                    </ul>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="secondary" onClick={() => setIsTroubleshootModalOpen(false)}>Close</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

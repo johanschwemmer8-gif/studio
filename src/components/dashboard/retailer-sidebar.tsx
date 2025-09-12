@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -11,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, MonitorSmartphone } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, MonitorSmartphone, Settings } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
@@ -86,6 +85,14 @@ export default function RetailerSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="In-Store Config">
+                <Link href="/retailer-mvp/in-store-config">
+                  <Settings />
+                  <span>In-Store Config</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             {optionalModules.abTesting && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="A/B Testing">

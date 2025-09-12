@@ -163,7 +163,7 @@ export default function DisplayManager() {
           if (result.success) {
               toast({ title: 'Success', description: 'Display configuration updated.'});
               // Optimistically update UI
-              setDisplays(prev => prev.map(d => d.displayId === displayId ? {...d, contentConfigId: newConfigId } : d));
+              setDisplays(prev => prev.map(d => d.displayId === displayId ? {...d, contentConfigId: newConfigId === 'unassigned' ? '' : newConfigId } : d));
           } else {
               throw new Error(result.message || 'Failed to update configuration.');
           }
@@ -248,7 +248,7 @@ export default function DisplayManager() {
                     </TableCell>
                     <TableCell>
                        <Select 
-                            value={display.contentConfigId} 
+                            value={display.contentConfigId || 'unassigned'}
                             onValueChange={(newConfigId) => handleConfigChange(display.displayId, newConfigId)}
                             disabled={isUpdating}
                         >
@@ -259,7 +259,7 @@ export default function DisplayManager() {
                                 </div>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="unassigned">None</SelectItem>
                                 {inStoreConfigs.map(config => (
                                     <SelectItem key={config.id} value={config.configId}>{config.configName}</SelectItem>
                                 ))}

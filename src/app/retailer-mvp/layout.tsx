@@ -37,36 +37,45 @@ export default function RetailerMvpLayout({
           </Button>
         </header>
         <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">{children}</main>
-         <footer className="p-4 text-center text-xs text-muted-foreground border-t relative">
+         <footer className="p-4 text-center text-xs text-muted-foreground border-t">
             <div className="flex items-center justify-center gap-2">
                 <span>Powered by iNteract AOE. Made in South Africa.</span>
+                 <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 900 600"
+                    className="h-3 w-auto"
+                >
+                    <rect fill="#DE3831" width="900" height="600" />
+                    <rect fill="#FFFFFF" y="200" width="900" height="200" />
+                    <path
+                        d="M0,200h900M0,400h900"
+                        stroke="#002395"
+                        strokeWidth="100"
+                    />
+                    <path
+                        d="M0,0 L450,300 L0,600 z"
+                        fill="#007A4D"
+                    />
+                    <path
+                        d="M0,0 L450,300 L0,600"
+                        stroke="#FFFFFF"
+                        strokeWidth="66.6"
+                        fill="none"
+                    />
+                     <path
+                        d="M0,0 L450,300 L0,600"
+                        stroke="#FFB612"
+                        strokeWidth="40"
+                        fill="none"
+                    />
+                     <path
+                        d="M0,0 L450,300 L0,600"
+                        stroke="#000000"
+                        strokeWidth="20"
+                        fill="none"
+                    />
+                </svg>
             </div>
-             <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 900 600"
-                className="absolute right-4 top-1/2 -translate-y-1/2 h-4 opacity-20"
-                style={{ zIndex: -1 }}
-            >
-                <rect fill="#DE3831" width="900" height="600" />
-                <rect fill="#FFFFFF" y="200" width="900" height="200" />
-                <rect fill="#002395" y="250" width="900" height="100" />
-                <path
-                d="M0,0 L300,300 L0,600 z"
-                fill="#007A4D"
-                />
-                <path
-                d="M0,40 L240,300 L0,560 M-20,0 L220,300 L-20,600"
-                stroke="#FFFFFF"
-                strokeWidth="66.6"
-                />
-                <path
-                d="M0,0 L300,300 L0,600"
-                fill="none"
-                stroke="#FFB612"
-                strokeWidth="40"
-                />
-                <path d="M0,0 L300,300 L0,600" stroke="#000000" strokeWidth="20" fill="none" />
-            </svg>
         </footer>
       </SidebarInset>
     </SidebarProvider>

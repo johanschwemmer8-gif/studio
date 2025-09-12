@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 const responseTimeData = [
   { time: '10:00', avg: 1.1, p95: 1.8 },
@@ -174,7 +174,7 @@ export default function AIPerformanceMonitor() {
                     <CardTitle>Model Performance</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ResponsiveContainer width="100%" height={150}>
+                    <ChartContainer config={{}} className="h-[150px] w-full">
                         <LineChart data={responseTimeData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} />
@@ -184,7 +184,7 @@ export default function AIPerformanceMonitor() {
                             <Line type="monotone" dataKey="avg" stroke="#8884d8" name="Avg Time"/>
                             <Line type="monotone" dataKey="p95" stroke="#82ca9d" name="95th Percentile"/>
                         </LineChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                     <div className="grid grid-cols-2 gap-4 text-center text-sm mt-4">
                         <div className="p-2 bg-green-100 rounded-lg">
                             <p className="font-semibold text-green-800">API Uptime</p>
@@ -202,15 +202,15 @@ export default function AIPerformanceMonitor() {
                     <CardTitle>Common Query Categories</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ChartContainer config={{}} className="h-[200px] w-full">
                         <RechartsPieChart>
                             <Pie data={queryCategoriesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} fill="#8884d8">
                                 {queryCategoriesData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                             </Pie>
-                            <Tooltip />
+                            <Tooltip content={<ChartTooltipContent />} />
                             <Legend iconSize={10} />
                         </RechartsPieChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
         </div>

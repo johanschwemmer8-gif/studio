@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -155,108 +156,110 @@ export default function ABTestingPage() {
 
   return (
     <div className="space-y-8">
-      {/* Main Dashboard View */}
-      <div className={cn(showDetails && 'hidden')}>
-        <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-foreground">A/B Testing & Experimentation</h1>
-            <Button onClick={() => setIsModalOpen(true)}>
-                Create New Experiment
-            </Button>
+       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {/* Main Dashboard View */}
+        <div className={cn(showDetails && 'hidden')}>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-foreground">A/B Testing & Experimentation</h1>
+                 <DialogTrigger asChild>
+                    <Button>
+                        Create New Experiment
+                    </Button>
+                </DialogTrigger>
+            </div>
+            
+            <Card>
+                <CardContent className="p-6">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Experiment Name</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Start Date</TableHead>
+                                <TableHead>Key Metric</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                            ) : !db ? (
+                                <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Please configure Firebase to view experiments.</TableCell></TableRow>
+                            ) : experiments.length === 0 ? (
+                                <TableRow><TableCell colSpan={5} className="h-24 text-center">No experiments found.</TableCell></TableRow>
+                            ) : (
+                                experiments.map(exp => (
+                                    <TableRow key={exp.id}>
+                                        <TableCell className="font-medium">{exp.name}</TableCell>
+                                        <TableCell className={cn(
+                                            'font-semibold',
+                                            exp.status === 'Running' && 'text-green-500',
+                                            exp.status === 'Completed' && 'text-gray-500',
+                                            exp.status === 'Paused' && 'text-yellow-600',
+                                        )}>{exp.status}</TableCell>
+                                        <TableCell>{exp.startDate ? new Date(exp.startDate.toDate()).toLocaleDateString() : 'N/A'}</TableCell>
+                                        <TableCell>{exp.keyMetric}</TableCell>
+                                        <TableCell>
+                                            <Button variant="link" className="p-0 h-auto" onClick={() => handleViewDetails(exp)}>View Details</Button>
+                                            <Button variant="link" className="p-0 h-auto text-destructive ml-4">Stop</Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
-        
-        <Card>
-            <CardContent className="p-6">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Experiment Name</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Start Date</TableHead>
-                            <TableHead>Key Metric</TableHead>
-                            <TableHead>Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                         {loading ? (
-                             <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                         ) : !db ? (
-                            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Please configure Firebase to view experiments.</TableCell></TableRow>
-                         ) : experiments.length === 0 ? (
-                            <TableRow><TableCell colSpan={5} className="h-24 text-center">No experiments found.</TableCell></TableRow>
-                         ) : (
-                            experiments.map(exp => (
-                                <TableRow key={exp.id}>
-                                    <TableCell className="font-medium">{exp.name}</TableCell>
-                                    <TableCell className={cn(
-                                        'font-semibold',
-                                        exp.status === 'Running' && 'text-green-500',
-                                        exp.status === 'Completed' && 'text-gray-500',
-                                        exp.status === 'Paused' && 'text-yellow-600',
-                                    )}>{exp.status}</TableCell>
-                                    <TableCell>{exp.startDate ? new Date(exp.startDate.toDate()).toLocaleDateString() : 'N/A'}</TableCell>
-                                    <TableCell>{exp.keyMetric}</TableCell>
-                                    <TableCell>
-                                        <Button variant="link" className="p-0 h-auto" onClick={() => handleViewDetails(exp)}>View Details</Button>
-                                        <Button variant="link" className="p-0 h-auto text-destructive ml-4">Stop</Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                         )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-      </div>
 
-      {/* Create Experiment Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {/* Create Experiment Modal */}
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Experiment</DialogTitle>
-             <DialogDescription>Define a new A/B test to run on the platform.</DialogDescription>
-          </DialogHeader>
-          <form id="create-experiment-form" onSubmit={handleCreateExperiment} className="space-y-6 py-4">
-            <div>
-              <Label htmlFor="experiment-name">Experiment Name</Label>
-              <Input id="experiment-name" name="experiment-name" required />
-            </div>
-            <div>
-              <Label htmlFor="experiment-description">Description / Hypothesis</Label>
-              <Textarea id="experiment-description" name="experiment-description" rows={3} />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Define Variables (A/B)</h3>
-              <div className="flex space-x-4">
-                <div className="flex-1">
-                  <Label htmlFor="variable-a">Variable A (Control)</Label>
-                  <Input id="variable-a" name="variable-a" required />
+            <DialogHeader>
+                <DialogTitle>Create New Experiment</DialogTitle>
+                <DialogDescription>Define a new A/B test to run on the platform.</DialogDescription>
+            </DialogHeader>
+            <form id="create-experiment-form" onSubmit={handleCreateExperiment} className="space-y-6 py-4">
+                <div>
+                <Label htmlFor="experiment-name">Experiment Name</Label>
+                <Input id="experiment-name" name="experiment-name" required />
                 </div>
-                <div className="flex-1">
-                  <Label htmlFor="variable-b">Variable B (Variant)</Label>
-                  <Input id="variable-b" name="variable-b" required />
+                <div>
+                <Label htmlFor="experiment-description">Description / Hypothesis</Label>
+                <Textarea id="experiment-description" name="experiment-description" rows={3} />
                 </div>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="primary-metric">Primary Metric</Label>
-              <Select name="primary-metric" required defaultValue='click_through_rate'>
-                <SelectTrigger id="primary-metric">
-                  <SelectValue placeholder="Select a metric" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="conversion_rate">Conversion Rate</SelectItem>
-                  <SelectItem value="click_through_rate">Click-Through Rate</SelectItem>
-                  <SelectItem value="add_to_cart">Add to Cart</SelectItem>
-                  <SelectItem value="in_store_visit">In-Store Visit</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </form>
-           <DialogFooter>
-              <Button type="submit" form="create-experiment-form">
-                Create Experiment
-              </Button>
-            </DialogFooter>
+                <div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Define Variables (A/B)</h3>
+                <div className="flex space-x-4">
+                    <div className="flex-1">
+                    <Label htmlFor="variable-a">Variable A (Control)</Label>
+                    <Input id="variable-a" name="variable-a" required />
+                    </div>
+                    <div className="flex-1">
+                    <Label htmlFor="variable-b">Variable B (Variant)</Label>
+                    <Input id="variable-b" name="variable-b" required />
+                    </div>
+                </div>
+                </div>
+                <div>
+                <Label htmlFor="primary-metric">Primary Metric</Label>
+                <Select name="primary-metric" required defaultValue='click_through_rate'>
+                    <SelectTrigger id="primary-metric">
+                    <SelectValue placeholder="Select a metric" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="conversion_rate">Conversion Rate</SelectItem>
+                    <SelectItem value="click_through_rate">Click-Through Rate</SelectItem>
+                    <SelectItem value="add_to_cart">Add to Cart</SelectItem>
+                    <SelectItem value="in_store_visit">In-Store Visit</SelectItem>
+                    </SelectContent>
+                </Select>
+                </div>
+            </form>
+            <DialogFooter>
+                <Button type="submit" form="create-experiment-form">
+                    Create Experiment
+                </Button>
+                </DialogFooter>
         </DialogContent>
       </Dialog>
 

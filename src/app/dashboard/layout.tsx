@@ -137,8 +137,18 @@ export default function DashboardLayout({
           </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">{children}</main>
-        <footer className="p-4 text-center text-xs text-muted-foreground border-t">
-            Powered by iNteract AOE. Made in South Africa
+        <footer className="p-4 text-center text-xs text-muted-foreground border-t relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 9 6" className="opacity-20">
+                    <path fill="#DE3831" d="M0 0h9v3H0z"/>
+                    <path fill="#002395" d="M0 3h9v3H0z"/>
+                    <path fill="#FFF" d="M0 2h9v2H0z"/>
+                    <path d="M0 0v6l4.5-3z" fill="#007A4D"/>
+                    <path d="M0 0v6l3-3z" fill="#FFB612"/>
+                    <path d="M0 1.2V4.8L1.8 3zM3 3L0 0h1.5L4.5 3 1.5 6H0z" fill="#000"/>
+                </svg>
+            </div>
+            <span className="relative">Powered by iNteract AOE. Made in South Africa</span>
         </footer>
       </SidebarInset>
     </SidebarProvider>

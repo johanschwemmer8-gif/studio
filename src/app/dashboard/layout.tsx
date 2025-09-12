@@ -15,6 +15,7 @@ import {
 import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, MonitorSmartphone, Globe } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
+import Image from 'next/image';
 
 export default function DashboardLayout({
   children,
@@ -25,9 +26,12 @@ export default function DashboardLayout({
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2 p-2">
-            <Link href="/dashboard" className="flex items-center gap-2 px-2">
-              <span className="font-bold text-lg">iNteract AOE</span>
+          <div className="p-2">
+             <Link href="/dashboard" className="flex items-center gap-2 px-2">
+                {/* This is where you can add your logo image */}
+                 <div className="w-32 h-12 bg-muted rounded-md flex items-center justify-center">
+                    <span className="text-sm text-muted-foreground">Logo</span>
+                </div>
             </Link>
           </div>
         </SidebarHeader>

@@ -1,11 +1,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import QrScanner from '@/components/qr-scanner';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,57 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+
+function LandingPageLogo() {
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [logoWidth, setLogoWidth] = useState<number>(128);
+
+    useEffect(() => {
+        const savedLogo = localStorage.getItem('interact-aoe-logo');
+        if (savedLogo) {
+            setLogoUrl(savedLogo);
+        }
+        const savedWidth = localStorage.getItem('interact-aoe-logo-width');
+        if (savedWidth) {
+            setLogoWidth(Number(savedWidth));
+        }
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'interact-aoe-logo') setLogoUrl(e.newValue);
+            if (e.key === 'interact-aoe-logo-width') setLogoWidth(Number(e.newValue || 128));
+        };
+        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('logoUpdated', () => {
+            const updatedLogo = localStorage.getItem('interact-aoe-logo');
+            setLogoUrl(updatedLogo);
+            const updatedWidth = localStorage.getItem('interact-aoe-logo-width');
+            setLogoWidth(Number(updatedWidth || 128));
+        });
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('logoUpdated', () => {});
+        };
+    }, []);
+
+    return (
+        <Link href="/" className="font-bold text-lg">
+            {logoUrl ? (
+                <Image
+                    src={logoUrl}
+                    alt="iNteract AOE Logo"
+                    width={logoWidth}
+                    height={logoWidth / (128 / 50)} // Maintain aspect ratio
+                    className="h-auto"
+                    style={{ width: `${logoWidth}px` }}
+                />
+            ) : (
+                <span>iNteract AOE</span>
+            )}
+        </Link>
+    );
+}
+
 
 export default function Home() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -50,9 +102,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
-        <Link href="/" className="font-bold text-lg">
-          iNteract AOE
-        </Link>
+        <LandingPageLogo />
         <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
           <DialogTrigger asChild>
             <Button variant="ghost">iNteract Dashboard</Button>

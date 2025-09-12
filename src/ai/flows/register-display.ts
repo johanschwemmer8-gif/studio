@@ -34,6 +34,10 @@ export const registerDisplay = ai.defineFlow(
     
     // In a real scenario, you'd verify the caller's retailerId from their auth token
     // against the retailerId provided in the payload.
+    // For example:
+    // if (context.auth.token.retailerId !== retailerId) {
+    //   throw new HttpsError('permission-denied', 'User is not authorized for this retailer.');
+    // }
     
     // Sanitize the storeId to make it a valid path segment in Firestore
     const sanitizedStoreId = storeId.toLowerCase().replace(/[^a-z0-9]/g, '_');

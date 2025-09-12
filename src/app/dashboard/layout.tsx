@@ -16,6 +16,7 @@ import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield,
 import Link from 'next/link';
 import theme from '@/config/theme.json';
 import Image from 'next/image';
+import SearchBar from '@/components/dashboard/search-bar';
 
 export default function DashboardLayout({
   children,
@@ -130,6 +131,9 @@ export default function DashboardLayout({
           <div className="flex items-center gap-4">
             <SidebarTrigger />
             <h1 className="text-xl font-semibold">iNteract Admin Panel</h1>
+          </div>
+          <div className="flex flex-1 items-center justify-end">
+            <SearchBar />
           </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8 bg-background">{children}</main>

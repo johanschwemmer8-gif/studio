@@ -9,6 +9,7 @@ import RetailerSidebar from '@/components/dashboard/retailer-sidebar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import SearchBar from '@/components/dashboard/search-bar';
 
 
 export default function RetailerMvpLayout({
@@ -20,15 +21,18 @@ export default function RetailerMvpLayout({
     <SidebarProvider>
       <RetailerSidebar />
       <SidebarInset>
-        <header className="flex items-center justify-between p-4 border-b bg-card h-16">
+        <header className="flex items-center justify-between p-4 border-b bg-card h-16 gap-4">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <h1 className="text-xl font-semibold">Retailer Dashboard</h1>
+            <h1 className="text-xl font-semibold whitespace-nowrap">Retailer Dashboard</h1>
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <SearchBar />
           </div>
           <Button asChild>
             <Link href="/dashboard/retailers-dashboards">
-              <ArrowLeft />
-              <span>Back to Retailer's Dashboard Management</span>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              <span>Back to Admin</span>
             </Link>
           </Button>
         </header>

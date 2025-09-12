@@ -34,7 +34,16 @@ function SidebarLogo() {
             setLogoWidth(Number(savedWidth));
         }
         
-        const handleStorageChange = () => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'interact-aoe-logo') {
+                setLogoUrl(e.newValue);
+            }
+             if (e.key === 'interact-aoe-logo-width') {
+                setLogoWidth(Number(e.newValue || 128));
+            }
+        };
+
+        const handleCustomEvent = () => {
             const updatedLogo = localStorage.getItem('interact-aoe-logo');
             setLogoUrl(updatedLogo);
             const updatedWidth = localStorage.getItem('interact-aoe-logo-width');
@@ -42,14 +51,13 @@ function SidebarLogo() {
         };
 
         window.addEventListener('storage', handleStorageChange);
-        
         // Custom event to handle updates within the same tab
-        window.addEventListener('logoUpdated', handleStorageChange);
+        window.addEventListener('logoUpdated', handleCustomEvent);
 
 
         return () => {
             window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('logoUpdated', handleStorageChange);
+            window.removeEventListener('logoUpdated', handleCustomEvent);
         };
     }, []);
 

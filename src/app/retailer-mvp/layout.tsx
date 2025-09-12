@@ -16,33 +16,42 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 function SidebarLogo() {
-    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [logoUrl, setLogoUrl] useState<string | null>(null);
     const [logoWidth, setLogoWidth] = useState<number>(128);
 
     useEffect(() => {
-        const savedLogo = localStorage.getItem('interact-aoe-logo');
+        const savedLogo = localStorage.getItem('retailer-mvp-logo');
         if (savedLogo) {
             setLogoUrl(savedLogo);
         }
-        const savedWidth = localStorage.getItem('interact-aoe-logo-width');
+        const savedWidth = localStorage.getItem('retailer-mvp-logo-width');
         if (savedWidth) {
             setLogoWidth(Number(savedWidth));
         }
         
-        const handleStorageChange = () => {
-            const updatedLogo = localStorage.getItem('interact-aoe-logo');
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'retailer-mvp-logo') {
+                setLogoUrl(e.newValue);
+            }
+             if (e.key === 'retailer-mvp-logo-width') {
+                setLogoWidth(Number(e.newValue || 128));
+            }
+        };
+
+        const handleCustomEvent = () => {
+            const updatedLogo = localStorage.getItem('retailer-mvp-logo');
             setLogoUrl(updatedLogo);
-            const updatedWidth = localStorage.getItem('interact-aoe-logo-width');
+            const updatedWidth = localStorage.getItem('retailer-mvp-logo-width');
             setLogoWidth(Number(updatedWidth || 128));
         };
 
         window.addEventListener('storage', handleStorageChange);
-        window.addEventListener('logoUpdated', handleStorageChange);
+        window.addEventListener('logoUpdated', handleCustomEvent);
 
 
         return () => {
             window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('logoUpdated', handleStorageChange);
+            window.removeEventListener('logoUpdated', handleCustomEvent);
         };
     }, []);
 

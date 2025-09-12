@@ -21,11 +21,11 @@ export default function RetailerAdminPage() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const savedLogo = localStorage.getItem('interact-aoe-logo');
+        const savedLogo = localStorage.getItem('retailer-mvp-logo');
         if (savedLogo) {
             setLogoPreview(savedLogo);
         }
-        const savedWidth = localStorage.getItem('interact-aoe-logo-width');
+        const savedWidth = localStorage.getItem('retailer-mvp-logo-width');
         if (savedWidth) {
             setLogoWidth(Number(savedWidth));
         }
@@ -44,16 +44,16 @@ export default function RetailerAdminPage() {
 
     const handleSaveLogo = () => {
         if (logoPreview) {
-            localStorage.setItem('interact-aoe-logo', logoPreview);
-            localStorage.setItem('interact-aoe-logo-width', String(logoWidth));
+            localStorage.setItem('retailer-mvp-logo', logoPreview);
+            localStorage.setItem('retailer-mvp-logo-width', String(logoWidth));
             window.dispatchEvent(new CustomEvent('logoUpdated'));
             toast({
                 title: "Logo Saved",
                 description: "Your new logo and size settings have been saved."
             });
         } else {
-            localStorage.removeItem('interact-aoe-logo');
-            localStorage.removeItem('interact-aoe-logo-width');
+            localStorage.removeItem('retailer-mvp-logo');
+            localStorage.removeItem('retailer-mvp-logo-width');
             window.dispatchEvent(new CustomEvent('logoUpdated'));
             toast({
                 title: "Logo Removed",

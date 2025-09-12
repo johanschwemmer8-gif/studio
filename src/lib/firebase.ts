@@ -8,12 +8,13 @@ import { getRemoteConfig } from 'firebase/remote-config';
 
 // In a real application, these values would be populated, likely from environment variables.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  "projectId": "interact-aoe-kidkn",
+  "appId": "1:783333671853:web:53f7f226c95ac08fbd5724",
+  "storageBucket": "interact-aoe-kidkn.firebasestorage.app",
+  "apiKey": "AIzaSyAuB__O0Bo4uQLeyZ3UH2wYpbEbcuGevFI",
+  "authDomain": "interact-aoe-kidkn.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "783333671853"
 };
 
 // Check if the config has been populated

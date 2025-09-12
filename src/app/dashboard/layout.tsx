@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, MonitorSmartphone, Globe } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import SearchBar from '@/components/dashboard/search-bar';
 
 export default function DashboardLayout({
@@ -27,14 +26,8 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <Image
-                src="https://storage.googleapis.com/project-spark-b249622a-1365-44f2-a279-5b7218641a99/uploads/resources/image_1720780287319_59218.png"
-                alt="iNteract AOE Logo"
-                width={128}
-                height={32}
-                className="w-32"
-              />
+            <Link href="/dashboard" className="flex items-center gap-2 px-2">
+              <span className="font-bold text-lg">iNteract AOE</span>
             </Link>
           </div>
         </SidebarHeader>

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -24,39 +24,102 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
+
 
 type Campaign = {
     id: string;
-    name: string;
+    campaignName: string;
     status: 'Running' | 'Paused' | 'Completed' | 'Draft';
     budget: number;
     impressions: number;
     clicks: number;
-    ctr: number;
+    startDate: Timestamp;
+    endDate?: Timestamp;
 };
-
-const placeholderCampaigns: Campaign[] = [
-    { id: '1', name: 'Summer Sizzler Sale', status: 'Running', budget: 5000, impressions: 150000, clicks: 7500, ctr: 5.0 },
-    { id: '2', name: 'Back to School Deals', status: 'Completed', budget: 3000, impressions: 120000, clicks: 4800, ctr: 4.0 },
-    { id: '3', name: 'Winter Warmers', status: 'Paused', budget: 2500, impressions: 50000, clicks: 2000, ctr: 4.0 },
-    { id: '4', name: 'Black Friday Preview', status: 'Draft', budget: 10000, impressions: 0, clicks: 0, ctr: 0.0 },
-];
 
 export default function RetailMediaNetworkPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!db) {
+        toast({
+            title: 'Firebase Not Connected',
+            description: 'Please configure your Firebase credentials to use this feature.',
+            variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+    }
+
+    setLoading(true);
+    const q = query(collection(db, 'adCampaigns'), orderBy('startDate', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const campaignsData: Campaign[] = [];
+      querySnapshot.forEach((doc) => {
+        campaignsData.push({ id: doc.id, ...doc.data() } as Campaign);
+      });
+      setCampaigns(campaignsData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching campaigns: ", error);
+      toast({
+        title: 'Error',
+        description: 'Could not fetch campaigns. Please check your connection and Firestore setup.',
+        variant: 'destructive',
+      });
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+
+  const handleCreateCampaign = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!db) {
+        toast({ title: 'Error', description: 'Firebase is not connected.', variant: 'destructive' });
+        return;
+    }
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+
+    const newCampaign = {
+      campaignName: data['campaign-name'],
+      budget: Number(data['budget']),
+      status: 'Draft',
+      startDate: serverTimestamp(),
+      impressions: 0,
+      clicks: 0,
+      sponsoredProducts: [], // Placeholder for now
+    };
+
+    try {
+      await addDoc(collection(db, 'adCampaigns'), newCampaign);
+      toast({
+        title: 'Success!',
+        description: 'New campaign has been created in Draft status.',
+      });
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error adding document: ", error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create campaign.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleViewDetails = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
@@ -75,6 +138,11 @@ export default function RetailMediaNetworkPage() {
         case 'Completed': return <Badge variant="secondary">{status}</Badge>;
         case 'Draft': return <Badge variant="outline">{status}</Badge>;
     }
+  }
+
+  const calculateCTR = (clicks: number, impressions: number) => {
+      if (impressions === 0) return '0.00%';
+      return `${((clicks / impressions) * 100).toFixed(2)}%`;
   }
 
   return (
@@ -98,24 +166,24 @@ export default function RetailMediaNetworkPage() {
                   <DialogTitle>Create New Ad Campaign</DialogTitle>
                   <DialogDescription>Define a new campaign to run on your retail media network.</DialogDescription>
               </DialogHeader>
-              <form id="create-campaign-form" className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
+              <form id="create-campaign-form" onSubmit={handleCreateCampaign} className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
                   <div>
                       <Label htmlFor="campaign-name">Campaign Name</Label>
-                      <Input id="campaign-name" required />
+                      <Input id="campaign-name" name="campaign-name" required />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                       <div>
                           <Label htmlFor="budget">Budget (R)</Label>
-                          <Input id="budget" type="number" required />
+                          <Input id="budget" name="budget" type="number" required />
                       </div>
                       <div>
                         <Label htmlFor="campaign-duration">Campaign Duration</Label>
-                        <Input id="campaign-duration" type="text" placeholder="e.g., Start Date - End Date"/>
+                        <Input id="campaign-duration" name="campaign-duration" type="text" placeholder="e.g., Start Date - End Date"/>
                       </div>
                   </div>
                   <div>
                       <Label htmlFor="target-audience">Target Audience</Label>
-                      <Textarea id="target-audience" rows={3} placeholder="Describe the target audience (e.g., location, demographics, interests)." />
+                      <Textarea id="target-audience" name="target-audience" rows={3} placeholder="Describe the target audience (e.g., location, demographics, interests)." />
                   </div>
                   <div>
                       <Label>Sponsored Products</Label>
@@ -155,19 +223,27 @@ export default function RetailMediaNetworkPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {placeholderCampaigns.map(campaign => (
-                            <TableRow key={campaign.id}>
-                                <TableCell className="font-medium">{campaign.name}</TableCell>
-                                <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                                <TableCell>R{campaign.budget.toLocaleString()}</TableCell>
-                                <TableCell>{campaign.impressions.toLocaleString()}</TableCell>
-                                <TableCell>{campaign.clicks.toLocaleString()}</TableCell>
-                                <TableCell>{campaign.ctr.toFixed(2)}%</TableCell>
-                                <TableCell>
-                                    <Button variant="link" className="p-0 h-auto" onClick={() => handleViewDetails(campaign)}>View Details</Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {loading ? (
+                             <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                        ) : !db ? (
+                            <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">Please configure Firebase to view campaigns.</TableCell></TableRow>
+                        ) : campaigns.length === 0 ? (
+                            <TableRow><TableCell colSpan={7} className="h-24 text-center">No campaigns found.</TableCell></TableRow>
+                        ) : (
+                            campaigns.map(campaign => (
+                                <TableRow key={campaign.id}>
+                                    <TableCell className="font-medium">{campaign.campaignName}</TableCell>
+                                    <TableCell>{getStatusBadge(campaign.status)}</TableCell>
+                                    <TableCell>R{campaign.budget.toLocaleString()}</TableCell>
+                                    <TableCell>{campaign.impressions.toLocaleString()}</TableCell>
+                                    <TableCell>{campaign.clicks.toLocaleString()}</TableCell>
+                                    <TableCell>{calculateCTR(campaign.clicks, campaign.impressions)}</TableCell>
+                                    <TableCell>
+                                        <Button variant="link" className="p-0 h-auto" onClick={() => handleViewDetails(campaign)}>View Details</Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
                     </TableBody>
                 </Table>
             </CardContent>
@@ -182,7 +258,7 @@ export default function RetailMediaNetworkPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle className="text-3xl">{selectedCampaign?.name}</CardTitle>
+                <CardTitle className="text-3xl">{selectedCampaign?.campaignName}</CardTitle>
                 <CardDescription>
                     Live performance metrics for this campaign.
                 </CardDescription>
@@ -226,7 +302,7 @@ export default function RetailMediaNetworkPage() {
                     <BarChart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <p className="text-2xl font-bold">{selectedCampaign?.ctr.toFixed(2)}%</p>
+                    <p className="text-2xl font-bold">{calculateCTR(selectedCampaign?.clicks || 0, selectedCampaign?.impressions || 0)}</p>
                      <p className="text-xs text-muted-foreground">Ratio of clicks to impressions</p>
                 </CardContent>
             </Card>
@@ -244,6 +320,5 @@ export default function RetailMediaNetworkPage() {
       </div>
     </div>
   );
-}
 
     

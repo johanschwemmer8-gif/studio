@@ -16,7 +16,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 function SidebarLogo() {
-    const [logoUrl, setLogoUrl] useState<string | null>(null);
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [logoWidth, setLogoWidth] = useState<number>(128);
 
     useEffect(() => {

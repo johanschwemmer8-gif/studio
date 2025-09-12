@@ -29,6 +29,7 @@ import '@/ai/flows/save-retailer-api-key.ts';
 import '@/ai/flows/process-subscription-payment.ts';
 import '@/ai/flows/get-displays.ts';
 import '@/ai/flows/register-display.ts';
+import '@/ai/flows/remote-display-command.ts';
 import { seedBillingData } from '@/lib/seed-billing';
 
 // Seed data on startup

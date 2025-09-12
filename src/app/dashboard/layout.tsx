@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, MonitorSmartphone } from 'lucide-react';
 import Link from 'next/link';
 import theme from '@/config/theme.json';
 import Image from 'next/image';
@@ -99,6 +99,14 @@ export default function DashboardLayout({
                 <Link href="/retailer-mvp/dashboard">
                   <FlaskConical />
                   <span>Test MVP</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="In-Store Display">
+                <Link href="/in-store-display">
+                  <MonitorSmartphone />
+                  <span>In-Store Display</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -1,8 +1,10 @@
 
 'use client';
 
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
+import { getRemoteConfig } from 'firebase/remote-config';
 
 // In a real application, these values would be populated, likely from environment variables.
 const firebaseConfig = {
@@ -15,7 +17,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
+let app: FirebaseApp;
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
 } else {
@@ -24,4 +26,21 @@ if (!getApps().length) {
 
 const db = getFirestore(app);
 
-export { db };
+// Initialize Analytics and Remote Config only on the client side
+const analytics = typeof window !== 'undefined' && isAnalyticsSupported() 
+  ? getAnalytics(app) 
+  : null;
+  
+const remoteConfig = typeof window !== 'undefined' 
+  ? getRemoteConfig(app) 
+  : null;
+
+if (remoteConfig) {
+    remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
+    remoteConfig.defaultConfig = {
+        'in_store_greeting_message': 'Welcome to our store!',
+    };
+}
+
+
+export { db, analytics, remoteConfig };

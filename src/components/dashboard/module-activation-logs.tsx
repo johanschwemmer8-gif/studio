@@ -126,4 +126,3 @@ export default function ModuleActivationLogs({ logs }: ModuleActivationLogsProps
     </Card>
   );
 }
-

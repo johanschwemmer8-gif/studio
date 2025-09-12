@@ -324,5 +324,3 @@ const llmResponse = await ai.generate({
     </div>
   );
 }
-
-    

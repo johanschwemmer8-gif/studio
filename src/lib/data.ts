@@ -382,4 +382,3 @@ export const staffActivationData = [
   { id: '4', name: 'Naledi Williams', store: 'Menlyn Park', activations: 80 },
   { id: '5', name: 'David Chen', store: 'Canal Walk', activations: 72 },
 ];
-    

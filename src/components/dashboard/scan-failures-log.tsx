@@ -135,5 +135,3 @@ export default function ScanFailuresLog({ logs }: ScanFailuresLogProps) {
     </Card>
   );
 }
-
-    

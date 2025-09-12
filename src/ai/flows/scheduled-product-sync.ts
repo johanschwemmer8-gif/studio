@@ -48,7 +48,7 @@ const scheduledProductSyncFlow = ai.defineFlow(
   {
     name: 'scheduledProductSyncFlow',
     inputSchema: ScheduledProductSyncInputSchema,
-    outputSchema: ScheduledSyncOutputSchema,
+    outputSchema: ScheduledProductSyncOutputSchema,
   },
   async ({ retailerId, mockApiUrl }) => {
     const db = admin.firestore();
@@ -65,7 +65,7 @@ const scheduledProductSyncFlow = ai.defineFlow(
       productsFromApi = await response.json() as z.infer<typeof ProductSchema>[];
     } catch (error: any) {
         // Since the mock API doesn't exist, we'll fall back to mock data for demonstration.
-        console.warn(`Mock API fetch failed (${error.message}). Using fallback mock data.`);
+        console.warn(`Mock API fetch failed (${(error as Error).message}). Using fallback mock data.`);
         productsFromApi = [
             { sku: 'MOCK-001', name: 'Synced Running Shoes', description: 'Latest model.', price: 129.99, imageUrl: 'https://picsum.photos/seed/shoes/400', isAvailable: true },
             { sku: 'MOCK-002', name: 'Synced Water Bottle', description: 'Keeps drinks cold.', price: 29.99, imageUrl: 'https://picsum.photos/seed/bottle/400', isAvailable: true },
@@ -113,7 +113,7 @@ const scheduledProductSyncFlow = ai.defineFlow(
       console.error('Product synchronization failed:', error);
       return {
         success: false,
-        message: `Error during Firestore operation: ${error.message}`,
+        message: `Error during Firestore operation: ${(error as Error).message}`,
       };
     }
   }

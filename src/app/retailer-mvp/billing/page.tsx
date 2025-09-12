@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -30,14 +30,33 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, CreditCard, Download, Star } from 'lucide-react';
+import { CheckCircle, CreditCard, Download, Star, Loader2 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const invoiceHistory = [
-  { id: 'INV-2024-005', date: '2024-05-01', amount: 'R1,250.00', status: 'Paid' },
-  { id: 'INV-2024-004', date: '2024-04-01', amount: 'R1,250.00', status: 'Paid' },
-  { id: 'INV-2024-003', date: '2024-03-01', amount: 'R1,250.00', status: 'Paid' },
-  { id: 'INV-2024-002', date: '2024-02-01', amount: 'R1,250.00', status: 'Paid' },
-];
+
+type Invoice = {
+    id: string;
+    invoiceId: string;
+    date: Timestamp;
+    amount: number;
+    status: 'Paid' | 'Pending' | 'Failed';
+    pdfUrl?: string;
+};
+
+type Subscription = {
+    retailerId: string;
+    planId: string;
+    status: 'active' | 'trial' | 'canceled';
+    nextBillingDate: Timestamp;
+    paymentMethod: {
+        cardType: string;
+        last4: string;
+    };
+    stripeCustomerId: string;
+};
 
 const subscriptionPlans = [
     { name: 'Basic', price: 'R499', features: ['Up to 1,000 QRs', 'Basic Analytics', 'Email Support'] },
@@ -47,7 +66,62 @@ const subscriptionPlans = [
 
 export default function BillingPage() {
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
-  const currentPlan = subscriptionPlans.find(p => p.current) || subscriptionPlans[1];
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const retailerId = 'ret_123xyz'; // In a real app, get this from auth context
+
+  useEffect(() => {
+    if (!db) {
+        toast({ title: "Firebase not configured", description: "Please set up your Firebase connection.", variant: "destructive" });
+        setLoading(false);
+        return;
+    }
+
+    const subDocRef = doc(db, 'subscriptions', retailerId);
+    const unsubscribeSub = onSnapshot(subDocRef, (doc) => {
+        if (doc.exists()) {
+            setSubscription(doc.data() as Subscription);
+        } else {
+            console.warn(`Subscription for retailer ${retailerId} not found.`);
+        }
+    }, (error) => {
+        console.error("Error fetching subscription: ", error);
+        toast({ title: 'Error', description: 'Could not fetch subscription data.', variant: 'destructive'});
+    });
+    
+    const invoicesQuery = query(collection(db, `subscriptions/${retailerId}/invoices`), orderBy('date', 'desc'));
+    const unsubscribeInvoices = onSnapshot(invoicesQuery, (snapshot) => {
+        const fetchedInvoices: Invoice[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
+        setInvoices(fetchedInvoices);
+        setLoading(false);
+    }, (error) => {
+        console.error("Error fetching invoices: ", error);
+        toast({ title: 'Error', description: 'Could not fetch invoice history.', variant: 'destructive'});
+        setLoading(false);
+    });
+
+
+    return () => {
+        unsubscribeSub();
+        unsubscribeInvoices();
+    };
+  }, [toast, retailerId]);
+  
+  const currentPlan = subscriptionPlans.find(p => p.name.toLowerCase().includes(subscription?.planId || '')) || subscriptionPlans[1];
+
+  const handlePlanChange = (newPlanId: string) => {
+      console.log(`Calling cloud function to change plan to ${newPlanId} for retailer ${retailerId}`);
+      // In a real app, you would call a Firebase Cloud Function here:
+      // const changePlan = httpsCallable(functions, 'changeSubscriptionPlan');
+      // changePlan({ retailerId, newPlanId })
+      //   .then(() => toast({ title: "Success", description: "Your plan change request has been submitted." }))
+      //   .catch((error) => toast({ title: "Error", description: error.message, variant: 'destructive' }));
+      toast({ title: "Plan Change Requested", description: `Request to change to ${newPlanId} has been simulated.` });
+      setIsPlanModalOpen(false);
+  };
 
   return (
     <div className="space-y-8">
@@ -67,16 +141,29 @@ export default function BillingPage() {
             <CardDescription>Your current subscription details.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                <h3 className="text-lg font-semibold text-primary">{currentPlan.name} Plan</h3>
-                <p className="text-muted-foreground">Renews on: June 1, 2025</p>
-            </div>
-            <p className="text-3xl font-bold">{currentPlan.price}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+             {loading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-8 w-1/2" />
+                </div>
+            ) : subscription ? (
+                <>
+                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                        <h3 className="text-lg font-semibold text-primary capitalize">{subscription.planId.replace('_', ' ')}</h3>
+                        <p className="text-muted-foreground">
+                            Renews on: {new Date(subscription.nextBillingDate.toDate()).toLocaleDateString()}
+                        </p>
+                    </div>
+                    <p className="text-3xl font-bold">{currentPlan.price}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                </>
+             ) : (
+                <p className="text-muted-foreground">No subscription data found.</p>
+             )}
           </CardContent>
           <CardFooter>
              <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
                 <DialogTrigger asChild>
-                    <Button>Change Plan</Button>
+                    <Button disabled={!subscription}>Change Plan</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-3xl">
                     <DialogHeader>
@@ -85,11 +172,11 @@ export default function BillingPage() {
                     </DialogHeader>
                     <div className="grid md:grid-cols-3 gap-6 py-4">
                         {subscriptionPlans.map(plan => (
-                            <Card key={plan.name} className={plan.current ? 'border-primary ring-2 ring-primary' : ''}>
+                            <Card key={plan.name} className={plan.name === currentPlan.name ? 'border-primary ring-2 ring-primary' : ''}>
                                 <CardHeader>
                                     <CardTitle className="flex items-center justify-between">
                                         {plan.name}
-                                        {plan.current && <Star className="h-5 w-5 text-primary" />}
+                                        {plan.name === currentPlan.name && <Star className="h-5 w-5 text-primary" />}
                                     </CardTitle>
                                     <p className="text-2xl font-bold">{plan.price}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
                                 </CardHeader>
@@ -104,8 +191,8 @@ export default function BillingPage() {
                                     </ul>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full" disabled={plan.current}>
-                                        {plan.current ? 'Current Plan' : 'Select Plan'}
+                                    <Button className="w-full" disabled={plan.name === currentPlan.name} onClick={() => handlePlanChange(plan.name.toLowerCase())}>
+                                        {plan.name === currentPlan.name ? 'Current Plan' : 'Select Plan'}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -122,16 +209,20 @@ export default function BillingPage() {
                 <CardDescription>The card used for your subscription payments.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border">
-                    <CreditCard className="h-8 w-8 text-muted-foreground" />
-                    <div>
-                        <p className="font-semibold">Visa ending in 4242</p>
-                        <p className="text-sm text-muted-foreground">Expires 12/2026</p>
+                 {loading ? <Skeleton className="h-16 w-full" /> : subscription?.paymentMethod ? (
+                     <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border">
+                        <CreditCard className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                            <p className="font-semibold">{subscription.paymentMethod.cardType} ending in {subscription.paymentMethod.last4}</p>
+                            <p className="text-sm text-muted-foreground">Expires 12/2026</p>
+                        </div>
                     </div>
-                </div>
+                 ) : (
+                     <p className="text-muted-foreground">No payment method on file.</p>
+                 )}
             </CardContent>
              <CardFooter>
-                <Button variant="outline">Update Payment Method</Button>
+                <Button variant="outline" disabled={!subscription}>Update Payment Method</Button>
             </CardFooter>
         </Card>
       </div>
@@ -155,24 +246,30 @@ export default function BillingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoiceHistory.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-mono">{invoice.id}</TableCell>
-                  <TableCell>{invoice.date}</TableCell>
-                  <TableCell>{invoice.amount}</TableCell>
-                  <TableCell>
-                    <Badge variant={invoice.status === 'Paid' ? 'default' : 'destructive'} className="bg-green-500/20 text-green-700">
-                      {invoice.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      <Download className="mr-2 h-4 w-4" />
-                      Download PDF
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {loading ? (
+                  <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+              ) : invoices.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No invoices found.</TableCell></TableRow>
+              ) : (
+                invoices.map((invoice) => (
+                    <TableRow key={invoice.id}>
+                    <TableCell className="font-mono">{invoice.invoiceId}</TableCell>
+                    <TableCell>{new Date(invoice.date.toDate()).toLocaleDateString()}</TableCell>
+                    <TableCell>R{invoice.amount.toFixed(2)}</TableCell>
+                    <TableCell>
+                        <Badge variant={invoice.status === 'Paid' ? 'default' : 'destructive'} className={invoice.status === 'Paid' ? "bg-green-500/20 text-green-700" : ""}>
+                        {invoice.status}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <Button variant="outline" size="sm" disabled={!invoice.pdfUrl}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download PDF
+                        </Button>
+                    </TableCell>
+                    </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -180,4 +277,3 @@ export default function BillingPage() {
     </div>
   );
 }
-

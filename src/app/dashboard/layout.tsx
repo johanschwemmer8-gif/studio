@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, MonitorSmartphone } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, MonitorSmartphone, Globe } from 'lucide-react';
 import Link from 'next/link';
 import theme from '@/config/theme.json';
 import Image from 'next/image';
@@ -71,10 +71,18 @@ export default function DashboardLayout({
                 </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="AOE Security">
-                    <Link href="/dashboard/aoe-security">
+                <SidebarMenuButton asChild tooltip="Platform Security">
+                    <Link href="/dashboard/platform-security">
                         <Shield />
-                        <span>AOE Security</span>
+                        <span>Platform Security</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="External Security & Integrations">
+                    <Link href="/dashboard/external-security-integrations">
+                        <Globe />
+                        <span>External Security & Integrations</span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>

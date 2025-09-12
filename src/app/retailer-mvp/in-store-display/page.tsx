@@ -51,15 +51,7 @@ export default function InStoreDisplayPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-        <div className='absolute top-4 left-4'>
-            <Button asChild variant="ghost">
-                <Link href="/dashboard/admin">
-                    <ArrowLeft className='mr-2'/>
-                    Back to Admin
-                </Link>
-            </Button>
-        </div>
+    <div className="flex items-center justify-center">
       <Card className="w-full max-w-lg text-center">
         <CardHeader>
           <CardTitle>In-Store Experience</CardTitle>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -144,6 +145,14 @@ export default function DashboardLayout({
                     <Link href="/dashboard/platform-security">
                         <Shield />
                         <span>Platform Security</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="AOE Security">
+                    <Link href="/dashboard/aoe-security">
+                        <Shield />
+                        <span>AOE Security</span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>

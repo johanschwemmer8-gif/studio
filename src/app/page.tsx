@@ -46,7 +46,7 @@ function LandingPageLogo() {
             if (e.key === 'landing-page-logo') setLogoUrl(e.newValue);
             if (e.key === 'landing-page-logo-width') setLogoWidth(Number(e.newValue || 128));
             if (e.key === 'landing-page-logo-align') setLogoAlign(e.newValue || 'flex-start');
-            if (e.key === 'landing-page-logo-padding') setLogoPadding(Number(e.newValue || 8));
+            if (e.key === 'landing-page-logo-padding') setLogoPadding(Number(e.newValue || 0));
         };
         
         const handleCustomEvent = (e: Event) => {
@@ -60,7 +60,7 @@ function LandingPageLogo() {
             const updatedAlign = localStorage.getItem('landing-page-logo-align');
             setLogoAlign(updatedAlign || 'flex-start');
             const updatedPadding = localStorage.getItem('landing-page-logo-padding');
-            setLogoPadding(Number(updatedPadding || 8));
+            setLogoPadding(Number(updatedPadding || 0));
         };
 
         window.addEventListener('storage', handleStorageChange);
@@ -146,7 +146,7 @@ export default function Home() {
           <LandingPageLogo />
            <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
               <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="mr-4 mt-2">iNteract Dashboard</Button>
+                  <Button variant="ghost" size="sm">iNteract Dashboard</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                   <form onSubmit={handleLogin}>

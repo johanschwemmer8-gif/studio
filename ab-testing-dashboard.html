@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A/B Testing & Experimentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .modal {
+            transition: opacity 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+    <div id="main-dashboard" class="container mx-auto bg-white p-6 rounded-lg shadow-md">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">A/B Testing & Experimentation</h1>
+            <button id="create-experiment-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition duration-200">
+                Create New Experiment
+            </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experiment Name</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start/End Date</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key Metric</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Overall Result</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Homepage UI Test</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">Running</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2025-09-01 to 2025-10-01</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Click-Through Rate</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-yellow-600 font-semibold">Inconclusive</td>
+                        <td class="px-6 py-4 whitespace-now-space text-sm font-medium">
+                            <button class="view-details-btn text-blue-600 hover:text-blue-900">View Details</button>
+                            <button class="text-red-600 hover:text-red-900 ml-4">Stop</button>
+                        </td>
+                    </tr>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="create-experiment-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden modal z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Create New Experiment</h2>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+            <form id="create-experiment-form" class="space-y-6">
+                <div>
+                    <label for="experiment-name" class="block text-sm font-medium text-gray-700">Experiment Name</label>
+                    <input type="text" id="experiment-name" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="experiment-description" class="block text-sm font-medium text-gray-700">Description / Hypothesis</label>
+                    <textarea id="experiment-description" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Define Variables (A/B)</h3>
+                    <div class="flex space-x-4">
+                        <div class="flex-1">
+                            <label for="variable-a" class="block text-sm font-medium text-gray-700">Variable A (Control)</label>
+                            <input type="text" id="variable-a" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="flex-1">
+                            <label for="variable-b" class="block text-sm font-medium text-gray-700">Variable B (Variant)</label>
+                            <input type="text" id="variable-b" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="primary-metric" class="block text-sm font-medium text-gray-700">Primary Metric</label>
+                    <select id="primary-metric" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="conversion_rate">Conversion Rate</option>
+                        <option value="click_through_rate">Click-Through Rate</option>
+                        <option value="add_to_cart">Add to Cart</option>
+                        <option value="in_store_visit">In-Store Visit</option>
+                    </select>
+                </div>
+                <div class="text-right">
+                    <button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition duration-200">
+                        Create Experiment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="experiment-details-view" class="container mx-auto bg-white p-6 rounded-lg shadow-md hidden">
+        <button id="back-to-dashboard-btn" class="text-gray-500 hover:text-gray-700 mb-4">&larr; Back to Dashboard</button>
+        
+        <h1 id="details-experiment-name" class="text-3xl font-bold text-gray-800 mb-4"></h1>
+        <p id="details-experiment-description" class="text-gray-600 mb-6"></p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gray-50 p-4 rounded-lg text-center shadow">
+                <p class="text-xl font-semibold text-gray-700">Total Participants</p>
+                <p id="details-participants" class="text-4xl font-bold text-blue-600 mt-2">0</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center shadow">
+                <p class="text-xl font-semibold text-gray-700">Control (A) Conversion</p>
+                <p id="details-control-rate" class="text-4xl font-bold text-green-600 mt-2">0%</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center shadow">
+                <p class="text-xl font-semibold text-gray-700">Variant (B) Conversion</p>
+                <p id="details-variant-rate" class="text-4xl font-bold text-purple-600 mt-2">0%</p>
+            </div>
+        </div>
+        
+        <div class="bg-gray-100 p-6 rounded-lg">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Results & Recommendations</h3>
+            <p id="details-recommendation" class="text-lg text-gray-700 mb-4">Insufficient data. Continue running the experiment to get a statistically significant result.</p>
+            <button id="apply-winner-btn" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg hover:bg-green-700 transition duration-200">
+                Apply Winner
+            </button>
+            <button id="end-experiment-btn" class="bg-red-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg hover:bg-red-700 transition duration-200 ml-4">
+                End Experiment
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const createExperimentBtn = document.getElementById('create-experiment-btn');
+        const createExperimentModal = document.getElementById('create-experiment-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const mainDashboard = document.getElementById('main-dashboard');
+        const experimentDetailsView = document.getElementById('experiment-details-view');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        const viewDetailsBtns = document.querySelectorAll('.view-details-btn');
+
+        // Show the create experiment modal
+        createExperimentBtn.addEventListener('click', () => {
+            createExperimentModal.classList.remove('hidden');
+        });
+
+        // Hide the create experiment modal
+        closeModalBtn.addEventListener('click', () => {
+            createExperimentModal.classList.add('hidden');
+        });
+
+        // Hide modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === createExperimentModal) {
+                createExperimentModal.classList.add('hidden');
+            }
+        });
+
+        // Show experiment details view and hide main dashboard
+        viewDetailsBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                mainDashboard.classList.add('hidden');
+                experimentDetailsView.classList.remove('hidden');
+                // Placeholder logic to populate details
+                document.getElementById('details-experiment-name').innerText = 'Homepage UI Test';
+                document.getElementById('details-experiment-description').innerText = 'Testing if a different homepage layout increases customer engagement.';
+            });
+        });
+
+        // Go back to the main dashboard
+        backToDashboardBtn.addEventListener('click', () => {
+            mainDashboard.classList.remove('hidden');
+            experimentDetailsView.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>

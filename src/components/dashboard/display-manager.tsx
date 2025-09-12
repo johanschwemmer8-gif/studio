@@ -32,6 +32,7 @@ import { storesByRegion } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { cn } from '@/lib/utils';
 import { differenceInMinutes, formatDistanceToNow } from 'date-fns';
+import { Separator } from '@/components/ui/separator';
 
 function ClientFormattedDate({ timestamp, isRelative }: { timestamp: string, isRelative?: boolean }) {
   const [formattedDate, setFormattedDate] = useState('');

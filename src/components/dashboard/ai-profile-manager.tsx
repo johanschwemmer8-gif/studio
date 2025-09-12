@@ -162,13 +162,18 @@ export default function AIProfileManager() {
                     </DialogHeader>
                     <div className="grid md:grid-cols-2 gap-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
                         <div className="space-y-4">
-                            <FormItem field={form.register('profileName')} label="Profile Name"><Input placeholder="e.g., Summer Sale Helper" /></FormItem>
-                            <FormItem label="Personality">
+                            <FormItem>
+                                <Label htmlFor="profileName">Profile Name</Label>
+                                <Input id="profileName" placeholder="e.g., Summer Sale Helper" {...form.register('profileName')} />
+                            </FormItem>
+                            <FormItem>
+                                <Label>Personality</Label>
                                 <Controller name="personality" control={form.control} render={({ field }) => (
                                     <Select onValueChange={field.onChange} value={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{personalityOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select>
                                 )}/>
                             </FormItem>
-                             <FormItem label="Intents">
+                             <FormItem>
+                                <Label>Intents</Label>
                                 <div className="grid grid-cols-2 gap-2 p-3 border rounded-md">
                                     {intentOptions.map(intent => (
                                         <div key={intent} className="flex items-center gap-2">
@@ -181,13 +186,16 @@ export default function AIProfileManager() {
                             </FormItem>
                         </div>
                         <div className="space-y-4">
-                             <FormItem field={form.register('constraints')} label="Constraints"><Textarea placeholder="e.g., max 3 suggestions, avoid using the word 'cheap'" /></FormItem>
+                             <FormItem>
+                                <Label htmlFor="constraints">Constraints</Label>
+                                <Textarea id="constraints" placeholder="e.g., max 3 suggestions, avoid using the word 'cheap'" {...form.register('constraints')} />
+                             </FormItem>
                             <div>
                                <Label className="font-semibold">Integration Flags</Label>
                                 <div className="space-y-2 mt-2">
-                                    <FormItem field={form.register('integrationFlags.use_ecommerce_feed')} label="Use E-commerce Feed" asSwitch />
-                                    <FormItem field={form.register('integrationFlags.use_loyalty_api')} label="Use Loyalty API" asSwitch />
-                                    <FormItem field={form.register('integrationFlags.use_campaign_tags')} label="Use Campaign Tags" asSwitch />
+                                    <FormSwitchItem name="integrationFlags.use_ecommerce_feed" label="Use E-commerce Feed" control={form.control} />
+                                    <FormSwitchItem name="integrationFlags.use_loyalty_api" label="Use Loyalty API" control={form.control} />
+                                    <FormSwitchItem name="integrationFlags.use_campaign_tags" label="Use Campaign Tags" control={form.control} />
                                 </div>
                             </div>
                         </div>
@@ -232,22 +240,17 @@ export default function AIProfileManager() {
   );
 }
 
+function FormItem({ children }: { children: React.ReactNode }) {
+    return <div className="space-y-2">{children}</div>
+}
 
-function FormItem({ field, label, children, asSwitch=false }: { field: any, label: string, children?: React.ReactNode, asSwitch?: boolean }) {
-    if (asSwitch) {
-        return (
-             <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor={field.name} className="font-normal">{label}</Label>
-                <Controller name={field.name} control={field.control} render={({ field: controllerField }) => (
-                     <Switch id={field.name} checked={controllerField.value} onCheckedChange={controllerField.onChange} />
-                )} />
-             </div>
-        )
-    }
+function FormSwitchItem({ name, label, control }: { name: any, label: string, control: any }) {
     return (
-        <div className="space-y-2">
-            <Label htmlFor={field.name}>{label}</Label>
-            {children}
-        </div>
+         <div className="flex items-center justify-between rounded-lg border p-3">
+            <Label htmlFor={name} className="font-normal">{label}</Label>
+            <Controller name={name} control={control} render={({ field }) => (
+                 <Switch id={name} checked={field.value} onCheckedChange={field.onChange} />
+            )} />
+         </div>
     )
 }

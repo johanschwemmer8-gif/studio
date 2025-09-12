@@ -9,13 +9,23 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Code, MessageCircle, Share2, Sparkles, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Code, MessageCircle, Share2, Sparkles, ShieldCheck, RefreshCw, AlertTriangle, KeyRound, Server, Link, Power, PowerOff, User, Clock, Building2, MapPin, AlertCircle } from 'lucide-react';
 import { dataSyncLogs, lastSyncStatus, moduleActivationLogs, scanErrorRate, scanFailuresLog, systemUptime } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import DataSynchronizationLogs from '@/components/dashboard/data-synchronization-logs';
 import ModuleActivationLogs from '@/components/dashboard/module-activation-logs';
 import ScanFailuresLog from '@/components/dashboard/scan-failures-log';
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 // This new component will ensure that date formatting only runs on the client
 function ClientFormattedDate({ timestamp }: { timestamp: string }) {
@@ -36,16 +46,67 @@ function ClientFormattedDate({ timestamp }: { timestamp: string }) {
 
 
 export default function SystemIntegrationPage() {
+    
+  const integrations = [
+    { name: 'Point of Sale (POS)', apiKey: 'pos_sk_live_******************1234', status: 'Connected' as const },
+    { name: 'Inventory Management', apiKey: 'inv_sk_live_******************5678', status: 'Connected' as const },
+    { name: 'Customer Relationship Management (CRM)', apiKey: 'crm_sk_live_******************9012', status: 'Disconnected' as const },
+  ];
 
   return (
     <div className="space-y-8">
        <div>
         <h2 className="text-2xl font-bold tracking-tight mb-2">System & Integration Management</h2>
         <p className="text-muted-foreground max-w-3xl">
-          Showcase of the powerful Generative AI features, system health diagnostics, and integration logs for the iNteract-AOE platform.
+          Manage your API credentials, view system health diagnostics, and see integration logs for the iNteract-AOE platform.
         </p>
       </div>
       <Separator />
+
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <KeyRound className="text-primary" /> API Integrations & Credentials
+            </CardTitle>
+            <CardDescription>
+                Manage connections to your external systems like POS, inventory, and CRM.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Service</TableHead>
+                        <TableHead>API Key</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {integrations.map(integration => (
+                        <TableRow key={integration.name}>
+                            <TableCell className="font-medium">{integration.name}</TableCell>
+                            <TableCell><code className="font-mono text-sm bg-muted p-1 rounded">{integration.apiKey}</code></TableCell>
+                            <TableCell>
+                                <Badge variant={integration.status === 'Connected' ? 'default' : 'destructive'}>
+                                    {integration.status}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-right space-x-2">
+                                 <Button variant="outline" size="sm">
+                                    <RefreshCw className="mr-2 h-3.5 w-3.5" /> Test Connection
+                                </Button>
+                                <Button variant="secondary" size="sm">
+                                    Manage
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </CardContent>
+      </Card>
+
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         <Card>
@@ -263,3 +324,5 @@ const llmResponse = await ai.generate({
     </div>
   );
 }
+
+    

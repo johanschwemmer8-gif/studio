@@ -21,6 +21,9 @@ import { Save, Sparkles, Tv } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import DisplayManager from '@/components/dashboard/display-manager';
 
 
 type ContentType = 'static_image' | 'dynamic_ai_prompt' | 'promotional_video' | 'product_showcase';
@@ -35,7 +38,7 @@ function LivePreview({ config }: { config: any }) {
         <CardContent>
             <div className="aspect-video w-full bg-slate-900 rounded-lg flex items-center justify-center p-4 text-center text-white overflow-hidden relative">
                 {config.type === 'static_image' && config.imageUrl && (
-                    <Image src={config.imageUrl} alt="Preview" layout="fill" objectFit="contain" />
+                    <Image src={config.imageUrl} alt="Preview" fill objectFit="contain" />
                 )}
                 {config.type === 'dynamic_ai_prompt' && (
                     <div className="space-y-4">
@@ -71,6 +74,18 @@ export default function InStoreDisplayPage() {
   const [config, setConfig] = useState<any>({type: 'dynamic_ai_prompt', prompt: 'Highlight today\'s best deals.'});
   const { toast } = useToast();
 
+   useEffect(() => {
+    if (!db) return;
+    const unsubscribe = onSnapshot(collection(db, 'inStoreConfigs'), (snapshot) => {
+        if (!snapshot.empty) {
+            // Get the latest config
+            const latestDoc = snapshot.docs[snapshot.docs.length - 1];
+            setConfig(latestDoc.data().contentSlot);
+        }
+    });
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (remoteConfig) {
       fetchAndActivate(remoteConfig)
@@ -82,14 +97,12 @@ export default function InStoreDisplayPage() {
         })
         .catch((err) => {
           console.error('Remote Config fetch failed:', err);
-          // Set default value on failure
           setGreeting('Welcome to our special event!');
         })
         .finally(() => {
             setLoading(false);
         });
     } else {
-        // Fallback for SSR or if remote config is disabled
         setGreeting('Welcome to our special event!');
         setLoading(false);
     }
@@ -126,13 +139,27 @@ export default function InStoreDisplayPage() {
     }
   };
   
-  const handleSave = () => {
-    console.log("Saving configuration:", config);
-    // In a real app, this would call a Firebase function to update Remote Config
-    toast({
-        title: "Configuration Saved!",
-        description: "The in-store display content has been updated.",
-    });
+  const handleSave = async () => {
+     if (!db) {
+        toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
+        return;
+    }
+    try {
+        await addDoc(collection(db, 'inStoreConfigs'), {
+            retailerId: 'ret_123xyz',
+            configId: `config_${Date.now()}`,
+            contentSlot: config,
+            isActive: false, // Default to inactive, activate from the management table
+            lastUpdated: serverTimestamp()
+        });
+        toast({
+            title: "Configuration Saved!",
+            description: "The new in-store display content has been saved.",
+        });
+    } catch (error) {
+        console.error("Error saving config: ", error);
+        toast({ title: 'Error', description: 'Failed to save configuration.', variant: 'destructive'});
+    }
   };
 
   return (
@@ -236,6 +263,10 @@ export default function InStoreDisplayPage() {
             </p>
             </CardContent>
         </Card>
+
+        <Separator />
+        
+        <DisplayManager />
     </div>
   );
 }

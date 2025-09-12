@@ -164,7 +164,7 @@ export default function UserAdminPage() {
                             <Slider
                                 id="logo-size"
                                 min={40}
-                                max={180}
+                                max={240}
                                 step={2}
                                 value={[logoWidth]}
                                 onValueChange={(value) => setLogoWidth(value[0])}

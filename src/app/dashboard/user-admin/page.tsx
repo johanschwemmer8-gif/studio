@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,6 +38,7 @@ import Image from 'next/image';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
+import { QrCode } from 'lucide-react';
 
 type User = {
   name: string;
@@ -56,7 +58,7 @@ export default function UserAdminPage() {
   const [landingLogoPreview, setLandingLogoPreview] = useState<string | null>(null);
   const [landingLogoWidth, setLandingLogoWidth] = useState(128);
   const [landingLogoAlign, setLandingLogoAlign] = useState('flex-start');
-  const [landingLogoPadding, setLandingLogoPadding] = useState(8);
+  const [landingLogoPadding, setLandingLogoPadding] = useState(0);
 
   const { toast } = useToast();
 
@@ -136,6 +138,16 @@ export default function UserAdminPage() {
       }
   };
 
+  const logoContainerClass = cn('w-full px-4', {
+    'text-left': landingLogoAlign === 'flex-start',
+    'text-center': landingLogoAlign === 'center',
+    'text-right': landingLogoAlign === 'flex-end',
+  });
+  
+  const headerStyle: React.CSSProperties = {
+    paddingTop: `${landingLogoPadding}px`,
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -205,61 +217,109 @@ export default function UserAdminPage() {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-            <CardTitle>Login Page Brand Settings</CardTitle>
-            <CardDescription>Customize the logo and its position on the public-facing login/landing page.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div>
-                <Label htmlFor="landing-logo-upload">Landing Page Logo</Label>
-                <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 p-4 border rounded-lg">
-                    <div className="flex-shrink-0 w-48 h-20 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                        {landingLogoPreview ? (
-                            <Image src={landingLogoPreview} alt="Landing Logo Preview" width={landingLogoWidth} height={landingLogoWidth / (128/50)} className="h-auto" style={{ width: `${landingLogoWidth}px` }}/>
-                        ) : (
-                            <div className="text-xs text-muted-foreground flex flex-col items-center gap-1"><ImageIcon className="h-6 w-6" /><span>Logo Preview</span></div>
-                        )}
+      <div className="grid lg:grid-cols-2 gap-8 items-start">
+        <Card>
+          <CardHeader>
+              <CardTitle>Login Page Brand Settings</CardTitle>
+              <CardDescription>Customize the logo and its position on the public-facing login/landing page.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+              <div>
+                  <Label htmlFor="landing-logo-upload">Landing Page Logo</Label>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 p-4 border rounded-lg">
+                      <div className="flex-shrink-0 w-48 h-20 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                          {landingLogoPreview ? (
+                              <Image src={landingLogoPreview} alt="Landing Logo Preview" width={landingLogoWidth} height={landingLogoWidth / (128/50)} className="h-auto" style={{ width: `${landingLogoWidth}px` }}/>
+                          ) : (
+                              <div className="text-xs text-muted-foreground flex flex-col items-center gap-1"><ImageIcon className="h-6 w-6" /><span>Logo Preview</span></div>
+                          )}
+                      </div>
+                      <div className="flex-1 w-full space-y-4">
+                          <Input id="landing-logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={(e) => handleLogoUpload(e, 'landing')} />
+                          <div>
+                              <Label htmlFor="landing-logo-size">Logo Width: {landingLogoWidth}px</Label>
+                              <Slider id="landing-logo-size" min={40} max={240} step={2} value={[landingLogoWidth]} onValueChange={(value) => setLandingLogoWidth(value[0])}/>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              <div>
+                  <Label>Logo Position</Label>
+                  <RadioGroup value={landingLogoAlign} onValueChange={setLandingLogoAlign} className="grid sm:grid-cols-3 gap-4 mt-2">
+                      <Label htmlFor="align-left" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'flex-start' && "border-primary")}>
+                          <RadioGroupItem value="flex-start" id="align-left" className="sr-only" />
+                          <AlignHorizontalJustifyStart className="mb-3 h-6 w-6" />
+                          Left
+                      </Label>
+                      <Label htmlFor="align-center" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'center' && "border-primary")}>
+                          <RadioGroupItem value="center" id="align-center" className="sr-only" />
+                          <AlignHorizontalJustifyCenter className="mb-3 h-6 w-6" />
+                          Center
+                      </Label>
+                      <Label htmlFor="align-right" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'flex-end' && "border-primary")}>
+                          <RadioGroupItem value="flex-end" id="align-right" className="sr-only" />
+                          <AlignHorizontalJustifyEnd className="mb-3 h-6 w-6" />
+                          Right
+                      </Label>
+                  </RadioGroup>
+              </div>
+              <div>
+                  <Label htmlFor="landing-logo-padding">Logo Vertical Position: {landingLogoPadding}px from top</Label>
+                  <Slider id="landing-logo-padding" min={0} max={64} step={2} value={[landingLogoPadding]} onValueChange={(value) => setLandingLogoPadding(value[0])}/>
+              </div>
+              <Button onClick={() => handleSaveLogo('landing')}>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Landing Page Logo
+              </Button>
+          </CardContent>
+        </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle>Landing Page Preview</CardTitle>
+                <CardDescription>A live preview of the main landing page.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="w-full h-[600px] border-2 border-border rounded-lg shadow-inner bg-background relative overflow-hidden">
+                    {/* Header */}
+                    <div className="absolute top-0 left-0 right-0 z-10" style={headerStyle}>
+                        <div className={logoContainerClass}>
+                           {landingLogoPreview ? (
+                                <Image
+                                    src={landingLogoPreview}
+                                    alt="iNteract AOE Logo"
+                                    width={landingLogoWidth}
+                                    height={landingLogoWidth / (128 / 50)}
+                                    className="h-auto inline-block"
+                                    style={{ width: `${landingLogoWidth}px` }}
+                                />
+                            ) : (
+                                <span className="font-bold text-lg inline-block">iNteract AOE</span>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex-1 w-full space-y-4">
-                        <Input id="landing-logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={(e) => handleLogoUpload(e, 'landing')} />
-                         <div>
-                            <Label htmlFor="landing-logo-size">Logo Width: {landingLogoWidth}px</Label>
-                            <Slider id="landing-logo-size" min={40} max={240} step={2} value={[landingLogoWidth]} onValueChange={(value) => setLandingLogoWidth(value[0])}/>
+                    {/* Main Content */}
+                    <div className="h-full flex items-center justify-center p-4">
+                        <div className="text-center">
+                            <h2 className="text-3xl font-bold tracking-tighter mb-4">
+                                Shop Smarter, In-Store.
+                            </h2>
+                            <p className="max-w-md mx-auto text-muted-foreground text-sm mb-6">
+                                Scan any product's QR code to get instant details, reviews, and
+                                AI-powered recommendations right on your phone.
+                            </p>
+                            <div className="max-w-xs mx-auto">
+                               <Button size="lg" className="w-full text-lg py-7">
+                                    <QrCode className="mr-2 h-6 w-6" />
+                                    Scan QR Code
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div>
-                <Label>Logo Position</Label>
-                 <RadioGroup value={landingLogoAlign} onValueChange={setLandingLogoAlign} className="grid sm:grid-cols-3 gap-4 mt-2">
-                    <Label htmlFor="align-left" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'flex-start' && "border-primary")}>
-                        <RadioGroupItem value="flex-start" id="align-left" className="sr-only" />
-                        <AlignHorizontalJustifyStart className="mb-3 h-6 w-6" />
-                        Left
-                    </Label>
-                     <Label htmlFor="align-center" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'center' && "border-primary")}>
-                        <RadioGroupItem value="center" id="align-center" className="sr-only" />
-                        <AlignHorizontalJustifyCenter className="mb-3 h-6 w-6" />
-                        Center
-                    </Label>
-                     <Label htmlFor="align-right" className={cn("flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer", landingLogoAlign === 'flex-end' && "border-primary")}>
-                        <RadioGroupItem value="flex-end" id="align-right" className="sr-only" />
-                        <AlignHorizontalJustifyEnd className="mb-3 h-6 w-6" />
-                        Right
-                    </Label>
-                </RadioGroup>
-            </div>
-            <div>
-                <Label htmlFor="landing-logo-padding">Logo Vertical Position: {landingLogoPadding}px</Label>
-                <Slider id="landing-logo-padding" min={0} max={64} step={2} value={[landingLogoPadding]} onValueChange={(value) => setLandingLogoPadding(value[0])}/>
-            </div>
-             <Button onClick={() => handleSaveLogo('landing')}>
-                <Save className="mr-2 h-4 w-4" />
-                Save Landing Page Logo
-            </Button>
-        </CardContent>
-      </Card>
+            </CardContent>
+        </Card>
+      </div>
 
 
       <Card>

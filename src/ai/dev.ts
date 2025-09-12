@@ -9,7 +9,7 @@ import '@/ai/flows/analyze-campaign-performance.ts';
 import '@/ai/flows/analyze-behavioral-insights.ts';
 import '@/ai/flows/generate-cross-sell-recommendations.ts';
 import '@/ai/flows/process-bulk-qr-queue.ts';
-import '@/ai/flows/generate-zip-for-request.ts';
+import '@/aiflows/generate-zip-for-request.ts';
 import '@/ai/flows/regenerate-qr-code.ts';
 import '@/ai/flows/generate-campaign-ai.ts';
 import '@/ai/flows/save-qr-template.ts';
@@ -22,3 +22,5 @@ import '@/ai/flows/scan-analytics.ts';
 import '@/ai/flows/get-scan-interaction.ts';
 import '@/ai/flows/log-ab-test-conversion.ts';
 import '@/ai/flows/log-ad-click.ts';
+import '@/ai/flows/log-purchase-conversion.ts';
+

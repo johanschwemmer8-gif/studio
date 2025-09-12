@@ -32,6 +32,9 @@ export const registerDisplay = ai.defineFlow(
   async ({ retailerId, storeId }) => {
     const db = admin.firestore();
     
+    // In a real scenario, you'd verify the caller's retailerId from their auth token
+    // against the retailerId provided in the payload.
+    
     // Sanitize the storeId to make it a valid path segment in Firestore
     const sanitizedStoreId = storeId.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const displayId = `display_${sanitizedStoreId}_${Math.random().toString(36).substring(2, 7)}`;

@@ -35,4 +35,3 @@ import { seedBillingData } from '@/lib/seed-billing';
 
 // Seed data on startup
 seedBillingData().catch(console.error);
-

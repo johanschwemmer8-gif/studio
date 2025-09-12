@@ -137,7 +137,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-       <div className="absolute top-0 left-0 right-0 flex justify-between items-start z-10 p-2">
+       <div className="absolute top-0 left-0 right-0 flex justify-between items-start z-10">
           <LandingPageLogo />
            <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
               <DialogTrigger asChild>

@@ -140,13 +140,13 @@ export default function DashboardLayout({
         <footer className="p-4 text-center text-xs text-muted-foreground border-t">
              <div className="flex items-center justify-center gap-2">
                 <span>Powered by iNteract AOE. Made in South Africa.</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="12" viewBox="0 0 9 6" className="inline-block">
-                    <path fill="#DE3831" d="M0 0h9v3H0z"/>
-                    <path fill="#002395" d="M0 3h9v3H0z"/>
-                    <path fill="#FFF" d="M0 2h9v2H0z"/>
-                    <path d="M0 0v6l4.5-3z" fill="#007A4D"/>
-                    <path d="M0 0v6l3-3z" fill="#FFB612"/>
-                    <path d="M0 1.2V4.8L1.8 3zM3 3L0 0h1.5L4.5 3 1.5 6H0z" fill="#000"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="12" viewBox="0 0 900 600">
+                    <rect width="900" height="600" fill="#DE3831"/>
+                    <rect width="900" height="300" y="300" fill="#002395"/>
+                    <path d="M0 0L450 300L0 600V0Z" fill="#007A4D"/>
+                    <path d="M-10 0L440 300L-10 600a120 120 0 0 1 0-600z" fill="#FFB612"/>
+                    <path d="M-20 0L430 300L-20 600a120 120 0 0 1 0-600z" fill="#fff"/>
+                    <path d="M0 120L300 300L0 480V120Z" fill="#000"/>
                 </svg>
             </div>
         </footer>

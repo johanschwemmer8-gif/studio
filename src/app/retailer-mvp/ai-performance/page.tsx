@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ChartTooltipContent } from '@/components/ui/chart';
 
 const responseTimeData = [
   { time: '10:00', avg: 1.1, p95: 1.8 },

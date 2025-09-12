@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, MonitorSmartphone, Globe } from 'lucide-react';
 import Link from 'next/link';
-import theme from '@/config/theme.json';
 import Image from 'next/image';
 import SearchBar from '@/components/dashboard/search-bar';
 
@@ -28,12 +27,14 @@ export default function DashboardLayout({
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <Link href="/" className="font-bold text-lg flex items-center gap-2">
-               {theme.logoUrl ? (
-                  <Image src={theme.logoUrl} alt="Logo" width={24} height={24} className="rounded-full" />
-               ) : (
-                'iNteract AOE'
-               )}
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Image
+                src="https://placehold.co/150x50/475569/ffffff?text=AOE+Logo"
+                alt="iNteract AOE Logo"
+                width={128}
+                height={32}
+                className="w-32"
+              />
             </Link>
           </div>
         </SidebarHeader>

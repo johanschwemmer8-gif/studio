@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, MonitorSmartphone, Settings } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, MonitorSmartphone, Settings, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
@@ -48,6 +48,14 @@ export default function RetailerSidebar({
                 <Link href="/retailer-mvp/qr-analytics">
                   <BarChart2 />
                   <span>Analytics</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="AI Performance">
+                <Link href="/retailer-mvp/ai-performance">
+                  <BrainCircuit />
+                  <span>AI Performance</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

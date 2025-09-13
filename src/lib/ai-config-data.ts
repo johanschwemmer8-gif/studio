@@ -31,4 +31,3 @@ export const sampleOffer = {
     name: 'First-Time Scanner Discount!',
     description: 'Get 15% off this item when you buy today.'
 };
-

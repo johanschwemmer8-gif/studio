@@ -180,14 +180,6 @@ export default function DashboardLayout({
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="UI/UX Development">
-                    <Link href="/dashboard/ui-ux-development">
-                        <Brush />
-                        <span>UI/UX Development</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Documentation & Training Modules">
                     <Link href="/dashboard/documentation">

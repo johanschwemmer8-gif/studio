@@ -172,6 +172,14 @@ export default function DashboardLayout({
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="System Integration & Testing">
+                    <Link href="/dashboard/system-integration">
+                        <FlaskConical />
+                        <span>System Integration</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="UI/UX Development">
                     <Link href="/dashboard/ui-ux-development">

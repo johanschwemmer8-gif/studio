@@ -109,14 +109,6 @@ export default function RetailerSidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="System & Integration Configuration">
-                <Link href="/retailer-mvp/system-integration">
-                  <Blocks />
-                  <span>System & Integration</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Subscription & Billing">
                     <Link href="/retailer-mvp/billing">

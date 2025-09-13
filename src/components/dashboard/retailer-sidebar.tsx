@@ -47,7 +47,7 @@ export default function RetailerSidebar({
               <SidebarMenuButton asChild tooltip="Scan Analytics">
                 <Link href="/retailer-mvp/qr-analytics">
                   <BarChart2 />
-                  <span>Analytics</span>
+                  <span>Scan Analytics</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -99,6 +99,14 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Mobile App">
+                  <Link href="/retailer-mvp/mobile-dashboard">
+                    <MonitorSmartphone />
+                    <span>Mobile App</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             {optionalModules.abTesting && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="A/B Testing">

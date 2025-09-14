@@ -32,8 +32,15 @@ type Permissions = {
   roi: boolean;
   visualsReporting: boolean;
   realTime: boolean;
+  qrManagement: boolean;
+  brands: boolean;
+  inStoreDisplay: boolean;
+  mobileDashboard: boolean;
+  abTesting: boolean;
+  billing: boolean;
+  retailMediaNetwork: boolean;
+  documentation: boolean;
   admin: boolean;
-  systemIntegration: boolean;
 };
 
 type User = { 
@@ -50,12 +57,19 @@ export type SavedRetailer = {
 };
 
 const initialPermissions: Permissions = {
-  dashboard: false,
-  roi: false,
-  visualsReporting: false,
-  realTime: false,
-  admin: false,
-  systemIntegration: false,
+  dashboard: true,
+  roi: true,
+  visualsReporting: true,
+  realTime: true,
+  qrManagement: true,
+  brands: true,
+  inStoreDisplay: true,
+  mobileDashboard: true,
+  abTesting: true,
+  billing: true,
+  retailMediaNetwork: true,
+  documentation: true,
+  admin: true,
 };
 
 function slugify(text: string) {
@@ -136,12 +150,19 @@ export default function AdminPage() {
   };
 
   const permissionLabels: {key: keyof Permissions, label: string}[] = [
-      { key: 'dashboard', label: 'Retailer Dashboard' },
+      { key: 'dashboard', label: 'Dashboard' },
       { key: 'roi', label: 'Retailer ROI' },
       { key: 'visualsReporting', label: 'Visuals & Reporting' },
       { key: 'realTime', label: 'Real-Time Data' },
-      { key: 'admin', label: 'Admin Panel' },
-      { key: 'systemIntegration', label: 'System Integration' },
+      { key: 'qrManagement', label: 'QR Management' },
+      { key: 'brands', label: 'Brands' },
+      { key: 'inStoreDisplay', label: 'In-Store Display' },
+      { key: 'mobileDashboard', label: 'Mobile App' },
+      { key: 'abTesting', label: 'A/B Testing' },
+      { key: 'billing', label: 'Subscription & Billing' },
+      { key: 'retailMediaNetwork', label: 'Retail Media Network' },
+      { key: 'documentation', label: 'Documentation & Training' },
+      { key: 'admin', label: 'Retailer Admin Panel' },
   ];
 
   return (

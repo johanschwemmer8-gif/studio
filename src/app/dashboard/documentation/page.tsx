@@ -104,10 +104,10 @@ export default function AdminDocumentationPage() {
                                 <h4>Data Flow Example (QR Scan)</h4>
                                 <p>A typical data flow for a customer interaction demonstrates the component communication:</p>
                                 <ol>
-                                    <li>A shopper scans a QR code, which points to a URL like `/track/{qrId}`.</li>
+                                    <li>A shopper scans a QR code, which points to a URL like `/track/&#123;qrId&#125;`.</li>
                                     <li>This hits a server-side Next.js Route Handler.</li>
                                     <li>The handler fetches the QR code data from Firestore and logs the scan event (device info, timestamp).</li>
-                                    <li>Based on whether an `aiProfileId` is attached to the QR code, the handler redirects the user to either the final product URL or to an intermediary `/scan/{qrId}` page.</li>
+                                    <li>Based on whether an `aiProfileId` is attached to the QR code, the handler redirects the user to either the final product URL or to an intermediary `/scan/&#123;qrId&#125;` page.</li>
                                     <li>The `/scan` page triggers a Genkit flow, which calls the Gemini LLM to generate an engaging message.</li>
                                     <li>The user sees the AI message and then proceeds to the final product page.</li>
                                 </ol>
@@ -152,8 +152,8 @@ export default function AdminDocumentationPage() {
                                 <p>The core customer journey is designed to be seamless and engaging:</p>
                                 <ol>
                                     <li>A shopper scans a QR code on a product in-store using their smartphone.</li>
-                                    <li>The code redirects to a tracking URL (`/track/{qrId}`) which logs the scan event and increments analytics counters in Firestore.</li>
-                                    <li>The user is then redirected to an interactive loading screen (`/scan/{qrId}`) where an AI assistant provides a brief, engaging message tailored to the campaign's AI Profile.</li>
+                                    <li>The code redirects to a tracking URL (`/track/&#123;qrId&#125;`) which logs the scan event and increments analytics counters in Firestore.</li>
+                                    <li>The user is then redirected to an interactive loading screen (`/scan/&#123;qrId&#125;`) where an AI assistant provides a brief, engaging message tailored to the campaign's AI Profile.</li>
                                     <li>After reading the message, the user clicks "Continue" to land on the product's detail page, complete with product information, images, and AI-powered cross-sell recommendations.</li>
                                 </ol>
                             </AccordionContent>

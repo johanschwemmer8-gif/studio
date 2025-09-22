@@ -4,7 +4,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileText, LifeBuoy, Rocket, Shield, Users } from "lucide-react";
+import { FileText, LifeBuoy, Rocket, Shield, Users, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const DocSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <Card className="bg-muted/30">
@@ -18,15 +20,30 @@ const DocSection = ({ title, children }: { title: string, children: React.ReactN
 );
 
 export default function AdminDocumentationPage() {
+    const { toast } = useToast();
+
+    const handleUpdate = () => {
+        toast({
+            title: "Updating Content",
+            description: "Fetching the latest documentation and training materials...",
+        });
+    };
+
     return (
         <div className="space-y-8">
-            <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2">
-                    Documentation & Training Modules
-                </h2>
-                <p className="text-muted-foreground max-w-3xl">
-                    Find resources, guides, and training materials to help you get the most out of the iNteract-AOE platform.
-                </p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight mb-2">
+                        Documentation & Training Modules
+                    </h2>
+                    <p className="text-muted-foreground max-w-3xl">
+                        Find resources, guides, and training materials to help you get the most out of the iNteract-AOE platform.
+                    </p>
+                </div>
+                <Button onClick={handleUpdate}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Update Content
+                </Button>
             </div>
             <Separator />
             
@@ -137,4 +154,3 @@ export default function AdminDocumentationPage() {
             </Card>
         </div>
     );
-}

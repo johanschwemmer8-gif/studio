@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 const consentOptions = [
     { id: 'recommendations', label: 'Product Recommendation AI' },

@@ -1,0 +1,116 @@
+
+'use client';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck } from 'lucide-react';
+
+const consentOptions = [
+    { id: 'recommendations', label: 'Product Recommendation AI' },
+    { id: 'chatbot', label: 'Customer Service Chatbot' },
+    { id: 'personalization', label: 'Personalization & Profiling' },
+    { id: 'cross-sell', label: 'Cross-selling & Upselling AI' },
+    { id: 'behavioral-analysis', label: 'Behavioral Analysis & Insights' },
+];
+
+export default function AIPolicyPage() {
+
+    return (
+        <div className="space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">AI Policy & Compliance</h1>
+                <p className="text-muted-foreground mt-2">Manage AI governance, transparency, data privacy, and ethical guidelines for the platform.</p>
+            </div>
+            <Separator />
+            
+            {/* Section 1: AI Transparency & Disclosure */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Info className="text-primary"/> AI Transparency & Disclosure</CardTitle>
+                    <CardDescription>Configure how AI-powered features are disclosed to users.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                            <Label htmlFor="ai-badge" className="font-semibold">Display "AI-Powered" Badges</Label>
+                            <p className="text-sm text-muted-foreground">Show a small badge on all UI components that use AI.</p>
+                        </div>
+                        <Switch id="ai-badge" defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                            <Label htmlFor="how-it-works" className="font-semibold">Enable "How AI Works" Modals</Label>
+                            <p className="text-sm text-muted-foreground">Allow users to click an info icon to learn about the AI feature.</p>
+                        </div>
+                        <Switch id="how-it-works" defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                            <Label htmlFor="show-confidence" className="font-semibold">Show AI Confidence Scores</Label>
+                            <p className="text-sm text-muted-foreground">Display a score indicating the AI's confidence in its recommendation.</p>
+                        </div>
+                        <Switch id="show-confidence" />
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Section 2: Data Privacy & Protection */}
+            <Card>
+                <CardHeader>
+                     <CardTitle className="flex items-center gap-2"><Shield className="text-primary"/> Data Privacy & Protection</CardTitle>
+                    <CardDescription>Manage customer consent and data processing rules for AI.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-2"><UserCheck /> Customer Consent Management</h4>
+                        <div className="space-y-3 p-4 border rounded-lg">
+                            <p className="text-sm text-muted-foreground pb-2 border-b">Allow users to opt-in or opt-out of specific AI features.</p>
+                            {consentOptions.map(option => (
+                                <div key={option.id} className="flex items-center space-x-2">
+                                    <Checkbox id={option.id} defaultChecked />
+                                    <Label htmlFor={option.id} className="font-normal">{option.label}</Label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                     <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-2"><Database /> Data Processing Controls</h4>
+                        <div className="space-y-4 p-4 border rounded-lg">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label htmlFor="data-anonymization" className="font-semibold">Enable Data Anonymization for Training</Label>
+                                    <p className="text-sm text-muted-foreground">Remove personally identifiable information from data used for AI model training.</p>
+                                </div>
+                                <Switch id="data-anonymization" defaultChecked />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="retention-period">Data Retention Period (Days)</Label>
+                                <Input id="retention-period" type="number" defaultValue="90" className="max-w-xs" />
+                                <p className="text-xs text-muted-foreground">Automatically delete user interaction data after this period.</p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Placeholder for other sections */}
+            <Card className="border-dashed">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-muted-foreground"><Sparkles /> Ethical AI & Bias Prevention</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-center text-muted-foreground py-8">Configuration for this section coming soon.</p></CardContent>
+            </Card>
+            <Card className="border-dashed">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-muted-foreground"><FileText /> Legal Compliance & Governance</CardTitle>
+                </CardHeader>
+                <CardContent><p className="text-center text-muted-foreground py-8">Configuration for this section coming soon.</p></CardContent>
+            </Card>
+        </div>
+    );
+}

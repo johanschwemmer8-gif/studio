@@ -148,6 +148,14 @@ export default function DashboardLayout({
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="AI Policy & Compliance">
+                    <Link href="/dashboard/ai-policy">
+                        <Shield />
+                        <span>AI Policy & Compliance</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Platform Security">
                     <Link href="/dashboard/platform-security">

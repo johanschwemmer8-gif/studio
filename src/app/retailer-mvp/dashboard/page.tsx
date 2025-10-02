@@ -47,14 +47,14 @@ export default function DashboardPage() {
                 engagement: {
                   totalScans: metrics.stats.totalScans,
                   uniqueScans: metrics.stats.uniqueScans,
-                  engagementDuration: metrics.stats.dwellTime, // Changed from engagementDuration
-                  scanRate: metrics.stats.engagementRate, // Changed from scanRate
+                  engagementDuration: metrics.stats.dwellTime,
+                  scanRate: metrics.stats.engagementRate,
                 },
                 conversion: {
                     avgBasketSizeAoe: metrics.stats.avgBasketSizeAoe,
                     avgBasketSizeNonAoe: metrics.stats.avgBasketSizeNonAoe,
-                    basketUpliftPercentage: metrics.stats.basketUplift, // Changed from basketUpliftPercentage
-                    offerRedemptionRate: metrics.stats.offerRedemption, // Changed from offerRedemptionRate
+                    basketUpliftPercentage: metrics.stats.basketUplift,
+                    offerRedemptionRate: metrics.stats.offerRedemption,
                     totalRedeemedValue: metrics.stats.totalRedeemedValue,
                     aoeTransactions: metrics.stats.aoeTransactions,
                 }

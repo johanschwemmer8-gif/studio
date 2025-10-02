@@ -309,7 +309,7 @@ export default function DisplayManager() {
                 </div>
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">Last Ping:</span>
-                    <span className="font-medium">{selectedDisplay?.lastPing && new Date(selectedDisplay.lastPing).toLocaleString()}</span>
+                    <span className="font-medium"><ClientFormattedDate timestamp={selectedDisplay?.lastPing || ''} /></span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">Current Status:</span>

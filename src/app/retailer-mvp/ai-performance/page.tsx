@@ -70,6 +70,31 @@ function MetricCard({ title, value, trend, icon: Icon, trendDirection = 'up' }: 
     );
 }
 
+function ConversationItem({ customerId }: { customerId: number }) {
+  const [timestamp, setTimestamp] = useState('');
+
+  useEffect(() => {
+    // Generate a more realistic, client-side timestamp
+    setTimestamp(new Date().toLocaleTimeString());
+  }, []);
+
+  return (
+    <div>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground"/>
+                <p className="text-sm font-medium">Customer #{customerId || '...'}</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-yellow-500">
+                {[...Array(5)].map((_, j) => <Star key={j} className={`h-4 w-4 ${j < 4 ? 'fill-current' : ''}`} />)}
+            </div>
+        </div>
+        <p className="text-xs text-muted-foreground ml-6">"How do I clean this product?" &rarr; AI: "It's top-rack dishwasher safe!" ({timestamp})</p>
+    </div>
+  );
+}
+
+
 export default function AIPerformanceMonitor() {
   const [testPrompt, setTestPrompt] = useState('');
   const [testResponse, setTestResponse] = useState('');
@@ -117,19 +142,8 @@ export default function AIPerformanceMonitor() {
                 <CardContent>
                     <ScrollArea className="h-96">
                         <div className="space-y-4 pr-4">
-                            {[...Array(5)].map((_, i) => (
-                                <div key={i}>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Users className="h-4 w-4 text-muted-foreground"/>
-                                            <p className="text-sm font-medium">Customer #{customerIds[i] || '...'}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-yellow-500">
-                                            {[...Array(5)].map((_, j) => <Star key={j} className={`h-4 w-4 ${j < 4 ? 'fill-current' : ''}`} />)}
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground ml-6">"How do I clean this product?" &rarr; AI: "It's top-rack dishwasher safe!"</p>
-                                </div>
+                            {customerIds.map((id, i) => (
+                                <ConversationItem key={i} customerId={id} />
                             ))}
                         </div>
                     </ScrollArea>

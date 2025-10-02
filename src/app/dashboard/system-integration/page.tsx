@@ -11,6 +11,10 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, AlertTriangle, FlaskConical, PlayCircle, Bot, Database, Server, UserCheck, ShieldCheck, Rocket } from 'lucide-react';
+import ScanFailuresLog from '@/components/dashboard/scan-failures-log';
+import ModuleActivationLogs from '@/components/dashboard/module-activation-logs';
+import { scanFailuresLog, moduleActivationLogs } from '@/lib/data';
+
 
 const TestModuleCard = ({ title, description, status }: { title: string, description: string, status: 'Passing' | 'Failing' | 'Not Run' }) => {
     
@@ -69,6 +73,11 @@ export default function SystemIntegrationTestPage() {
                 <div className="p-4 bg-red-100/50 rounded-lg"><p className="font-semibold text-red-800">Third-Party APIs: Degraded</p></div>
           </CardContent>
       </Card>
+      
+      <div className="grid gap-8 lg:grid-cols-2">
+        <ScanFailuresLog logs={scanFailuresLog} />
+        <ModuleActivationLogs logs={moduleActivationLogs} />
+      </div>
 
       <div className="space-y-4">
         <h3 className="text-xl font-semibold">Component Testing Modules</h3>

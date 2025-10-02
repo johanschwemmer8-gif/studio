@@ -33,7 +33,7 @@ function ClientFormattedDate({ timestamp }: { timestamp: string }) {
 
   // Return a placeholder or null on the server and initial client render
   if (!formattedDate) {
-    return null; // or a loading skeleton
+    return <span className="text-xs italic">calculating...</span>;
   }
 
   return <span>{formattedDate}</span>;

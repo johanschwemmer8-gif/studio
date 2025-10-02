@@ -159,6 +159,14 @@ function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }
   );
 }
 
+const CustomFormItem = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => <div className={cn('space-y-2', className)}>{children}</div>;
+
 export default function BrandQrTemplateDesigner({
   templateId,
   onSave,
@@ -254,64 +262,62 @@ export default function BrandQrTemplateDesigner({
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
                         <Controller name="brandId" control={form.control} render={({ field }) => (
-                            <FormItem field={field} label="Brand">
+                            <CustomFormItem>
+                                <Label>Brand</Label>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="Select a brand..." /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="simulated-retailer-id">My Brand</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </FormItem>
+                            </CustomFormItem>
                         )}/>
-                        <FormItem field={form.register('name')} label="Template Name">
-                            <Input placeholder="e.g., Summer Sale Style" />
-                        </FormItem>
+                        <CustomFormItem>
+                           <Label htmlFor="templateName">Template Name</Label>
+                           <Input id="templateName" placeholder="e.g., Summer Sale Style" {...form.register('name')} />
+                        </CustomFormItem>
                     </div>
-                     <FormItem field={form.register('description')} label="Description">
-                        <Textarea placeholder="A brief description of this template." />
-                    </FormItem>
+                     <CustomFormItem>
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea id="description" placeholder="A brief description of this template." {...form.register('description')} />
+                    </CustomFormItem>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><Palette />Foreground Styling</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
-                   <FormItem field={form.register('gradient.active')} label="Enable Gradient">
-                     <Controller name="gradient.active" control={form.control} render={({ field }) => <Checkbox checked={field.value} onCheckedChange={field.onChange} />} />
-                   </FormItem>
+                   <CustomFormItem>
+                     <div className="flex items-center gap-2">
+                        <Controller name="gradient.active" control={form.control} render={({ field }) => <Checkbox id="gradient-active" checked={field.value} onCheckedChange={field.onChange} />} />
+                        <Label htmlFor="gradient-active">Enable Gradient</Label>
+                     </div>
+                   </CustomFormItem>
 
                    {isGradientActive ? (
                      <div className="space-y-4 p-4 border rounded-md">
                         <div className="grid md:grid-cols-2 gap-4">
-                          <Controller
-                            name="gradient.from"
-                            control={form.control}
-                            render={({ field }) => (
-                              <FormItem field={field} label="From" type="color" />
-                            )}
-                          />
-                          <Controller
-                            name="gradient.to"
-                            control={form.control}
-                            render={({ field }) => (
-                              <FormItem field={field} label="To" type="color" />
-                            )}
-                          />
+                           <CustomFormItem>
+                                <Label htmlFor="gradient-from">From</Label>
+                                <Input id="gradient-from" type="color" {...form.register('gradient.from')} />
+                           </CustomFormItem>
+                          <CustomFormItem>
+                                <Label htmlFor="gradient-to">To</Label>
+                                <Input id="gradient-to" type="color" {...form.register('gradient.to')} />
+                          </CustomFormItem>
                         </div>
-                        <FormItem field={form.register('gradient.angle')} label="Angle">
+                        <CustomFormItem>
+                            <Label>Angle</Label>
                           <Controller name="gradient.angle" control={form.control} render={({ field }) => (
                               <Slider min={0} max={360} step={1} value={[field.value ?? 0]} onValueChange={(v) => field.onChange(v[0])} />
                           )} />
-                        </FormItem>
+                        </CustomFormItem>
                      </div>
                    ) : (
-                      <Controller
-                        name="colorHex"
-                        control={form.control}
-                        render={({ field }) => (
-                          <FormItem field={field} label="Foreground Color" type="color" />
-                        )}
-                      />
+                       <CustomFormItem>
+                           <Label htmlFor="colorHex">Foreground Color</Label>
+                           <Input id="colorHex" type="color" {...form.register('colorHex')} />
+                       </CustomFormItem>
                    )}
                 </CardContent>
             </Card>
@@ -319,55 +325,51 @@ export default function BrandQrTemplateDesigner({
             <Card>
                 <CardHeader><CardTitle>QR Styling</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
-                    <FormItem field={form.register('qrShape')} label="QR Code Shape">
+                    <CustomFormItem>
+                        <Label>QR Code Shape</Label>
                          <Controller name="qrShape" control={form.control} render={({ field }) => (
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4">
-                                <FormItem field={field} label="Square" value="square" type="radio" />
-                                <FormItem field={field} label="Rounded" value="rounded" type="radio" />
-                                <FormItem field={field} label="Extra Rounded" value="extra-rounded" type="radio" />
-                                <FormItem field={field} label="Dots" value="dot" type="radio" />
-                                <FormItem field={field} label="Classy" value="classy" type="radio" />
-                                <FormItem field={field} label="Classy Rounded" value="classy-rounded" type="radio" />
-                                <FormItem field={field} label="Top-Left Rounded" value="top-left-rounded" type="radio" />
-                                <FormItem field={field} label="Top-Right Rounded" value="top-right-rounded" type="radio" />
-                                <FormItem field={field} label="Bottom-Left Rounded" value="bottom-left-rounded" type="radio" />
-                                <FormItem field={field} label="Bottom-Right Rounded" value="bottom-right-rounded" type="radio" />
-                                <FormItem field={field} label="Diamond" value="diamond" type="radio" />
-                                <FormItem field={field} label="Heart" value="heart" type="radio" />
-                                <FormItem field={field} label="Star" value="star" type="radio" />
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2">
+                                {(['square', 'rounded', 'extra-rounded', 'dot', 'classy', 'classy-rounded', 'top-left-rounded', 'top-right-rounded', 'bottom-left-rounded', 'bottom-right-rounded', 'diamond', 'heart', 'star'] as const).map(shape => (
+                                    <CustomFormItem key={shape}>
+                                        <div className="flex items-center gap-2">
+                                            <RadioGroupItem value={shape} id={`shape-${shape}`} />
+                                            <Label htmlFor={`shape-${shape}`} className="capitalize font-normal">{shape.replace(/-/g, ' ')}</Label>
+                                        </div>
+                                    </CustomFormItem>
+                                ))}
                             </RadioGroup>
                          )} />
-                    </FormItem>
+                    </CustomFormItem>
                 </CardContent>
             </Card>
             
             <Card>
                  <CardHeader><CardTitle className="flex items-center gap-2"><Eye /> Eye Styling</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
-                     <FormItem field={form.register('eyeStyle')} label="Eye Shape">
+                     <CustomFormItem>
+                         <Label>Eye Shape</Label>
                          <Controller name="eyeStyle" control={form.control} render={({ field }) => (
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                <FormItem field={field} label="Square" value="square" type="radio" />
-                                <FormItem field={field} label="Rounded" value="rounded" type="radio" />
-                                <FormItem field={field} label="Leaf" value="leaf" type="radio" />
+                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
+                                {(['square', 'rounded', 'leaf'] as const).map(style => (
+                                    <CustomFormItem key={style}>
+                                        <div className="flex items-center gap-2">
+                                            <RadioGroupItem value={style} id={`eye-${style}`} />
+                                            <Label htmlFor={`eye-${style}`} className="capitalize font-normal">{style}</Label>
+                                        </div>
+                                    </CustomFormItem>
+                                ))}
                             </RadioGroup>
                          )} />
-                    </FormItem>
+                    </CustomFormItem>
                      <div className="grid md:grid-cols-2 gap-4">
-                        <Controller
-                            name="eyeColors.outer"
-                            control={form.control}
-                            render={({ field }) => (
-                                <FormItem field={field} label="Outer Eye Color" type="color" />
-                            )}
-                        />
-                        <Controller
-                            name="eyeColors.inner"
-                            control={form.control}
-                            render={({ field }) => (
-                                <FormItem field={field} label="Inner Eye Color" type="color" />
-                            )}
-                        />
+                        <CustomFormItem>
+                            <Label htmlFor="eye-outer">Outer Eye Color</Label>
+                            <Input id="eye-outer" type="color" {...form.register('eyeColors.outer')} />
+                        </CustomFormItem>
+                        <CustomFormItem>
+                            <Label htmlFor="eye-inner">Inner Eye Color</Label>
+                            <Input id="eye-inner" type="color" {...form.register('eyeColors.inner')} />
+                        </CustomFormItem>
                     </div>
                 </CardContent>
             </Card>
@@ -375,15 +377,17 @@ export default function BrandQrTemplateDesigner({
              <Card>
                  <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon /> Branding</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                     <FormItem field={form.register('logoDataUrl')} label="Upload Logo">
-                         <Input type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={(e) => handleFileUpload(e, 'logoDataUrl')} />
-                     </FormItem>
+                     <CustomFormItem>
+                         <Label htmlFor="logo-upload">Upload Logo</Label>
+                         <Input id="logo-upload" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={(e) => handleFileUpload(e, 'logoDataUrl')} />
+                     </CustomFormItem>
                      {watchedValues.logoDataUrl && (
-                        <FormItem field={form.register('logoSizeRatio')} label="Logo Size">
+                        <CustomFormItem>
+                             <Label>Logo Size</Label>
                              <Controller name="logoSizeRatio" control={form.control} render={({ field }) => (
                                 <Slider min={0.1} max={0.3} step={0.05} value={[field.value ?? 0.2]} onValueChange={(v) => field.onChange(v[0])} />
                              )} />
-                        </FormItem>
+                        </CustomFormItem>
                      )}
                 </CardContent>
             </Card>
@@ -391,32 +395,37 @@ export default function BrandQrTemplateDesigner({
             <Card>
                  <CardHeader><CardTitle>Background</CardTitle></CardHeader>
                  <CardContent className="space-y-4">
-                      <Controller
-                        name="bgColorHex"
-                        control={form.control}
-                        render={({ field }) => (
-                            <FormItem field={field} label="Background Color" type="color" />
-                        )}
-                      />
-                      <FormItem field={form.register('backgroundImageDataUrl')} label="Background Image">
-                         <Input type="file" accept="image/png, image/jpeg" onChange={(e) => handleFileUpload(e, 'backgroundImageDataUrl')} />
-                      </FormItem>
+                      <CustomFormItem>
+                           <Label htmlFor="bgColorHex">Background Color</Label>
+                           <Input id="bgColorHex" type="color" {...form.register('bgColorHex')} />
+                      </CustomFormItem>
+                      <CustomFormItem>
+                         <Label htmlFor="bg-image-upload">Background Image</Label>
+                         <Input id="bg-image-upload" type="file" accept="image/png, image/jpeg" onChange={(e) => handleFileUpload(e, 'backgroundImageDataUrl')} />
+                      </CustomFormItem>
                       {watchedValues.backgroundImageDataUrl && (
                           <div className="space-y-4 p-4 border rounded-md">
-                             <FormItem field={form.register('backgroundImageOpacity')} label="Opacity">
+                             <CustomFormItem>
+                                <Label>Opacity</Label>
                                  <Controller name="backgroundImageOpacity" control={form.control} render={({ field }) => (
                                     <Slider min={0} max={1} step={0.1} value={[field.value ?? 1]} onValueChange={(v) => field.onChange(v[0])} />
                                  )} />
-                            </FormItem>
-                             <FormItem field={form.register('backgroundImageMode')} label="Image Mode">
+                            </CustomFormItem>
+                             <CustomFormItem>
+                                 <Label>Image Mode</Label>
                                  <Controller name="backgroundImageMode" control={form.control} render={({ field }) => (
-                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                        <FormItem field={field} label="Cover" value="cover" type="radio" />
-                                        <FormItem field={field} label="Tile" value="tile" type="radio" />
-                                        <FormItem field={field} label="Contain" value="contain" type="radio" />
+                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
+                                        {(['cover', 'tile', 'contain'] as const).map(mode => (
+                                            <CustomFormItem key={mode}>
+                                                <div className="flex items-center gap-2">
+                                                    <RadioGroupItem value={mode} id={`bg-mode-${mode}`} />
+                                                    <Label htmlFor={`bg-mode-${mode}`} className="capitalize font-normal">{mode}</Label>
+                                                </div>
+                                            </CustomFormItem>
+                                        ))}
                                     </RadioGroup>
                                  )} />
-                            </FormItem>
+                            </CustomFormItem>
                           </div>
                       )}
                  </CardContent>
@@ -436,50 +445,4 @@ export default function BrandQrTemplateDesigner({
         </div>
       </div>
   );
-}
-
-function FormItem({ field, label, children, value, type }: { field: any, label: string, children?: React.ReactNode, value?: string, type?: string }) {
-    const itemContent = (() => {
-        if (type === 'radio') {
-            return (
-                <div className="flex items-center space-x-2">
-                    <RadioGroupItem value={value!} id={`${field.name}-${value}`} />
-                    <Label htmlFor={`${field.name}-${value}`} className="font-normal">{label}</Label>
-                </div>
-            );
-        }
-        if (type === 'color') {
-            return (
-                <div className="space-y-2">
-                    <Label htmlFor={field.name}>{label}</Label>
-                    <div className="flex items-center gap-2">
-                        <Input
-                            id={`${field.name}-color-picker`}
-                            type="color"
-                            className="w-12 h-10 p-1"
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value)}
-                        />
-                        <Input
-                            id={field.name}
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            className="flex-1"
-                        />
-                    </div>
-                </div>
-            );
-        }
-        return (
-            <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                   <Label htmlFor={field.name}>{label}</Label>
-                   {field.name === 'gradient.active' && <span className="text-xs text-muted-foreground">Enable to use gradients</span>}
-                </div>
-                {children}
-            </div>
-        );
-    })();
-
-    return <div className="w-full">{itemContent}</div>;
 }

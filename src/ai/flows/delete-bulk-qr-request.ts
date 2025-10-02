@@ -28,24 +28,39 @@ const DeleteBulkQrRequestOutputSchema = z.object({
 export type DeleteBulkQrRequestOutput = z.infer<typeof DeleteBulkQrRequestOutputSchema>;
 
 export async function deleteBulkQrRequest(input: DeleteBulkQrRequestInput): Promise<DeleteBulkQrRequestOutput> {
-  // In a real environment, you'd add auth/permission checks here.
-  return deleteBulkQrRequestFlow(input);
+  // In a real Firebase Callable Function, you would extract the retailerId from the auth context.
+  // For simulation, we're using a hardcoded value.
+  const callerRetailerId = 'simulated-retailer-id';
+  
+  return deleteBulkQrRequestFlow({ ...input, callerRetailerId });
 }
 
 const deleteBulkQrRequestFlow = ai.defineFlow(
   {
     name: 'deleteBulkQrRequestFlow',
-    inputSchema: DeleteBulkQrRequestInputSchema,
+    inputSchema: DeleteBulkQrRequestInputSchema.extend({ callerRetailerId: z.string() }),
     outputSchema: DeleteBulkQrRequestOutputSchema,
   },
-  async ({ requestId }) => {
+  async ({ requestId, callerRetailerId }) => {
     const db = admin.firestore();
     const requestRef = db.collection('bulkQrRequests').doc(requestId);
-    const itemsRef = requestRef.collection('items');
     
     try {
+      const requestDoc = await requestRef.get();
+      if (!requestDoc.exists) {
+        throw new Error('Request not found.');
+      }
+      
+      const requestData = requestDoc.data();
+      
+      // Security Enhancement: Authorize the delete operation.
+      if (requestData?.retailerId !== callerRetailerId) {
+        throw new Error('You are not authorized to delete this request.');
+      }
+      
       // In a real, high-volume application, this would be done via a batched
       // background job to avoid timeouts and memory issues.
+      const itemsRef = requestRef.collection('items');
       const itemsSnapshot = await itemsRef.get();
       const batch = db.batch();
       
@@ -57,13 +72,6 @@ const deleteBulkQrRequestFlow = ai.defineFlow(
 
       await requestRef.delete();
       
-      // Also clean up from the mock local storage if it exists
-      if (typeof localStorage !== 'undefined') {
-        const existingRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
-        const updatedRequests = existingRequests.filter((r: any) => r.id !== requestId);
-        localStorage.setItem('mockBulkQrRequests', JSON.stringify(updatedRequests));
-      }
-
       return {
         success: true,
         message: `Successfully deleted request ${requestId} and its ${itemsSnapshot.size} items.`,

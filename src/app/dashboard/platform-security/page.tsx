@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -22,7 +22,6 @@ import {
   BrainCircuit,
   CheckCircle2,
   QrCode,
-  Store,
   TrendingUp,
   Activity,
 } from 'lucide-react';
@@ -70,13 +69,13 @@ export default function BackendManagementDashboard() {
             {/* Column 1 */}
             <div className="lg:col-span-3 space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="futuristic-glass-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Active Retailers</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">247</div><p className="text-xs text-muted-foreground">+12% from last month</p></CardContent></Card>
-                    <Card className="futuristic-glass-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">QR Codes Generated</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">18,492</div><p className="text-xs text-muted-foreground">+24% from last month</p></CardContent></Card>
-                    <Card className="futuristic-glass-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Daily Scans</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">12,847</div><p className="text-xs text-muted-foreground">-3% from yesterday</p></CardContent></Card>
-                    <Card className="futuristic-glass-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">AI Interactions</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">8,934</div><p className="text-xs text-muted-foreground">+18% from yesterday</p></CardContent></Card>
+                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Active Retailers</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">247</div><p className="text-xs text-muted-foreground">+12% from last month</p></CardContent></Card>
+                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">QR Codes Generated</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">18,492</div><p className="text-xs text-muted-foreground">+24% from last month</p></CardContent></Card>
+                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Daily Scans</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">12,847</div><p className="text-xs text-muted-foreground">-3% from yesterday</p></CardContent></Card>
+                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">AI Interactions</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">8,934</div><p className="text-xs text-muted-foreground">+18% from yesterday</p></CardContent></Card>
                 </div>
                 <div className="grid md:grid-cols-5 gap-6">
-                    <Card className="md:col-span-3 futuristic-glass-card">
+                    <Card className="md:col-span-3 glassmorphic-card">
                         <CardHeader>
                             <CardTitle>Real-time Activity Feed</CardTitle>
                             <CardDescription>Live stream of QR scans and AI interactions.</CardDescription>
@@ -97,9 +96,9 @@ export default function BackendManagementDashboard() {
                                                 <div className="font-medium">{item.retailer}</div>
                                                 <div className="text-sm text-muted-foreground">{item.store}</div>
                                             </TableCell>
-                                            <TableCell><Badge variant="secondary" className="bg-accent/20 text-accent-foreground border-accent/30">{item.interaction}</Badge></TableCell>
+                                            <TableCell><Badge variant="secondary">{item.interaction}</Badge></TableCell>
                                             <TableCell>
-                                                <Badge variant={item.conversion ? "default" : "destructive"} className={item.conversion ? "bg-cyan-500/20 text-cyan-300" : ""}>
+                                                <Badge variant={item.conversion ? "default" : "destructive"}>
                                                     {item.conversion ? 'Yes' : 'No'}
                                                 </Badge>
                                             </TableCell>
@@ -109,7 +108,7 @@ export default function BackendManagementDashboard() {
                             </Table>
                         </CardContent>
                     </Card>
-                    <Card className="md:col-span-2 futuristic-glass-card">
+                    <Card className="md:col-span-2 glassmorphic-card">
                         <CardHeader>
                             <CardTitle>System Health</CardTitle>
                             <CardDescription>API & AI Model Response Times</CardDescription>
@@ -132,7 +131,7 @@ export default function BackendManagementDashboard() {
 
             {/* Column 2 */}
             <div className="lg:col-span-1 space-y-6">
-                <Card className="futuristic-glass-card">
+                <Card className="glassmorphic-card">
                     <CardHeader>
                         <CardTitle>Top Performing QR Codes</CardTitle>
                          <CardDescription>By scan & conversion volume.</CardDescription>
@@ -147,19 +146,19 @@ export default function BackendManagementDashboard() {
                                     </div>
                                     <div className="text-right">
                                         <div className="font-bold">{item.scans} Scans</div>
-                                        <div className="text-xs font-semibold text-cyan-400">{item.rate} CTR</div>
+                                        <div className="text-xs font-semibold text-primary">{item.rate} CTR</div>
                                     </div>
                                 </div>
                             ))}
                          </div>
                     </CardContent>
                 </Card>
-                 <Card className="futuristic-glass-card">
+                 <Card className="glassmorphic-card">
                     <CardHeader>
                         <CardTitle>Geographic Performance</CardTitle>
                          <CardDescription>Heat map of QR scan density.</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-48 flex items-center justify-center bg-background/20 rounded-md">
+                    <CardContent className="h-48 flex items-center justify-center bg-muted/20 rounded-md">
                         <p className="text-muted-foreground">[Interactive Map Placeholder]</p>
                     </CardContent>
                 </Card>

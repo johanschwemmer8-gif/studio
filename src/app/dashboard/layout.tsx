@@ -58,26 +58,24 @@ function SidebarLogo() {
     }, []);
 
     const HolographicLogo = () => (
-        <div className="relative w-32 h-16 group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent-purple rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-1000 animate-pulse-slow"></div>
-            <div className="relative w-full h-full flex items-center justify-center rounded-lg">
-                {logoUrl ? (
-                    <Image 
-                        src={logoUrl} 
-                        alt="iNteract AOE Logo" 
-                        width={120} 
-                        height={40}
-                        className="h-auto w-auto transition-transform duration-300 group-hover:scale-105"
-                    />
-                ) : (
-                    <span className="text-xl font-bold tracking-wider text-foreground transition-transform duration-300 group-hover:scale-105">iNteract</span>
-                )}
-            </div>
+        <div className="relative w-32 h-16 group flex items-center justify-center">
+            {logoUrl ? (
+                <Image 
+                    src={logoUrl} 
+                    alt="iNteract AOE Logo" 
+                    width={120} 
+                    height={40}
+                    className="h-auto w-auto transition-transform duration-300 group-hover:scale-105"
+                    style={{ filter: 'drop-shadow(0 0 5px hsl(var(--primary)/0.7))' }}
+                />
+            ) : (
+                <span className="text-xl font-bold tracking-wider text-foreground transition-transform duration-300 group-hover:scale-105" style={{ textShadow: '0 0 8px hsl(var(--primary)/0.6)'}}>iNteract</span>
+            )}
         </div>
     );
 
     return (
-         <Link href="/dashboard" className="flex items-center justify-center p-4">
+         <Link href="/dashboard" className="flex items-center justify-center p-2">
             <HolographicLogo />
         </Link>
     );
@@ -91,8 +89,8 @@ export default function DashboardLayout({
 }) {
   return (
     <SidebarProvider>
-      <Sidebar variant="inset" collapsible="icon">
-        <SidebarHeader className="border-b bg-sidebar-header mb-2">
+      <Sidebar variant="sidebar" collapsible="icon">
+        <SidebarHeader className="border-b bg-card mb-2">
             <SidebarLogo />
         </SidebarHeader>
         <SidebarContent>
@@ -215,7 +213,7 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex items-center justify-between p-4 border-b bg-card/60 backdrop-blur-xl h-16 sticky top-0 z-40">
+        <header className="flex items-center justify-between p-4 border-b bg-card h-16 sticky top-0 z-40">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
             <h1 className="text-xl font-semibold">iNteract Admin Panel</h1>

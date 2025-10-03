@@ -5,75 +5,56 @@
 
 @layer base {
   :root {
-    --background: 220 13% 9%; /* #0F172A - Deep Charcoal/Midnight Blue */
-    --foreground: 215 28% 93%; /* #E2E8F0 - Light Gray */
-    --card: 220 13% 14%; /* #1E293B - Slightly lighter dark shade */
+    --background: 220 20% 96%;
+    --foreground: 220 10% 15%;
+    --card: 220 20% 100%;
+    --card-foreground: 220 10% 15%;
+    --popover: 220 20% 100%;
+    --popover-foreground: 220 10% 15%;
+    --primary: 200 100% 50%;
+    --primary-foreground: 220 10% 10%;
+    --secondary: 220 10% 90%;
+    --secondary-foreground: 220 10% 20%;
+    --muted: 220 10% 90%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 200 100% 50%;
+    --accent-foreground: 220 10% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 85%;
+    --input: 220 10% 85%;
+    --ring: 200 100% 50%;
+
+    --radius: 0.5rem;
+
+    /* Chart Colors */
+    --chart-1: 200 100% 50%; /* Electric Blue */
+    --chart-2: 260 100% 65%; /* Purple */
+    --chart-3: 340 90% 60%; /* Pink */
+    --chart-4: 40 90% 60%;  /* Orange */
+    --chart-5: 0 84% 60%; /* Red */
+  }
+
+  .dark {
+    --background: 220 13% 9%;
+    --foreground: 215 28% 93%;
+    --card: 220 13% 14%;
     --card-foreground: 215 28% 93%;
     --popover: 220 13% 9%;
     --popover-foreground: 215 28% 93%;
-    --primary: 180 90% 50%; /* #14F1F1 - Bright Cyan */
+    --primary: 200 100% 50%;
     --primary-foreground: 220 13% 9%;
-    --secondary: 220 13% 20%; /* #334155 - Muted Dark */
+    --secondary: 220 13% 20%;
     --secondary-foreground: 215 28% 93%;
     --muted: 220 13% 20%;
-    --muted-foreground: 217 19% 53%; /* #64748B */
-    --accent: 262 84% 60%; /* #7C3AED - Electric Purple */
-    --accent-foreground: 240 10% 99%;
-    --destructive: 351 79% 49%; /* #DC2626 */
-    --destructive-foreground: 240 10% 99%;
-    --border: 220 13% 26%; /* #475569 */
-    --input: 220 13% 26%;
-    --ring: 180 90% 50%; /* #14F1F1 - Bright Cyan for focus rings */
-
-    /* Custom Colors for Charts & Accents */
-    --color-primary: 180 90% 50%; /* Cyan */
-    --color-primary-light: 180 90% 60%;
-    --color-primary-dark: 180 90% 40%;
-    --color-secondary: 262 84% 60%; /* Purple */
-    --color-accent-purple: 262 84% 60%;
-    --color-accent-indigo: 239 83% 67%;
-    --color-success: 153 91% 31%;
-    --color-warning: 33 92% 46%;
-    --color-error: 351 79% 49%;
-    --sidebar-header: 210 100% 50% / 0.1; /* Translucent Light Blue */
-
-
-    /* Radii */
-    --radius: 0.75rem;
-    --border-radius-sm: 0.375rem;
-    --border-radius-md: 0.5rem;
-    --border-radius-lg: 0.75rem;
-    --border-radius-xl: 1rem;
-
-    /* Chart Colors */
-    --chart-1: 180 90% 50%; /* Cyan */
-    --chart-2: 262 84% 60%; /* Purple */
-    --chart-3: 217 91% 60%; /* Blue */
-    --chart-4: 33 92% 46%;  /* Orange */
-    --chart-5: 351 79% 49%; /* Red */
-  }
-
-  /* Keep a light theme definition if needed, but default is dark */
-  .light {
-    --background: 240 10% 99%;
-    --foreground: 220 13% 9%;
-    --card: 240 10% 100%;
-    --card-foreground: 220 13% 9%;
-    --popover: 240 10% 100%;
-    --popover-foreground: 220 13% 9%;
-    --primary: 180 90% 40%;
-    --primary-foreground: 240 10% 99%;
-    --secondary: 190 90% 37%;
-    --secondary-foreground: 240 10% 99%;
-    --muted: 220 14% 96%;
     --muted-foreground: 217 19% 53%;
-    --accent: 262 84% 60%;
-    --accent-foreground: 240 10% 99%;
-    --destructive: 351 79% 49%;
-    --destructive-foreground: 240 10% 99%;
-    --border: 215 28% 93%;
-    --input: 215 20% 82%;
-    --ring: 180 90% 50%;
+    --accent: 200 100% 50%;
+    --accent-foreground: 220 13% 9%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 13% 26%;
+    --input: 220 13% 26%;
+    --ring: 200 100% 50%;
   }
 }
 
@@ -83,37 +64,12 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Subtle geometric background pattern */
-    background-image: linear-gradient(hsl(var(--border) / 0.2) 1px, transparent 1px), linear-gradient(to right, hsl(var(--border) / 0.2) 1px, hsl(var(--background)) 1px);
-    background-size: 2rem 2rem;
   }
 }
 
 @layer components {
-    /* Morphism / Frosted Glass effect for cards */
-    .futuristic-glass-card {
-        @apply bg-card/60 backdrop-blur-xl border border-border/20 shadow-lg shadow-black/20;
-    }
-
-    /* Modern button styling with glow effect */
-    .btn-glow {
-        @apply bg-gradient-to-r from-background to-primary/20 border-primary/50 text-primary-foreground;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .btn-glow:hover {
-        box-shadow: 0 0 15px 0px hsl(var(--primary) / 0.5);
-    }
-}
-
-@layer utilities {
-    @keyframes pulse-slow {
-        50% {
-            opacity: 0.75;
-        }
-    }
-    .animate-pulse-slow {
-        animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    /* Glassmorphism effect for cards */
+    .glassmorphic-card {
+        @apply bg-card/60 backdrop-blur-xl border border-border/20 shadow-sm;
     }
 }

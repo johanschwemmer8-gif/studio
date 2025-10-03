@@ -25,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Loader2, Link as LinkIcon, Tv, MonitorSmartphone, MapPin, Building2, Clock, Circle, AlertTriangle, Settings, Power } from 'lucide-react';
+import { PlusCircle, Loader2, Link as LinkIcon, Tv, MonitorSmartphone, MapPin, Building2, Clock, Circle, AlertTriangle, Settings, Power, RefreshCw } from 'lucide-react';
 import { getDisplays, type Display } from '@/ai/flows/get-displays';
 import { registerDisplay } from '@/ai/flows/register-display';
 import { assignDisplayConfig } from '@/ai/flows/assign-display-config';
@@ -36,11 +36,13 @@ import { differenceInMinutes, formatDistanceToNow } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { remoteDisplayCommand } from '@/ai/flows/remote-display-command';
 
 type InStoreConfig = {
     id: string;
     configId: string;
     configName: string;
+    isActive?: boolean;
 };
 
 function ClientFormattedDate({ timestamp, isRelative }: { timestamp: string, isRelative?: boolean }) {
@@ -84,6 +86,7 @@ export default function DisplayManager() {
   const [isTroubleshootModalOpen, setIsTroubleshootModalOpen] = useState(false);
   const [selectedDisplay, setSelectedDisplay] = useState<Display | null>(null);
   const [updatingConfigId, setUpdatingConfigId] = useState<string | null>(null);
+  const [sendingCommand, setSendingCommand] = useState<string | null>(null);
 
   const { toast } = useToast();
   
@@ -159,11 +162,11 @@ export default function DisplayManager() {
   const handleConfigChange = async (displayId: string, newConfigId: string) => {
       setUpdatingConfigId(displayId);
       try {
-          const result = await assignDisplayConfig({ displayId, configId: newConfigId, retailerId: 'ret_123xyz' });
+          // In a real app, the retailerId would come from the user's auth context
+          const result = await assignDisplayConfig({ displayId, configId: newConfigId, retailerId: 'simulated-retailer-id' });
           if (result.success) {
               toast({ title: 'Success', description: 'Display configuration updated.'});
-              // Optimistically update UI
-              setDisplays(prev => prev.map(d => d.displayId === displayId ? {...d, contentConfigId: newConfigId === 'unassigned' ? '' : newConfigId } : d));
+              fetchDisplays();
           } else {
               throw new Error(result.message || 'Failed to update configuration.');
           }
@@ -173,6 +176,22 @@ export default function DisplayManager() {
           setUpdatingConfigId(null);
       }
   };
+
+  const handleSendCommand = async (displayId: string, command: string) => {
+    setSendingCommand(command);
+    try {
+        const result = await remoteDisplayCommand({ displayId, command, retailerId: 'ret_123xyz' });
+        if (result.success) {
+            toast({ title: 'Command Sent', description: `Command '${command}' sent to display.`});
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error: any) {
+        toast({ title: 'Command Failed', description: error.message, variant: 'destructive'});
+    } finally {
+        setSendingCommand(null);
+    }
+  }
 
   return (
     <Card>
@@ -234,7 +253,7 @@ export default function DisplayManager() {
             {loading ? (
               <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
             ) : displays.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No displays registered yet.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No displays registered yet. Click "Register New Display" to begin.</TableCell></TableRow>
             ) : (
               displays.map((display) => {
                 const statusInfo = getStatusInfo(display.lastPing);
@@ -299,7 +318,7 @@ export default function DisplayManager() {
             <DialogHeader>
                 <DialogTitle>Troubleshoot Display</DialogTitle>
                 <DialogDescription>
-                    Diagnostic information for display ID: <code className="font-mono text-xs bg-muted p-1 rounded">{selectedDisplay?.displayId}</code>
+                    Diagnostic information and remote commands for display: <code className="font-mono text-xs bg-muted p-1 rounded">{selectedDisplay?.displayId}</code>
                 </DialogDescription>
             </DialogHeader>
             <div className="text-sm space-y-4 py-4">
@@ -317,13 +336,27 @@ export default function DisplayManager() {
                 </div>
                 <Separator />
                 <div>
-                    <h4 className="font-semibold mb-2">Next Steps:</h4>
-                    <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                        <li>Ensure the device is powered on and connected to the internet.</li>
-                        <li>Check the device's logs for any error messages.</li>
-                        <li>Attempt to remotely restart the device.</li>
-                        <li>If the issue persists, contact support with the Display ID.</li>
-                    </ul>
+                    <h4 className="font-semibold mb-2">Remote Commands</h4>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled={!selectedDisplay || !!sendingCommand}
+                            onClick={() => handleSendCommand(selectedDisplay!.displayId, 'REFRESH_CONTENT')}
+                        >
+                            {sendingCommand === 'REFRESH_CONTENT' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
+                            Refresh Content
+                        </Button>
+                         <Button 
+                            variant="destructive" 
+                            size="sm"
+                            disabled={!selectedDisplay || !!sendingCommand}
+                            onClick={() => handleSendCommand(selectedDisplay!.displayId, 'RESTART')}
+                        >
+                            {sendingCommand === 'RESTART' ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Power className="mr-2 h-4 w-4"/>}
+                            Restart Device
+                        </Button>
+                    </div>
                 </div>
             </div>
             <DialogFooter>

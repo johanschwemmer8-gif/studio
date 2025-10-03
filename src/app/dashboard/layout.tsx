@@ -60,7 +60,7 @@ function SidebarLogo() {
     const HolographicLogo = () => (
         <div className="relative w-32 h-16 group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent-purple rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-1000 animate-pulse-slow"></div>
-            <div className="relative w-full h-full flex items-center justify-center bg-card/80 rounded-lg">
+            <div className="relative w-full h-full flex items-center justify-center rounded-lg">
                 {logoUrl ? (
                     <Image 
                         src={logoUrl} 
@@ -92,7 +92,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
-        <SidebarHeader className="border-b futuristic-glass-card !bg-card/70 mb-2">
+        <SidebarHeader className="border-b bg-sidebar-header mb-2">
             <SidebarLogo />
         </SidebarHeader>
         <SidebarContent>

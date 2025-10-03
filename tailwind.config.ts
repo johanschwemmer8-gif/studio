@@ -61,6 +61,7 @@ export default {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+        'sidebar-header': 'hsl(var(--sidebar-header))',
         gray: {
           '50': '#F8FAFC',
           '100': '#F1F5F9',

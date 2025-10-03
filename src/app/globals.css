@@ -35,6 +35,8 @@
     --color-success: 153 91% 31%;
     --color-warning: 33 92% 46%;
     --color-error: 351 79% 49%;
+    --sidebar-header: 210 100% 50% / 0.1; /* Translucent Light Blue */
+
 
     /* Radii */
     --radius: 0.75rem;

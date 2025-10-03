@@ -104,3 +104,14 @@
         box-shadow: 0 0 15px 0px hsl(var(--primary) / 0.5);
     }
 }
+
+@layer utilities {
+    @keyframes pulse-slow {
+        50% {
+            opacity: 0.75;
+        }
+    }
+    .animate-pulse-slow {
+        animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+}

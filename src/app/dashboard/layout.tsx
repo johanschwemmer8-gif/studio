@@ -17,7 +17,7 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, Globe, Store } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
@@ -25,7 +25,6 @@ import { useState, useEffect } from 'react';
 
 function SidebarLogo() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
-    const [logoWidth, setLogoWidth] = useState<number>(128);
 
     useEffect(() => {
         // This effect runs only on the client side
@@ -33,17 +32,10 @@ function SidebarLogo() {
         if (savedLogo) {
             setLogoUrl(savedLogo);
         }
-        const savedWidth = localStorage.getItem('interact-aoe-logo-width');
-        if (savedWidth) {
-            setLogoWidth(Number(savedWidth));
-        }
         
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'interact-aoe-logo') {
                 setLogoUrl(e.newValue);
-            }
-             if (e.key === 'interact-aoe-logo-width') {
-                setLogoWidth(Number(e.newValue || 128));
             }
         };
 
@@ -53,12 +45,9 @@ function SidebarLogo() {
 
             const updatedLogo = localStorage.getItem('interact-aoe-logo');
             setLogoUrl(updatedLogo);
-            const updatedWidth = localStorage.getItem('interact-aoe-logo-width');
-            setLogoWidth(Number(updatedWidth || 128));
         };
 
         window.addEventListener('storage', handleStorageChange);
-        // Custom event to handle updates within the same tab
         window.addEventListener('logoUpdated', handleCustomEvent);
 
 
@@ -68,22 +57,28 @@ function SidebarLogo() {
         };
     }, []);
 
+    const HolographicLogo = () => (
+        <div className="relative w-32 h-16 group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent-purple rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-1000 animate-pulse-slow"></div>
+            <div className="relative w-full h-full flex items-center justify-center bg-card/80 rounded-lg">
+                {logoUrl ? (
+                    <Image 
+                        src={logoUrl} 
+                        alt="iNteract AOE Logo" 
+                        width={120} 
+                        height={40}
+                        className="h-auto w-auto transition-transform duration-300 group-hover:scale-105"
+                    />
+                ) : (
+                    <span className="text-xl font-bold tracking-wider text-foreground transition-transform duration-300 group-hover:scale-105">iNteract</span>
+                )}
+            </div>
+        </div>
+    );
+
     return (
-         <Link href="/dashboard" className="flex items-center justify-center gap-2 px-2 h-12">
-            {logoUrl ? (
-                <Image 
-                    src={logoUrl} 
-                    alt="iNteract AOE Logo" 
-                    width={logoWidth} 
-                    height={logoWidth / (128/50)} // Maintain aspect ratio
-                    className="h-auto"
-                    style={{ width: `${logoWidth}px` }}
-                />
-            ) : (
-                 <div className="w-32 h-12 bg-muted/50 rounded-md flex items-center justify-center">
-                    <span className="text-sm text-muted-foreground">Logo</span>
-                </div>
-            )}
+         <Link href="/dashboard" className="flex items-center justify-center p-4">
+            <HolographicLogo />
         </Link>
     );
 }
@@ -97,13 +92,11 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
-        <SidebarHeader>
-          <div className="p-2">
+        <SidebarHeader className="border-b futuristic-glass-card !bg-card/70 mb-2">
             <SidebarLogo />
-          </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
+          <SidebarMenu className="px-2">
             <SidebarGroup>
               <SidebarGroupLabel>Platform Administration</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -209,7 +202,7 @@ export default function DashboardLayout({
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-            <SidebarMenu>
+            <SidebarMenu className="px-2">
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Log Out">
                         <Link href="/">

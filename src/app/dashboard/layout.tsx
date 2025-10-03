@@ -12,6 +12,10 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Brush, Shield, BookOpen, QrCode, Globe, Store } from 'lucide-react';
 import Link from 'next/link';
@@ -100,30 +104,29 @@ export default function DashboardLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="iNteract Admin Panel">
-                <Link href="/dashboard/admin">
-                  <Cog />
-                  <span>iNteract Admin Panel</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="iNteract User Admin">
-                <Link href="/dashboard/user-admin">
-                  <UserCog />
-                  <span>iNteract User Admin</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="iNteract Core Integration">
-                <Link href="/dashboard/core-integration">
-                  <DatabaseZap />
-                  <span>iNteract Core Integration</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <SidebarGroup>
+              <SidebarGroupLabel>Platform Administration</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="iNteract Admin Panel">
+                    <Link href="/dashboard/admin"><Cog /><span>Admin Panel</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="User Admin">
+                    <Link href="/dashboard/user-admin"><UserCog /><span>User Admin</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Core Integration">
+                    <Link href="/dashboard/core-integration"><DatabaseZap /><span>Core Integration</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            
+            <SidebarSeparator />
+
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Retailer Management">
                 <Link href="/dashboard/retailer-management">
@@ -136,11 +139,11 @@ export default function DashboardLayout({
               <SidebarMenuButton asChild tooltip="Retailer's Dashboard Management">
                 <Link href="/dashboard/retailers-dashboards">
                   <Rocket />
-                  <span>Retailer's Dashboard Management</span>
+                  <span>Retailer Dashboards</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
+            <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="QR & AI Management">
                     <Link href="/dashboard/qr-ai-management">
                         <QrCode />
@@ -148,62 +151,61 @@ export default function DashboardLayout({
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="AI Policy & Compliance">
-                    <Link href="/dashboard/ai-policy">
-                        <Shield />
-                        <span>AI Policy & Compliance</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Platform Security">
-                    <Link href="/dashboard/platform-security">
-                        <Shield />
-                        <span>Platform Security</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="AOE Security">
-                    <Link href="/dashboard/aoe-security">
-                        <Shield />
-                        <span>AOE Security</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="External Security & Integrations">
-                    <Link href="/dashboard/external-security-integrations">
-                        <Globe />
-                        <span>External Security & Integrations</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="System Integration & Testing">
-                    <Link href="/dashboard/system-integration">
-                        <FlaskConical />
-                        <span>System Integration</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Documentation & Training Modules">
-                    <Link href="/dashboard/documentation">
-                        <BookOpen />
-                        <span>Documentation & Training</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Test MVP">
-                <Link href="/retailer-mvp/dashboard">
-                  <FlaskConical />
-                  <span>Test MVP</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            
+            <SidebarSeparator />
+
+            <SidebarGroup>
+                <SidebarGroupLabel>Security</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="AI Policy & Compliance">
+                            <Link href="/dashboard/ai-policy"><Shield /><span>AI Policy</span></Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Platform Security">
+                            <Link href="/dashboard/platform-security"><Shield /><span>Platform Security</span></Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="AOE Security">
+                            <Link href="/dashboard/aoe-security"><Shield /><span>AOE Security</span></Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="External Security & Integrations">
+                            <Link href="/dashboard/external-security-integrations"><Globe /><span>External Security</span></Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+            
+             <SidebarGroup>
+                <SidebarGroupLabel>Development & Testing</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="System Integration & Testing">
+                            <Link href="/dashboard/system-integration"><FlaskConical /><span>System Integration</span></Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Documentation & Training Modules">
+                            <Link href="/dashboard/documentation"><BookOpen /><span>Documentation</span></Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="Test MVP">
+                        <Link href="/retailer-mvp/dashboard">
+                          <FlaskConical />
+                          <span>Test MVP</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>

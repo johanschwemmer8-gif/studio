@@ -80,7 +80,7 @@ function SidebarLogo() {
                     style={{ width: `${logoWidth}px` }}
                 />
             ) : (
-                 <div className="w-32 h-12 bg-muted rounded-md flex items-center justify-center">
+                 <div className="w-32 h-12 bg-muted/50 rounded-md flex items-center justify-center">
                     <span className="text-sm text-muted-foreground">Logo</span>
                 </div>
             )}
@@ -96,7 +96,7 @@ export default function DashboardLayout({
 }) {
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
           <div className="p-2">
             <SidebarLogo />
@@ -222,7 +222,7 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex items-center justify-between p-4 border-b bg-card h-16">
+        <header className="flex items-center justify-between p-4 border-b bg-card/60 backdrop-blur-xl h-16 sticky top-0 z-40">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
             <h1 className="text-xl font-semibold">iNteract Admin Panel</h1>
@@ -231,7 +231,7 @@ export default function DashboardLayout({
             <SearchBar />
           </div>
         </header>
-        <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8 flex-1">{children}</main>
         <footer className="p-4 text-center text-xs text-muted-foreground border-t">
             <div className="flex items-center justify-center gap-2">
                 <span>Powered by iNteract AOE. Made in South Africa.</span>

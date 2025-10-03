@@ -80,53 +80,67 @@ const getScanInteractionFlow = ai.defineFlow(
     }
     const qrData = qrDoc.data()!;
 
-    if (!qrData.aiProfileId) {
-      // This case should ideally be handled by the tracking route, but we double-check here.
-      return {
+    // If there's no AI profile, or some other issue, we must have a graceful fallback.
+    // The primary goal is to get the user to the product page.
+    const fallbackResponse = {
         messages: [],
         destinationUrl: qrData.redirectUrl,
-      };
-    }
-
-    const [aiProfileDoc, retailerDoc] = await Promise.all([
-        db.collection('ai_profiles').doc(qrData.aiProfileId).get(),
-        db.collection('tenants').doc(qrData.retailerId).get() // Assuming tenant info is in 'tenants' collection
-    ]);
-    
-    if (!aiProfileDoc.exists) {
-      throw new Error(`AI Profile with ID ${qrData.aiProfileId} not found.`);
-    }
-    const aiProfile = aiProfileDoc.data()!;
-    const retailerName = retailerDoc.exists ? retailerDoc.data()!.name : 'our store';
-    const retailerLogoUrl = retailerDoc.exists ? retailerDoc.data()!.logoUrl : undefined;
-
-    const { output } = await prompt({
-        retailerName,
-        campaignName: qrData.campaignId,
-        personality: aiProfile.personality,
-        intent: aiProfile.intent.join(', '), // Convert array to string
-        constraints: aiProfile.constraints,
-    });
-
-    if (!output) {
-      throw new Error('AI failed to generate interaction messages.');
-    }
-
-    // Log the interaction to Firestore for analytics
-    await db.collection('qr_interactions').add({
-        qrId,
-        scanId: 'simulated-scan-id', // In a real app, you'd pass a unique scan ID
-        retailerId: qrData.retailerId,
-        aiProfileId: qrData.aiProfileId,
-        interactionShownAt: admin.firestore.FieldValue.serverTimestamp(),
-        messages: output.messages,
-        continuedClicked: false,
-    });
-
-    return {
-      messages: output.messages,
-      destinationUrl: qrData.redirectUrl,
-      retailerLogoUrl,
+        retailerLogoUrl: '',
     };
+
+    if (!qrData.aiProfileId) {
+      return fallbackResponse;
+    }
+
+    try {
+        const [aiProfileDoc, retailerDoc] = await Promise.all([
+            db.collection('ai_profiles').doc(qrData.aiProfileId).get(),
+            db.collection('tenants').doc(qrData.retailerId).get() // Assuming tenant info is in 'tenants' collection
+        ]);
+        
+        if (!aiProfileDoc.exists) {
+          console.warn(`AI Profile with ID ${qrData.aiProfileId} not found. Skipping interaction.`);
+          return fallbackResponse;
+        }
+
+        const aiProfile = aiProfileDoc.data()!;
+        const retailerName = retailerDoc.exists ? retailerDoc.data()!.name : 'our store';
+        const retailerLogoUrl = retailerDoc.exists ? retailerDoc.data()!.logoUrl : undefined;
+
+        const { output } = await prompt({
+            retailerName,
+            campaignName: qrData.campaignId,
+            personality: aiProfile.personality,
+            intent: Array.isArray(aiProfile.intent) ? aiProfile.intent.join(', ') : aiProfile.intent,
+            constraints: aiProfile.constraints,
+        });
+
+        if (!output?.messages || output.messages.length === 0) {
+          console.warn('AI generated no messages. Skipping interaction.');
+          return { ...fallbackResponse, retailerLogoUrl };
+        }
+
+        // Log the interaction to Firestore for analytics
+        await db.collection('qr_interactions').add({
+            qrId,
+            scanId: 'simulated-scan-id', // In a real app, you'd pass a unique scan ID
+            retailerId: qrData.retailerId,
+            aiProfileId: qrData.aiProfileId,
+            interactionShownAt: admin.firestore.FieldValue.serverTimestamp(),
+            messages: output.messages,
+            continuedClicked: false,
+        });
+
+        return {
+          messages: output.messages,
+          destinationUrl: qrData.redirectUrl,
+          retailerLogoUrl,
+        };
+
+    } catch (error) {
+        console.error(`Error during scan interaction for qrId ${qrId}:`, error);
+        // If anything in the AI interaction fails, we still want to redirect the user.
+        return fallbackResponse;
+    }
   }
 );

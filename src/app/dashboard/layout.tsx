@@ -17,7 +17,7 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
@@ -179,6 +179,11 @@ export default function DashboardLayout({
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="System Integration & Testing">
                             <Link href="/dashboard/system-integration"><FlaskConical /><span>System Integration</span></Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="UI/UX Development">
+                            <Link href="/dashboard/ui-ux-development"><Smartphone /><span>UI/UX Development</span></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>

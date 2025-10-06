@@ -36,6 +36,23 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const experimentSchema = z.object({
+  name: z.string().min(3, { message: "Experiment name must be at least 3 characters." }),
+  description: z.string().optional(),
+  variables: z.object({
+    A: z.string().min(1, { message: "Variable A is required." }),
+    B: z.string().min(1, { message: "Variable B is required." }),
+  }),
+  keyMetric: z.string({ required_error: "Please select a key metric." }),
+});
+
+type ExperimentFormData = z.infer<typeof experimentSchema>;
+
 
 type Experiment = {
   id: string;
@@ -65,6 +82,16 @@ export default function ABTestingPage() {
   const [selectedExperiment, setSelectedExperiment] = useState<Experiment | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  const form = useForm<ExperimentFormData>({
+    resolver: zodResolver(experimentSchema),
+    defaultValues: {
+        name: '',
+        description: '',
+        variables: { A: '', B: '' },
+    }
+  });
+
 
   useEffect(() => {
     if (!db) {
@@ -100,23 +127,14 @@ export default function ABTestingPage() {
     return () => unsubscribe();
   }, [toast]);
   
-  const handleCreateExperiment = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleCreateExperiment = async (data: ExperimentFormData) => {
     if (!db) {
         toast({ title: 'Error', description: 'Firebase is not connected.', variant: 'destructive' });
         return;
     }
-    const formData = new FormData(event.currentTarget);
-    const data = Object.fromEntries(formData.entries());
 
     const newExperiment = {
-      name: data['experiment-name'],
-      description: data['experiment-description'],
-      variables: {
-        A: data['variable-a'],
-        B: data['variable-b'],
-      },
-      keyMetric: data['primary-metric'],
+      ...data,
       status: 'Running',
       startDate: serverTimestamp(),
       results: {
@@ -134,6 +152,7 @@ export default function ABTestingPage() {
         description: 'New experiment has been created.',
       });
       setIsModalOpen(false);
+      form.reset();
     } catch (error) {
       console.error("Error adding document: ", error);
       toast({
@@ -218,48 +237,63 @@ export default function ABTestingPage() {
                 <DialogTitle>Create New Experiment</DialogTitle>
                 <DialogDescription>Define a new A/B test to run on the platform.</DialogDescription>
             </DialogHeader>
-            <form id="create-experiment-form" onSubmit={handleCreateExperiment} className="space-y-6 py-4">
-                <div>
-                <Label htmlFor="experiment-name">Experiment Name</Label>
-                <Input id="experiment-name" name="experiment-name" required />
-                </div>
-                <div>
-                <Label htmlFor="experiment-description">Description / Hypothesis</Label>
-                <Textarea id="experiment-description" name="experiment-description" rows={3} />
-                </div>
-                <div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Define Variables (A/B)</h3>
-                <div className="flex space-x-4">
-                    <div className="flex-1">
-                    <Label htmlFor="variable-a">Variable A (Control)</Label>
-                    <Input id="variable-a" name="variable-a" required />
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleCreateExperiment)} className="space-y-6 py-4">
+                     <FormField control={form.control} name="name" render={({ field }) => (
+                         <FormItem>
+                             <FormLabel>Experiment Name</FormLabel>
+                             <FormControl><Input {...field} /></FormControl>
+                             <FormMessage />
+                         </FormItem>
+                     )}/>
+                     <FormField control={form.control} name="description" render={({ field }) => (
+                         <FormItem>
+                             <FormLabel>Description / Hypothesis</FormLabel>
+                             <FormControl><Textarea {...field} rows={3} /></FormControl>
+                             <FormMessage />
+                         </FormItem>
+                     )}/>
+                     <div>
+                        <h3 className="text-lg font-semibold text-foreground mb-2">Define Variables (A/B)</h3>
+                        <div className="flex space-x-4">
+                             <FormField control={form.control} name="variables.A" render={({ field }) => (
+                                 <FormItem className="flex-1">
+                                     <FormLabel>Variable A (Control)</FormLabel>
+                                     <FormControl><Input {...field} /></FormControl>
+                                     <FormMessage />
+                                 </FormItem>
+                             )}/>
+                             <FormField control={form.control} name="variables.B" render={({ field }) => (
+                                 <FormItem className="flex-1">
+                                     <FormLabel>Variable B (Variant)</FormLabel>
+                                     <FormControl><Input {...field} /></FormControl>
+                                     <FormMessage />
+                                 </FormItem>
+                             )}/>
+                        </div>
                     </div>
-                    <div className="flex-1">
-                    <Label htmlFor="variable-b">Variable B (Variant)</Label>
-                    <Input id="variable-b" name="variable-b" required />
-                    </div>
-                </div>
-                </div>
-                <div>
-                <Label htmlFor="primary-metric">Primary Metric</Label>
-                <Select name="primary-metric" required defaultValue='click_through_rate'>
-                    <SelectTrigger id="primary-metric">
-                    <SelectValue placeholder="Select a metric" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="conversion_rate">Conversion Rate</SelectItem>
-                    <SelectItem value="click_through_rate">Click-Through Rate</SelectItem>
-                    <SelectItem value="add_to_cart">Add to Cart</SelectItem>
-                    <SelectItem value="in_store_visit">In-Store Visit</SelectItem>
-                    </SelectContent>
-                </Select>
-                </div>
-            </form>
-            <DialogFooter>
-                <Button type="submit" form="create-experiment-form">
-                    Create Experiment
-                </Button>
-                </DialogFooter>
+                     <FormField control={form.control} name="keyMetric" render={({ field }) => (
+                         <FormItem>
+                             <FormLabel>Primary Metric</FormLabel>
+                             <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                 <FormControl><SelectTrigger><SelectValue placeholder="Select a metric" /></SelectTrigger></FormControl>
+                                 <SelectContent>
+                                     <SelectItem value="conversion_rate">Conversion Rate</SelectItem>
+                                     <SelectItem value="click_through_rate">Click-Through Rate</SelectItem>
+                                     <SelectItem value="add_to_cart">Add to Cart</SelectItem>
+                                     <SelectItem value="in_store_visit">In-Store Visit</SelectItem>
+                                 </SelectContent>
+                             </Select>
+                             <FormMessage />
+                         </FormItem>
+                     )}/>
+                    <DialogFooter>
+                        <Button type="submit">
+                            Create Experiment
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </Form>
         </DialogContent>
       </Dialog>
 

@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { type Analytics } from 'firebase/analytics';
+
 
 type AdCampaign = {
     id: string;
@@ -26,6 +28,15 @@ export default function SponsoredProduct() {
     const [ad, setAd] = useState<SponsoredProductProps | null>(null);
     const [campaignId, setCampaignId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [analyticsInstance, setAnalyticsInstance] = useState<Analytics | null>(null);
+
+     useEffect(() => {
+        if (analytics) {
+            analytics.then(instance => {
+                setAnalyticsInstance(instance);
+            });
+        }
+    }, []);
 
     useEffect(() => {
         const fetchAd = async () => {
@@ -57,8 +68,8 @@ export default function SponsoredProduct() {
                         setAd(sponsoredProductData);
                         setCampaignId(campaignDoc.id);
 
-                        if (analytics) {
-                            logEvent(analytics, 'ad_impression', {
+                        if (analyticsInstance) {
+                            logEvent(analyticsInstance, 'ad_impression', {
                                 campaign_id: campaignDoc.id,
                                 product_id: sponsoredSku,
                             });
@@ -72,25 +83,27 @@ export default function SponsoredProduct() {
             }
         };
 
-        fetchAd();
-    }, []);
+        if (analyticsInstance) {
+            fetchAd();
+        }
+    }, [analyticsInstance]);
 
     const handleAdClick = () => {
         if (!ad || !campaignId) return;
 
-        if (analytics) {
-            logEvent(analytics, 'ad_clicked', {
+        if (analyticsInstance) {
+            logEvent(analyticsInstance, 'ad_click', {
                 campaign_id: campaignId,
                 product_id: ad.productId,
             });
-            alert(`Analytics event 'ad_clicked' logged for campaign: ${campaignId}`);
+            alert(`Analytics event 'ad_click' logged for campaign: ${campaignId}`);
         }
         // In a real app, this would navigate to the product page.
         // router.push(`/product/${ad.productId}`);
     };
 
     if (loading) {
-        return <Skeleton className="h-48 w-full" />;
+        return <Skeleton className="h-36 w-full mt-12" />;
     }
 
     if (!ad) {

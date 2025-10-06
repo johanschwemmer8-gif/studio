@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getRemoteConfig } from 'firebase/remote-config';
 
 // In a real application, these values would be populated, likely from environment variables.
@@ -32,9 +32,13 @@ if (isConfigValid && !getApps().length) {
 const db = isConfigValid ? getFirestore(app) : null;
 
 // Initialize Analytics and Remote Config only on the client side and if the config is valid
-const analytics = isConfigValid && typeof window !== 'undefined' && isAnalyticsSupported() 
-  // @ts-ignore
-  ? getAnalytics(app) 
+const analytics = isConfigValid && typeof window !== 'undefined'
+  ? (async () => {
+      if (await isSupported()) {
+        return getAnalytics(app);
+      }
+      return null;
+    })()
   : null;
   
 const remoteConfig = isConfigValid && typeof window !== 'undefined' 

@@ -29,16 +29,20 @@ export type DeleteBulkQrRequestOutput = z.infer<typeof DeleteBulkQrRequestOutput
 
 export async function deleteBulkQrRequest(input: DeleteBulkQrRequestInput): Promise<DeleteBulkQrRequestOutput> {
   // In a real Firebase Callable Function, you would extract the retailerId from the auth context.
-  // For simulation, we're using a hardcoded value.
+  // This is a placeholder and should be replaced with actual authentication.
   const callerRetailerId = 'simulated-retailer-id';
   
   return deleteBulkQrRequestFlow({ ...input, callerRetailerId });
 }
 
+// This flow now requires the caller's ID for authorization.
 const deleteBulkQrRequestFlow = ai.defineFlow(
   {
     name: 'deleteBulkQrRequestFlow',
-    inputSchema: DeleteBulkQrRequestInputSchema.extend({ callerRetailerId: z.string() }),
+    inputSchema: DeleteBulkQrRequestInputSchema.extend({ 
+        // In production, this ID should be extracted from a verified Firebase Auth ID token.
+        callerRetailerId: z.string().describe("The retailer ID of the user making the request."),
+    }),
     outputSchema: DeleteBulkQrRequestOutputSchema,
   },
   async ({ requestId, callerRetailerId }) => {
@@ -53,7 +57,8 @@ const deleteBulkQrRequestFlow = ai.defineFlow(
       
       const requestData = requestDoc.data();
       
-      // Security Enhancement: Authorize the delete operation.
+      // **Security Enhancement**: Authorize the delete operation.
+      // This check ensures that only a user belonging to the correct retailer can delete the request.
       if (requestData?.retailerId !== callerRetailerId) {
         throw new Error('You are not authorized to delete this request.');
       }

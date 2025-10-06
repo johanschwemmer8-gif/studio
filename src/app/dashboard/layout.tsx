@@ -90,7 +90,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader className="border-b bg-card mb-2">
+        <SidebarHeader className="border-b !bg-sidebar-header mb-2">
             <SidebarLogo />
         </SidebarHeader>
         <SidebarContent>

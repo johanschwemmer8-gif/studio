@@ -1,4 +1,5 @@
 
+import placeholderImages from '@/app/lib/placeholder-images.json';
 
 export type Product = {
   id: string;
@@ -6,7 +7,11 @@ export type Product = {
   description: string;
   category: string;
   price: number;
-  image: string;
+  image: {
+    src: string;
+    width: number;
+    height: number;
+  };
   'data-ai-hint': string;
 };
 
@@ -18,8 +23,8 @@ export const products: Product[] = [
       'Stay hydrated on the go with our reusable and eco-friendly water bottle. Made from durable stainless steel, it keeps your drinks cold for 24 hours or hot for 12.',
     category: 'Lifestyle',
     price: 25.0,
-    image: 'https://picsum.photos/600/600',
-    'data-ai-hint': 'water bottle',
+    image: placeholderImages.products['water-bottle'],
+    'data-ai-hint': placeholderImages.products['water-bottle'].ai_hint,
   },
   {
     id: '2',
@@ -27,8 +32,8 @@ export const products: Product[] = [
     description: 'A sleek and fast wireless charging pad for all your compatible devices. Say goodbye to tangled cables.',
     category: 'Electronics',
     price: 45.0,
-    image: 'https://picsum.photos/600/600',
-    'data-ai-hint': 'charging pad',
+    image: placeholderImages.products['charging-pad'],
+    'data-ai-hint': placeholderImages.products['charging-pad'].ai_hint,
   },
 ];
 

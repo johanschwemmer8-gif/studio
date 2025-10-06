@@ -33,12 +33,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           <div>
             <div className="aspect-square relative rounded-lg overflow-hidden border shadow-lg">
               <Image
-                src={product.image}
+                src={product.image.src}
                 alt={product.name}
-                fill
+                width={product.image.width}
+                height={product.image.height}
                 className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
                 data-ai-hint={product['data-ai-hint']}
+                priority
               />
             </div>
           </div>

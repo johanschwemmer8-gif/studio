@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { type Analytics } from 'firebase/analytics';
+import placeholderImages from '@/app/lib/placeholder-images.json';
 
 
 type AdCampaign = {
@@ -22,6 +23,8 @@ type SponsoredProductProps = {
     productId: string;
     productName: string;
     imageUrl: string;
+    imageWidth: number;
+    imageHeight: number;
 };
 
 export default function SponsoredProduct() {
@@ -62,7 +65,9 @@ export default function SponsoredProduct() {
                         const sponsoredProductData = {
                             productId: sponsoredSku,
                             productName: `Sponsored Item: ${sponsoredSku.replace('product_SKU_', '')}`,
-                            imageUrl: 'https://picsum.photos/seed/ad/200/200',
+                            imageUrl: placeholderImages.sponsored.ad.src,
+                            imageWidth: placeholderImages.sponsored.ad.width,
+                            imageHeight: placeholderImages.sponsored.ad.height,
                         };
 
                         setAd(sponsoredProductData);

@@ -1,4 +1,6 @@
 
+import placeholderImages from '@/app/lib/placeholder-images.json';
+
 // Sample data for the AI Configuration Panel component
 
 export const sampleQrCodes = [
@@ -19,12 +21,12 @@ export const sampleConversation = [
 ];
 
 export const sampleRecommendations = [
-    { id: 1, name: 'Bottle Brush Cleaner', price: 89.99, image: 'https://picsum.photos/seed/brush/100', available: true },
-    { id: 2, name: 'Travel Coffee Mug', price: 349.99, image: 'https://picsum.photos/seed/mug/100', available: true },
-    { id: 3, name: 'Reusable Straw Set', price: 129.99, image: 'https://picsum.photos/seed/straws/100', available: false },
-    { id: 4, name: 'Lunch Box', price: 299.99, image: 'https://picsum.photos/seed/lunchbox/100', available: true },
-    { id: 5, name: 'Picnic Blanket', price: 499.99, image: 'https://picsum.photos/seed/blanket/100', available: true },
-    { id: 6, name: 'Canvas Tote Bag', price: 199.99, image: 'https://picsum.photos/seed/tote/100', available: true },
+    { id: 1, name: 'Bottle Brush Cleaner', price: 89.99, image: placeholderImages.recommendations.brush.src, available: true },
+    { id: 2, name: 'Travel Coffee Mug', price: 349.99, image: placeholderImages.recommendations.mug.src, available: true },
+    { id: 3, name: 'Reusable Straw Set', price: 129.99, image: placeholderImages.recommendations.straws.src, available: false },
+    { id: 4, name: 'Lunch Box', price: 299.99, image: placeholderImages.recommendations.lunchbox.src, available: true },
+    { id: 5, name: 'Picnic Blanket', price: 499.99, image: placeholderImages.recommendations.blanket.src, available: true },
+    { id: 6, name: 'Canvas Tote Bag', price: 199.99, image: placeholderImages.recommendations.tote.src, available: true },
 ];
 
 export const sampleOffer = {

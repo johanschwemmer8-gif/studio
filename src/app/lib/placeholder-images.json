@@ -1,0 +1,63 @@
+
+{
+  "products": {
+    "water-bottle": {
+      "src": "https://picsum.photos/seed/bottle/600/600",
+      "width": 600,
+      "height": 600,
+      "ai_hint": "water bottle"
+    },
+    "charging-pad": {
+      "src": "https://picsum.photos/seed/gadget/600/600",
+      "width": 600,
+      "height": 600,
+      "ai_hint": "charging pad"
+    }
+  },
+  "recommendations": {
+    "brush": {
+      "src": "https://picsum.photos/seed/brush/100/100",
+      "width": 100,
+      "height": 100,
+      "ai_hint": "bottle brush"
+    },
+    "mug": {
+      "src": "https://picsum.photos/seed/mug/100/100",
+      "width": 100,
+      "height": 100,
+      "ai_hint": "coffee mug"
+    },
+    "straws": {
+      "src": "https://picsum.photos/seed/straws/100/100",
+      "width": 100,
+      "height": 100,
+      "ai_hint": "reusable straws"
+    },
+    "lunchbox": {
+      "src": "https://picsum.photos/seed/lunchbox/100/100",
+      "width": 100,
+      "height": 100,
+      "ai_hint": "lunch box"
+    },
+    "blanket": {
+      "src": "https://picsum.photos/seed/blanket/100/100",
+      "width": 100,
+      "height": 100,
+      "ai_hint": "picnic blanket"
+    },
+    "tote": {
+      "src": "https://picsum.photos/seed/tote/100/100",
+      "width": 100,
+      "height": 100,
+      "ai_hint": "tote bag"
+    }
+  },
+  "sponsored": {
+    "ad": {
+      "src": "https://picsum.photos/seed/ad/200/200",
+      "width": 200,
+      "height": 200,
+      "ai_hint": "sponsored product"
+    }
+  }
+}

@@ -23,11 +23,11 @@ export default function ProductPagePreview() {
           <div>
             <div className="aspect-square relative rounded-md overflow-hidden border">
               <Image
-                src={product.image}
+                src={product.image.src}
                 alt={product.name}
-                fill
+                width={product.image.width}
+                height={product.image.height}
                 className="object-cover"
-                sizes="280px"
                 data-ai-hint={product['data-ai-hint']}
               />
             </div>

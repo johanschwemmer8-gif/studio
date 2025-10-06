@@ -35,6 +35,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { ChartTooltipContent } from '@/components/ui/chart';
 
 const activityData = [
     { retailer: 'Woolworths', store: 'Sandton City', product: 'Organic Avocados', interaction: 'Scanned', conversion: true, time: 'now' },
@@ -119,7 +120,7 @@ export default function BackendManagementDashboard() {
                                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.5)" />
                                     <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
                                     <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                                    <Tooltip content={<div className="rounded-lg border bg-background/95 p-2 text-sm shadow-sm backdrop-blur-sm">Hello</div>} />
+                                    <Tooltip content={<ChartTooltipContent />} />
                                     <Line type="monotone" dataKey="api" stroke="hsl(var(--chart-1))" strokeWidth={2} name="API (ms)" />
                                     <Line type="monotone" dataKey="ai" stroke="hsl(var(--chart-2))" strokeWidth={2} name="AI (ms)" />
                                 </LineChart>

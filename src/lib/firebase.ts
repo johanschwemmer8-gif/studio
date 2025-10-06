@@ -32,7 +32,7 @@ if (isConfigValid && !getApps().length) {
 const db = isConfigValid ? getFirestore(app) : null;
 
 // Initialize Analytics and Remote Config only on the client side and if the config is valid
-const analytics = isConfigValid && typeof window !== 'undefined'
+const analytics = isConfigValid && typeof window !== 'undefined' && process.env.NODE_ENV === 'production'
   ? (async () => {
       if (await isSupported()) {
         return getAnalytics(app);

@@ -35,7 +35,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 const activityData = [
     { retailer: 'Woolworths', store: 'Sandton City', product: 'Organic Avocados', interaction: 'Scanned', conversion: true, time: 'now' },
@@ -58,6 +58,17 @@ const healthData = [
   { name: '18:00', api: 70, ai: 140 },
   { name: '23:59', api: 65, ai: 135 },
 ];
+
+const chartConfig = {
+  api: {
+    label: 'API (ms)',
+    color: 'hsl(var(--chart-1))',
+  },
+  ai: {
+    label: 'AI (ms)',
+    color: 'hsl(var(--chart-2))',
+  },
+};
 
 
 export default function BackendManagementDashboard() {
@@ -115,16 +126,16 @@ export default function BackendManagementDashboard() {
                             <CardDescription>API & AI Model Response Times</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <ResponsiveContainer width="100%" height={150}>
+                            <ChartContainer config={chartConfig} className="h-[150px] w-full">
                                 <LineChart data={healthData} margin={{ top:5, right: 10, left: -20, bottom: 0}}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.5)" />
                                     <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
                                     <YAxis fontSize={12} tickLine={false} axisLine={false} />
                                     <Tooltip content={<ChartTooltipContent />} />
-                                    <Line type="monotone" dataKey="api" stroke="hsl(var(--chart-1))" strokeWidth={2} name="API (ms)" />
-                                    <Line type="monotone" dataKey="ai" stroke="hsl(var(--chart-2))" strokeWidth={2} name="AI (ms)" />
+                                    <Line type="monotone" dataKey="api" stroke="var(--color-api)" strokeWidth={2} name="API (ms)" />
+                                    <Line type="monotone" dataKey="ai" stroke="var(--color-ai)" strokeWidth={2} name="AI (ms)" />
                                 </LineChart>
-                            </ResponsiveContainer>
+                            </ChartContainer>
                         </CardContent>
                     </Card>
                 </div>

@@ -7,8 +7,8 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'iNteract - AOE',
-  description: 'Scan, Discover, and Get Recommendations.',
+  title: 'iNteract AOE - In-Store Retail Intelligence',
+  description: 'Transforming in-store retail into a personalized digital experience with AI-powered analytics and engagement.',
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light" suppressHydrationWarning>
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         {children}
         <Toaster />

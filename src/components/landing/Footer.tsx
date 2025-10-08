@@ -1,0 +1,56 @@
+
+import { Linkedin } from "lucide-react";
+import Link from "next/link";
+
+export default function Footer() {
+    return (
+      <footer className="bg-primary text-primary-foreground">
+        <div className="container mx-auto py-12 px-4 md:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="space-y-4">
+              <h4 className="font-semibold">Company</h4>
+              <nav className="flex flex-col space-y-2">
+                <Link href="#" className="hover:underline">About iNteract AOE</Link>
+                <Link href="#" className="hover:underline">Technology</Link>
+                <Link href="#" className="hover:underline">Our Approach</Link>
+              </nav>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-semibold">Solutions</h4>
+              <nav className="flex flex-col space-y-2">
+                <Link href="#" className="hover:underline">For Retail Chains</Link>
+                <Link href="#" className="hover:underline">For Technology Partners</Link>
+                <Link href="#" className="hover:underline">Case Studies (coming soon)</Link>
+              </nav>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-semibold">Resources</h4>
+              <nav className="flex flex-col space-y-2">
+                <Link href="#" className="hover:underline">Request Demo</Link>
+                <Link href="#" className="hover:underline">Investor Relations</Link>
+                <Link href="#" className="hover:underline">Contact</Link>
+              </nav>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-semibold">Contact</h4>
+              <p>Kimberley, Northern Cape, South Africa</p>
+              <a href="#" className="hover:underline">contact@interact-aoe.com</a>
+              <div className="flex mt-2">
+                <a href="#" className="hover:opacity-80">
+                  <Linkedin className="h-6 w-6" />
+                </a>
+              </div>
+            </div>
+          </div>
+          <div className="mt-12 border-t border-primary-foreground/20 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-primary-foreground/70">
+            <p>© 2025 iNteract AOE Pty Ltd. All rights reserved.</p>
+            <div className="flex gap-4 mt-4 md:mt-0">
+              <Link href="#" className="hover:underline">Privacy Policy</Link>
+              <Link href="#" className="hover:underline">Terms of Service</Link>
+            </div>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+  

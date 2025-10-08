@@ -1,4 +1,8 @@
 
+'use client';
+
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
@@ -11,13 +15,72 @@ const navLinks = [
   { href: "#contact", label: "Contact" },
 ];
 
+function LandingLogo() {
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [logoWidth, setLogoWidth] = useState<number>(128);
+
+    useEffect(() => {
+        const savedLogo = localStorage.getItem('interact-aoe-logo');
+        if (savedLogo) {
+            setLogoUrl(savedLogo);
+        }
+        const savedWidth = localStorage.getItem('interact-aoe-logo-width');
+        if (savedWidth) {
+            setLogoWidth(Number(savedWidth));
+        }
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'interact-aoe-logo') {
+                setLogoUrl(e.newValue);
+            }
+             if (e.key === 'interact-aoe-logo-width') {
+                setLogoWidth(Number(e.newValue || 128));
+            }
+        };
+
+        const handleCustomEvent = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail.key !== 'interact-aoe-logo' && detail.key !== 'interact-aoe-logo-width') return;
+            
+            const updatedLogo = localStorage.getItem('interact-aoe-logo');
+            setLogoUrl(updatedLogo);
+            const updatedWidth = localStorage.getItem('interact-aoe-logo-width');
+            setLogoWidth(Number(updatedWidth || 128));
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('logoUpdated', handleCustomEvent);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('logoUpdated', handleCustomEvent);
+        };
+    }, []);
+
+    return (
+        <Link href="/" className="flex items-center gap-2">
+            {logoUrl ? (
+                <Image 
+                    src={logoUrl} 
+                    alt="iNteract AOE Logo" 
+                    width={logoWidth} 
+                    height={logoWidth / (128/40)}
+                    className="h-auto"
+                    style={{ width: `${logoWidth}px` }}
+                />
+            ) : (
+                <span className="text-xl font-bold text-primary">iNteract AOE</span>
+            )}
+        </Link>
+    );
+}
+
+
 export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="#" className="text-xl font-bold text-primary">
-          iNteract AOE
-        </Link>
+        <LandingLogo />
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
           {navLinks.map((link) => (
             <Link

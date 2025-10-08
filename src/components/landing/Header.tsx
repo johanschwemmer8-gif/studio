@@ -94,7 +94,7 @@ export default function Header() {
         </nav>
         <div className="flex items-center gap-4">
           <Button asChild variant="outline" className="hidden sm:inline-flex">
-            <Link href="/retailer-mvp/dashboard">Log In</Link>
+            <Link href="/login">Log In</Link>
           </Button>
           <Button>Request a Demo</Button>
           <Sheet>

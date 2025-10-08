@@ -30,8 +30,8 @@ export default function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
-          <Button variant="outline" className="hidden sm:inline-flex">
-            Log In
+          <Button asChild variant="outline" className="hidden sm:inline-flex">
+            <Link href="/retailer-mvp/dashboard">Log In</Link>
           </Button>
           <Button>Request a Demo</Button>
           <Sheet>

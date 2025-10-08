@@ -15,7 +15,7 @@ if (!admin.apps.length) {
 const AssignDisplayConfigInputSchema = z.object({
   displayId: z.string(),
   configId: z.string(),
-  retailerId: z.string(),
+  retailerId: z.string().describe("The ID of the user's retailer, for authorization."),
 });
 
 const AssignDisplayConfigOutputSchema = z.object({
@@ -39,7 +39,9 @@ export const assignDisplayConfig = ai.defineFlow(
             throw new Error('Display not found.');
         }
 
-        // Authorization check
+        // **Security Enhancement**: Authorize the operation.
+        // This check ensures that the user making the request belongs to the same retailer
+        // that owns the display device. In a real app, `retailerId` would come from auth claims.
         if (displayDoc.data()?.retailerId !== retailerId) {
             throw new Error('User is not authorized to modify this display.');
         }

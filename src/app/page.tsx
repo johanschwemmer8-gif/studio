@@ -77,8 +77,12 @@ function LandingPageLogo() {
         'text-right': logoAlign === 'flex-end',
     });
 
+    const headerStyle: React.CSSProperties = {
+        paddingTop: `${logoPadding}px`,
+    };
+
     return (
-        <header className="w-full">
+        <header className="w-full" style={headerStyle}>
             <div className={logoContainerClass}>
                 <Link href="/" className="font-bold text-lg inline-block">
                     {logoUrl ? (
@@ -99,41 +103,31 @@ function LandingPageLogo() {
     );
 }
 
-// These state variables and handlers were moved from the main Home component
-// to avoid prop-drilling into the LandingPageLogo component.
-let isLoginOpen = false;
-let setIsLoginOpen: (isOpen: boolean) => void;
-let isRecoveryOpen = false;
-let setIsRecoveryOpen: (isOpen: boolean) => void;
-let router: any;
-let toast: any;
+export default function Home() {
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
-const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoginOpen(false);
     router.push('/dashboard/admin');
-};
+  };
 
-const handleForgotPassword = () => {
+  const handleForgotPassword = () => {
     setIsLoginOpen(false);
     setIsRecoveryOpen(true);
-};
+  };
 
-const handlePasswordRecovery = (event: React.FormEvent<HTMLFormElement>) => {
+  const handlePasswordRecovery = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsRecoveryOpen(false);
     toast({
         title: "Recovery Email Sent",
         description: "If an account exists with that email, a recovery link has been sent.",
     });
-};
-
-
-export default function Home() {
-  [isLoginOpen, setIsLoginOpen] = useState(false);
-  [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
-  router = useRouter();
-  ({ toast } = useToast());
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -141,7 +135,7 @@ export default function Home() {
           <LandingPageLogo />
            <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
               <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm">iNteract Dashboard</Button>
+                  <Button variant="ghost" className="m-2">iNteract Dashboard</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                   <form onSubmit={handleLogin}>
@@ -178,10 +172,7 @@ export default function Home() {
                       </div>
                   </div>
                   <DialogFooter className="sm:justify-between">
-                      <div className="flex gap-2">
-                          <Button type="button" variant="link" className="p-0 h-auto font-normal">Create new User</Button>
-                          <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={handleForgotPassword}>Forgot password?</Button>
-                      </div>
+                      <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={handleForgotPassword}>Forgot password?</Button>
                       <Button type="submit" size="sm">Log in</Button>
                   </DialogFooter>
                   </form>

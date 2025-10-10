@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileText, LifeBuoy, Rocket, Shield, Users, RefreshCw, Layers, Server, Workflow, Database, Code, GraduationCap, Building, LinkIcon, BrainCircuit, BarChart, Settings, Search, KeyRound } from "lucide-react";
+import { FileText, LifeBuoy, Rocket, Shield, Users, RefreshCw, Layers, Server, Workflow, Database, Code, GraduationCap, Building, Link as LinkIcon, BrainCircuit, BarChart, Settings, Search, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -189,7 +189,12 @@ export default function AdminDocumentationPage() {
                         <AccordionItem value="item-5-1">
                             <AccordionTrigger>5.1 Security Overview</AccordionTrigger>
                             <AccordionContent className="prose prose-sm dark:prose-invert max-w-none">
-                                <p>Security is foundational, managed through Firebase Security Rules that enforce data access based on a user's custom claims (`retailerId`). All server-side operations are handled by Genkit flows running with `firebase-admin` for secure administrative access. The platform includes dedicated pages for monitoring platform, AOE, and external security integrations.</p>
+                                <h4>Infrastructure Security</h4>
+                                <p>The iNteract-AOE platform is built on Google Cloud and Firebase, which are compliant with a wide range of security standards, including ISO/IEC 27001, SOC 1, SOC 2, and PCI DSS. We leverage these underlying certifications for our infrastructure.</p>
+                                <h4>Application Security</h4>
+                                <p>Security is foundational to our application architecture. Data access is controlled through Firebase Security Rules that enforce strict multi-tenancy based on a user's authenticated `retailerId`. All server-side operations are handled by secure Genkit flows running with administrative privileges, preventing unauthorized client-side access to data.</p>
+                                <h4>Compliance Status</h4>
+                                <p>While the platform is designed and built to meet the standards of ISO 27001, **the iNteract-AOE platform itself has not yet undergone a formal, independent ISO 27001 certification audit.** Achieving this certification is a key objective on our product roadmap.</p>
                             </AccordionContent>
                         </AccordionItem>
                          <AccordionItem value="item-5-2">

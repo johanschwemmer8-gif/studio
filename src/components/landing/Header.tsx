@@ -77,10 +77,11 @@ function LandingLogo() {
 
 
 export default function Header() {
+  const logo = <LandingLogo />;
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <LandingLogo />
+        {logo}
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
           {navLinks.map((link) => (
             <Link
@@ -106,12 +107,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <nav className="grid gap-6 text-lg font-medium">
-                <Link
-                  href="#"
-                  className="flex items-center gap-2 text-lg font-semibold"
-                >
-                  iNteract AOE
-                </Link>
+                {logo}
                 {navLinks.map((link) => (
                   <Link
                     key={link.label}

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent } from 'lucide-react';
+import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -226,6 +226,27 @@ export default function AIPolicyPage() {
                             </div>
                         </div>
                     </div>
+                </CardContent>
+            </Card>
+
+            {/* Fairness Constraints */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Scale className="text-primary"/> Fairness Constraints</CardTitle>
+                    <CardDescription>Define the operational thresholds for ethical AI monitoring.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                        <li>
+                            <strong>Maximum acceptable variance in offer acceptance rates:</strong> <Badge variant="outline">10%</Badge>
+                        </li>
+                        <li>
+                           <strong>Minimum parity in recommendation quality across segments:</strong> No significant statistical difference should be detected.
+                        </li>
+                         <li>
+                           <strong>Alert threshold:</strong> If any key fairness metric deviates by more than <Badge variant="outline">15%</Badge>, it will be flagged for review.
+                        </li>
+                    </ul>
                 </CardContent>
             </Card>
 

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale } from 'lucide-react';
+import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale, CalendarCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -161,6 +161,27 @@ function BiasMonitoringDashboard() {
                       </TableRow>
                   </TableBody>
               </Table>
+              
+              <Card className="bg-background/50">
+                <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-base"><CalendarCheck className="text-primary"/> Audit Schedule</CardTitle>
+                    <CardDescription className="text-xs">Regularly scheduled reviews to ensure ongoing fairness and compliance.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                        <li>
+                            <strong>Monthly:</strong> Automated bias report generation and review by the internal AI ethics team.
+                        </li>
+                        <li>
+                            <strong>Quarterly:</strong> Ethics committee review of all high-variance flags and model performance.
+                        </li>
+                        <li>
+                            <strong>Annually:</strong> Comprehensive third-party audit of AI models and fairness metrics (post-funding).
+                        </li>
+                    </ul>
+                </CardContent>
+              </Card>
+
               <CardFooter className="text-xs text-muted-foreground pt-4">
                 Last updated: {report.timestamp.toLocaleString()}
               </CardFooter>

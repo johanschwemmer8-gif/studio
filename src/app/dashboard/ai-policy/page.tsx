@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale, CalendarCheck } from 'lucide-react';
+import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale, CalendarCheck, Settings2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -177,6 +177,35 @@ function BiasMonitoringDashboard() {
                         </li>
                         <li>
                             <strong>Annually:</strong> Comprehensive third-party audit of AI models and fairness metrics (post-funding).
+                        </li>
+                    </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-background/50">
+                <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-base"><Settings2 className="text-primary"/> Remediation Process</CardTitle>
+                    <CardDescription className="text-xs">The step-by-step process triggered when bias is detected.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                        <li>
+                            <strong>Alert:</strong> An immediate alert is sent to the ethics committee.
+                        </li>
+                        <li>
+                            <strong>Investigation:</strong> A 48-hour investigation period begins to assess the impact and cause.
+                        </li>
+                        <li>
+                            <strong>Action:</strong> If necessary, the biased model is temporarily rolled back to a stable version.
+                        </li>
+                        <li>
+                            <strong>Analysis:</strong> A root cause analysis is performed to identify the source of the bias.
+                        </li>
+                        <li>
+                            <strong>Retraining:</strong> The model is retrained using updated data and enhanced fairness constraints.
+                        </li>
+                         <li>
+                            <strong>Redeployment:</strong> The improved model is A/B tested before being fully redeployed.
                         </li>
                     </ul>
                 </CardContent>

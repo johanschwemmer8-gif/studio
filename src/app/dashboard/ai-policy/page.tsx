@@ -100,6 +100,27 @@ function BiasMonitoringDashboard() {
                       </AlertDescription>
                   </Alert>
               )}
+              
+                <Card className="bg-background/50">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="flex items-center gap-2 text-base"><Scale className="text-primary"/> Fairness Constraints</CardTitle>
+                        <CardDescription className="text-xs">The operational thresholds for ethical AI monitoring.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                            <li>
+                                <strong>Maximum acceptable variance in offer acceptance rates:</strong> <Badge variant="outline">10%</Badge>
+                            </li>
+                            <li>
+                            <strong>Minimum parity in recommendation quality across segments:</strong> No significant statistical difference should be detected.
+                            </li>
+                            <li>
+                            <strong>Alert threshold:</strong> If any key fairness metric deviates by more than <Badge variant="outline">15%</Badge>, it will be flagged for review.
+                            </li>
+                        </ul>
+                    </CardContent>
+                </Card>
+
               <Table>
                   <TableHeader>
                       <TableRow>
@@ -226,27 +247,6 @@ export default function AIPolicyPage() {
                             </div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
-
-            {/* Fairness Constraints */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Scale className="text-primary"/> Fairness Constraints</CardTitle>
-                    <CardDescription>Define the operational thresholds for ethical AI monitoring.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
-                        <li>
-                            <strong>Maximum acceptable variance in offer acceptance rates:</strong> <Badge variant="outline">10%</Badge>
-                        </li>
-                        <li>
-                           <strong>Minimum parity in recommendation quality across segments:</strong> No significant statistical difference should be detected.
-                        </li>
-                         <li>
-                           <strong>Alert threshold:</strong> If any key fairness metric deviates by more than <Badge variant="outline">15%</Badge>, it will be flagged for review.
-                        </li>
-                    </ul>
                 </CardContent>
             </Card>
 

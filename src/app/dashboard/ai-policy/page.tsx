@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,10 +24,11 @@ const consentOptions = [
 
 
 function BiasMonitoringDashboard() {
-  // Mock data based on the user's provided logic
-  const report = {
-    timestamp: new Date(),
-    metrics: {
+  const [report, setReport] = useState<any | null>(null);
+
+  useEffect(() => {
+    // This logic now runs only on the client, after hydration
+    const metrics = {
       affluent: {
         avg_offer_acceptance: 0.65, // 65%
         avg_discount: 0.18, // 18%
@@ -37,8 +39,30 @@ function BiasMonitoringDashboard() {
         avg_discount: 0.22, // 22%
         engagement_rate: 0.68, // 68%
       },
-    },
-  };
+    };
+
+    setReport({
+      timestamp: new Date(),
+      metrics,
+    });
+  }, []);
+
+  if (!report) {
+    // Render a skeleton or placeholder on the server and initial client render
+    return (
+        <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/> Ethical AI & Bias Prevention</CardTitle>
+              <CardDescription>
+                  Monitor key AI performance indicators across different customer segments to identify and mitigate potential bias.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="h-64 animate-pulse bg-muted rounded-md" />
+            </CardContent>
+        </Card>
+    );
+  }
 
   const { affluent, township } = report.metrics;
   const variance = {

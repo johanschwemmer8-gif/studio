@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck } from 'lucide-react';
+import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const consentOptions = [
     { id: 'recommendations', label: 'Product Recommendation AI' },
@@ -18,6 +20,110 @@ const consentOptions = [
     { id: 'cross-sell', label: 'Cross-selling & Upselling AI' },
     { id: 'behavioral-analysis', label: 'Behavioral Analysis & Insights' },
 ];
+
+
+function BiasMonitoringDashboard() {
+  // Mock data based on the user's provided logic
+  const report = {
+    timestamp: new Date(),
+    metrics: {
+      affluent: {
+        avg_offer_acceptance: 0.65, // 65%
+        avg_discount: 0.18, // 18%
+        engagement_rate: 0.75, // 75%
+      },
+      township: {
+        avg_offer_acceptance: 0.53, // 53%
+        avg_discount: 0.22, // 22%
+        engagement_rate: 0.68, // 68%
+      },
+    },
+  };
+
+  const { affluent, township } = report.metrics;
+  const variance = {
+    acceptance_parity: Math.abs(affluent.avg_offer_acceptance - township.avg_offer_acceptance),
+    discount_parity: Math.abs(affluent.avg_discount - township.avg_discount),
+  };
+
+  const alerts = [];
+  if (variance.acceptance_parity > 0.10) {
+    alerts.push('High variance in acceptance rates detected between store segments.');
+  }
+   if (variance.discount_parity > 0.05) {
+    alerts.push('Significant difference in average discount values.');
+  }
+
+  const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
+
+  return (
+      <Card>
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/> Ethical AI & Bias Prevention</CardTitle>
+              <CardDescription>
+                  Monitor key AI performance indicators across different customer segments to identify and mitigate potential bias.
+              </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+              {alerts.length > 0 && (
+                  <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Bias Alert</AlertTitle>
+                      <AlertDescription>
+                          <ul className="list-disc pl-5">
+                              {alerts.map((alert, i) => <li key={i}>{alert}</li>)}
+                          </ul>
+                      </AlertDescription>
+                  </Alert>
+              )}
+              <Table>
+                  <TableHeader>
+                      <TableRow>
+                          <TableHead>Metric</TableHead>
+                          <TableHead className="text-center">Affluent Stores</TableHead>
+                          <TableHead className="text-center">Township Stores</TableHead>
+                          <TableHead className="text-center">Variance</TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      <TableRow>
+                          <TableCell className="font-medium">Avg. Offer Acceptance</TableCell>
+                          <TableCell className="text-center text-lg font-semibold">{formatPercent(affluent.avg_offer_acceptance)}</TableCell>
+                          <TableCell className="text-center text-lg font-semibold">{formatPercent(township.avg_offer_acceptance)}</TableCell>
+                           <TableCell className="text-center text-lg font-bold text-destructive">
+                             <div className="flex items-center justify-center gap-1">
+                                <TrendingUp className="h-4 w-4"/>
+                                {formatPercent(variance.acceptance_parity)}
+                             </div>
+                           </TableCell>
+                      </TableRow>
+                      <TableRow>
+                          <TableCell className="font-medium">Avg. Discount Offered</TableCell>
+                          <TableCell className="text-center text-lg font-semibold">{formatPercent(affluent.avg_discount)}</TableCell>
+                          <TableCell className="text-center text-lg font-semibold">{formatPercent(township.avg_discount)}</TableCell>
+                           <TableCell className="text-center text-lg font-bold text-yellow-600">
+                             <div className="flex items-center justify-center gap-1">
+                                <TrendingDown className="h-4 w-4"/>
+                                {formatPercent(variance.discount_parity)}
+                             </div>
+                           </TableCell>
+                      </TableRow>
+                      <TableRow>
+                          <TableCell className="font-medium">Engagement Rate</TableCell>
+                          <TableCell className="text-center text-lg font-semibold">{formatPercent(affluent.engagement_rate)}</TableCell>
+                          <TableCell className="text-center text-lg font-semibold">{formatPercent(township.engagement_rate)}</TableCell>
+                           <TableCell className="text-center text-muted-foreground">--</TableCell>
+                      </TableRow>
+                  </TableBody>
+              </Table>
+              <CardFooter className="text-xs text-muted-foreground pt-4">
+                Last updated: {report.timestamp.toLocaleString()}
+              </CardFooter>
+          </CardContent>
+      </Card>
+  );
+}
+
 
 export default function AIPolicyPage() {
 
@@ -99,13 +205,9 @@ export default function AIPolicyPage() {
                 </CardContent>
             </Card>
 
-            {/* Placeholder for other sections */}
-            <Card className="border-dashed">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-muted-foreground"><Sparkles /> Ethical AI & Bias Prevention</CardTitle>
-                </CardHeader>
-                <CardContent><p className="text-center text-muted-foreground py-8">Configuration for this section coming soon.</p></CardContent>
-            </Card>
+            {/* Ethical AI & Bias Prevention */}
+            <BiasMonitoringDashboard />
+
             <Card className="border-dashed">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-muted-foreground"><FileText /> Legal Compliance & Governance</CardTitle>

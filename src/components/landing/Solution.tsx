@@ -14,7 +14,7 @@ const features = [
       icon: <BarChart3 className="h-10 w-10 text-accent" />,
       title: "Real-Time Analytics Dashboard",
       description: "Track footfall, engagement, campaign ROI, and conversion by zone and product.",
-      image: "/images/RealTimeAanalyticsDashbord.jpg",
+      image: "/images/RealTimeAnalyticsDashboard.jpg",
       aiHint: "analytics dashboard data visualization"
     },
     {

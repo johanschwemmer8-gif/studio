@@ -34,6 +34,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 const responseTimeData = [
   { time: '10:00', avg: 1.1, p95: 1.8 },
@@ -216,7 +217,11 @@ export default function AIPerformanceMonitor() {
                              <TableRow>
                                 <TableCell><Badge variant="outline" className="text-blue-600 border-blue-500/30">Cost Saving</Badge></TableCell>
                                 <TableCell>Switching to a faster model could save R1.2k/mo with minimal impact.</TableCell>
-                                <TableCell><Button size="sm" variant="outline">A/B Test Models</Button></TableCell>
+                                <TableCell>
+                                    <Button asChild size="sm" variant="outline">
+                                        <Link href="/retailer-mvp/ab-testing">A/B Test Models</Link>
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

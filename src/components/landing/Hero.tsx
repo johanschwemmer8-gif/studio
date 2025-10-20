@@ -16,12 +16,6 @@ export default function Hero() {
               physical stores—delivering AI-powered personalization, real-time
               analytics, and measurable revenue growth.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button size="lg">Request a Demo</Button>
-              <Button size="lg" variant="outline">
-                Learn More
-              </Button>
-            </div>
           </div>
           <div className="relative h-64 lg:h-auto lg:aspect-square">
              <Image

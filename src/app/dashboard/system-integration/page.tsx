@@ -149,7 +149,6 @@ export default function SystemIntegrationTestPage() {
                  <Button asChild variant="outline">
                     <Link href="/dashboard/system-integration/performance">View Performance Dashboard</Link>
                  </Button>
-                 <Button variant="destructive">Initiate Load Test</Button>
             </CardContent>
         </Card>
 

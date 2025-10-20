@@ -33,10 +33,9 @@ export default function Footer() {
             </div>
             <div className="space-y-4">
               <h4 className="font-semibold">Contact</h4>
-              <p>Kimberley, Northern Cape, South Africa</p>
-              <a href="#" className="hover:underline">contact@interact-aoe.com</a>
+              <a href="mailto:johan@interactaoe.co.za" className="hover:underline">johan@interactaoe.co.za</a>
               <div className="flex mt-2">
-                <a href="#" className="hover:opacity-80">
+                <a href="https://www.linkedin.com/in/johan-schwemmer-1a3b5b7b/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
                   <Linkedin className="h-6 w-6" />
                 </a>
               </div>

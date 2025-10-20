@@ -14,7 +14,7 @@ export default function DemoVideo() {
   const [isOpen, setIsOpen] = useState(false);
   
   // Replace this with your actual YouTube video ID
-  const youtubeVideoId = 'dQw4w9WgXcQ'; 
+  const youtubeVideoId = 'qR6189CfWpA'; 
 
   const thumbnailUrl = `https://img.youtube.com/vi/${youtubeVideoId}/maxresdefault.jpg`;
   const videoUrl = `https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1`;

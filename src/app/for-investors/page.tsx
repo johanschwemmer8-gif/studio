@@ -23,7 +23,7 @@ export default function ForInvestorsPage() {
     },
     {
       icon: <Scaling className="h-10 w-10 text-accent" />,
-      title- "Scalable White-Label Solution",
+      title: "Scalable White-Label Solution",
       description: "Our platform is built to be branded and integrated by major retailers, enabling rapid, low-friction market penetration and wide-scale adoption.",
     }
   ];

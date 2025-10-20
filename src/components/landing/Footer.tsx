@@ -11,7 +11,6 @@ export default function Footer() {
               <h4 className="font-semibold">Company</h4>
               <nav className="flex flex-col space-y-2">
                 <Link href="#" className="hover:underline">About iNteract AOE</Link>
-                <Link href="#" className="hover:underline">Technology</Link>
                 <Link href="#" className="hover:underline">Our Approach</Link>
               </nav>
             </div>

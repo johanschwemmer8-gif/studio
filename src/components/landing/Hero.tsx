@@ -25,8 +25,8 @@ export default function Hero() {
           </div>
           <div className="relative h-64 lg:h-auto lg:aspect-square">
              <Image
-                src="https://picsum.photos/seed/digital-retail/1000/1000"
-                alt="Modern retail environment"
+                src="/images/AI-Powered Personalization.jpg"
+                alt="AI-powered personalization in a retail environment"
                 fill
                 className="object-cover rounded-lg shadow-xl"
                 data-ai-hint="modern retail digital overlay"

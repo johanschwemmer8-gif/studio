@@ -25,8 +25,8 @@ export default function CallToAction() {
                 Learn about our growth strategy and pre-seed investment
                 opportunity.
               </p>
-              <Button className="mt-6 w-full" variant="outline">
-                Investor Inquiry
+              <Button asChild className="mt-6 w-full" variant="outline">
+                <Link href="/investor-inquiry">Investor Inquiry</Link>
               </Button>
             </div>
           </div>
@@ -34,4 +34,3 @@ export default function CallToAction() {
       </section>
     );
   }
-  

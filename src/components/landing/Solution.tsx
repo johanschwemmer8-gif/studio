@@ -35,7 +35,7 @@ const features = [
       icon: <Puzzle className="h-10 w-10 text-accent" />,
       title: "White-Label Integration",
       description: "Modular SDK/API connects with your existing loyalty, POS, and CRM systems.",
-      image: "https://picsum.photos/seed/api-code/600/400",
+      image: "/images/White-Label Integration.jpg",
       aiHint: "api integration diagram"
     },
     {

@@ -32,7 +32,7 @@ export default function AboutPage() {
             <CardContent className="prose dark:prose-invert max-w-none space-y-6">
               
               <p className="text-center">
-                iNteract AOE (Attention, Opportunity, Engagement) was founded on the belief that physical retail is not just alive, but poised for a digital revolution. We saw a disconnect: while e-commerce offered rich data and deep personalization, brick-and-mortar stores—where the vast majority of transactions occur—were operating with limited insight into customer behavior.
+                iNteract AOE (Adaptive Offering Engine) was founded on the belief that physical retail is not just alive, but poised for a digital revolution. We saw a disconnect: while e-commerce offered rich data and deep personalization, brick-and-mortar stores—where the vast majority of transactions occur—were operating with limited insight into customer behavior.
               </p>
 
               <div className="grid md:grid-cols-2 gap-8 pt-6">

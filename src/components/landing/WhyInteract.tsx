@@ -5,19 +5,19 @@ const differentiators = [
     {
       title: "Measurable Revenue Impact",
       text: "Our AI-driven personalization engine is designed to increase average basket size by 5-7% and activate dormant loyalty members through timely, relevant in-store offers.",
-      image: "/images/revenue-dash.webp",
+      image: "/images/Measurable Revenue Impact.jpg",
       aiHint: "revenue dashboard growth"
     },
     {
       title: "Deploy Fast, Scale Faster",
       text: "Purpose-built for the South African retail environment. Our white-label SaaS model means rapid deployment across your entire store network with minimal IT overhead.",
-      image: "/images/sa-map.webp",
+      image: "/images/Deploy Fast, Scale Faster.jpg",
       aiHint: "map south africa"
     },
     {
       title: "Data You Can Act On",
       text: "Stop guessing. Our real-time analytics show exactly how shoppers move through your stores, which campaigns drive sales, and where to optimize your layout and merchandising.",
-      image: "/images/heatmap-analytics.webp",
+      image: "/images/Data You Can Act On.jpg",
       aiHint: "heatmap analytics dashboard"
     },
   ];

@@ -7,7 +7,7 @@ const audiences = [
       title: "Enterprise Retail Chains",
       description: "Multi-store operations seeking to unify online and in-store data.",
       idealFor: "Woolworths, TFG, Pick n Pay, Shoprite, Clicks",
-      image: "https://picsum.photos/seed/enterprise-retail/800/600",
+      image: "/images/Enterprise Retail Chains.jpg",
       aiHint: "flagship retail store interior"
     },
     {

@@ -14,16 +14,38 @@ import { CheckCircle, AlertTriangle, FlaskConical, PlayCircle, Bot, Database, Se
 import ScanFailuresLog from '@/components/dashboard/scan-failures-log';
 import ModuleActivationLogs from '@/components/dashboard/module-activation-logs';
 import { scanFailuresLog, moduleActivationLogs } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 
 const TestModuleCard = ({ title, description, status }: { title: string, description: string, status: 'Passing' | 'Failing' | 'Not Run' }) => {
-    
+    const { toast } = useToast();
+    const [isTesting, setIsTesting] = useState(false);
+
     const getStatusIndicator = () => {
         switch(status) {
             case 'Passing': return <CheckCircle className="h-5 w-5 text-green-500" />;
             case 'Failing': return <AlertTriangle className="h-5 w-5 text-red-500" />;
             default: return <FlaskConical className="h-5 w-5 text-muted-foreground" />;
         }
+    }
+
+    const handleRunTest = () => {
+        setIsTesting(true);
+        toast({
+            title: `Testing: ${title}`,
+            description: "Running automated tests...",
+        });
+
+        setTimeout(() => {
+            setIsTesting(false);
+            const isSuccess = status !== 'Failing';
+            toast({
+                title: isSuccess ? 'Test Passed' : 'Test Failed',
+                description: `${title} tests completed.`,
+                variant: isSuccess ? 'default' : 'destructive',
+            });
+        }, 2000 + Math.random() * 1500);
     }
 
     return (
@@ -36,9 +58,9 @@ const TestModuleCard = ({ title, description, status }: { title: string, descrip
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent>
-                <Button className="w-full">
+                <Button className="w-full" onClick={handleRunTest} disabled={isTesting}>
                     <PlayCircle className="mr-2 h-4 w-4" />
-                    Run Tests
+                    {isTesting ? 'Running...' : 'Run Tests'}
                 </Button>
             </CardContent>
         </Card>

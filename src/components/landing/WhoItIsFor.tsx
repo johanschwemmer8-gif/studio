@@ -14,7 +14,7 @@ const audiences = [
       title: "Growth-Focused Mid-Tier Retailers",
       description: "Ambitious chains ready to compete with enterprise-level customer experience.",
       idealFor: "Mr Price, Dis-Chem, regional chains",
-      image: "/images/Growth-Focused Mid-Tier Retailer.jpg",
+      image: "/images/Growth-Focused Mid-Tier Retailers.jpg",
       aiHint: "dynamic retail environment"
     },
     {

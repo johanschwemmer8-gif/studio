@@ -77,7 +77,7 @@ export default function ForInvestorsPage() {
                         <CardTitle className="text-2xl text-primary">The Ask</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <p className="text-4xl font-bold text-accent">R750,000 Pre-Seed</p>
+                        <p className="text-4xl font-bold text-accent">R3.5M Pre-Seed</p>
                         <p className="text-lg text-foreground/80">
                            To finalize our core platform, onboard our first enterprise client, and establish a dominant market position. Funds will be allocated to technical team expansion, infrastructure, and sales.
                         </p>

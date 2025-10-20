@@ -95,9 +95,6 @@ export default function Header() {
           <Button asChild variant="outline" className="hidden sm:inline-flex">
             <Link href="/login">Log In</Link>
           </Button>
-          <Button asChild>
-            <Link href="/request-demo">Request a Demo</Link>
-          </Button>
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden">

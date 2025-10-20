@@ -7,8 +7,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { KeyRound, Webhook, ListChecks, Activity, Users, AlertTriangle, ShieldCheck, Clock } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+
+type WebhookLog = {
+    service: string;
+    endpoint: string;
+    status: 'Healthy' | 'Error';
+};
 
 export default function ExternalSecurityIntegrationsPage() {
+    const [selectedWebhook, setSelectedWebhook] = useState<WebhookLog | null>(null);
+    const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
+    const { toast } = useToast();
 
     const apiKeys = [
         { retailerId: 'woolworths_za', service: 'PIM Sync', status: 'Active' },
@@ -16,7 +28,7 @@ export default function ExternalSecurityIntegrationsPage() {
         { retailerId: 'dischem_za', service: 'PIM Sync', status: 'Revoked' },
     ];
 
-    const webhooks = [
+    const webhooks: WebhookLog[] = [
         { service: 'POS Sync', endpoint: '/api/webhooks/pos-sync', status: 'Healthy' },
         { service: 'Sales Data', endpoint: '/api/webhooks/sales-data', status: 'Healthy' },
         { service: 'Inventory Update', endpoint: '/api/webhooks/inventory', status: 'Error' },
@@ -27,6 +39,18 @@ export default function ExternalSecurityIntegrationsPage() {
         { event: 'New Retailer Onboarded', details: 'clicks_sa', user: 'system', timestamp: '2023-10-26T14:00:00Z' },
         { event: 'Password Changed', details: 'User: retailer@woolworths.co.za', user: 'self', timestamp: '2023-10-26T11:20:00Z' },
     ];
+
+    const handleViewLogs = (webhook: WebhookLog) => {
+        setSelectedWebhook(webhook);
+        setIsLogDialogOpen(true);
+    };
+    
+    const handleManualSync = (webhook: WebhookLog) => {
+        toast({
+            title: 'Sync Initiated',
+            description: `Manual synchronization for "${webhook.service}" has been started.`,
+        });
+    };
 
     return (
         <div className="space-y-8">
@@ -129,8 +153,8 @@ export default function ExternalSecurityIntegrationsPage() {
                                         <Badge variant={hook.status === 'Healthy' ? 'secondary' : 'destructive'}>{hook.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right space-x-2">
-                                        <Button variant="outline" size="sm">View Logs</Button>
-                                        <Button variant="outline" size="sm">Manual Sync</Button>
+                                        <Button variant="outline" size="sm" onClick={() => handleViewLogs(hook)}>View Logs</Button>
+                                        <Button variant="outline" size="sm" onClick={() => handleManualSync(hook)}>Manual Sync</Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -168,6 +192,35 @@ export default function ExternalSecurityIntegrationsPage() {
                 </CardContent>
             </Card>
 
+            <Dialog open={isLogDialogOpen} onOpenChange={setIsLogDialogOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Logs for: {selectedWebhook?.service}</DialogTitle>
+                        <DialogDescription>
+                            Showing recent log entries for the endpoint: <code className="font-mono text-xs bg-muted p-1 rounded">{selectedWebhook?.endpoint}</code>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-96 overflow-y-auto p-1 font-mono text-xs bg-slate-900 text-slate-300 rounded-md">
+                        <pre className="p-4">
+                            <code>
+{`[${new Date().toISOString()}] INFO: Request received from 192.168.1.1
+[${new Date().toISOString()}] INFO: Payload validated successfully.
+[${new Date().toISOString()}] INFO: Syncing 25 records...
+[${new Date().toISOString()}] INFO: Record B-123 processed.
+[${new Date().toISOString()}] WARN: Record C-456 has missing field 'price'.
+[${new Date().toISOString()}] INFO: Record D-789 processed.
+[${new Date().toISOString()}] INFO: Sync complete. 24 records updated, 1 skipped.
+`}
+                            </code>
+                        </pre>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setIsLogDialogOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
-}
+
+    

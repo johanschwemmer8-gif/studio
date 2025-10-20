@@ -26,9 +26,9 @@ export default function Footer() {
             <div className="space-y-4">
               <h4 className="font-semibold">Resources</h4>
               <nav className="flex flex-col space-y-2">
-                <Link href="#" className="hover:underline">Request Demo</Link>
-                <Link href="#" className="hover:underline">Investor Relations</Link>
-                <Link href="#" className="hover:underline">Contact</Link>
+                <Link href="/request-demo" className="hover:underline">Request Demo</Link>
+                <Link href="/investor-inquiry" className="hover:underline">Investor Relations</Link>
+                <Link href="#contact" className="hover:underline">Contact</Link>
               </nav>
             </div>
             <div className="space-y-4">
@@ -44,7 +44,7 @@ export default function Footer() {
           <div className="mt-12 border-t border-primary-foreground/20 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-primary-foreground/70">
             <p>© 2025 iNteract AOE Pty Ltd. All rights reserved.</p>
             <div className="flex gap-4 mt-4 md:mt-0">
-              <Link href="#" className="hover:underline">Privacy Policy</Link>
+              <Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link>
               <Link href="#" className="hover:underline">Terms of Service</Link>
             </div>
           </div>

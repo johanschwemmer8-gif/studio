@@ -11,7 +11,6 @@ import Link from "next/link";
 const navLinks = [
   { href: "#solution", label: "Solution" },
   { href: "#why-interact", label: "Why iNteract" },
-  { href: "#pricing", label: "Pricing" },
   { href: "#contact", label: "Contact" },
 ];
 

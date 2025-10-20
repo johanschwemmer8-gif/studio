@@ -10,6 +10,7 @@ import { KeyRound, Webhook, ListChecks, Activity, Users, AlertTriangle, ShieldCh
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import ClientFormattedDate from "@/components/dashboard/client-formatted-date";
 
 type WebhookLog = {
     service: string;
@@ -184,7 +185,7 @@ export default function ExternalSecurityIntegrationsPage() {
                                     <TableCell className="font-medium flex items-center gap-2"><Activity className="text-muted-foreground"/>{log.event}</TableCell>
                                     <TableCell>{log.details}</TableCell>
                                     <TableCell>{log.user}</TableCell>
-                                    <TableCell className="flex items-center gap-2"><Clock className="text-muted-foreground"/> {new Date(log.timestamp).toLocaleString()}</TableCell>
+                                    <TableCell className="flex items-center gap-2"><Clock className="text-muted-foreground"/> <ClientFormattedDate timestamp={log.timestamp} /></TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -224,3 +225,4 @@ export default function ExternalSecurityIntegrationsPage() {
     );
 
     
+}

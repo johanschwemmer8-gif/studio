@@ -19,7 +19,7 @@ export default function Footer() {
               <h4 className="font-semibold">Solutions</h4>
               <nav className="flex flex-col space-y-2">
                 <Link href="/for-retail-chains" className="hover:underline">For Retail Chains</Link>
-                <Link href="/investor-inquiry" className="hover:underline">For Investors</Link>
+                <Link href="/for-investors" className="hover:underline">For Investors</Link>
                 <Link href="#" className="hover:underline">Case Studies (coming soon)</Link>
               </nav>
             </div>

@@ -154,7 +154,9 @@ export default function CoreIntegrationPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Button className="w-full">Configure Cloud</Button>
+                <Button asChild className="w-full">
+                    <Link href="/dashboard/core-integration/cloud">Configure Cloud</Link>
+                </Button>
             </CardContent>
         </Card>
       </div>

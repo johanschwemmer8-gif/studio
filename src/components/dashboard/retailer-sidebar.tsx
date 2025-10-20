@@ -146,11 +146,6 @@ export default function RetailerSidebar({
                     <Link href="/retailer-mvp/documentation"><BookOpen /><span>Documentation</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Demo Video">
-                    <Link href="/retailer-mvp/demo"><Video /><span>Demo Video</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
               </SidebarGroupContent>
             </SidebarGroup>
 

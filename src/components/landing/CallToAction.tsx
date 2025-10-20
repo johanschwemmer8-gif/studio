@@ -1,5 +1,6 @@
 
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function CallToAction() {
     return (
@@ -14,7 +15,9 @@ export default function CallToAction() {
               <p className="mt-2 text-foreground/80">
                 See how iNteract can drive measurable growth in your stores.
               </p>
-              <Button className="mt-6 w-full">Request a Demo</Button>
+              <Button asChild className="mt-6 w-full">
+                <Link href="/request-demo">Request a Demo</Link>
+              </Button>
             </div>
             <div className="rounded-lg border bg-card p-8 text-left">
               <h3 className="text-2xl font-bold text-primary">For Investors</h3>

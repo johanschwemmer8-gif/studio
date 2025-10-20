@@ -1,7 +1,6 @@
 
 const stats = [
     { value: "85%", label: "MVP Complete", description: "Technical readiness validated" },
-    { value: "70%", label: "Gross Margin", description: "SaaS-grade unit economics" },
     { value: "R1.53T", label: "Market", description: "South African retail opportunity" },
     { value: "20+", label: "Years", description: "Founder retail expertise" },
   ];
@@ -15,7 +14,7 @@ const stats = [
               Proven Technology. Real Results.
             </h2>
           </div>
-          <div className="mt-12 grid grid-cols-2 gap-8 md:grid-cols-4">
+          <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
             {stats.map((stat) => (
               <div key={stat.label} className="flex flex-col items-center text-center">
                 <p className="text-5xl font-bold text-accent">{stat.value}</p>

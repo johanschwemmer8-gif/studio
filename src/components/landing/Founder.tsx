@@ -11,6 +11,7 @@ export default function Founder() {
                             alt="Johan Schwemmer, Founder & CEO"
                             width={300}
                             height={400}
+                            quality={95}
                             className="rounded-lg shadow-xl object-cover object-top"
                             data-ai-hint="professional male portrait"
                         />

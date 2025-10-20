@@ -21,7 +21,7 @@ const features = [
       icon: <QrCode className="h-10 w-10 text-accent" />,
       title: "QR-Enabled Engagement",
       description: "Seamless customer interaction through simple scan technology—no app downloads required.",
-      image: "https://picsum.photos/seed/qr-scan/600/400",
+      image: "/images/QR-Enabled Engagement.jpg",
       aiHint: "customer scanning qr code"
     },
     {

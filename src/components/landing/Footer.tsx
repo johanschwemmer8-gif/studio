@@ -27,8 +27,6 @@ export default function Footer() {
               <h4 className="font-semibold">Resources</h4>
               <nav className="flex flex-col space-y-2">
                 <Link href="/request-demo" className="hover:underline">Request Demo</Link>
-                <Link href="/investor-inquiry" className="hover:underline">Investor Relations</Link>
-                <Link href="#contact" className="hover:underline">Contact</Link>
               </nav>
             </div>
             <div className="space-y-4">

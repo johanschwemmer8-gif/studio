@@ -1,4 +1,3 @@
-
 import Image from "next/image";
 
 export default function Founder() {
@@ -6,13 +5,13 @@ export default function Founder() {
         <section className="py-20 bg-card">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="grid grid-cols-1 gap-12 md:grid-cols-3 lg:gap-16 items-center">
-                    <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-xl mx-auto max-w-sm md:max-w-none md:col-span-1">
+                    <div className="md:col-span-1 flex justify-center">
                         <Image
                             src="/images/Johan.jpg"
                             alt="Johan Schwemmer, Founder & CEO"
-                            layout="fill"
-                            objectFit="cover"
-                            className="object-top"
+                            width={300}
+                            height={400}
+                            className="rounded-lg shadow-xl object-cover object-top"
                             data-ai-hint="professional male portrait"
                         />
                     </div>

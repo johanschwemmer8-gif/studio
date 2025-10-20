@@ -21,7 +21,7 @@ const audiences = [
       title: "Retail Tech Platforms",
       description: "POS, loyalty, and CRM providers looking to enhance their offering.",
       idealFor: "Technology partners seeking white-label integration",
-      image: "https://picsum.photos/seed/retail-tech/800/600",
+      image: "/images/Retail Tech Platforms.jpg",
       aiHint: "business professionals tablet"
     },
   ];

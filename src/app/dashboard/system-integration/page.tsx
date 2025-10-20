@@ -16,6 +16,7 @@ import ModuleActivationLogs from '@/components/dashboard/module-activation-logs'
 import { scanFailuresLog, moduleActivationLogs } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import Link from 'next/link';
 
 
 const TestModuleCard = ({ title, description, status }: { title: string, description: string, status: 'Passing' | 'Failing' | 'Not Run' }) => {
@@ -145,7 +146,9 @@ export default function SystemIntegrationTestPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-4">
-                 <Button variant="outline">View Performance Dashboard</Button>
+                 <Button asChild variant="outline">
+                    <Link href="/dashboard/system-integration/performance">View Performance Dashboard</Link>
+                 </Button>
                  <Button variant="destructive">Initiate Load Test</Button>
             </CardContent>
         </Card>

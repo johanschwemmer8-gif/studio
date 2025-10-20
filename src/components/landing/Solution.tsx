@@ -28,7 +28,7 @@ const features = [
       icon: <DollarSign className="h-10 w-10 text-accent" />,
       title: "Retail Media Network Ready",
       description: "Create new revenue streams through branded in-store campaigns and supplier partnerships.",
-      image: "https://picsum.photos/seed/digital-display/600/400",
+      image: "/images/Retail Media Network Ready.jpg",
       aiHint: "digital display retail"
     },
     {

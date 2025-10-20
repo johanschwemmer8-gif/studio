@@ -15,11 +15,13 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, MapPin, Clock, AlertCircle, Download } from 'lucide-react';
+import { Building2, MapPin, Clock, AlertCircle, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
+import Link from 'next/link';
 
 type ScanFailureLog = {
   id: string;
@@ -51,68 +53,34 @@ function ClientFormattedDate({ timestamp }: { timestamp: string }) {
 }
 
 export default function ScanFailuresLog({ logs }: ScanFailuresLogProps) {
-
-    const handleExport = () => {
-        const headers = ['ID', 'Store', 'Location', 'Error', 'Timestamp'];
-        const csvRows = [
-            headers.join(','),
-            ...logs.map(log => [
-                log.id,
-                `"${log.store.replace(/"/g, '""')}"`,
-                `"${log.location.replace(/"/g, '""')}"`,
-                `"${log.error.replace(/"/g, '""')}"`,
-                new Date(log.timestamp).toISOString(),
-            ].join(','))
-        ];
-        
-        const csvString = csvRows.join('\n');
-        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'scan_failure_report.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+    
+    // Display only the first 3 logs for the preview
+    const previewLogs = logs.slice(0, 3);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between">
-        <div>
-            <CardTitle>Scan Failure Log</CardTitle>
-            <CardDescription>
-            A log of recent QR code scan failures across all locations.
-            </CardDescription>
-        </div>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export Log
-        </Button>
+    <Card className="flex flex-col">
+      <CardHeader>
+        <CardTitle>Scan Failure Log</CardTitle>
+        <CardDescription>
+        A log of recent QR code scan failures across all locations.
+        </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Store</TableHead>
-              <TableHead>Location</TableHead>
               <TableHead>Error</TableHead>
               <TableHead>Timestamp</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {logs.map((log) => (
+            {previewLogs.map((log) => (
               <TableRow key={log.id}>
                 <TableCell>
                     <div className='flex items-center gap-2 font-medium'>
                         <Building2 className="h-4 w-4 text-muted-foreground" />
                         {log.store}
-                    </div>
-                </TableCell>
-                <TableCell>
-                     <div className='flex items-center gap-2 text-muted-foreground'>
-                        <MapPin className="h-4 w-4" />
-                        {log.location}
                     </div>
                 </TableCell>
                  <TableCell>
@@ -122,7 +90,7 @@ export default function ScanFailuresLog({ logs }: ScanFailuresLogProps) {
                     </Badge>
                 </TableCell>
                 <TableCell>
-                    <div className='flex items-center gap-2 text-muted-foreground'>
+                    <div className='flex items-center gap-2 text-muted-foreground text-sm'>
                         <Clock className="h-4 w-4" />
                         <ClientFormattedDate timestamp={log.timestamp} />
                     </div>
@@ -132,6 +100,14 @@ export default function ScanFailuresLog({ logs }: ScanFailuresLogProps) {
           </TableBody>
         </Table>
       </CardContent>
+       <CardFooter>
+            <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard/system-integration/scan-failures">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Full Log
+                </Link>
+            </Button>
+      </CardFooter>
     </Card>
   );
 }

@@ -27,11 +27,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
   BarChart, BrainCircuit, CheckCircle, Clock, Cog, MessageSquare, Percent, PieChart, 
-  Send, Smile, Sparkles, Star, TrendingUp, XCircle, Users, BarChart2, AlertCircle, TrendingDown 
+  Send, Smile, Sparkles, Star, TrendingUp, XCircle, Users, BarChart2, AlertCircle, TrendingDown, Save
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 const responseTimeData = [
   { time: '10:00', avg: 1.1, p95: 1.8 },
@@ -100,6 +102,8 @@ export default function AIPerformanceMonitor() {
   const [testResponse, setTestResponse] = useState('');
   const [isTesting, setIsTesting] = useState(false);
   const [customerIds, setCustomerIds] = useState<number[]>([]);
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Generate customer IDs on the client-side to avoid hydration mismatch
@@ -115,6 +119,15 @@ export default function AIPerformanceMonitor() {
     }, 1200);
   };
     
+  const handleSavePrompt = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast({
+        title: "Prompt Saved",
+        description: "The improved prompt has been saved and will be used for future interactions."
+    });
+    setIsPromptModalOpen(false);
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -168,7 +181,37 @@ export default function AIPerformanceMonitor() {
                             <TableRow>
                                 <TableCell><Badge variant="outline" className="text-yellow-600 border-yellow-500/30">Underperforming</Badge></TableCell>
                                 <TableCell>Prompt for "return policy" has a 30% failure rate.</TableCell>
-                                <TableCell><Button size="sm" variant="outline">Improve Prompt</Button></TableCell>
+                                <TableCell>
+                                     <Dialog open={isPromptModalOpen} onOpenChange={setIsPromptModalOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button size="sm" variant="outline">Improve Prompt</Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl">
+                                            <form onSubmit={handleSavePrompt}>
+                                                <DialogHeader>
+                                                    <DialogTitle>Improve Prompt: Return Policy</DialogTitle>
+                                                    <DialogDescription>
+                                                        Refine the prompt to improve its success rate and provide better answers.
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="py-6 space-y-4">
+                                                    <div>
+                                                        <Label htmlFor="original-prompt" className="font-semibold">Original Prompt</Label>
+                                                        <Textarea id="original-prompt" readOnly disabled className="mt-1 bg-muted" value="You are a helpful store assistant. Answer questions about the return policy."/>
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-prompt" className="font-semibold">Improved Prompt</Label>
+                                                        <Textarea id="new-prompt" rows={5} placeholder="Add more context, examples, or constraints to improve the AI's response." className="mt-1"/>
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button type="button" variant="ghost" onClick={() => setIsPromptModalOpen(false)}>Cancel</Button>
+                                                    <Button type="submit"><Save className="mr-2 h-4 w-4" /> Save Prompt</Button>
+                                                </DialogFooter>
+                                            </form>
+                                        </DialogContent>
+                                    </Dialog>
+                                </TableCell>
                             </TableRow>
                              <TableRow>
                                 <TableCell><Badge variant="outline" className="text-blue-600 border-blue-500/30">Cost Saving</Badge></TableCell>

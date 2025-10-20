@@ -10,6 +10,7 @@ import ByTheNumbers from "@/components/landing/ByTheNumbers";
 import Founder from "@/components/landing/Founder";
 import CallToAction from "@/components/landing/CallToAction";
 import Footer from "@/components/landing/Footer";
+import DemoVideo from "@/components/landing/DemoVideo";
 
 export default function Home() {
   return (
@@ -17,6 +18,7 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
+        <DemoVideo />
         <Problem />
         <Solution />
         <WhoItIsFor />

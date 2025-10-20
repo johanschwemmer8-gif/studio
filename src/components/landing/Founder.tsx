@@ -5,8 +5,8 @@ export default function Founder() {
     return (
         <section className="py-20 bg-card">
             <div className="container mx-auto px-4 md:px-6">
-                <div className="grid grid-cols-1 gap-12 lg:grid-cols-5 lg:gap-16 items-center">
-                    <div className="lg:col-span-2 relative aspect-[3/4] rounded-lg overflow-hidden shadow-xl">
+                <div className="grid grid-cols-1 gap-12 md:grid-cols-3 lg:gap-16 items-center">
+                    <div className="relative aspect-[3/4] rounded-lg overflow-hidden shadow-xl mx-auto max-w-sm md:max-w-none md:col-span-1">
                         <Image
                             src="/images/Johan.jpg"
                             alt="Johan Schwemmer, Founder & CEO"
@@ -16,7 +16,7 @@ export default function Founder() {
                             data-ai-hint="professional male portrait"
                         />
                     </div>
-                    <div className="lg:col-span-3 space-y-4">
+                    <div className="md:col-span-2 space-y-4">
                         <h2 className="text-3xl font-bold tracking-tight text-primary md:text-4xl">
                             Built by Retail Experts, For Retail Experts
                         </h2>

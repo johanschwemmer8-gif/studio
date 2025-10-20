@@ -7,7 +7,7 @@ const features = [
       icon: <BrainCircuit className="h-10 w-10 text-accent" />,
       title: "AI-Powered Personalization",
       description: "Deliver targeted offers and product recommendations in real-time based on shopper behavior and location.",
-      image: "https://picsum.photos/seed/ai-phone/600/400",
+      image: "/images/AI-Powered Personalization.jpg",
       aiHint: "smartphone product recommendation retail"
     },
     {

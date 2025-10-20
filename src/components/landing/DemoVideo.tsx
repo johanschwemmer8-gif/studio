@@ -25,7 +25,7 @@ export default function DemoVideo() {
       <div className="container mx-auto px-4 md:px-6">
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <div className="relative group w-full max-w-4xl mx-auto aspect-video rounded-lg overflow-hidden shadow-2xl cursor-pointer">
+            <div className="relative group w-full max-w-2xl mx-auto aspect-video rounded-lg overflow-hidden shadow-2xl cursor-pointer">
               <Image
                 src={thumbnailUrl}
                 alt="Demo video thumbnail"

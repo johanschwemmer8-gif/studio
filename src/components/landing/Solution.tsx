@@ -42,7 +42,7 @@ const features = [
       icon: <Cloud className="h-10 w-10 text-accent" />,
       title: "Scalable SaaS Architecture",
       description: "Deploy across 10 or 1,000 stores with the same seamless platform.",
-      image: "https://picsum.photos/seed/store-network/600/400",
+      image: "/images/Scalable SaaS Architecture.jpg",
       aiHint: "retail store network map"
     },
   ];

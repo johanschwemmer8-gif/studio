@@ -138,7 +138,9 @@ export default function CoreIntegrationPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Button className="w-full">Configure PIM</Button>
+                <Button asChild className="w-full">
+                  <Link href="/dashboard/core-integration/pim">Configure PIM</Link>
+                </Button>
             </CardContent>
         </Card>
         <Card>

@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,6 +43,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis } from 'recharts';
+import { Label } from '@/components/ui/label';
 
 const sampleRetailers = [
   { id: 1, logo: '', name: 'Woolworths', owner: 'John Doe', email: 'john@woolworths.co.za', plan: 'Enterprise', qrCodes: 5200, monthlyScans: 18500, lastActive: '2h ago', status: 'Active' },
@@ -125,6 +127,7 @@ export default function RetailerManagementInterface() {
   const [date, setDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -30), to: new Date() });
   const [selectedRetailer, setSelectedRetailer] = useState<any | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
 
   const handleViewProfile = (retailer: any) => {
     setSelectedRetailer(retailer);
@@ -182,7 +185,38 @@ export default function RetailerManagementInterface() {
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0"><Calendar mode="range" selected={date} onSelect={setDate} numberOfMonths={2}/></PopoverContent>
             </Popover>
-            <Button variant="ghost"><SlidersHorizontal className="mr-2 h-4 w-4"/> Advanced</Button>
+            <Dialog open={isAdvancedSearchOpen} onOpenChange={setIsAdvancedSearchOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="ghost"><SlidersHorizontal className="mr-2 h-4 w-4"/> Advanced</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Advanced Search</DialogTitle>
+                        <DialogDescription>
+                            Apply more specific filters to narrow down the retailer list.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                         <div className="space-y-2">
+                             <Label htmlFor="monthlyScans">Monthly Scans</Label>
+                             <div className="flex gap-2">
+                                 <Input id="monthlyScansMin" placeholder="Min" type="number" />
+                                 <Input id="monthlyScansMax" placeholder="Max" type="number" />
+                             </div>
+                         </div>
+                          <div className="space-y-2">
+                             <Label htmlFor="qrCodes">Total QR Codes</Label>
+                             <div className="flex gap-2">
+                                 <Input id="qrCodesMin" placeholder="Min" type="number" />
+                                 <Input id="qrCodesMax" placeholder="Max" type="number" />
+                             </div>
+                         </div>
+                    </div>
+                     <DialogFooter>
+                        <Button onClick={() => setIsAdvancedSearchOpen(false)}>Apply Filters</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>

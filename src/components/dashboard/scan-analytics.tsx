@@ -1,6 +1,5 @@
 
-'use client';
-import { useEffect, useState } from 'react';
+'use server';
 import {
   Card,
   CardContent,
@@ -18,23 +17,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
-import { Skeleton } from '../ui/skeleton';
+import { getScanAnalytics } from '@/ai/flows/scan-analytics';
+
 
 type QrCodeData = {
   qrCodeId: string;
-  targetUrl: string;
   scanCount: number;
   campaignId: string;
 };
-
-type ExternalQrCodeData = {
-    id: string;
-    originalUrl: string;
-    interactUrl: string;
-    scanCount: number;
-    campaignId: string;
-};
-
 
 function AnalyticsCard({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) {
     return (
@@ -50,31 +40,18 @@ function AnalyticsCard({ title, value, icon: Icon }: { title: string, value: str
     )
 }
 
-export default function ScanAnalytics() {
-  const [totalScans, setTotalScans] = useState(0);
-  const [topScans, setTopScans] = useState<QrCodeData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [externalTotalScans, setExternalTotalScans] = useState(0);
-  const [topExternalScans, setTopExternalScans] = useState<ExternalQrCodeData[]>([]);
+export default async function ScanAnalytics() {
+  // Fetch real data from the backend flow instead of using mock data
+  const analyticsData = await getScanAnalytics({
+    retailerId: 'simulated-retailer-id', // In a real app, this would come from auth
+    limit: 1000,
+  });
 
+  const { totalScans, uniqueScans, topScannedCodes } = analyticsData;
 
-  useEffect(() => {
-    // Mocking data since we can't use firebase-admin on the client
-    setLoading(true);
-    setTimeout(() => {
-        setTotalScans(1234);
-        setTopScans([
-            { qrCodeId: 'qr_abc123', targetUrl: 'https://example.com/1', scanCount: 150, campaignId: 'summer-sale' },
-            { qrCodeId: 'qr_def456', targetUrl: 'https://example.com/2', scanCount: 120, campaignId: 'summer-sale' },
-        ]);
-        setExternalTotalScans(567);
-        setTopExternalScans([
-            { id: 'ext_xyz789', originalUrl: 'https://othersite.com/a', interactUrl: '/track/ext_xyz789', scanCount: 88, campaignId: 'spring-promo' },
-            { id: 'ext_uvw456', originalUrl: 'https://othersite.com/b', interactUrl: '/track/ext_uvw456', scanCount: 72, campaignId: 'spring-promo' },
-        ]);
-        setLoading(false);
-    }, 1000);
-  }, []);
+  // For this example, we'll assume external scans are not yet tracked in this flow.
+  const externalTotalScans = 0;
+  const topExternalScans: any[] = [];
 
   return (
     <div className="space-y-8">
@@ -87,57 +64,66 @@ export default function ScanAnalytics() {
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <AnalyticsCard title="Total Scans (iNteract)" value={totalScans} icon={QrCode} />
-                <AnalyticsCard title="Total Scans (External)" value={externalTotalScans} icon={LinkIcon} />
-                <AnalyticsCard title="Combined Total Scans" value={totalScans + externalTotalScans} icon={TrendingUp} />
+                <AnalyticsCard title="Total Scans (iNteract)" value={totalScans.toLocaleString()} icon={QrCode} />
+                <AnalyticsCard title="Unique QR Codes Scanned" value={uniqueScans.toLocaleString()} icon={TrendingUp} />
+                <AnalyticsCard title="Total Scans (External)" value={externalTotalScans.toLocaleString()} icon={LinkIcon} />
+                <AnalyticsCard title="Combined Total Scans" value={(totalScans + externalTotalScans).toLocaleString()} icon={TrendingUp} />
             </div>
 
             <div className="grid gap-8 md:grid-cols-2">
                 <div>
                     <h3 className="font-semibold mb-2">Top 5 iNteract QR Codes</h3>
-                    {loading ? <Skeleton className="h-64 w-full" /> : (
-                        <Table>
-                            <TableHeader>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>QR Code ID</TableHead>
+                                <TableHead>Campaign</TableHead>
+                                <TableHead className="text-right">Scans</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {topScannedCodes.length === 0 ? (
                                 <TableRow>
-                                    <TableHead>QR Code ID</TableHead>
-                                    <TableHead>Campaign</TableHead>
-                                    <TableHead className="text-right">Scans</TableHead>
+                                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                        No scan data available yet.
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {topScans.map((qr) => (
-                                <TableRow key={qr.qrCodeId}>
-                                    <TableCell className="font-mono text-xs">{qr.qrCodeId}</TableCell>
-                                    <TableCell><Badge variant="outline">{qr.campaignId}</Badge></TableCell>
-                                    <TableCell className="text-right font-bold text-primary">{qr.scanCount}</TableCell>
-                                </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                            ) : topScannedCodes.slice(0, 5).map((qr) => (
+                            <TableRow key={qr.qrCodeId}>
+                                <TableCell className="font-mono text-xs">{qr.qrCodeId}</TableCell>
+                                <TableCell><Badge variant="outline">{qr.campaignId}</Badge></TableCell>
+                                <TableCell className="text-right font-bold text-primary">{qr.scanCount}</TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
                  <div>
                     <h3 className="font-semibold mb-2">Top 5 External QR Codes</h3>
-                    {loading ? <Skeleton className="h-64 w-full" /> : (
-                        <Table>
-                            <TableHeader>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Original ID</TableHead>
+                                <TableHead>Campaign</TableHead>
+                                <TableHead className="text-right">Scans</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {topExternalScans.length === 0 ? (
                                 <TableRow>
-                                    <TableHead>Original ID</TableHead>
-                                    <TableHead>Campaign</TableHead>
-                                    <TableHead className="text-right">Scans</TableHead>
+                                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                        No external scan data available yet.
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {topExternalScans.map((qr) => (
-                                <TableRow key={qr.id}>
-                                    <TableCell className="font-mono text-xs">{qr.id}</TableCell>
-                                    <TableCell><Badge variant="secondary">{qr.campaignId}</Badge></TableCell>
-                                    <TableCell className="text-right font-bold text-primary">{qr.scanCount}</TableCell>
-                                </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                            ) : topExternalScans.slice(0, 5).map((qr) => (
+                            <TableRow key={qr.id}>
+                                <TableCell className="font-mono text-xs">{qr.id}</TableCell>
+                                <TableCell><Badge variant="secondary">{qr.campaignId}</Badge></TableCell>
+                                <TableCell className="text-right font-bold text-primary">{qr.scanCount}</TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
             </div>
         </CardContent>

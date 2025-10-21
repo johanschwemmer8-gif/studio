@@ -17,7 +17,7 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
@@ -126,6 +126,11 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Executive ROI">
+                    <Link href="/dashboard/executive-roi"><DollarSign /><span>Executive ROI</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Retailer's Dashboard Management">
                 <Link href="/dashboard/retailers-dashboards">

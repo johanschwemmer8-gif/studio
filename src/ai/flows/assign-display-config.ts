@@ -34,20 +34,22 @@ export const assignDisplayConfig = ai.defineFlow(
     const displayRef = db.collection('displays').doc(displayId);
 
     try {
-        const displayDoc = await displayRef.get();
-        if (!displayDoc.exists) {
-            throw new Error('Display not found.');
-        }
-
-        // **Security Enhancement**: Authorize the operation.
-        // This check ensures that the user making the request belongs to the same retailer
-        // that owns the display device. In a real app, `retailerId` would come from auth claims.
-        if (displayDoc.data()?.retailerId !== retailerId) {
-            throw new Error('User is not authorized to modify this display.');
-        }
-        
-        await displayRef.update({
-            contentConfigId: configId,
+        await db.runTransaction(async (transaction) => {
+            const displayDoc = await transaction.get(displayRef);
+            if (!displayDoc.exists) {
+                throw new Error('Display not found.');
+            }
+            
+            // **Security Enhancement**: Authorize the operation.
+            // This check ensures that the user making the request belongs to the same retailer
+            // that owns the display device. In a real app, `retailerId` would come from auth claims.
+            if (displayDoc.data()?.retailerId !== retailerId) {
+                throw new Error('User is not authorized to modify this display.');
+            }
+            
+            transaction.update(displayRef, {
+                contentConfigId: configId,
+            });
         });
         
         return { success: true };

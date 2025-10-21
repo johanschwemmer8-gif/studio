@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview A Genkit flow to retrieve registered display devices.
+ * @fileOverview A Genkit flow to retrieve registered display devices from Firestore.
  */
 
 import { ai } from '@/ai/genkit';
@@ -33,37 +33,30 @@ export const getDisplays = ai.defineFlow(
     outputSchema: z.array(DisplaySchema),
   },
   async ({ retailerId }) => {
-    // In a real application, this would query Firestore.
-    // We are returning mock data here to avoid backend authentication issues in the dev environment.
-
-    const mockDisplays: Display[] = [
-        {
-            displayId: 'display_sandton_001',
-            retailerId: retailerId,
-            storeId: 'Sandton City',
-            contentConfigId: 'config_1716386400002',
-            status: 'online',
-            lastPing: new Date().toISOString(),
-        },
-        {
-            displayId: 'display_gateway_002',
-            retailerId: retailerId,
-            storeId: 'Gateway',
-            contentConfigId: 'config_1716386400000',
-            status: 'offline',
-            lastPing: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutes ago
-        },
-        {
-            displayId: 'display_canalwalk_003',
-            retailerId: retailerId,
-            storeId: 'Canal Walk',
-            contentConfigId: 'config_1716386400001',
-            status: 'error',
-            lastPing: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
-        }
-    ];
+    // In a real application, you would also verify that the calling user has permission
+    // to view displays for this retailerId.
+    const db = admin.firestore();
+    const displaysRef = db.collection('displays');
+    const snapshot = await displaysRef.where('retailerId', '==', retailerId).get();
     
-    // Filter by retailerId just as the real query would
-    return mockDisplays.filter(d => d.retailerId === retailerId);
+    if (snapshot.empty) {
+      return [];
+    }
+
+    const displays: Display[] = [];
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        displays.push({
+            displayId: data.displayId,
+            retailerId: data.retailerId,
+            storeId: data.storeId,
+            contentConfigId: data.contentConfigId,
+            status: data.status,
+            // Convert Firestore Timestamp to ISO string for serialization
+            lastPing: (data.lastPing as admin.firestore.Timestamp).toDate().toISOString(),
+        });
+    });
+    
+    return displays;
   }
 );

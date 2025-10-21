@@ -22,59 +22,8 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
-
-// This is a mock/stub for Firestore client-side interaction.
-// In a real app, this would be replaced by the Firebase JS SDK.
-const createMockDb = () => {
-    // ... (mock db logic)
-    return {
-        collection: (name: string) => ({
-            where: (field: string, op: string, value: any) => ({
-                orderBy: (field: string, dir: string) => ({
-                    onSnapshot: (callback: (snapshot: any) => void) => {
-                        const mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
-                        setTimeout(() => {
-                           callback({
-                                docs: mockRequests.map((doc: any) => ({ id: doc.id, data: () => doc })),
-                                empty: mockRequests.length === 0,
-                           })
-                        }, 100);
-                        // Return an empty unsubscribe function for this mock
-                        return () => {};
-                    },
-                }),
-            }),
-             doc: (id: string) => ({
-                onSnapshot: (callback: (snapshot: any) => void) => {
-                     const mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
-                     const request = mockRequests.find((r: any) => r.id === id);
-                     setTimeout(() => {
-                        callback({
-                            id: id,
-                            exists: !!request,
-                            data: () => request,
-                        })
-                     }, 100);
-                     return () => {};
-                },
-                collection: (subName: string) => ({
-                    onSnapshot: (callback: (snapshot: any) => void) => {
-                        const mockRequests = JSON.parse(localStorage.getItem('mockBulkQrRequests') || '[]');
-                        const request = mockRequests.find((r: any) => r.id === id);
-                        const items = request ? request.items : [];
-                         setTimeout(() => {
-                           callback({
-                                docs: items.map((doc: any) => ({ id: doc.qrCodeId, data: () => doc })),
-                                empty: items.length === 0,
-                           })
-                        }, 100);
-                        return () => {};
-                    }
-                })
-            })
-        }),
-    };
-};
+import { db } from '@/lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore';
 
 
 type BulkRequest = {
@@ -103,24 +52,29 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [regeneratingIds, setRegeneratingIds] = useState<string[]>([]);
     const { toast } = useToast();
-    const firestore = createMockDb();
     
     const [currentRequest, setCurrentRequest] = useState(request);
     const [isAiRegenerating, startAiRegenerating] = useTransition();
 
     useEffect(() => {
+        if (!db) return;
         setLoading(true);
-        const unsubscribeItems = firestore.collection('bulkQrRequests').doc(request.id).collection('items').onSnapshot(snapshot => {
+        const itemsQuery = query(collection(db, `bulkQrRequests/${request.id}/items`));
+        const unsubscribeItems = onSnapshot(itemsQuery, snapshot => {
             const fetchedItems: QrItem[] = snapshot.docs.map((doc: any) => ({
                 id: doc.id,
                 ...doc.data(),
             }));
             setItems(fetchedItems);
             setLoading(false);
+        }, (error) => {
+            console.error("Error fetching QR items:", error);
+            toast({ title: "Error", description: "Could not fetch QR code details.", variant: "destructive" });
         });
 
-        const unsubscribeRequest = firestore.collection('bulkQrRequests').doc(request.id).onSnapshot(doc => {
-            if (doc.exists) {
+        const requestRef = doc(db, 'bulkQrRequests', request.id);
+        const unsubscribeRequest = onSnapshot(requestRef, (doc) => {
+            if (doc.exists()) {
                 setCurrentRequest({ id: doc.id, ...doc.data() } as BulkRequest);
             }
         });
@@ -129,7 +83,7 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             unsubscribeItems();
             unsubscribeRequest();
         };
-    }, [request.id]);
+    }, [request.id, toast]);
 
     const handleRegenerate = async (qrCodeId: string) => {
         setRegeneratingIds(prev => [...prev, qrCodeId]);
@@ -319,26 +273,46 @@ export default function QrCampaignDashboard() {
     const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
 
     const { toast } = useToast();
-    const firestore = createMockDb(); // Use the mock
-
+    
     useEffect(() => {
-        setLoading(true);
-        const unsubscribe = firestore.collection('bulkQrRequests')
-            .where('retailerId', '==', 'simulated-retailer-id')
-            .orderBy('createdAt', 'desc')
-            .onSnapshot(snapshot => {
-                const fetchedRequests: BulkRequest[] = snapshot.docs.map((doc: any) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
-                // In a real scenario, itemsDone would come from an aggregated query or be a field on the request doc.
-                // Here we just simulate it.
-                setRequests(fetchedRequests.map(r => ({ ...r, itemsDone: r.status === 'COMPLETED' ? r.totalRequested : Math.floor(Math.random() * r.totalRequested) })));
-                setLoading(false);
+        if (!db) {
+            toast({
+                title: "Firebase Not Connected",
+                description: "QR Campaign Dashboard requires a Firestore connection.",
+                variant: "destructive"
             });
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        const q = query(
+            collection(db, 'bulkQrRequests'),
+            where('retailerId', '==', 'simulated-retailer-id'),
+            orderBy('createdAt', 'desc')
+        );
+
+        const unsubscribe = onSnapshot(q, snapshot => {
+            const fetchedRequests: BulkRequest[] = snapshot.docs.map((doc: any) => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+
+            // In a real app, itemsDone would be an aggregated field updated by a backend function.
+            // For the client-side, we simulate this by assuming completion if status is COMPLETED.
+            setRequests(fetchedRequests.map(r => ({ 
+                ...r, 
+                itemsDone: r.status === 'COMPLETED' ? r.totalRequested : (r.itemsDone || 0) // Fallback to a field if it exists
+            })));
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching QR requests:", error);
+            toast({ title: "Error", description: "Could not fetch campaign requests.", variant: "destructive"});
+            setLoading(false);
+        });
             
         return () => unsubscribe();
-    }, []);
+    }, [toast]);
 
     const handleDownloadZip = async (requestId: string) => {
         setDownloadingIds(prev => [...prev, requestId]);
@@ -371,7 +345,18 @@ export default function QrCampaignDashboard() {
     };
 
     if (loading) {
-        return <div className="text-center text-muted-foreground">Loading campaigns...</div>
+        return (
+             <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-4 w-3/4" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                </CardContent>
+            </Card>
+        )
     }
 
     return (

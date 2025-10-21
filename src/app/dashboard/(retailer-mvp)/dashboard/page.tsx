@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, BarChart } from 'lucide-react';
+import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -41,10 +41,8 @@ export default function DashboardPage() {
   };
 
   useState(() => {
-    getScanAnalytics({
-      retailerId: 'simulated-retailer-id', // In a real app, this would come from auth
-      limit: 1000,
-    }).then(data => {
+    // In a real app, filters would be passed here based on selectors
+    analyzeEngagementMetrics({}).then(data => {
       setAnalyticsData(data);
     });
   });
@@ -53,23 +51,8 @@ export default function DashboardPage() {
     setError(null);
     startAnalyzing(async () => {
         try {
-            const metrics = {
-              engagement: {
-                totalScans: analyticsData?.totalScans || 0,
-                uniqueScans: analyticsData?.uniqueScans || 0,
-                engagementDuration: 0,
-                scanRate: 0,
-              },
-              conversion: {
-                  avgBasketSizeAoe: 0,
-                  avgBasketSizeNonAoe: 0,
-                  basketUpliftPercentage: 0,
-                  offerRedemptionRate: 0,
-                  totalRedeemedValue: 0,
-                  aoeTransactions: 0,
-              }
-            }
-            const result = await analyzeEngagementMetrics(metrics);
+            // The flow can now be called without input, as it fetches its own data
+            const result = await analyzeEngagementMetrics({});
             setAnalysis(result);
         } catch (e) {
             console.error(e);
@@ -78,19 +61,16 @@ export default function DashboardPage() {
     });
   };
   
-  const currentMetrics = {
-    uniqueScans: analyticsData?.uniqueScans || 0,
-    engagementRate: 0,
-    offerRedemption: 0,
-    basketUplift: 0,
-    conversionRate: 0,
-    dwellTime: 0
-  };
-
   if(!analyticsData) {
     return (
       <div className="space-y-8">
-        <Skeleton className="h-10 w-full" />
+        <StoreSelector
+            regions={storesByRegion}
+            selectedRegion={selectedRegion}
+            onRegionChange={handleRegionChange}
+            selectedStore={selectedStore}
+            onStoreChange={handleStoreChange}
+        />
         <Separator />
         <Card>
           <CardHeader>
@@ -108,6 +88,8 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  const { engagement, conversion } = analyticsData;
 
   return (
     <div className="space-y-8">
@@ -195,13 +177,13 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Scans</CardTitle>
+                  <CardTitle className="text-sm font-medium">Unique Scans</CardTitle>
                   <User className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{analyticsData.totalScans.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{engagement.uniqueScans.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
-                    All QR code scans across all stores.
+                    Individual customers who scanned a QR code.
                   </p>
                 </CardContent>
               </Card>
@@ -211,7 +193,7 @@ export default function DashboardPage() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.engagementRate}%</div>
+                  <div className="text-3xl font-bold">{engagement.scanRate.toFixed(2)}%</div>
                    <p className="text-xs text-muted-foreground">
                     Percentage of unique visitors who scanned.
                   </p>
@@ -223,7 +205,7 @@ export default function DashboardPage() {
                   <Tag className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.offerRedemption}%</div>
+                  <div className="text-3xl font-bold">{conversion.offerRedemptionRate.toFixed(2)}%</div>
                   <p className="text-xs text-muted-foreground">
                     Rate of personalized offers redeemed.
                   </p>
@@ -235,7 +217,7 @@ export default function DashboardPage() {
                   <ArrowUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.basketUplift}%</div>
+                  <div className="text-3xl font-bold">{conversion.basketUpliftPercentage.toFixed(2)}%</div>
                    <p className="text-xs text-muted-foreground">
                     Increase in average basket size for engaged users.
                   </p>
@@ -247,7 +229,7 @@ export default function DashboardPage() {
                   <Percent className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.conversionRate}%</div>
+                  <div className="text-3xl font-bold">{((conversion.aoeTransactions / engagement.uniqueScans) * 100 || 0).toFixed(2)}%</div>
                    <p className="text-xs text-muted-foreground">
                     Engaged users who made a purchase.
                   </p>
@@ -259,7 +241,7 @@ export default function DashboardPage() {
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.dwellTime}s</div>
+                  <div className="text-3xl font-bold">{engagement.engagementDuration}s</div>
                   <p className="text-xs text-muted-foreground">
                     Average time spent on product page after scan.
                   </p>

@@ -41,64 +41,6 @@ export const findProductById = (id: string | number) => {
   return products.find((p) => p.id === String(id));
 };
 
-const allStoresMetrics = {
-  stats: {
-    totalScans: 0,
-    uniqueScans: 0,
-    engagementRate: 0,
-    dwellTime: 0,
-    offerRedemption: 0,
-    basketUplift: 0,
-    conversionRate: 0,
-    // Original metrics, kept for other parts of the app
-    scanRate: 0,
-    engagementDuration: 0,
-    offerRedemptionRate: 0,
-    avgBasketSizeAoe: 0,
-    avgBasketSizeNonAoe: 0,
-    basketUpliftPercentage: 0,
-    totalRedeemedValue: 0,
-    aoeTransactions: 0,
-    // New Financial Metrics for ROI page
-    salesUplift: 0,
-    redemptionLinkedRevenue: 0,
-    costPerEngagement: 0,
-    returnOnInvestment: 0,
-  },
-  topProducts: [],
-  timeBasedPerformance: [],
-};
-
-const generateRandomMetrics = () => ({
-  stats: {
-    totalScans: 0,
-    uniqueScans: 0,
-    scanRate: 0,
-    engagementDuration: 0,
-    offerRedemptionRate: 0,
-    basketUplift: 0,
-    // New metrics
-    engagementRate: 0,
-    dwellTime: 0,
-    offerRedemption: 0,
-    conversionRate: 0,
-    // Performance & Conversion Metrics
-    avgBasketSizeAoe: 0,
-    avgBasketSizeNonAoe: 0,
-    basketUpliftPercentage: 0,
-    totalRedeemedValue: 0,
-    aoeTransactions: 0,
-    // New Financial Metrics for ROI page
-    salesUplift: 0,
-    redemptionLinkedRevenue: 0,
-    costPerEngagement: 0,
-    returnOnInvestment: 0,
-  },
-  topProducts: [],
-  timeBasedPerformance: [],
-});
-
-
 export const storesByRegion = [
   {
     province: 'Gauteng',
@@ -220,56 +162,13 @@ export let retailPortfolio: RetailPortfolio = [
   },
 ];
 
-
-const storeMetrics: Record<string, ReturnType<typeof generateRandomMetrics>> = {};
-storesByRegion.flatMap(r => r.stores).forEach(store => {
-  storeMetrics[store.name] = generateRandomMetrics();
-});
-
-export const dashboardMetrics = {
-  getMetrics: (storeName?: string | null) => {
-    if (!storeName || storeName === 'All Stores') {
-      return allStoresMetrics;
-    }
-    return storeMetrics[storeName] || allStoresMetrics;
-  },
-};
-
-const totalRevenueUplift = 0;
-const subscriptionCost = 0;
-const netGainLoss = 0;
-const revenueUpliftToCostRatio = 0;
-const progressToBreakEven = 0;
-
-
-export const roiMetrics = {
-  gmroi: 0,
-  basketUplift: 0,
-  offerRedemptionRate: 0,
-  engagementToConversion: 0,
-  // New Executive Summary Metrics
-  revenueUpliftToCostRatio: revenueUpliftToCostRatio,
-  totalRevenueUplift: totalRevenueUplift,
-  subscriptionCost: subscriptionCost,
-  netGainLoss: netGainLoss,
-  progressToBreakEven: progressToBreakEven,
-};
-
 export const salesData: { name: string; revenue: number; scans: number; crossSells: number; }[] = [];
-
 export const revenueUpliftData: { month: string; ratio: number; }[] = [];
-
 export const ytdData: { month: string; revenue: number; cost: number; net: number; }[] = [];
-
-
 export const realTimeStockLevels: { id: string; name: string; stock: number; status: 'In Stock' | 'Low Stock' | 'Out of Stock'; }[] = [];
-
 export const dataSyncLogs: { id: string; service: string; status: 'Success' | 'Failed'; timestamp: string; }[] = [];
-
 export const moduleActivationLogs: { id: string; module: string; action: 'Activated' | 'Deactivated'; user: string; timestamp: string; }[] = [];
-
 export const scanFailuresLog: { id: string; store: string; location: string; error: string; timestamp: string; }[] = [];
-
 
 export const systemUptime = {
   status: 'Operational',

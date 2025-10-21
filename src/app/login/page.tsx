@@ -200,6 +200,11 @@ export default function LoginPage() {
                 View Retailer MVP Demo
               </Link>
             </Button>
+             <Button asChild className="w-full" variant="outline">
+              <Link href="/create-admin">
+                Create First Admin User (Temp)
+              </Link>
+            </Button>
           </CardFooter>
         </form>
       </Card>

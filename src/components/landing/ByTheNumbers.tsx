@@ -1,6 +1,6 @@
 
 const stats = [
-    { value: "85%", label: "MVP Complete", description: "Technical readiness validated" },
+    { value: "90%", label: "MVP Complete", description: "Technical readiness validated" },
     { value: "R1.53T", label: "Market", description: "South African retail opportunity" },
     { value: "20+", label: "Years", description: "Founder retail expertise" },
   ];

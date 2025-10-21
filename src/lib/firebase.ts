@@ -5,6 +5,7 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getRemoteConfig } from 'firebase/remote-config';
+import { getAuth } from 'firebase/auth';
 
 // In a real application, these values would be populated, likely from environment variables.
 const firebaseConfig = {
@@ -30,6 +31,8 @@ if (isConfigValid && !getApps().length) {
 
 // @ts-ignore
 const db = isConfigValid ? getFirestore(app) : null;
+// @ts-ignore
+const auth = isConfigValid ? getAuth(app) : null;
 
 // Initialize Analytics and Remote Config only on the client side and if the config is valid
 const analytics = isConfigValid && typeof window !== 'undefined' && process.env.NODE_ENV === 'production'
@@ -54,4 +57,4 @@ if (remoteConfig) {
 }
 
 
-export { db, analytics, remoteConfig };
+export { db, auth, analytics, remoteConfig };

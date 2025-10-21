@@ -22,6 +22,9 @@ import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 function SidebarLogo() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -87,6 +90,23 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" collapsible="icon">
@@ -212,11 +232,9 @@ export default function DashboardLayout({
         <SidebarFooter>
             <SidebarMenu className="px-2">
                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Log Out">
-                        <Link href="/">
-                            <LogOut />
-                            <span>Log Out</span>
-                        </Link>
+                    <SidebarMenuButton onClick={signOut} tooltip="Log Out">
+                        <LogOut />
+                        <span>Log Out</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

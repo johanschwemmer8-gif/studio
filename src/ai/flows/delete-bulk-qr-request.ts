@@ -11,6 +11,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import { getAuth } from "firebase-admin/auth";
+
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -18,6 +20,9 @@ if (!admin.apps.length) {
 
 const DeleteBulkQrRequestInputSchema = z.object({
   requestId: z.string(),
+  // The authorization token is now passed from the client
+  // to be verified on the server.
+  idToken: z.string().describe("The user's Firebase Authentication ID token for authorization."),
 });
 export type DeleteBulkQrRequestInput = z.infer<typeof DeleteBulkQrRequestInputSchema>;
 
@@ -28,20 +33,31 @@ const DeleteBulkQrRequestOutputSchema = z.object({
 export type DeleteBulkQrRequestOutput = z.infer<typeof DeleteBulkQrRequestOutputSchema>;
 
 export async function deleteBulkQrRequest(input: DeleteBulkQrRequestInput): Promise<DeleteBulkQrRequestOutput> {
-  // In a real Firebase Callable Function, you would extract the retailerId from the auth context.
-  // This is a placeholder and should be replaced with actual authentication.
-  const callerRetailerId = 'simulated-retailer-id';
+  let decodedToken;
+  try {
+    decodedToken = await getAuth().verifyIdToken(input.idToken);
+  } catch (error) {
+    console.error('Authentication error:', error);
+    throw new Error('You are not authorized to perform this action.');
+  }
+
+  const callerRetailerId = decodedToken.retailerId as string;
+  const userRole = decodedToken.role as string;
   
-  return deleteBulkQrRequestFlow({ ...input, callerRetailerId });
+  if (!callerRetailerId || (userRole !== 'admin' && userRole !== 'retailerAdmin')) {
+     throw new Error('Insufficient permissions. Administrator access required.');
+  }
+  
+  return deleteBulkQrRequestFlow({ requestId: input.requestId, callerRetailerId });
 }
 
 // This flow now requires the caller's ID for authorization.
 const deleteBulkQrRequestFlow = ai.defineFlow(
   {
     name: 'deleteBulkQrRequestFlow',
-    inputSchema: DeleteBulkQrRequestInputSchema.extend({ 
-        // In production, this ID should be extracted from a verified Firebase Auth ID token.
-        callerRetailerId: z.string().describe("The retailer ID of the user making the request."),
+    inputSchema: z.object({
+        requestId: z.string(),
+        callerRetailerId: z.string().describe("The verified retailer ID of the user making the request."),
     }),
     outputSchema: DeleteBulkQrRequestOutputSchema,
   },

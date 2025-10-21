@@ -27,7 +27,7 @@ if (!admin.apps.length) {
 const SaveRetailerApiKeyInputSchema = z.object({
   retailerId: z.string().describe('The unique ID of the retailer.'),
   serviceName: z.string().describe("The name of the service, e.g., 'Lightspeed POS'."),
-  apiKey: z.string().describe('The API key to be saved.'),
+  apiKey: z.string().min(1, 'API Key cannot be empty.').describe('The API key to be saved.'),
 });
 export type SaveRetailerApiKeyInput = z.infer<typeof SaveRetailerApiKeyInputSchema>;
 
@@ -104,7 +104,7 @@ const saveRetailerApiKeyFlow = ai.defineFlow(
 
       return {
         success: true,
-        message: `Successfully connected to ${serviceName}.`,
+        message: `Successfully connected to ${serviceName}. Your API key is now securely stored.`,
       };
 
     } catch (error: any) {

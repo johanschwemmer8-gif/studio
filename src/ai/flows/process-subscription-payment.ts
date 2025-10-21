@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow to process subscription payments with Stripe.
@@ -9,9 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-
-// In a real application, you would install and import the stripe library
-// import Stripe from 'stripe';
+import Stripe from 'stripe';
 
 const ProcessSubscriptionPaymentInputSchema = z.object({
   planId: z.string().describe("The ID of the plan the user is subscribing to (e.g., 'pro_plan')."),
@@ -39,33 +38,30 @@ const processSubscriptionPaymentFlow = ai.defineFlow(
   },
   async ({ planId, retailerId }) => {
     
-    // =================================================================
-    // PLACEHOLDER: Stripe Integration
-    // =================================================================
-    // To make this functional, you need to:
-    // 1. Install the Stripe Node.js library: `npm install stripe`
-    // 2. Add your Stripe Secret Key to your environment's secret manager.
-    //    DO NOT hardcode it here.
-    // 3. Uncomment and adapt the following code.
-    // =================================================================
+    // Ensure the Stripe Secret Key is set in your environment variables.
+    // Do NOT hardcode it here.
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+        throw new Error('Stripe secret key is not configured. Please set STRIPE_SECRET_KEY in your environment variables.');
+    }
     
     try {
-        /*
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-            apiVersion: '2024-04-10',
+        const stripe = new Stripe(stripeSecretKey, {
+            apiVersion: '2024-06-20',
         });
 
-        // Map your internal planId to Stripe Price IDs
+        // Map your internal planId to your Stripe Price IDs.
+        // These are example IDs. Replace them with your actual Price IDs from your Stripe dashboard.
         const priceIds: { [key: string]: string } = {
-            'basic': 'price_xxxxxxxxxxxxxx',
-            'pro': 'price_yyyyyyyyyyyyyy',
-            'enterprise': 'price_zzzzzzzzzzzzzz'
+            'basic': 'price_basic_plan_id_from_stripe',
+            'pro': 'price_pro_plan_id_from_stripe',
+            'enterprise': 'price_enterprise_plan_id_from_stripe'
         };
 
         const priceId = priceIds[planId];
 
         if (!priceId) {
-            throw new Error(`Invalid planId: ${planId}`);
+            throw new Error(`Invalid planId: ${planId}. No matching Price ID found.`);
         }
 
         const session = await stripe.checkout.sessions.create({
@@ -77,6 +73,7 @@ const processSubscriptionPaymentFlow = ai.defineFlow(
             mode: 'subscription',
             success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/retailer-mvp/billing?payment_success=true`,
             cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/retailer-mvp/billing?payment_canceled=true`,
+            // Pass retailerId in metadata to identify the customer in webhook events
             metadata: {
                 retailerId: retailerId,
             }
@@ -87,12 +84,7 @@ const processSubscriptionPaymentFlow = ai.defineFlow(
         }
 
         return { sessionId: session.id };
-        */
-
-        // Returning a mock session ID for demonstration purposes
-        console.log(`(Simulation) Creating Stripe session for plan '${planId}' for retailer '${retailerId}'.`);
-        return { sessionId: `mock_cs_test_${Date.now()}` };
-
+        
     } catch (error: any) {
         console.error('Stripe session creation failed:', error);
         // It's crucial to throw the error so the flow fails and the client can handle it.

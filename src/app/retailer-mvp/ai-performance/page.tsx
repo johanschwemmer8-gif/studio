@@ -36,20 +36,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
-const responseTimeData = [
-  { time: '10:00', avg: 1.1, p95: 1.8 },
-  { time: '11:00', avg: 1.3, p95: 2.1 },
-  { time: '12:00', avg: 1.2, p95: 1.9 },
-  { time: '13:00', avg: 1.5, p95: 2.5 },
-  { time: '14:00', avg: 1.4, p95: 2.2 },
-];
+const responseTimeData: { time: string; avg: number; p95: number; }[] = [];
 
-const queryCategoriesData = [
-  { name: 'Stock Availability', value: 400 },
-  { name: 'Product Details', value: 300 },
-  { name: 'Price & Promotions', value: 300 },
-  { name: 'Store Information', value: 200 },
-];
+const queryCategoriesData: { name: string; value: number; }[] = [];
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 
@@ -138,11 +127,11 @@ export default function AIPerformanceMonitor() {
       
       {/* Header Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <MetricCard title="Total Conversations" value="45,672" trend="+15% this week" icon={MessageSquare} />
-        <MetricCard title="Avg. Response Time" value="1.2s" trend="-0.1s this week" icon={Clock} trendDirection="down" />
-        <MetricCard title="Success Rate" value="89.4%" trend="+1.2% this week" icon={CheckCircle} />
-        <MetricCard title="Customer Satisfaction" value="4.3/5" trend="+0.1 this week" icon={Smile} />
-        <MetricCard title="Upsell Success" value="23.1%" trend="-0.5% this week" icon={TrendingUp} />
+        <MetricCard title="Total Conversations" value="0" icon={MessageSquare} />
+        <MetricCard title="Avg. Response Time" value="0s" trendDirection="down" icon={Clock} />
+        <MetricCard title="Success Rate" value="0%" icon={CheckCircle} />
+        <MetricCard title="Customer Satisfaction" value="0/5" icon={Smile} />
+        <MetricCard title="Upsell Success" value="0%" icon={TrendingUp} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -155,10 +144,8 @@ export default function AIPerformanceMonitor() {
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-96">
-                        <div className="space-y-4 pr-4">
-                            {customerIds.map((id, i) => (
-                                <ConversationItem key={i} customerId={id} />
-                            ))}
+                        <div className="space-y-4 pr-4 text-center text-muted-foreground pt-16">
+                           No conversation data available.
                         </div>
                     </ScrollArea>
                 </CardContent>
@@ -180,47 +167,8 @@ export default function AIPerformanceMonitor() {
                         </TableHeader>
                         <TableBody>
                             <TableRow>
-                                <TableCell><Badge variant="outline" className="text-yellow-600 border-yellow-500/30">Underperforming</Badge></TableCell>
-                                <TableCell>Prompt for "return policy" has a 30% failure rate.</TableCell>
-                                <TableCell>
-                                     <Dialog open={isPromptModalOpen} onOpenChange={setIsPromptModalOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button size="sm" variant="outline">Improve Prompt</Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-2xl">
-                                            <form onSubmit={handleSavePrompt}>
-                                                <DialogHeader>
-                                                    <DialogTitle>Improve Prompt: Return Policy</DialogTitle>
-                                                    <DialogDescription>
-                                                        Refine the prompt to improve its success rate and provide better answers.
-                                                    </DialogDescription>
-                                                </DialogHeader>
-                                                <div className="py-6 space-y-4">
-                                                    <div>
-                                                        <Label htmlFor="original-prompt" className="font-semibold">Original Prompt</Label>
-                                                        <Textarea id="original-prompt" readOnly disabled className="mt-1 bg-muted" value="You are a helpful store assistant. Answer questions about the return policy."/>
-                                                    </div>
-                                                    <div>
-                                                        <Label htmlFor="new-prompt" className="font-semibold">Improved Prompt</Label>
-                                                        <Textarea id="new-prompt" rows={5} placeholder="Add more context, examples, or constraints to improve the AI's response." className="mt-1"/>
-                                                    </div>
-                                                </div>
-                                                <DialogFooter>
-                                                    <Button type="button" variant="ghost" onClick={() => setIsPromptModalOpen(false)}>Cancel</Button>
-                                                    <Button type="submit"><Save className="mr-2 h-4 w-4" /> Save Prompt</Button>
-                                                </DialogFooter>
-                                            </form>
-                                        </DialogContent>
-                                    </Dialog>
-                                </TableCell>
-                            </TableRow>
-                             <TableRow>
-                                <TableCell><Badge variant="outline" className="text-blue-600 border-blue-500/30">Cost Saving</Badge></TableCell>
-                                <TableCell>Switching to a faster model could save R1.2k/mo with minimal impact.</TableCell>
-                                <TableCell>
-                                    <Button asChild size="sm" variant="outline">
-                                        <Link href="/retailer-mvp/ab-testing">A/B Test Models</Link>
-                                    </Button>
+                                <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                                    No insights available.
                                 </TableCell>
                             </TableRow>
                         </TableBody>
@@ -250,11 +198,11 @@ export default function AIPerformanceMonitor() {
                     <div className="grid grid-cols-2 gap-4 text-center text-sm mt-4">
                         <div className="p-2 bg-green-100 rounded-lg">
                             <p className="font-semibold text-green-800">API Uptime</p>
-                            <p className="text-lg font-bold text-green-900">99.98%</p>
+                            <p className="text-lg font-bold text-green-900">0%</p>
                         </div>
                          <div className="p-2 bg-red-100 rounded-lg">
                             <p className="font-semibold text-red-800">Error Rate</p>
-                            <p className="text-lg font-bold text-red-900">0.02%</p>
+                            <p className="text-lg font-bold text-red-900">0%</p>
                         </div>
                     </div>
                 </CardContent>
@@ -264,14 +212,18 @@ export default function AIPerformanceMonitor() {
                     <CardTitle>Common Query Categories</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={{}} className="h-[200px] w-full">
-                        <RechartsPieChart>
-                            <Pie data={queryCategoriesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} fill="#8884d8">
-                                {queryCategoriesData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                            </Pie>
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Legend iconSize={10} />
-                        </RechartsPieChart>
+                    <ChartContainer config={{}} className="h-[200px] w-full flex items-center justify-center">
+                        {queryCategoriesData.length > 0 ? (
+                            <RechartsPieChart>
+                                <Pie data={queryCategoriesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} fill="#8884d8">
+                                    {queryCategoriesData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Legend iconSize={10} />
+                            </RechartsPieChart>
+                        ) : (
+                            <p className="text-muted-foreground">No data</p>
+                        )}
                     </ChartContainer>
                 </CardContent>
             </Card>

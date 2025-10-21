@@ -29,7 +29,7 @@ import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar, Load
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp, where, getDocs, limit } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -61,12 +61,7 @@ type AggregateMetrics = {
     topProducts: any[];
 };
 
-const analyticsChartData = [
-  { name: 'Week 1', impressions: 4000, clicks: 240 },
-  { name: 'Week 2', impressions: 3000, clicks: 139 },
-  { name: 'Week 3', impressions: 2000, clicks: 980 },
-  { name: 'Week 4', impressions: 2780, clicks: 390 },
-];
+const analyticsChartData: { name: string; impressions: number; clicks: number; }[] = [];
 
 function formatNumber(num: number, options?: Intl.NumberFormatOptions) {
     return new Intl.NumberFormat('en-US', options).format(num);
@@ -167,14 +162,18 @@ function AnalyticsDashboard({ metrics, campaigns, loading }: { metrics: Aggregat
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {topProductsData.map(product => (
+                            {topProductsData.length > 0 ? topProductsData.map(product => (
                                 <TableRow key={product.id}>
                                     <TableCell className="font-medium">{product.name}</TableCell>
                                     <TableCell>{product.clicks}</TableCell>
                                     <TableCell>{product.conversions}</TableCell>
                                     <TableCell className="text-right">R{product.revenue.toLocaleString()}</TableCell>
                                 </TableRow>
-                            ))}
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No product data available.</TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

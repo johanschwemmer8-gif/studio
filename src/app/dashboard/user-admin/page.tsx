@@ -39,6 +39,10 @@ import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { QrCode } from 'lucide-react';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 type User = {
   name: string;
@@ -60,6 +64,8 @@ export default function UserAdminPage() {
   const [landingLogoAlign, setLandingLogoAlign] = useState('flex-start');
   const [landingLogoPadding, setLandingLogoPadding] = useState(0);
 
+  const [formError, setFormError] = useState<string | null>(null);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -80,19 +86,31 @@ export default function UserAdminPage() {
     if (savedLandingPadding) setLandingLogoPadding(Number(savedLandingPadding));
   }, []);
 
-  const handleCreateUser = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormError(null);
     const form = event.currentTarget;
     const name = (form.elements.namedItem('name') as HTMLInputElement).value;
     const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
-    setUsers([...users, { name, email, role: 'Administrator' }]);
-    toast({
-        title: "User Created",
-        description: `${name} has been added to the user list.`,
-    });
-    form.reset();
-    setIsDialogOpen(false); 
+    if (!auth) {
+        setFormError("Firebase is not configured. Cannot create user.");
+        return;
+    }
+
+    try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        setUsers([...users, { name, email, role: 'Administrator' }]);
+        toast({
+            title: "User Created",
+            description: `${name} has been created in Firebase and can now log in.`,
+        });
+        form.reset();
+        setIsDialogOpen(false);
+    } catch (error: any) {
+        setFormError(error.message);
+    }
   };
   
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>, type: 'dashboard' | 'landing') => {
@@ -346,6 +364,13 @@ export default function UserAdminPage() {
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
+                            {formError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertDescription>{formError}</AlertDescription>
+                                </Alert>
+                            )}
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="name" className="text-right">
                                     Full Name

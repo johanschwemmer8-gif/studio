@@ -31,6 +31,7 @@ import '@/ai/flows/get-displays.ts';
 import '@/ai/flows/register-display.ts';
 import '@/ai/flows/remote-display-command.ts';
 import '@/ai/flows/assign-display-config.ts';
+import '@/ai/flows/get-executive-roi-metrics.ts';
 import { seedBillingData } from '@/lib/seed-billing';
 
 // Seed data on startup

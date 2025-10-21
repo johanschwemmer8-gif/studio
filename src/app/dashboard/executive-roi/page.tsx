@@ -1,14 +1,13 @@
 
-'use client';
+'use server';
 
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, Eye, TrendingUp, Users, ArrowUp, Percent, BarChart, Loader2 } from 'lucide-react';
-import { type SavedRetailer } from '@/app/dashboard/admin/page';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { getExecutiveRoiMetrics } from '@/ai/flows/get-executive-roi-metrics';
 
 
 type RetailerMetric = {
@@ -19,36 +18,10 @@ type RetailerMetric = {
     roi: number;
 };
 
-export default function ExecutiveROIPage() {
-  const [metrics, setMetrics] = useState<RetailerMetric[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function ExecutiveROIPage() {
+  const { metrics, aggregates } = await getExecutiveRoiMetrics();
 
-  useEffect(() => {
-    setLoading(true);
-    try {
-      const storedRetailers = localStorage.getItem('savedRetailers');
-      if (storedRetailers) {
-        const retailers: SavedRetailer[] = JSON.parse(storedRetailers);
-        // Here we would fetch real metrics, but for now we'll just map them to empty/zero data
-        const initialMetrics = retailers.map(r => ({
-            name: r.name,
-            totalScans: 0,
-            basketUplift: 0,
-            revenueUplift: 0,
-            roi: 0,
-        }));
-        setMetrics(initialMetrics);
-      }
-    } catch (error) {
-      console.error("Failed to load retailer data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const totalRevenueUplift = metrics.reduce((acc, curr) => acc + curr.revenueUplift, 0);
-  const averageBasketUplift = metrics.length > 0 ? metrics.reduce((acc, curr) => acc + curr.basketUplift, 0) / metrics.length : 0;
-  const averageRoi = metrics.length > 0 ? metrics.reduce((acc, curr) => acc + curr.roi, 0) / metrics.length : 0;
+  const { totalRevenueUplift, averageBasketUplift, averageRoi } = aggregates;
 
   return (
     <div className="space-y-8">
@@ -112,9 +85,7 @@ export default function ExecutiveROIPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-              ) : metrics.length === 0 ? (
+              {metrics.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No retailers found. Add a retailer in the Admin Panel.</TableCell></TableRow>
               ) : (
                 metrics.map((metric) => (

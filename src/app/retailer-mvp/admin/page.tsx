@@ -14,22 +14,19 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Slider } from '@/components/ui/slider';
 import { Save, Image as ImageIcon } from 'lucide-react';
+import { useTheme } from '@/context/theme-context';
 
 export default function RetailerAdminPage() {
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [logoWidth, setLogoWidth] = useState(128);
+    const { logoUrl, logoWidth, setLogoUrl, setLogoWidth } = useTheme();
+    const [logoPreview, setLogoPreview] = useState<string | null>(logoUrl);
+    const [widthPreview, setWidthPreview] = useState<number>(logoWidth);
     const { toast } = useToast();
 
     useEffect(() => {
-        const savedLogo = localStorage.getItem('retailer-mvp-logo');
-        if (savedLogo) {
-            setLogoPreview(savedLogo);
-        }
-        const savedWidth = localStorage.getItem('retailer-mvp-logo-width');
-        if (savedWidth) {
-            setLogoWidth(Number(savedWidth));
-        }
-    }, []);
+        setLogoPreview(logoUrl);
+        setWidthPreview(logoWidth);
+    }, [logoUrl, logoWidth]);
+
 
     const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -43,23 +40,12 @@ export default function RetailerAdminPage() {
     };
 
     const handleSaveLogo = () => {
-        if (logoPreview) {
-            localStorage.setItem('retailer-mvp-logo', logoPreview);
-            localStorage.setItem('retailer-mvp-logo-width', String(logoWidth));
-            window.dispatchEvent(new CustomEvent('logoUpdated'));
-            toast({
-                title: "Logo Saved",
-                description: "Your new logo and size settings have been saved."
-            });
-        } else {
-            localStorage.removeItem('retailer-mvp-logo');
-            localStorage.removeItem('retailer-mvp-logo-width');
-            window.dispatchEvent(new CustomEvent('logoUpdated'));
-            toast({
-                title: "Logo Removed",
-                description: "The logo has been removed."
-            });
-        }
+        setLogoUrl(logoPreview);
+        setLogoWidth(widthPreview);
+        toast({
+            title: "Logo Saved",
+            description: "Your new logo and size settings have been saved."
+        });
     };
 
     return (
@@ -87,10 +73,10 @@ export default function RetailerAdminPage() {
                                     <Image 
                                         src={logoPreview} 
                                         alt="Logo Preview" 
-                                        width={logoWidth} 
-                                        height={logoWidth / (128/50)}
+                                        width={widthPreview} 
+                                        height={widthPreview / (128/50)}
                                         className="h-auto"
-                                        style={{ width: `${logoWidth}px` }}
+                                        style={{ width: `${widthPreview}px` }}
                                     />
                                 ) : (
                                     <div className="text-xs text-muted-foreground flex flex-col items-center gap-1">
@@ -102,14 +88,14 @@ export default function RetailerAdminPage() {
                             <div className="flex-1 w-full space-y-4">
                                 <Input id="logo-upload-mvp" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
                                 <div>
-                                    <Label htmlFor="logo-size-mvp">Logo Width: {logoWidth}px</Label>
+                                    <Label htmlFor="logo-size-mvp">Logo Width: {widthPreview}px</Label>
                                     <Slider
                                         id="logo-size-mvp"
                                         min={40}
                                         max={240}
                                         step={2}
-                                        value={[logoWidth]}
-                                        onValueChange={(value) => setLogoWidth(value[0])}
+                                        value={[widthPreview]}
+                                        onValueChange={(value) => setWidthPreview(value[0])}
                                     />
                                 </div>
                                 <p className="text-xs text-muted-foreground">Upload a .png, .jpg, or .svg file. Max size: 1MB.</p>

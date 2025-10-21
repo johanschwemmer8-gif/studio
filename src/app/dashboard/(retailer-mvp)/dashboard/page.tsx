@@ -2,7 +2,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { Separator } from '@/components/ui/separator';
-import { storesByRegion, roiMetrics, ytdData, dashboardMetrics } from '@/lib/data';
+import { storesByRegion } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
 import {
   Card,
@@ -11,13 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DollarSign, TrendingUp, Sparkles, AlertTriangle } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import YtdPerformanceChart from '@/components/dashboard/ytd-performance-chart';
+import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import theme from '@/config/theme.json';
+import { getScanAnalytics } from '@/ai/flows/scan-analytics';
 
 
 export default function DashboardPage() {
@@ -27,6 +27,9 @@ export default function DashboardPage() {
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+
+  const { optionalModules } = theme;
 
   const handleStoreChange = (store: string | null) => {
     setSelectedStore(store);
@@ -37,27 +40,36 @@ export default function DashboardPage() {
     setSelectedStore(null); // Reset store when region changes
   };
 
+  useState(() => {
+    getScanAnalytics({
+      retailerId: 'simulated-retailer-id', // In a real app, this would come from auth
+      limit: 1000,
+    }).then(data => {
+      setAnalyticsData(data);
+    });
+  });
+
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
         try {
-            const metrics = dashboardMetrics.getMetrics(selectedStore);
-            const result = await analyzeEngagementMetrics({
-                engagement: {
-                  totalScans: metrics.stats.totalScans,
-                  uniqueScans: metrics.stats.uniqueScans,
-                  engagementDuration: metrics.stats.engagementDuration,
-                  scanRate: metrics.stats.scanRate,
-                },
-                conversion: {
-                    avgBasketSizeAoe: metrics.stats.avgBasketSizeAoe,
-                    avgBasketSizeNonAoe: metrics.stats.avgBasketSizeNonAoe,
-                    basketUpliftPercentage: metrics.stats.basketUpliftPercentage,
-                    offerRedemptionRate: metrics.stats.offerRedemptionRate,
-                    totalRedeemedValue: metrics.stats.totalRedeemedValue,
-                    aoeTransactions: metrics.stats.aoeTransactions,
-                }
-            });
+            const metrics = {
+              engagement: {
+                totalScans: analyticsData?.totalScans || 0,
+                uniqueScans: analyticsData?.uniqueScans || 0,
+                engagementDuration: 0,
+                scanRate: 0,
+              },
+              conversion: {
+                  avgBasketSizeAoe: 0,
+                  avgBasketSizeNonAoe: 0,
+                  basketUpliftPercentage: 0,
+                  offerRedemptionRate: 0,
+                  totalRedeemedValue: 0,
+                  aoeTransactions: 0,
+              }
+            }
+            const result = await analyzeEngagementMetrics(metrics);
             setAnalysis(result);
         } catch (e) {
             console.error(e);
@@ -65,6 +77,37 @@ export default function DashboardPage() {
         }
     });
   };
+  
+  const currentMetrics = {
+    uniqueScans: analyticsData?.uniqueScans || 0,
+    engagementRate: 0,
+    offerRedemption: 0,
+    basketUplift: 0,
+    conversionRate: 0,
+    dwellTime: 0
+  };
+
+  if(!analyticsData) {
+    return (
+      <div className="space-y-8">
+        <Skeleton className="h-10 w-full" />
+        <Separator />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-4 w-3/4" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-28 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -83,17 +126,20 @@ export default function DashboardPage() {
             <div>
               <CardTitle>Executive Summary: The ROI Hero Section</CardTitle>
               <CardDescription>
-                A high-level overview of key performance indicators for your iNteract-AOE investment.
+                A high-level overview of the key performance indicators for your investment in the iNteract-AOE platform.
               </CardDescription>
             </div>
-             <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Analyze Summary
-            </Button>
+            {optionalModules.performanceAnalysis && (
+              <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Analyze Summary
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+
             {isAnalyzing && (
                 <Card>
                   <CardHeader>
@@ -145,80 +191,84 @@ export default function DashboardPage() {
                 </Card>
             )}
 
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+               <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Scans</CardTitle>
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{analyticsData.totalScans.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    All QR code scans across all stores.
+                  </p>
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Revenue Uplift to Cost Ratio</CardTitle>
+                  <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{roiMetrics.revenueUpliftToCostRatio}:1</div>
-                  <p className="text-xs text-muted-foreground">
-                    For every R1 spent, you are generating R{roiMetrics.revenueUpliftToCostRatio.toFixed(2)} in return.
+                  <div className="text-3xl font-bold">{currentMetrics.engagementRate}%</div>
+                   <p className="text-xs text-muted-foreground">
+                    Percentage of unique visitors who scanned.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue Uplift YTD</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
+                  <Tag className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">R{roiMetrics.totalRevenueUplift.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{currentMetrics.offerRedemption}%</div>
                   <p className="text-xs text-muted-foreground">
-                    Directly attributable to in-store engagements.
+                    Rate of personalized offers redeemed.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Subscription Cost YTD</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Basket Uplift</CardTitle>
+                  <ArrowUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">R{roiMetrics.subscriptionCost.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Fixed monthly platform investment.
+                  <div className="text-3xl font-bold">{currentMetrics.basketUplift}%</div>
+                   <p className="text-xs text-muted-foreground">
+                    Increase in average basket size for engaged users.
+                  </p>
+                </CardContent>
+              </Card>
+               <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                  <Percent className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{currentMetrics.conversionRate}%</div>
+                   <p className="text-xs text-muted-foreground">
+                    Engaged users who made a purchase.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Net Gain/Loss YTD</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Dwell Time</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${roiMetrics.netGainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    R{roiMetrics.netGainLoss.toLocaleString()}
-                  </div>
+                  <div className="text-3xl font-bold">{currentMetrics.dwellTime}s</div>
                   <p className="text-xs text-muted-foreground">
-                    Absolute profit after subscription costs.
+                    Average time spent on product page after scan.
                   </p>
                 </CardContent>
               </Card>
-              <div className="lg:col-span-2">
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">Progress to Break-Even</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <div className="flex items-center gap-4">
-                          <Progress value={roiMetrics.progressToBreakEven} className="h-3" />
-                          <span className="text-lg font-bold">{roiMetrics.progressToBreakEven}%</span>
-                      </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      How close you are to recouping your monthly investment.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
             </div>
           </div>
         </CardContent>
       </Card>
-      
-      <YtdPerformanceChart data={ytdData} />
-      
     </div>
   );
 }

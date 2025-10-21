@@ -17,7 +17,7 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone, DollarSign } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone, DollarSign, Activity } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
@@ -151,6 +151,11 @@ export default function DashboardLayout({
                     <Link href="/dashboard/executive-roi"><DollarSign /><span>Executive ROI</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Real-time Feed">
+                    <Link href="/dashboard/platform-security"><Activity /><span>Real-time Feed</span></Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Retailer's Dashboard Management">
                 <Link href="/dashboard/retailers-dashboards">
@@ -176,11 +181,6 @@ export default function DashboardLayout({
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="AI Policy & Compliance">
                             <Link href="/dashboard/ai-policy"><Shield /><span>AI Policy</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Platform Security">
-                            <Link href="/dashboard/platform-security"><Shield /><span>Platform Security</span></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>

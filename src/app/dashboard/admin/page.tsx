@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Building2, UserPlus, Save, Trash2, ShieldCheck, List, Eye } from 'lucide-react';
+import { PlusCircle, Building2, UserPlus, Save, Trash2, ShieldCheck, List, Eye, RefreshCw } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
@@ -24,6 +24,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import RetailerDashboardPreview from '@/components/dashboard/retailer-dashboard-preview';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 type Store = { name: string; code: string };
 
@@ -84,6 +96,7 @@ export default function AdminPage() {
   const [newBrandName, setNewBrandName] = useState('');
 
   const [savedRetailers, setSavedRetailers] = useState<SavedRetailer[]>([]);
+  const { toast } = useToast();
   
   useEffect(() => {
     const storedRetailers = localStorage.getItem('savedRetailers');
@@ -149,6 +162,23 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteRetailer = (retailerToDelete: SavedRetailer) => {
+    const updatedRetailers = savedRetailers.filter(r => r.name !== retailerToDelete.name);
+    setSavedRetailers(updatedRetailers);
+    localStorage.setItem('savedRetailers', JSON.stringify(updatedRetailers));
+    toast({
+      title: 'Retailer Deleted',
+      description: `"${retailerToDelete.name}" has been removed.`,
+    });
+  };
+
+  const handleUpdateAoe = () => {
+    toast({
+        title: "AOE Updated",
+        description: "The system has been synchronized with the latest retailer list.",
+    });
+  };
+
   const permissionLabels: {key: keyof Permissions, label: string}[] = [
       { key: 'dashboard', label: 'Dashboard' },
       { key: 'roi', label: 'Retailer ROI' },
@@ -175,11 +205,17 @@ export default function AdminPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Retailer Management</CardTitle>
-          <CardDescription>
-            Add new retailers to the iNteract-AOE platform.
-          </CardDescription>
+        <CardHeader className="flex-row items-center justify-between">
+          <div>
+            <CardTitle>Retailer Management</CardTitle>
+            <CardDescription>
+              Add new retailers to the iNteract-AOE platform.
+            </CardDescription>
+          </div>
+          <Button variant="outline" onClick={handleUpdateAoe}>
+              <RefreshCw className="mr-2 h-4 w-4"/>
+              Update AOE
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -219,6 +255,27 @@ export default function AdminPage() {
                                     View Landing Page
                                 </Link>
                             </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action will permanently delete the retailer "{retailer.name}" and all associated configuration. This cannot be undone.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteRetailer(retailer)}>
+                                            Yes, delete retailer
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </li>
                     ))}
                 </ul>

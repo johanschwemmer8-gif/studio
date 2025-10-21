@@ -23,11 +23,7 @@ function slugify(text: string) {
 }
 
 export default function RetailerDashboardPreview({ retailer }: RetailerDashboardPreviewProps) {
-  const chartData = [
-    { month: 'Jan', revenue: Math.floor(Math.random() * 2000) + 1000 },
-    { month: 'Feb', revenue: Math.floor(Math.random() * 2000) + 1000 },
-    { month: 'Mar', revenue: Math.floor(Math.random() * 2000) + 1000 },
-  ];
+  const chartData: { month: string; revenue: number; }[] = [];
 
   return (
     <Card className="flex flex-col">
@@ -41,13 +37,13 @@ export default function RetailerDashboardPreview({ retailer }: RetailerDashboard
             <h4 className="font-semibold flex items-center gap-1">
               <TrendingUp className="h-3 w-3" /> ROI Ratio
             </h4>
-            <p className="font-bold text-base">3.5:1</p>
+            <p className="font-bold text-base">0:1</p>
           </div>
           <div className="p-2 rounded-md bg-muted">
             <h4 className="font-semibold flex items-center gap-1">
               <DollarSign className="h-3 w-3" /> Net Gain
             </h4>
-            <p className="font-bold text-base">R45k</p>
+            <p className="font-bold text-base">R0</p>
           </div>
         </div>
         <div>

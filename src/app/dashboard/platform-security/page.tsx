@@ -37,27 +37,11 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
-const activityData = [
-    { retailer: 'Woolworths', store: 'Sandton City', product: 'Organic Avocados', interaction: 'Scanned', conversion: true, time: 'now' },
-    { retailer: 'Pick n Pay', store: 'Claremont', product: 'Free Range Eggs', interaction: 'AI Chat', conversion: false, time: '1m ago' },
-    { retailer: 'Dis-Chem', store: 'Gateway', product: 'Vitamin C 1000mg', interaction: 'Scanned', conversion: true, time: '2m ago' },
-    { retailer: 'Checkers', store: 'Mall of Africa', product: 'Gourmet Coffee Beans', interaction: 'Scanned', conversion: false, time: '3m ago' },
-    { retailer: 'SPAR', store: 'Constantia', product: 'Artisan Sourdough', interaction: 'Scanned', conversion: true, time: '5m ago' },
-];
+const activityData: { retailer: string; store: string; product: string; interaction: string; conversion: boolean; time: string; }[] = [];
 
-const topQrCodes = [
-    { id: 'QR-W-101', product: 'Organic Avocados', retailer: 'Woolworths', scans: '1.2k', conversions: 84, rate: '7.0%' },
-    { id: 'QR-P-202', product: 'Free Range Eggs', retailer: 'Pick n Pay', scans: '980', conversions: 62, rate: '6.3%' },
-    { id: 'QR-D-303', product: 'Vitamin C 1000mg', retailer: 'Dis-Chem', scans: '850', conversions: 95, rate: '11.2%' },
-];
+const topQrCodes: { id: string; product: string; retailer: string; scans: string; conversions: number; rate: string; }[] = [];
 
-const healthData = [
-  { name: '00:00', api: 50, ai: 120 },
-  { name: '06:00', api: 60, ai: 130 },
-  { name: '12:00', api: 55, ai: 125 },
-  { name: '18:00', api: 70, ai: 140 },
-  { name: '23:59', api: 65, ai: 135 },
-];
+const healthData: { name: string; api: number; ai: number; }[] = [];
 
 const chartConfig = {
   api: {
@@ -81,10 +65,10 @@ export default function BackendManagementDashboard() {
             {/* Column 1 */}
             <div className="lg:col-span-3 space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Active Retailers</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">247</div><p className="text-xs text-muted-foreground">+12% from last month</p></CardContent></Card>
-                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">QR Codes Generated</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">18,492</div><p className="text-xs text-muted-foreground">+24% from last month</p></CardContent></Card>
-                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Daily Scans</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">12,847</div><p className="text-xs text-muted-foreground">-3% from yesterday</p></CardContent></Card>
-                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">AI Interactions</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">8,934</div><p className="text-xs text-muted-foreground">+18% from yesterday</p></CardContent></Card>
+                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Active Retailers</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">0</div><p className="text-xs text-muted-foreground">+0% from last month</p></CardContent></Card>
+                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">QR Codes Generated</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">0</div><p className="text-xs text-muted-foreground">+0% from last month</p></CardContent></Card>
+                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Daily Scans</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">0</div><p className="text-xs text-muted-foreground">+0% from yesterday</p></CardContent></Card>
+                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">AI Interactions</CardTitle></CardHeader><CardContent><div className="text-4xl font-bold">0</div><p className="text-xs text-muted-foreground">+0% from yesterday</p></CardContent></Card>
                 </div>
                 <div className="grid md:grid-cols-5 gap-6">
                     <Card className="md:col-span-3 glassmorphic-card">
@@ -102,7 +86,9 @@ export default function BackendManagementDashboard() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {activityData.map((item, index) =>(
+                                    {activityData.length === 0 ? (
+                                        <TableRow><TableCell colSpan={3} className="text-center h-24">No activity yet.</TableCell></TableRow>
+                                    ) : activityData.map((item, index) =>(
                                         <TableRow key={index}>
                                             <TableCell>
                                                 <div className="font-medium">{item.retailer}</div>
@@ -150,7 +136,9 @@ export default function BackendManagementDashboard() {
                     </CardHeader>
                     <CardContent>
                          <div className="space-y-4">
-                            {topQrCodes.map((item, index) =>(
+                            {topQrCodes.length === 0 ? (
+                                <p className="text-center text-sm text-muted-foreground py-4">No data available.</p>
+                            ) : topQrCodes.map((item, index) =>(
                                 <div key={index} className="flex justify-between items-center">
                                     <div>
                                         <div className="font-mono text-xs">{item.id}</div>

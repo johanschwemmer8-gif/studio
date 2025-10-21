@@ -10,24 +10,14 @@ import { type SavedRetailer } from '@/app/dashboard/admin/page';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-// Mock data generation for demonstration purposes
-const generateRetailerMetrics = (retailerName: string) => {
-  const scans = Math.floor(Math.random() * 5000) + 1000;
-  const uplift = parseFloat((Math.random() * 10 + 5).toFixed(1));
-  const revenueUplift = scans * (Math.random() * 15 + 5);
-  const cost = 1250 * 12; // Assuming a fixed annual cost for simplicity
-  const roi = revenueUplift > cost ? parseFloat(((revenueUplift - cost) / cost).toFixed(2)) : 0;
 
-  return {
-    name: retailerName,
-    totalScans: scans,
-    basketUplift: uplift,
-    revenueUplift: revenueUplift,
-    roi: roi,
-  };
+type RetailerMetric = {
+    name: string;
+    totalScans: number;
+    basketUplift: number;
+    revenueUplift: number;
+    roi: number;
 };
-
-type RetailerMetric = ReturnType<typeof generateRetailerMetrics>;
 
 export default function ExecutiveROIPage() {
   const [metrics, setMetrics] = useState<RetailerMetric[]>([]);
@@ -39,8 +29,15 @@ export default function ExecutiveROIPage() {
       const storedRetailers = localStorage.getItem('savedRetailers');
       if (storedRetailers) {
         const retailers: SavedRetailer[] = JSON.parse(storedRetailers);
-        const generatedMetrics = retailers.map(r => generateRetailerMetrics(r.name));
-        setMetrics(generatedMetrics);
+        // Here we would fetch real metrics, but for now we'll just map them to empty/zero data
+        const initialMetrics = retailers.map(r => ({
+            name: r.name,
+            totalScans: 0,
+            basketUplift: 0,
+            revenueUplift: 0,
+            roi: 0,
+        }));
+        setMetrics(initialMetrics);
       }
     } catch (error) {
       console.error("Failed to load retailer data:", error);

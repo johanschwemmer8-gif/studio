@@ -28,12 +28,7 @@ const initialData = [
   { time: '0s', users: 0, rps: 0, errors: 0 },
 ];
 
-const latencyData = [
-    { service: 'QR Tracking API', p50: 45, p95: 120, p99: 250 },
-    { service: 'AI Recommendation Flow', p50: 350, p95: 850, p99: 1500 },
-    { service: 'Inventory Check', p50: 80, p95: 200, p99: 400 },
-    { service: 'User Authentication', p50: 60, p95: 150, p99: 300 },
-];
+const latencyData: { service: string; p50: number; p95: number; p99: number; }[] = [];
 
 export default function PerformanceDashboardPage() {
   const [isTestRunning, setIsTestRunning] = useState(false);
@@ -96,10 +91,10 @@ export default function PerformanceDashboardPage() {
       <Separator />
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">API Gateway (p95)</CardTitle><Server className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">180ms</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Database CPU</CardTitle><Database className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">45%</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">AI Model Avg. Response</CardTitle><BrainCircuit className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">650ms</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Throughput</CardTitle><Gauge className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">850 req/s</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">API Gateway (p95)</CardTitle><Server className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">0ms</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Database CPU</CardTitle><Database className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">0%</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">AI Model Avg. Response</CardTitle><BrainCircuit className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">0ms</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Throughput</CardTitle><Gauge className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">0 req/s</div></CardContent></Card>
       </div>
 
        <Card>
@@ -142,7 +137,9 @@ export default function PerformanceDashboardPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {latencyData.map(item => (
+                    {latencyData.length === 0 ? (
+                        <TableRow><TableCell colSpan={4} className="text-center h-24">Run a load test to see latency data.</TableCell></TableRow>
+                    ) : latencyData.map(item => (
                         <TableRow key={item.service}>
                             <TableCell className="font-medium">{item.service}</TableCell>
                             <TableCell>{item.p50}ms</TableCell>

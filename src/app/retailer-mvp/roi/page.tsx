@@ -59,30 +59,9 @@ export default function RoiPage() {
     });
   };
 
-  const monthlyEngagementConversionData = [
-    { time: 'Mar', engagement: 68, conversion: 18 },
-    { time: 'Apr', engagement: 72, conversion: 20 },
-    { time: 'May', engagement: 75, conversion: 22 },
-    { time: 'Jun', engagement: 71, conversion: 19 },
-    { time: 'Jul', engagement: 78, conversion: 25 },
-    { time: 'Aug', engagement: 82, conversion: 28 },
-    { time: 'Sep', engagement: 85, conversion: 30 },
-    { time: 'Oct', engagement: 88, conversion: 32 },
-    { time: 'Nov', engagement: 92, conversion: 35 },
-    { time: 'Dec', engagement: 95, conversion: 40 },
-    { time: 'Jan', engagement: 90, conversion: 36 },
-    { time: 'Feb', engagement: 87, conversion: 33 },
-  ];
+  const monthlyEngagementConversionData: { time: string; engagement: number; conversion: number; }[] = [];
 
-  const dailyEngagementConversionData = [
-    { time: 'Mon', engagement: 60, conversion: 15 },
-    { time: 'Tue', engagement: 65, conversion: 18 },
-    { time: 'Wed', engagement: 70, conversion: 20 },
-    { time: 'Thu', engagement: 75, conversion: 22 },
-    { time: 'Fri', engagement: 85, conversion: 30 },
-    { time: 'Sat', engagement: 95, conversion: 40 },
-    { time: 'Sun', engagement: 80, conversion: 28 },
-  ];
+  const dailyEngagementConversionData: { time: string; engagement: number; conversion: number; }[] = [];
 
 
   return (
@@ -220,8 +199,8 @@ export default function RoiPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <TimeBasedPerformanceChart data={monthlyEngagementConversionData} title="Monthly Engagement &amp; Conversion" description="Engagement and conversion rates by month." />
-        <TimeBasedPerformanceChart data={dailyEngagementConversionData} title="Daily Engagement &amp; Conversion" description="Engagement and conversion rates by day of the week." />
+        <TimeBasedPerformanceChart data={monthlyEngagementConversionData} title="Monthly Engagement & Conversion" description="Engagement and conversion rates by month." />
+        <TimeBasedPerformanceChart data={dailyEngagementConversionData} title="Daily Engagement & Conversion" description="Engagement and conversion rates by day of the week." />
       </div>
       
       <div className="grid grid-cols-1 gap-8">

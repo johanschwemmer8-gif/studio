@@ -45,23 +45,9 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis } from 'recharts';
 import { Label } from '@/components/ui/label';
 
-const sampleRetailers = [
-  { id: 1, logo: '', name: 'Woolworths', owner: 'John Doe', email: 'john@woolworths.co.za', plan: 'Enterprise', qrCodes: 5200, monthlyScans: 18500, lastActive: '2h ago', status: 'Active' },
-  { id: 2, logo: '', name: 'Pick n Pay', owner: 'Jane Smith', email: 'jane@pnp.co.za', plan: 'Professional', qrCodes: 1800, monthlyScans: 9800, lastActive: '1d ago', status: 'Active' },
-  { id: 3, logo: '', name: 'Dis-Chem', owner: 'Peter Jones', email: 'peter@dischem.co.za', plan: 'Professional', qrCodes: 950, monthlyScans: 4200, lastActive: '3d ago', status: 'Inactive' },
-  { id: 4, logo: '', name: 'Clicks', owner: 'Mary Williams', email: 'mary@clicks.co.za', plan: 'Basic', qrCodes: 480, monthlyScans: 1500, lastActive: '1w ago', status: 'Suspended' },
-  { id: 5, logo: '', name: 'Makro', owner: 'David Brown', email: 'david@makro.co.za', plan: 'Enterprise', qrCodes: 8500, monthlyScans: 25000, lastActive: '5h ago', status: 'Active' },
-  { id: 6, logo: '', name: 'Game', owner: 'Susan Davis', email: 'susan@game.co.za', plan: 'Trial', qrCodes: 100, monthlyScans: 300, lastActive: '2w ago', status: 'Pending' },
-];
+const sampleRetailers: { id: number; logo: string; name: string; owner: string; email: string; plan: string; qrCodes: number; monthlyScans: number; lastActive: string; status: string; }[] = [];
 
-const performanceChartData = [
-    { month: "Jan", revenue: 186, scans: 80 },
-    { month: "Feb", revenue: 305, scans: 200 },
-    { month: "Mar", revenue: 237, scans: 120 },
-    { month: "Apr", revenue: 73, scans: 190 },
-    { month: "May", revenue: 209, scans: 130 },
-    { month: "Jun", revenue: 214, scans: 140 },
-];
+const performanceChartData: { month: string; revenue: number; scans: number; }[] = [];
 
 function RetailerProfileModal({ retailer, open, onOpenChange }: { retailer: any; open: boolean; onOpenChange: (open: boolean) => void }) {
     if (!retailer) return null;
@@ -102,7 +88,7 @@ function RetailerProfileModal({ retailer, open, onOpenChange }: { retailer: any;
                         <div className="grid grid-cols-3 gap-4">
                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">QR Codes</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{retailer.qrCodes}</div></CardContent></Card>
                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Scans/mo</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{retailer.monthlyScans}</div></CardContent></Card>
-                           <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Revenue/mo</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">R12.4k</div></CardContent></Card>
+                           <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Revenue/mo</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">R0</div></CardContent></Card>
                         </div>
                         <Card>
                             <CardHeader><CardTitle className="text-base">Performance</CardTitle></CardHeader>
@@ -234,7 +220,13 @@ export default function RetailerManagementInterface() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sampleRetailers.map(retailer => (
+              {sampleRetailers.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                        No retailers have been added yet.
+                    </TableCell>
+                </TableRow>
+              ) : (sampleRetailers.map(retailer => (
                 <TableRow key={retailer.id}>
                     <TableCell><Checkbox/></TableCell>
                     <TableCell>
@@ -268,15 +260,15 @@ export default function RetailerManagementInterface() {
                         </DropdownMenu>
                     </TableCell>
                 </TableRow>
-              ))}
+              )))}
             </TableBody>
           </Table>
         </CardContent>
         <CardFooter className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">Showing 1-6 of {sampleRetailers.length} retailers</p>
+            <p className="text-sm text-muted-foreground">Showing 0 of {sampleRetailers.length} retailers</p>
             <div className="flex gap-2">
-                <Button variant="outline" size="sm">Previous</Button>
-                <Button variant="outline" size="sm">Next</Button>
+                <Button variant="outline" size="sm" disabled>Previous</Button>
+                <Button variant="outline" size="sm" disabled>Next</Button>
             </div>
         </CardFooter>
       </Card>

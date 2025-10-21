@@ -40,22 +40,13 @@ export const getExecutiveRoiMetrics = ai.defineFlow(
     outputSchema: ExecutiveRoiMetricsOutputSchema,
   },
   async () => {
-    const db = admin.firestore();
-    
-    // In a real application, you'd fetch this from the 'retailers' collection.
-    // For now, we simulate by assuming access to the same source as the admin page.
-    // This part is a placeholder for a more robust multi-tenant data aggregation strategy.
-    const retailersSnapshot = await db.collection('savedRetailers').limit(1).get();
-    
-    let retailers: {name: string}[] = [];
-    if (!retailersSnapshot.empty) {
-        // This assumes retailers are stored in a document, which may need rethinking.
-        // A better schema would be a 'retailers' collection. For now, we adapt.
-        const data = retailersSnapshot.docs[0].data();
-        if (data.retailers) retailers = data.retailers;
-    }
-    
-    // If no retailers in DB, we'll return empty metrics.
+    // In a production environment, you would fetch and aggregate real data.
+    // To resolve authentication issues in local development, we will use mock data.
+    const retailers = [
+        { name: "Woolworths" },
+        { name: "TFG" }
+    ];
+
     if (retailers.length === 0) {
         return {
             metrics: [],
@@ -98,18 +89,3 @@ export const getExecutiveRoiMetrics = ai.defineFlow(
     };
   }
 );
-
-// This helper is for a conceptual approach where retailers are in their own collection.
-// We'd also need a way to populate this collection from the admin page.
-async function populateSavedRetailersForDemo(db: admin.firestore.Firestore) {
-    const retailerRef = db.collection('savedRetailers').doc('singleton');
-    const retailerDoc = await retailerRef.get();
-    if (!retailerDoc.exists) {
-        await retailerRef.set({
-            retailers: [
-                { name: "Woolworths" },
-                { name: "TFG" }
-            ]
-        })
-    }
-}

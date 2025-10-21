@@ -8,7 +8,7 @@ export default function DashboardRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/dashboard/user-admin');
+    router.replace('/dashboard/admin');
   }, [router]);
 
   return null; 

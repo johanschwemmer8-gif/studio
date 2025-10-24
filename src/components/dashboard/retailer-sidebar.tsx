@@ -77,8 +77,8 @@ export default function RetailerSidebar({
                 </SidebarMenuItem>
                 {optionalModules.qrManagement && (
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="QR Management">
-                      <Link href="/retailer-mvp/qr-management"><QrCode /><span>QR Management</span></Link>
+                    <SidebarMenuButton asChild tooltip="QR Campaign Management System">
+                      <Link href="/retailer-mvp/qr-management"><QrCode /><span>QR Campaigns</span></Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}

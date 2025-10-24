@@ -18,8 +18,11 @@ const QrOptionsSchema = z.object({
   bgColorHex: z.string().optional(),
   logoPath: z.string().url().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).default('M'),
-  aiTone: z.string().optional(),
-  aiGoal: z.string().optional(),
+  aiTone: z.string().optional().describe("e.g., Playful and exciting, Professional and informative"),
+  aiGoal: z.string().optional().describe("e.g., Drive sales for the new shoe line"),
+  aiPersona: z.string().optional().describe("e.g., Expert Denim Stylist, Friendly In-Store Helper"),
+  aiKeyPoints: z.string().optional().describe("e.g., - Made from 100% organic cotton\n- Water-saving dye process\n- 5-year durability guarantee"),
+  aiOffer: z.string().optional().describe("e.g., 15% off today only, Free sample with purchase"),
   expiresAt: z.string().datetime().optional(),
   redirectType: z.enum(['permanent', 'temporary']).default('temporary'),
 });

@@ -41,8 +41,12 @@ const styleSchema = z.object({
   bgColorHex: z.string().optional(),
   logoPath: z.string().url().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).default('M'),
-  aiTone: z.string().optional(),
-  aiGoal: z.string().optional(),
+  // Expanded AI Options
+  aiTone: z.string().optional().describe("e.g., Playful and exciting, Professional and informative"),
+  aiGoal: z.string().optional().describe("e.g., Drive sales for the new shoe line"),
+  aiPersona: z.string().optional().describe("e.g., Expert Denim Stylist, Friendly In-Store Helper"),
+  aiKeyPoints: z.string().optional().describe("e.g., - Made from 100% organic cotton\n- Water-saving dye process\n- 5-year durability guarantee"),
+  aiOffer: z.string().optional().describe("e.g., 15% off today only, Free sample with purchase"),
 });
 
 const formSchema = z.object({
@@ -67,11 +71,11 @@ export default function BulkQRCodeGenerator() {
             count: 100,
             baseRedirect: 'https://',
             options: {
-              colorHex: '#000000',
-              bgColorHex: '#FFFFFF',
-              errorCorrection: 'M',
               aiTone: 'Professional',
-              aiGoal: 'Drive sales'
+              aiGoal: 'Drive sales',
+              aiPersona: 'Knowledgeable product expert',
+              aiKeyPoints: '',
+              aiOffer: '',
             }
         },
     });
@@ -212,17 +216,31 @@ export default function BulkQRCodeGenerator() {
                                              <Card className="p-4">
                                                 <div className="p-4 border rounded-md space-y-4 bg-muted/30">
                                                     <h4 className="font-semibold flex items-center gap-2"><Sparkles className="text-accent" /> AI Content Generation</h4>
-                                                        <div className="grid md:grid-cols-2 gap-6">
-                                                        <div>
-                                                            <Label htmlFor="aiTone">AI Tone</Label>
-                                                            <Textarea id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
+                                                    <div className="grid md:grid-cols-2 gap-6">
+                                                        <div className="space-y-4">
+                                                          <div>
+                                                              <Label htmlFor="aiPersona">AI Persona / Role</Label>
+                                                              <Input id="aiPersona" {...form.register('options.aiPersona')} placeholder="e.g., Expert Denim Stylist" />
+                                                          </div>
+                                                          <div>
+                                                              <Label htmlFor="aiTone">AI Tone</Label>
+                                                              <Input id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
+                                                          </div>
                                                         </div>
                                                         <div>
                                                             <Label htmlFor="aiGoal">Campaign Goal</Label>
                                                             <Textarea id="aiGoal" {...form.register('options.aiGoal')} placeholder="e.g., Drive sales for the new shoe line" />
                                                         </div>
+                                                        <div>
+                                                            <Label htmlFor="aiKeyPoints">Key Selling Points (one per line)</Label>
+                                                            <Textarea id="aiKeyPoints" {...form.register('options.aiKeyPoints')} placeholder="- Made from 100% organic cotton&#x0a;- Water-saving dye process&#x0a;- 5-year durability guarantee" rows={4} />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="aiOffer">Offer / Incentive (optional)</Label>
+                                                            <Input id="aiOffer" {...form.register('options.aiOffer')} placeholder="e.g., 15% off today only" />
+                                                        </div>
                                                     </div>
-                                                     <Button type="submit" disabled={isSubmitting} className="w-full">
+                                                     <Button type="submit" disabled={isSubmitting} className="w-full mt-4">
                                                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
                                                         Queue Generation Job
                                                     </Button>

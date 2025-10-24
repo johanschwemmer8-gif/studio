@@ -17,12 +17,13 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Image as ImageIcon, Palette } from 'lucide-react';
+import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Image as ImageIcon, Palette, LayoutTemplate } from 'lucide-react';
 import PhoneMockup from '@/components/dashboard/phone-mockup';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Template1, Template2, Template3, Template4, Template5, Template6 } from '@/components/dashboard/ui-templates';
 
-function MobileLandingPagePreview() {
+function MobileLandingPagePreview({ selectedTemplate }: { selectedTemplate: string }) {
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [logoWidth, setLogoWidth] = useState(128);
     const [logoAlign, setLogoAlign] = useState('flex-start');
@@ -75,33 +76,22 @@ function MobileLandingPagePreview() {
       paddingBottom: `${logoPadding}px`,
     };
 
+    const renderTemplate = () => {
+        const props = { logoPreview, logoWidth, logoAlign, logoPadding };
+        switch(selectedTemplate) {
+            case 'template1': return <Template1 {...props} />;
+            case 'template2': return <Template2 {...props} />;
+            case 'template3': return <Template3 {...props} />;
+            case 'template4': return <Template4 {...props} />;
+            case 'template5': return <Template5 {...props} />;
+            case 'template6': return <Template6 {...props} />;
+            default: return <Template1 {...props} />;
+        }
+    }
+
     return (
         <div className="bg-background text-foreground h-full w-full overflow-y-auto">
-            <header className={logoContainerClass} style={headerStyle}>
-                 {logoPreview && (
-                    <Image 
-                        src={logoPreview}
-                        alt="Landing Page Logo"
-                        width={logoWidth}
-                        height={logoWidth / (128/50)}
-                        style={{ width: `${logoWidth}px`, display: 'inline-block' }}
-                    />
-                )}
-            </header>
-             <div className="p-4 text-center">
-                <h2 className="text-2xl font-bold tracking-tighter mb-2">
-                    Shop Smarter, In-Store.
-                </h2>
-                <p className="max-w-xl mx-auto text-muted-foreground text-sm mb-4">
-                    Scan any product's QR code to get instant details, reviews, and
-                    AI-powered recommendations right on your phone.
-                </p>
-                <div className="max-w-xs mx-auto">
-                    <div className="w-full aspect-square bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center justify-center border">
-                        <ImageIcon className="h-16 w-16 text-muted-foreground/50" />
-                    </div>
-                </div>
-            </div>
+           {renderTemplate()}
         </div>
     );
 }
@@ -112,6 +102,7 @@ export default function UiManagementPage() {
   const [logoWidth, setLogoWidth] = useState(128);
   const [logoAlign, setLogoAlign] = useState('flex-start');
   const [logoPadding, setLogoPadding] = useState(0);
+  const [selectedTemplate, setSelectedTemplate] = useState('template1');
 
   const { toast } = useToast();
 
@@ -125,6 +116,9 @@ export default function UiManagementPage() {
     if (savedLandingAlign) setLogoAlign(savedLandingAlign);
     const savedLandingPadding = localStorage.getItem('landing-page-logo-padding');
     if (savedLandingPadding) setLogoPadding(Number(savedLandingPadding));
+
+    const savedTemplate = localStorage.getItem('selected-ui-template');
+    if (savedTemplate) setSelectedTemplate(savedTemplate);
   }, []);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +132,7 @@ export default function UiManagementPage() {
       }
   };
 
-  const handleSaveLogo = () => {
+  const handleSaveSettings = () => {
       if (logoPreview) {
           localStorage.setItem('landing-page-logo', logoPreview);
           localStorage.setItem('landing-page-logo-width', String(logoWidth));
@@ -150,10 +144,20 @@ export default function UiManagementPage() {
           localStorage.removeItem('landing-page-logo-align');
           localStorage.removeItem('landing-page-logo-padding');
       }
+      localStorage.setItem('selected-ui-template', selectedTemplate);
       // Dispatch a custom event to notify other components (like the preview) of the change
       window.dispatchEvent(new CustomEvent('logoUpdated', { detail: { key: 'landing-page-logo' }}));
-      toast({ title: "Landing Page UI Saved" });
+      toast({ title: "UI Settings Saved" });
   };
+  
+  const templates = [
+      { id: 'template1', name: 'Minimalist', component: Template1 },
+      { id: 'template2', name: 'Image Focus', component: Template2 },
+      { id: 'template3', name: 'Dark Mode', component: Template3 },
+      { id: 'template4', name: 'Card-Based', component: Template4 },
+      { id: 'template5', name: 'Vibrant', component: Template5 },
+      { id: 'template6', name: 'Corporate Clean', component: Template6 },
+  ];
 
   return (
     <div className="space-y-8">
@@ -172,11 +176,36 @@ export default function UiManagementPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
+                        <LayoutTemplate className="text-primary"/>
+                        Layout Templates
+                    </CardTitle>
+                    <CardDescription>
+                        Choose a base layout for your mobile landing page.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {templates.map(template => (
+                        <div key={template.id} onClick={() => setSelectedTemplate(template.id)} className="cursor-pointer">
+                            <div className={cn(
+                                "w-full aspect-[9/19.5] rounded-md border-2 p-2 bg-muted/50 transition-all",
+                                selectedTemplate === template.id ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-muted-foreground"
+                            )}>
+                                <template.component logoPreview={null} logoWidth={0} logoAlign="" logoPadding={0} isThumbnail={true} />
+                            </div>
+                            <p className="text-center text-sm font-medium mt-2">{template.name}</p>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
                         <Palette className="text-primary"/>
                         Landing Page Customization
                     </CardTitle>
                     <CardDescription>
-                        Control the branding of the page customers see when they scan a QR code.
+                        Control the branding of the page customers see when they scan a QR code. This will apply to your selected template.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -219,8 +248,8 @@ export default function UiManagementPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleSaveLogo}>
-                        <Save className="mr-2 h-4 w-4" /> Save Landing Page Settings
+                    <Button onClick={handleSaveSettings}>
+                        <Save className="mr-2 h-4 w-4" /> Save UI Settings
                     </Button>
                 </CardFooter>
             </Card>
@@ -232,12 +261,12 @@ export default function UiManagementPage() {
                 <CardHeader>
                     <CardTitle>Mobile Preview</CardTitle>
                     <CardDescription>
-                        A live preview of the customer's landing page experience.
+                        A live preview of the customer's landing page experience with your selected template and customizations.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center">
                     <PhoneMockup>
-                       <MobileLandingPagePreview />
+                       <MobileLandingPagePreview selectedTemplate={selectedTemplate} />
                     </PhoneMockup>
                 </CardContent>
             </Card>

@@ -42,6 +42,7 @@ const styleSchema = z.object({
   aiTone: z.string().optional().describe("e.g., Playful and exciting, Professional and informative"),
   aiGoal: z.string().optional().describe("e.g., Drive sales for the new shoe line"),
   aiPersona: z.string().optional().describe("e.g., Expert Denim Stylist, Friendly In-Store Helper"),
+  aiGreeting: z.string().optional().describe("e.g., Hi there! Ready to discover your perfect fit?"),
   aiKeyPoints: z.string().optional().describe("e.g., - Made from 100% organic cotton\n- Water-saving dye process\n- 5-year durability guarantee"),
   aiOffer: z.string().optional().describe("e.g., 15% off today only, Free sample with purchase"),
   aiRecommendations: z.string().optional().describe("e.g., Recommend matching accessories, Suggest the premium version of this product"),
@@ -72,6 +73,7 @@ export default function BulkQRCodeGenerator() {
               aiTone: 'Professional',
               aiGoal: 'Drive sales',
               aiPersona: 'Knowledgeable product expert',
+              aiGreeting: 'Hello! How can I help you with this product today?',
               aiKeyPoints: '',
               aiOffer: '',
               aiRecommendations: '',
@@ -222,9 +224,9 @@ export default function BulkQRCodeGenerator() {
                                                               <Label htmlFor="aiTone">AI Tone</Label>
                                                               <Input id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
                                                           </div>
-                                                           <div>
-                                                              <Label htmlFor="aiRecommendations">Recommendations</Label>
-                                                              <Textarea id="aiRecommendations" {...form.register('options.aiRecommendations')} placeholder="e.g., Recommend matching accessories..." />
+                                                          <div>
+                                                              <Label htmlFor="aiGreeting">Personal Greeting</Label>
+                                                              <Textarea id="aiGreeting" {...form.register('options.aiGreeting')} placeholder="e.g., Hi there! Ready to discover your perfect fit?"/>
                                                           </div>
                                                         </div>
                                                         <div className="space-y-4">
@@ -234,12 +236,16 @@ export default function BulkQRCodeGenerator() {
                                                             </div>
                                                             <div>
                                                                 <Label htmlFor="aiKeyPoints">Key Selling Points (one per line)</Label>
-                                                                <Textarea id="aiKeyPoints" {...form.register('options.aiKeyPoints')} placeholder="- Made from 100% organic cotton&#x0a;- Water-saving dye process&#x0a;- 5-year durability guarantee" rows={4} />
+                                                                <Textarea id="aiKeyPoints" {...form.register('options.aiKeyPoints')} placeholder="- Made from 100% organic cotton&#x0a;- Water-saving dye process&#x0a;- 5-year durability guarantee" rows={3} />
                                                             </div>
                                                             <div>
                                                                 <Label htmlFor="aiOffer">Offer / Incentive (optional)</Label>
                                                                 <Input id="aiOffer" {...form.register('options.aiOffer')} placeholder="e.g., 15% off today only" />
                                                             </div>
+                                                             <div>
+                                                              <Label htmlFor="aiRecommendations">Recommendations</Label>
+                                                              <Textarea id="aiRecommendations" {...form.register('options.aiRecommendations')} placeholder="e.g., Recommend matching accessories..." />
+                                                          </div>
                                                         </div>
                                                     </div>
                                                      <Button type="submit" disabled={isSubmitting} className="w-full mt-4">

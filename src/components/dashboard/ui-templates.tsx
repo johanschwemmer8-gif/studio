@@ -173,3 +173,62 @@ export function Template6({ isThumbnail, ...props }: TemplateProps) {
         </div>
     );
 }
+
+export function Template7({ isThumbnail, ...props }: TemplateProps) {
+    return (
+        <div className="flex flex-col h-full w-full">
+            <div className={cn("relative w-full bg-slate-200 dark:bg-slate-700", isThumbnail ? "aspect-square" : "aspect-[4/3]")}>
+                <ImageIcon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground/50"/>
+            </div>
+            <div className={cn("p-4 flex-1 flex flex-col justify-between", isThumbnail ? "p-2" : "")}>
+                <div>
+                    <h2 className={cn("font-bold tracking-tight mb-1", isThumbnail ? "text-sm" : "text-2xl")}>
+                        Product Title
+                    </h2>
+                    <p className={cn("text-accent font-bold", isThumbnail ? "text-base" : "text-3xl")}>
+                        R1,234.56
+                    </p>
+                </div>
+                 <Button size={isThumbnail ? "sm" : "lg"} className={cn("w-full mt-2", isThumbnail ? "text-[8px] h-6" : "")}>Add to Cart</Button>
+            </div>
+        </div>
+    );
+}
+
+export function Template8({ isThumbnail, ...props }: TemplateProps) {
+    return (
+        <div className="flex flex-col h-full w-full p-4 space-y-4">
+            {commonLogo({ ...props, isThumbnail })}
+            <div className="flex-1 text-left space-y-2">
+                 <h2 className={cn("font-bold tracking-tight text-primary", isThumbnail ? "text-sm" : "text-xl")}>
+                    Minimalist & Clean
+                </h2>
+                 <p className={cn("text-muted-foreground", isThumbnail ? "text-[8px] leading-tight" : "text-sm")}>
+                    Perfect for informational scans. Focus on text and clarity. Provides key details without distractions.
+                </p>
+            </div>
+            <div className={cn("pt-4 border-t", isThumbnail ? "pt-2" : "")}>
+                {commonScanner(isThumbnail)}
+            </div>
+        </div>
+    );
+}
+
+export function Template9({ isThumbnail, ...props }: TemplateProps) {
+    return (
+        <div className="relative flex flex-col h-full w-full justify-end">
+            <div className="absolute inset-0 bg-slate-400 dark:bg-slate-800">
+                <ImageIcon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-16 w-16 text-muted-foreground/20"/>
+            </div>
+            <div className={cn("relative z-10 p-4 space-y-2 text-primary-foreground bg-gradient-to-t from-black/80 via-black/50 to-transparent", isThumbnail ? "p-2" : "")}>
+                <h2 className={cn("font-bold tracking-tighter", isThumbnail ? "text-base" : "text-2xl")}>
+                    Action-Oriented
+                </h2>
+                <p className={cn("opacity-80", isThumbnail ? "text-[8px] leading-tight" : "text-sm")}>
+                    This layout drives users towards a single, clear call-to-action.
+                </p>
+                 <Button size={isThumbnail ? "sm" : "lg"} className={cn("w-full bg-accent text-accent-foreground", isThumbnail ? "text-[8px] h-6" : "")}>Sign Up Now</Button>
+            </div>
+        </div>
+    );
+}

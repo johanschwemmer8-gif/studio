@@ -21,7 +21,7 @@ import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizon
 import PhoneMockup from '@/components/dashboard/phone-mockup';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { Template1, Template2, Template3, Template4, Template5, Template6 } from '@/components/dashboard/ui-templates';
+import { Template1, Template2, Template3, Template4, Template5, Template6, Template7, Template8, Template9 } from '@/components/dashboard/ui-templates';
 
 function MobileLandingPagePreview({ selectedTemplate }: { selectedTemplate: string }) {
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -85,6 +85,9 @@ function MobileLandingPagePreview({ selectedTemplate }: { selectedTemplate: stri
             case 'template4': return <Template4 {...props} />;
             case 'template5': return <Template5 {...props} />;
             case 'template6': return <Template6 {...props} />;
+            case 'template7': return <Template7 {...props} />;
+            case 'template8': return <Template8 {...props} />;
+            case 'template9': return <Template9 {...props} />;
             default: return <Template1 {...props} />;
         }
     }
@@ -156,7 +159,10 @@ export default function UiManagementPage() {
       { id: 'template3', name: 'Dark Mode', component: Template3 },
       { id: 'template4', name: 'Card-Based', component: Template4 },
       { id: 'template5', name: 'Vibrant', component: Template5 },
-      { id: 'template6', name: 'Corporate Clean', component: Template6 },
+      { id: 'template6', name: 'Corporate', component: Template6 },
+      { id: 'template7', name: 'Big Image', component: Template7 },
+      { id: 'template8', name: 'Text Focus', component: Template8 },
+      { id: 'template9', name: 'Action', component: Template9 },
   ];
 
   return (

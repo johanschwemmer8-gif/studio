@@ -174,7 +174,7 @@ export default function BulkQRCodeGenerator() {
                                 <Accordion type="single" collapsible className="w-full sm:w-auto">
                                     <AccordionItem value="styling" className="border-b-0">
                                         <AccordionTrigger className="h-10 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md sm:w-auto">Choose QR Template</AccordionTrigger>
-                                        <AccordionContent className="absolute z-10 mt-2 right-0 sm:right-auto p-0 w-full sm:w-[500px]">
+                                        <AccordionContent className="absolute z-10 mt-2 right-0 sm:right-auto p-0 w-full sm:w-[320px]">
                                             <Card className="p-4">
                                                 <div className="space-y-6">
                                                     <div className="space-y-2">
@@ -196,30 +196,41 @@ export default function BulkQRCodeGenerator() {
                                                         <Input id="logoPath" {...form.register('options.logoPath')} placeholder="https://your-cdn.com/logo.png" />
                                                         {form.formState.errors.options?.logoPath && <p className="text-sm text-destructive mt-1">{form.formState.errors.options.logoPath.message}</p>}
                                                     </div>
-                                                    
-                                                    <div className="p-4 border rounded-md space-y-4 bg-muted/30">
-                                                        <h4 className="font-semibold flex items-center gap-2"><Sparkles className="text-accent" /> AI Content Generation</h4>
-                                                         <div className="grid md:grid-cols-2 gap-6">
-                                                            <div>
-                                                                <Label htmlFor="aiTone">AI Tone</Label>
-                                                                <Textarea id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
-                                                            </div>
-                                                            <div>
-                                                                <Label htmlFor="aiGoal">Campaign Goal</Label>
-                                                                <Textarea id="aiGoal" {...form.register('options.aiGoal')} placeholder="e.g., Drive sales for the new shoe line" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <Button type="submit" disabled={isSubmitting}>
-                                                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
-                                                        Queue Generation Job
-                                                    </Button>
                                                 </div>
                                             </Card>
                                         </AccordionContent>
                                     </AccordionItem>
                                 </Accordion>
 
+                                <Accordion type="single" collapsible className="w-full sm:w-auto">
+                                    <AccordionItem value="ai-generation" className="border-b-0">
+                                        <AccordionTrigger className="h-10 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md sm:w-auto">
+                                            <Sparkles className="mr-2 h-4 w-4 text-accent" />
+                                            AI Generation
+                                        </AccordionTrigger>
+                                        <AccordionContent className="absolute z-10 mt-2 right-0 sm:right-auto p-0 w-full sm:w-[500px]">
+                                             <Card className="p-4">
+                                                <div className="p-4 border rounded-md space-y-4 bg-muted/30">
+                                                    <h4 className="font-semibold flex items-center gap-2"><Sparkles className="text-accent" /> AI Content Generation</h4>
+                                                        <div className="grid md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <Label htmlFor="aiTone">AI Tone</Label>
+                                                            <Textarea id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="aiGoal">Campaign Goal</Label>
+                                                            <Textarea id="aiGoal" {...form.register('options.aiGoal')} placeholder="e.g., Drive sales for the new shoe line" />
+                                                        </div>
+                                                    </div>
+                                                     <Button type="submit" disabled={isSubmitting} className="w-full">
+                                                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
+                                                        Queue Generation Job
+                                                    </Button>
+                                                </div>
+                                             </Card>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
                             </div>
                         </div>
                     </Card>

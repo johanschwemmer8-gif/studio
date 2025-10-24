@@ -2,7 +2,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { Separator } from '@/components/ui/separator';
-import { storesByRegion, dashboardMetrics } from '@/lib/data';
+import { storesByRegion } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
 import {
   Card,
@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, BarChart } from 'lucide-react';
+import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
 
   const { optionalModules } = theme;
 
@@ -38,27 +39,19 @@ export default function DashboardPage() {
     setSelectedStore(null); // Reset store when region changes
   };
 
+  useState(() => {
+    // In a real app, filters would be passed here based on selectors
+    analyzeEngagementMetrics({}).then(data => {
+      setAnalyticsData(data);
+    });
+  });
+
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
         try {
-            const metrics = dashboardMetrics.getMetrics(selectedStore);
-            const result = await analyzeEngagementMetrics({
-                engagement: {
-                  totalScans: metrics.stats.totalScans,
-                  uniqueScans: metrics.stats.uniqueScans,
-                  engagementDuration: metrics.stats.dwellTime,
-                  scanRate: metrics.stats.engagementRate,
-                },
-                conversion: {
-                    avgBasketSizeAoe: metrics.stats.avgBasketSizeAoe,
-                    avgBasketSizeNonAoe: metrics.stats.avgBasketSizeNonAoe,
-                    basketUpliftPercentage: metrics.stats.basketUplift,
-                    offerRedemptionRate: metrics.stats.offerRedemption,
-                    totalRedeemedValue: metrics.stats.totalRedeemedValue,
-                    aoeTransactions: metrics.stats.aoeTransactions,
-                }
-            });
+            // The flow can now be called without input, as it fetches its own data
+            const result = await analyzeEngagementMetrics({});
             setAnalysis(result);
         } catch (e) {
             console.error(e);
@@ -67,7 +60,35 @@ export default function DashboardPage() {
     });
   };
   
-  const currentMetrics = dashboardMetrics.getMetrics(selectedStore).stats;
+  if(!analyticsData) {
+    return (
+      <div className="space-y-8">
+        <StoreSelector
+            regions={storesByRegion}
+            selectedRegion={selectedRegion}
+            onRegionChange={handleRegionChange}
+            selectedStore={selectedStore}
+            onStoreChange={handleStoreChange}
+        />
+        <Separator />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-4 w-3/4" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-28 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { engagement, conversion } = analyticsData;
 
   return (
     <div className="space-y-8">
@@ -159,7 +180,7 @@ export default function DashboardPage() {
                   <User className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.uniqueScans.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{engagement.uniqueScans.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
                     Individual customers who scanned a QR code.
                   </p>
@@ -171,7 +192,7 @@ export default function DashboardPage() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.engagementRate}%</div>
+                  <div className="text-3xl font-bold">{engagement.scanRate.toFixed(2)}%</div>
                    <p className="text-xs text-muted-foreground">
                     Percentage of unique visitors who scanned.
                   </p>
@@ -183,7 +204,7 @@ export default function DashboardPage() {
                   <Tag className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.offerRedemption}%</div>
+                  <div className="text-3xl font-bold">{conversion.offerRedemptionRate.toFixed(2)}%</div>
                   <p className="text-xs text-muted-foreground">
                     Rate of personalized offers redeemed.
                   </p>
@@ -195,7 +216,7 @@ export default function DashboardPage() {
                   <ArrowUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.basketUplift}%</div>
+                  <div className="text-3xl font-bold">{conversion.basketUpliftPercentage.toFixed(2)}%</div>
                    <p className="text-xs text-muted-foreground">
                     Increase in average basket size for engaged users.
                   </p>
@@ -207,7 +228,7 @@ export default function DashboardPage() {
                   <Percent className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.conversionRate}%</div>
+                  <div className="text-3xl font-bold">{((conversion.aoeTransactions / engagement.uniqueScans) * 100 || 0).toFixed(2)}%</div>
                    <p className="text-xs text-muted-foreground">
                     Engaged users who made a purchase.
                   </p>
@@ -219,7 +240,7 @@ export default function DashboardPage() {
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{currentMetrics.dwellTime}s</div>
+                  <div className="text-3xl font-bold">{engagement.engagementDuration}s</div>
                   <p className="text-xs text-muted-foreground">
                     Average time spent on product page after scan.
                   </p>

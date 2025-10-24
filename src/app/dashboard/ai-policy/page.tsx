@@ -101,26 +101,6 @@ function BiasMonitoringDashboard() {
                   </Alert>
               )}
               
-                <Card className="bg-background/50">
-                    <CardHeader className="pb-4">
-                        <CardTitle className="flex items-center gap-2 text-base"><Scale className="text-primary"/> Fairness Constraints</CardTitle>
-                        <CardDescription className="text-xs">The operational thresholds for ethical AI monitoring.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
-                            <li>
-                                <strong>Maximum acceptable variance in offer acceptance rates:</strong> <Badge variant="outline">10%</Badge>
-                            </li>
-                            <li>
-                            <strong>Minimum parity in recommendation quality across segments:</strong> No significant statistical difference should be detected.
-                            </li>
-                            <li>
-                            <strong>Alert threshold:</strong> If any key fairness metric deviates by more than <Badge variant="outline">15%</Badge>, it will be flagged for review.
-                            </li>
-                        </ul>
-                    </CardContent>
-                </Card>
-
               <Table>
                   <TableHeader>
                       <TableRow>
@@ -162,55 +142,6 @@ function BiasMonitoringDashboard() {
                   </TableBody>
               </Table>
               
-              <Card className="bg-background/50">
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-base"><CalendarCheck className="text-primary"/> Audit Schedule</CardTitle>
-                    <CardDescription className="text-xs">Regularly scheduled reviews to ensure ongoing fairness and compliance.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
-                        <li>
-                            <strong>Monthly:</strong> Automated bias report generation and review by the internal AI ethics team.
-                        </li>
-                        <li>
-                            <strong>Quarterly:</strong> Ethics committee review of all high-variance flags and model performance.
-                        </li>
-                        <li>
-                            <strong>Annually:</strong> Comprehensive third-party audit of AI models and fairness metrics (post-funding).
-                        </li>
-                    </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-background/50">
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-base"><Settings2 className="text-primary"/> Remediation Process</CardTitle>
-                    <CardDescription className="text-xs">The step-by-step process triggered when bias is detected.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
-                        <li>
-                            <strong>Alert:</strong> An immediate alert is sent to the ethics committee.
-                        </li>
-                        <li>
-                            <strong>Investigation:</strong> A 48-hour investigation period begins to assess the impact and cause.
-                        </li>
-                        <li>
-                            <strong>Action:</strong> If necessary, the biased model is temporarily rolled back to a stable version.
-                        </li>
-                        <li>
-                            <strong>Analysis:</strong> A root cause analysis is performed to identify the source of the bias.
-                        </li>
-                        <li>
-                            <strong>Retraining:</strong> The model is retrained using updated data and enhanced fairness constraints.
-                        </li>
-                         <li>
-                            <strong>Redeployment:</strong> The improved model is A/B tested before being fully redeployed.
-                        </li>
-                    </ul>
-                </CardContent>
-              </Card>
-
               <CardFooter className="text-xs text-muted-foreground pt-4">
                 Last updated: {report.timestamp.toLocaleString()}
               </CardFooter>
@@ -302,6 +233,81 @@ export default function AIPolicyPage() {
 
             {/* Ethical AI & Bias Prevention */}
             <BiasMonitoringDashboard />
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Settings2 className="text-primary"/> AI Ethics & Bias Management</CardTitle>
+                    <CardDescription>Define and enforce your AI governance strategy.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                     <Card className="bg-background/50">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2 text-base"><Scale className="text-primary"/> Fairness Constraints</CardTitle>
+                            <CardDescription className="text-xs">The operational thresholds for ethical AI monitoring.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                                <li>
+                                    <strong>Maximum acceptable variance in offer acceptance rates:</strong> <Badge variant="outline">10%</Badge>
+                                </li>
+                                <li>
+                                <strong>Minimum parity in recommendation quality across segments:</strong> No significant statistical difference should be detected.
+                                </li>
+                                <li>
+                                <strong>Alert threshold:</strong> If any key fairness metric deviates by more than <Badge variant="outline">15%</Badge>, it will be flagged for review.
+                                </li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-background/50">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2 text-base"><CalendarCheck className="text-primary"/> Audit Schedule</CardTitle>
+                            <CardDescription className="text-xs">Regularly scheduled reviews to ensure ongoing fairness and compliance.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                                <li>
+                                    <strong>Monthly:</strong> Automated bias report generation and review by the internal AI ethics team.
+                                </li>
+                                <li>
+                                    <strong>Quarterly:</strong> Ethics committee review of all high-variance flags and model performance.
+                                </li>
+                                <li>
+                                    <strong>Annually:</strong> Comprehensive third-party audit of AI models and fairness metrics (post-funding).
+                                </li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-background/50">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2 text-base"><Settings2 className="text-primary"/> Remediation Process</CardTitle>
+                            <CardDescription className="text-xs">The step-by-step process triggered when bias is detected.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                                <li>
+                                    <strong>Alert:</strong> An immediate alert is sent to the ethics committee.
+                                </li>
+                                <li>
+                                    <strong>Investigation:</strong> A 48-hour investigation period begins to assess the impact and cause.
+                                </li>
+                                <li>
+                                    <strong>Action:</strong> If necessary, the biased model is temporarily rolled back to a stable version.
+                                </li>
+                                <li>
+                                    <strong>Analysis:</strong> A root cause analysis is performed to identify the source of the bias.
+                                </li>
+                                <li>
+                                    <strong>Retraining:</strong> The model is retrained using updated data and enhanced fairness constraints.
+                                </li>
+                                <li>
+                                    <strong>Redeployment:</strong> The improved model is A/B tested before being fully redeployed.
+                                </li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </CardContent>
+            </Card>
 
             <Card className="border-dashed">
                 <CardHeader>

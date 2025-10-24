@@ -228,7 +228,7 @@ export default function RoiPage() {
                 </p>
                 <div className="pt-4">
                     <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
-                     <p className="text-2xl font-bold">R{analysis?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</p>
+                     <div className="text-2xl font-bold">R{analysis?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
                 </div>
             </CardContent>
         </Card>

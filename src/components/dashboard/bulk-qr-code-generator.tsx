@@ -29,7 +29,7 @@ import {
   RefreshCw,
   Loader2,
   AlertTriangle,
-  Link,
+  Link as LinkIcon,
   Sparkles,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -163,7 +163,7 @@ export default function BulkQRCodeGenerator() {
                                 <div>
                                     <Label htmlFor="baseRedirect">Base Redirect URL</Label>
                                     <div className="relative">
-                                        <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <Input id="baseRedirect" {...form.register('baseRedirect')} placeholder="https://your-store.com/product" className="pl-9"/>
                                     </div>
                                     {form.formState.errors.baseRedirect && <p className="text-sm text-destructive mt-1">{form.formState.errors.baseRedirect.message}</p>}
@@ -210,16 +210,16 @@ export default function BulkQRCodeGenerator() {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <Button type="submit" disabled={isSubmitting}>
+                                                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
+                                                        Queue Generation Job
+                                                    </Button>
                                                 </div>
                                             </Card>
                                         </AccordionContent>
                                     </AccordionItem>
                                 </Accordion>
 
-                                <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
-                                    Queue Job
-                                </Button>
                             </div>
                         </div>
                     </Card>

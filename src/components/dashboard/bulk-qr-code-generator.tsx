@@ -187,28 +187,6 @@ export default function BulkQRCodeGenerator() {
                                         </Select>
                                         <p className="text-xs text-muted-foreground">Selecting a template will pre-fill the options below. You can still override them.</p>
                                     </div>
-                                     <div className="grid md:grid-cols-3 gap-6">
-                                        <div>
-                                            <Label htmlFor="colorHex">QR Color</Label>
-                                            <Input id="colorHex" type="color" {...form.register('options.colorHex')} />
-                                        </div>
-                                         <div>
-                                            <Label htmlFor="bgColorHex">Background Color</Label>
-                                            <Input id="bgColorHex" type="color" {...form.register('options.bgColorHex')} />
-                                        </div>
-                                        <div>
-                                            <Label htmlFor="errorCorrection">Error Correction</Label>
-                                            <Select onValueChange={(v) => form.setValue('options.errorCorrection', v as any)} defaultValue={form.getValues('options.errorCorrection')}>
-                                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="L">Low</SelectItem>
-                                                    <SelectItem value="M">Medium</SelectItem>
-                                                    <SelectItem value="Q">Quartile</SelectItem>
-                                                    <SelectItem value="H">High (Recommended)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="logoPath">Logo URL (Optional)</Label>
                                         <Input id="logoPath" {...form.register('options.logoPath')} placeholder="https://your-cdn.com/logo.png" />

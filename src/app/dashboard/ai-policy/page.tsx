@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 const consentOptions = [
     { id: 'recommendations', label: 'Product Recommendation AI' },
@@ -153,6 +154,19 @@ function BiasMonitoringDashboard() {
 
 
 export default function AIPolicyPage() {
+    const { toast } = useToast();
+    const [isPromptSaved, setIsPromptSaved] = useState(false);
+
+    const handleSavePrompt = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        // Here you would typically save the prompt content to a backend
+        setIsPromptSaved(true);
+        toast({
+            title: "Prompt Saved",
+            description: "The global AI instruction prompt has been updated.",
+        });
+        setTimeout(() => setIsPromptSaved(false), 3000); // Reset after 3 seconds
+    };
 
     return (
         <div className="space-y-8">
@@ -253,7 +267,10 @@ export default function AIPolicyPage() {
                             />
                         </CardContent>
                         <CardFooter>
-                            <Button><Save className="mr-2 h-4 w-4" /> Save Prompt</Button>
+                            <Button onClick={handleSavePrompt} className={isPromptSaved ? 'bg-green-600 hover:bg-green-700' : ''}>
+                                {isPromptSaved ? <CheckCircle className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                                {isPromptSaved ? 'Saved!' : 'Save Prompt'}
+                            </Button>
                         </CardFooter>
                     </Card>
                      <Card className="bg-background/50">

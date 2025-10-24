@@ -61,14 +61,9 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     // --- Step 1: Fetch and calculate metrics ---
     // In a real application, this would involve complex queries across multiple collections.
     // For this demonstration, we'll generate realistic but simulated data.
-    const db = admin.firestore();
-    let scanEventsQuery = db.collection('scanEvents');
-    if (filters?.retailerId) {
-        scanEventsQuery = scanEventsQuery.where('retailerId', '==', filters.retailerId);
-    }
     
     // Simulating fetching and aggregation
-    const totalScans = (await scanEventsQuery.count().get()).data().count;
+    const totalScans = Math.floor(Math.random() * 5000) + 1000;
     const uniqueScans = Math.floor(totalScans * (Math.random() * 0.2 + 0.6)); // 60-80% unique
     
     const engagement = {

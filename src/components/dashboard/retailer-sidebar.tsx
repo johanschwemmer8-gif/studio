@@ -88,6 +88,11 @@ export default function RetailerSidebar({
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="UI Management">
+                    <Link href="/retailer-mvp/ui-management"><Palette /><span>UI Management</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="In-Store Display">
                     <Link href="/retailer-mvp/in-store-display"><MonitorSmartphone /><span>In-Store Display</span></Link>
                   </SidebarMenuButton>

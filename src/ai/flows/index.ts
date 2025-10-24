@@ -29,6 +29,6 @@ export * from './remote-display-command';
 export * from './save-qr-template';
 export * from './save-retailer-api-key';
 export * from './scan-analytics';
-export * from./scheduled-product-sync';
+export * from './scheduled-product-sync';
 export * from './submit-bulk-qr-request';
 export * from './sync-products';

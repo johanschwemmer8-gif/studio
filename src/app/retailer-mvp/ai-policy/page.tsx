@@ -155,7 +155,6 @@ function BiasMonitoringDashboard() {
 
 export default function RetailerAIPolicyPage() {
     const { toast } = useToast();
-    const [isPromptSaved, setIsPromptSaved] = useState(false);
 
     const handleSaveSettings = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
@@ -257,6 +256,47 @@ export default function RetailerAIPolicyPage() {
 
             {/* Ethical AI & Bias Prevention */}
             <BiasMonitoringDashboard />
+
+            {/* Read-only Platform Governance section */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Settings2 className="text-primary"/> Platform AI Governance</CardTitle>
+                    <CardDescription>
+                        These are the global AI ethics and governance rules set by the iNteract AOE platform. They are read-only.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <Card className="bg-muted/50">
+                        <CardHeader>
+                            <CardTitle className="text-base">Global AI Instruction Prompt</CardTitle>
+                            <CardDescription>This master prompt provides high-level instructions that all AI models must follow.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm p-4 bg-background rounded-md italic">
+                                "Always be helpful and respectful. Do not make up information. If you don't know an answer, say so. Uphold the brand values of quality and trust in all responses..."
+                            </p>
+                        </CardContent>
+                    </Card>
+                     <Card className="bg-muted/50">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2 text-base"><Scale className="text-primary"/> Fairness Constraints</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                                <li>
+                                    <strong>Maximum acceptable variance in offer acceptance rates:</strong> <Badge variant="outline">10%</Badge>
+                                </li>
+                                <li>
+                                <strong>Minimum parity in recommendation quality across segments:</strong> No significant statistical difference should be detected.
+                                </li>
+                                <li>
+                                <strong>Alert threshold:</strong> If any key fairness metric deviates by more than <Badge variant="outline">15%</Badge>, it will be flagged for review.
+                                </li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </CardContent>
+            </Card>
         </div>
     );
 }

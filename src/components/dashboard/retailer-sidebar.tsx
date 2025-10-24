@@ -14,7 +14,7 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, MonitorSmartphone, Settings, BrainCircuit, Palette, Video } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, MonitorSmartphone, Settings, BrainCircuit, Palette, Video, Shield } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
@@ -132,6 +132,11 @@ export default function RetailerSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Subscription & Billing">
                     <Link href="/retailer-mvp/billing"><CreditCard /><span>Billing</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="AI Policy">
+                    <Link href="/retailer-mvp/ai-policy"><Shield /><span>AI Policy</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {optionalModules.retailerAdmin && (

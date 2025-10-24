@@ -23,6 +23,7 @@ const QrOptionsSchema = z.object({
   aiPersona: z.string().optional().describe("e.g., Expert Denim Stylist, Friendly In-Store Helper"),
   aiKeyPoints: z.string().optional().describe("e.g., - Made from 100% organic cotton\n- Water-saving dye process\n- 5-year durability guarantee"),
   aiOffer: z.string().optional().describe("e.g., 15% off today only, Free sample with purchase"),
+  aiRecommendations: z.string().optional().describe("e.g., Recommend matching accessories, Suggest the premium version of this product"),
   expiresAt: z.string().datetime().optional(),
   redirectType: z.enum(['permanent', 'temporary']).default('temporary'),
 });

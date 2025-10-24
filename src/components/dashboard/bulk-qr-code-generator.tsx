@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -37,16 +37,14 @@ import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { getQrTemplates, type QrTemplate } from '@/ai/flows/get-qr-templates';
 
 const styleSchema = z.object({
-  colorHex: z.string().optional(),
-  bgColorHex: z.string().optional(),
   logoPath: z.string().url().optional(),
-  errorCorrection: z.enum(['L', 'M', 'Q', 'H']).default('M'),
   // Expanded AI Options
   aiTone: z.string().optional().describe("e.g., Playful and exciting, Professional and informative"),
   aiGoal: z.string().optional().describe("e.g., Drive sales for the new shoe line"),
   aiPersona: z.string().optional().describe("e.g., Expert Denim Stylist, Friendly In-Store Helper"),
   aiKeyPoints: z.string().optional().describe("e.g., - Made from 100% organic cotton\n- Water-saving dye process\n- 5-year durability guarantee"),
   aiOffer: z.string().optional().describe("e.g., 15% off today only, Free sample with purchase"),
+  aiRecommendations: z.string().optional().describe("e.g., Recommend matching accessories, Suggest the premium version of this product"),
 });
 
 const formSchema = z.object({
@@ -76,6 +74,7 @@ export default function BulkQRCodeGenerator() {
               aiPersona: 'Knowledgeable product expert',
               aiKeyPoints: '',
               aiOffer: '',
+              aiRecommendations: '',
             }
         },
     });
@@ -99,9 +98,6 @@ export default function BulkQRCodeGenerator() {
     const handleTemplateChange = (templateId: string) => {
         const selectedTemplate = templates.find(t => t.templateId === templateId);
         if (selectedTemplate) {
-            form.setValue('options.colorHex', selectedTemplate.defaults.colorHex || '#000000');
-            form.setValue('options.bgColorHex', selectedTemplate.defaults.bgColorHex || '#FFFFFF');
-            form.setValue('options.errorCorrection', selectedTemplate.defaults.errorCorrection || 'M');
             form.setValue('options.aiTone', selectedTemplate.defaults.aiTone || '');
             form.setValue('options.aiGoal', selectedTemplate.defaults.aiGoal || '');
             toast({
@@ -205,7 +201,7 @@ export default function BulkQRCodeGenerator() {
                                         </AccordionContent>
                                     </AccordionItem>
                                 </Accordion>
-
+                                
                                 <Accordion type="single" collapsible className="w-full sm:w-auto">
                                     <AccordionItem value="ai-generation" className="border-b-0">
                                         <AccordionTrigger className="h-10 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md sm:w-auto">
@@ -226,18 +222,24 @@ export default function BulkQRCodeGenerator() {
                                                               <Label htmlFor="aiTone">AI Tone</Label>
                                                               <Input id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
                                                           </div>
+                                                           <div>
+                                                              <Label htmlFor="aiRecommendations">Recommendations</Label>
+                                                              <Textarea id="aiRecommendations" {...form.register('options.aiRecommendations')} placeholder="e.g., Recommend matching accessories..." />
+                                                          </div>
                                                         </div>
-                                                        <div>
-                                                            <Label htmlFor="aiGoal">Campaign Goal</Label>
-                                                            <Textarea id="aiGoal" {...form.register('options.aiGoal')} placeholder="e.g., Drive sales for the new shoe line" />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="aiKeyPoints">Key Selling Points (one per line)</Label>
-                                                            <Textarea id="aiKeyPoints" {...form.register('options.aiKeyPoints')} placeholder="- Made from 100% organic cotton&#x0a;- Water-saving dye process&#x0a;- 5-year durability guarantee" rows={4} />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="aiOffer">Offer / Incentive (optional)</Label>
-                                                            <Input id="aiOffer" {...form.register('options.aiOffer')} placeholder="e.g., 15% off today only" />
+                                                        <div className="space-y-4">
+                                                            <div>
+                                                                <Label htmlFor="aiGoal">Campaign Goal</Label>
+                                                                <Textarea id="aiGoal" {...form.register('options.aiGoal')} placeholder="e.g., Drive sales for the new shoe line" />
+                                                            </div>
+                                                            <div>
+                                                                <Label htmlFor="aiKeyPoints">Key Selling Points (one per line)</Label>
+                                                                <Textarea id="aiKeyPoints" {...form.register('options.aiKeyPoints')} placeholder="- Made from 100% organic cotton&#x0a;- Water-saving dye process&#x0a;- 5-year durability guarantee" rows={4} />
+                                                            </div>
+                                                            <div>
+                                                                <Label htmlFor="aiOffer">Offer / Incentive (optional)</Label>
+                                                                <Input id="aiOffer" {...form.register('options.aiOffer')} placeholder="e.g., 15% off today only" />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                      <Button type="submit" disabled={isSubmitting} className="w-full mt-4">

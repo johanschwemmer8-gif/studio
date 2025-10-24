@@ -9,10 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale, CalendarCheck, Settings2 } from 'lucide-react';
+import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale, CalendarCheck, Settings2, Save } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 
 const consentOptions = [
     { id: 'recommendations', label: 'Product Recommendation AI' },
@@ -240,6 +241,21 @@ export default function AIPolicyPage() {
                     <CardDescription>Define and enforce your AI governance strategy.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Global AI Instruction Prompt</CardTitle>
+                            <CardDescription>This master prompt provides high-level instructions that all AI models must follow, ensuring consistency with your brand values and ethical guidelines.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Textarea 
+                                placeholder="e.g., 'Always be helpful and respectful. Do not make up information. If you don't know an answer, say so. Uphold the brand values of quality and trust in all responses...'" 
+                                rows={6} 
+                            />
+                        </CardContent>
+                        <CardFooter>
+                            <Button><Save className="mr-2 h-4 w-4" /> Save Prompt</Button>
+                        </CardFooter>
+                    </Card>
                      <Card className="bg-background/50">
                         <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-2 text-base"><Scale className="text-primary"/> Fairness Constraints</CardTitle>

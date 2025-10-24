@@ -75,7 +75,7 @@ export default function RetailerSidebar({
                     <Link href="/retailer-mvp/real-time"><Server /><span>Real-Time Data</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {optionalModules.qrManagement && (
+                {optionalModules.qrAiManagement && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="QR Campaign Management System">
                       <Link href="/retailer-mvp/qr-management"><QrCode /><span>QR Campaigns</span></Link>

@@ -199,7 +199,7 @@ export default function BulkQRCodeGenerator() {
                                                     
                                                     <div className="p-4 border rounded-md space-y-4 bg-muted/30">
                                                         <h4 className="font-semibold flex items-center gap-2"><Sparkles className="text-accent" /> AI Content Generation</h4>
-                                                        <div className="grid md:grid-cols-2 gap-6">
+                                                         <div className="grid md:grid-cols-2 gap-6">
                                                             <div>
                                                                 <Label htmlFor="aiTone">AI Tone</Label>
                                                                 <Textarea id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
+import { getQrTemplates, type QrTemplate } from '@/ai/flows/get-qr-templates';
 
 const styleSchema = z.object({
   colorHex: z.string().optional(),
@@ -56,6 +58,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function BulkQRCodeGenerator() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [templates, setTemplates] = useState<QrTemplate[]>([]);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -72,6 +75,38 @@ export default function BulkQRCodeGenerator() {
             }
         },
     });
+
+    useEffect(() => {
+        const fetchTemplates = async () => {
+            try {
+                const result = await getQrTemplates({ retailerId: 'simulated-retailer-id' });
+                setTemplates(result);
+            } catch (error) {
+                toast({
+                    title: 'Error',
+                    description: 'Could not load QR code templates.',
+                    variant: 'destructive',
+                });
+            }
+        };
+        fetchTemplates();
+    }, [toast]);
+    
+    const handleTemplateChange = (templateId: string) => {
+        const selectedTemplate = templates.find(t => t.templateId === templateId);
+        if (selectedTemplate) {
+            form.setValue('options.colorHex', selectedTemplate.defaults.colorHex || '#000000');
+            form.setValue('options.bgColorHex', selectedTemplate.defaults.bgColorHex || '#FFFFFF');
+            form.setValue('options.errorCorrection', selectedTemplate.defaults.errorCorrection || 'M');
+            form.setValue('options.aiTone', selectedTemplate.defaults.aiTone || '');
+            form.setValue('options.aiGoal', selectedTemplate.defaults.aiGoal || '');
+            toast({
+                title: 'Template Applied',
+                description: `"${selectedTemplate.name}" styles have been loaded.`,
+            });
+        }
+    };
+
 
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
@@ -138,6 +173,20 @@ export default function BulkQRCodeGenerator() {
                             <AccordionItem value="styling">
                                 <AccordionTrigger>Choose QR Template</AccordionTrigger>
                                 <AccordionContent className="pt-4 space-y-6">
+                                    <div className="space-y-2">
+                                        <Label>Load from Template</Label>
+                                        <Select onValueChange={handleTemplateChange}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a template to apply styles..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {templates.map(template => (
+                                                    <SelectItem key={template.templateId} value={template.templateId}>{template.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">Selecting a template will pre-fill the options below. You can still override them.</p>
+                                    </div>
                                      <div className="grid md:grid-cols-3 gap-6">
                                         <div>
                                             <Label htmlFor="colorHex">QR Color</Label>

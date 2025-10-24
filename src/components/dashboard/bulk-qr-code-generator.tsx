@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -171,10 +171,10 @@ export default function BulkQRCodeGenerator() {
                             </div>
 
                             <div className="flex-shrink-0 flex items-end gap-2 w-full sm:w-auto">
-                                <Accordion type="single" collapsible className="w-full sm:w-64">
+                                <Accordion type="single" collapsible className="w-full sm:w-auto">
                                     <AccordionItem value="styling" className="border-b-0">
-                                        <AccordionTrigger className="h-10 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md">Choose QR Template</AccordionTrigger>
-                                        <AccordionContent className="absolute z-10 mt-2 w-full sm:w-80 p-0">
+                                        <AccordionTrigger className="h-10 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md sm:w-auto">Choose QR Template</AccordionTrigger>
+                                        <AccordionContent className="absolute z-10 mt-2 right-0 sm:right-auto p-0 w-full sm:w-[500px]">
                                             <Card className="p-4">
                                                 <div className="space-y-6">
                                                     <div className="space-y-2">

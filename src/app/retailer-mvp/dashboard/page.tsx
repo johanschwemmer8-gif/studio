@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { storesByRegion } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
@@ -39,12 +39,12 @@ export default function DashboardPage() {
     setSelectedStore(null); // Reset store when region changes
   };
 
-  useState(() => {
+  useEffect(() => {
     // In a real app, filters would be passed here based on selectors
     analyzeEngagementMetrics({}).then(data => {
       setAnalyticsData(data);
     });
-  });
+  }, []);
 
   const handleAnalyzeMetrics = () => {
     setError(null);

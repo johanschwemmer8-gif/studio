@@ -60,7 +60,7 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     
     // --- Step 1: Fetch and calculate metrics ---
     // In a real application, this would involve complex queries across multiple collections.
-    // For this demonstration, we'll generate realistic but simulated data.
+    // For this demonstration, we'll generate realistic but simulated data to avoid local auth issues.
     
     // Simulating fetching and aggregation
     const totalScans = Math.floor(Math.random() * 5000) + 1000;

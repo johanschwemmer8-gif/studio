@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const consentOptions = [
     { id: 'recommendations', label: 'Product Recommendation AI' },
@@ -272,9 +273,11 @@ export default function RetailerAIPolicyPage() {
                             <CardDescription>This master prompt provides high-level instructions that all AI models must follow.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm p-4 bg-background rounded-md italic">
-                                "Always be helpful and respectful. Do not make up information. If you don't know an answer, say so. Uphold the brand values of quality and trust in all responses..."
-                            </p>
+                            <ScrollArea className="h-48 w-full rounded-md border bg-background p-4">
+                                <p className="text-sm italic">
+                                    "Always be helpful and respectful. Do not make up information. If you don't know an answer, say so. Uphold the brand values of quality and trust in all responses. Never use discriminatory language or make assumptions based on user demographics. Prioritize user safety and privacy in all interactions. Your goal is to assist, not to persuade inappropriately. Be transparent about your limitations as an AI. When providing recommendations, explain the reasoning in a simple, clear manner. Adhere strictly to the defined fairness constraints and report any potential for bias if detected."
+                                </p>
+                            </ScrollArea>
                         </CardContent>
                     </Card>
                      <Card className="bg-muted/50">

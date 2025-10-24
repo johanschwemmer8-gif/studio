@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/card';
 import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag, Sparkles, AlertTriangle } from 'lucide-react';
 import TopProductsTable from '@/components/dashboard/top-products-table';
-import { dashboardMetrics } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function RoiPage() {
-  const metrics = dashboardMetrics.getMetrics(null); // Using all stores data for this page
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -38,21 +36,6 @@ export default function RoiPage() {
         }
     });
   };
-
-  const scanFrequencyData = [
-    { name: 'Mar', scans: 980 },
-    { name: 'Apr', scans: 390 },
-    { name: 'May', scans: 480 },
-    { name: 'Jun', scans: 380 },
-    { name: 'Jul', scans: 520 },
-    { name: 'Aug', scans: 610 },
-    { name: 'Sep', scans: 750 },
-    { name: 'Oct', scans: 880 },
-    { name: 'Nov', scans: 1050 },
-    { name: 'Dec', scans: 1500 },
-    { name: 'Jan', scans: 1240 },
-    { name: 'Feb', scans: 1139 },
-  ];
 
   return (
     <div className="space-y-8">
@@ -143,7 +126,7 @@ export default function RoiPage() {
             <QrCode className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.stats.totalScans.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{analysis?.engagement.totalScans.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
             <p className="text-xs text-muted-foreground">
               All QR code scans across all stores.
             </p>
@@ -158,7 +141,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metrics.stats.uniqueScans.toLocaleString()}
+              {analysis?.engagement.uniqueScans.toLocaleString() || <Skeleton className="h-8 w-20" />}
             </div>
             <p className="text-xs text-muted-foreground">
               Individual customers who have scanned.
@@ -174,7 +157,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metrics.stats.scanRate}%
+              {analysis?.engagement.scanRate.toFixed(2) || '0.00'}%
             </div>
             <p className="text-xs text-muted-foreground">
               Based on total scans vs. unique visitors.
@@ -189,7 +172,7 @@ export default function RoiPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.stats.engagementDuration}s</div>
+            <div className="text-2xl font-bold">{analysis?.engagement.engagementDuration || <Skeleton className="h-8 w-12" />}s</div>
             <p className="text-xs text-muted-foreground">
               Average time spent on product page.
             </p>
@@ -198,7 +181,7 @@ export default function RoiPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <TopProductsTable data={metrics.topProducts} />
+        <TopProductsTable data={[]} />
       </div>
 
       <Separator />
@@ -221,15 +204,15 @@ export default function RoiPage() {
             <CardContent className="space-y-4">
                 <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground text-sm">AOE Users</span>
-                    <span className="text-lg font-bold">R{metrics.stats.avgBasketSizeAoe.toFixed(2)}</span>
+                    {analysis ? <span className="text-lg font-bold">R{analysis.conversion.avgBasketSizeAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
                 </div>
                  <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground text-sm">Non-Users</span>
-                    <span className="text-lg font-bold">R{metrics.stats.avgBasketSizeNonAoe.toFixed(2)}</span>
+                    {analysis ? <span className="text-lg font-bold">R{analysis.conversion.avgBasketSizeNonAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
                 </div>
                 <div className="flex justify-between items-baseline pt-2 border-t">
                     <span className="text-primary font-semibold text-sm">Uplift</span>
-                    <span className="text-lg font-bold text-primary">{metrics.stats.basketUpliftPercentage}%</span>
+                    {analysis ? <span className="text-lg font-bold text-primary">{analysis.conversion.basketUpliftPercentage.toFixed(2)}%</span> : <Skeleton className="h-6 w-16" />}
                 </div>
             </CardContent>
         </Card>
@@ -239,13 +222,13 @@ export default function RoiPage() {
                 <Tag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="text-3xl font-bold">{metrics.stats.offerRedemptionRate}%</div >
+                 <div className="text-3xl font-bold">{analysis?.conversion.offerRedemptionRate.toFixed(2) || '0.00'}%</div >
                 <p className="text-xs text-muted-foreground">
                     Percentage of personalized offers redeemed.
                 </p>
                 <div className="pt-4">
                     <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
-                     <p className="text-2xl font-bold">R{metrics.stats.totalRedeemedValue.toLocaleString()}</p>
+                     <p className="text-2xl font-bold">R{analysis?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</p>
                 </div>
             </CardContent>
         </Card>
@@ -255,7 +238,7 @@ export default function RoiPage() {
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-4xl font-bold">{metrics.stats.aoeTransactions}</div>
+                <div className="text-4xl font-bold">{analysis?.conversion.aoeTransactions.toLocaleString() || <Skeleton className="h-10 w-20" />}</div>
                 <p className="text-xs text-muted-foreground">
                     Total transactions where a customer engaged with the platform before purchase.
                 </p>
@@ -265,7 +248,7 @@ export default function RoiPage() {
 
       <Separator />
 
-      <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
+      <TimeBasedPerformanceChart data={[]} />
     </div>
   );
 }

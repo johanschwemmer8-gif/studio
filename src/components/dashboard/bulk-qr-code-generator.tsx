@@ -136,7 +136,7 @@ export default function BulkQRCodeGenerator() {
 
                         <Accordion type="single" collapsible>
                             <AccordionItem value="styling">
-                                <AccordionTrigger>Styling & Advanced Options</AccordionTrigger>
+                                <AccordionTrigger>Choose QR Template</AccordionTrigger>
                                 <AccordionContent className="pt-4 space-y-6">
                                      <div className="grid md:grid-cols-3 gap-6">
                                         <div>

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale, CalendarCheck, Settings2, Save } from 'lucide-react';
+import { BookOpen, CheckCircle, Database, FileText, Info, Shield, Sparkles, UserCheck, AlertTriangle, TrendingUp, TrendingDown, Percent, Scale, CalendarCheck, Settings2, Save, Edit } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -155,17 +155,25 @@ function BiasMonitoringDashboard() {
 
 export default function AIPolicyPage() {
     const { toast } = useToast();
-    const [isPromptSaved, setIsPromptSaved] = useState(false);
+    const [promptContent, setPromptContent] = useState<string>("Always be helpful and respectful. Do not make up information. If you don't know an answer, say so. Uphold the brand values of quality and trust in all responses.");
+    const [isEditingPrompt, setIsEditingPrompt] = useState(false);
 
-    const handleSavePrompt = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        // Here you would typically save the prompt content to a backend
-        setIsPromptSaved(true);
+    useEffect(() => {
+        const savedPrompt = localStorage.getItem('globalAiPrompt');
+        if (savedPrompt) {
+            setPromptContent(savedPrompt);
+        } else {
+            setIsEditingPrompt(true); // Start in edit mode if no prompt is saved
+        }
+    }, []);
+
+    const handleSavePrompt = () => {
+        localStorage.setItem('globalAiPrompt', promptContent);
+        setIsEditingPrompt(false);
         toast({
             title: "Prompt Saved",
             description: "The global AI instruction prompt has been updated.",
         });
-        setTimeout(() => setIsPromptSaved(false), 3000); // Reset after 3 seconds
     };
 
     return (
@@ -261,16 +269,31 @@ export default function AIPolicyPage() {
                             <CardDescription>This master prompt provides high-level instructions that all AI models must follow, ensuring consistency with your brand values and ethical guidelines.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Textarea 
-                                placeholder="e.g., 'Always be helpful and respectful. Do not make up information. If you don't know an answer, say so. Uphold the brand values of quality and trust in all responses...'" 
-                                rows={6} 
-                            />
+                            {isEditingPrompt ? (
+                                <Textarea 
+                                    placeholder="e.g., 'Always be helpful and respectful...'" 
+                                    rows={6}
+                                    value={promptContent}
+                                    onChange={(e) => setPromptContent(e.target.value)}
+                                />
+                            ) : (
+                                <div className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap text-sm">
+                                    {promptContent}
+                                </div>
+                            )}
                         </CardContent>
                         <CardFooter>
-                            <Button onClick={handleSavePrompt} className={isPromptSaved ? 'bg-green-600 hover:bg-green-700' : ''}>
-                                {isPromptSaved ? <CheckCircle className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                                {isPromptSaved ? 'Saved!' : 'Save Prompt'}
-                            </Button>
+                           {isEditingPrompt ? (
+                                <Button onClick={handleSavePrompt}>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Save Prompt
+                                </Button>
+                           ) : (
+                               <Button variant="outline" onClick={() => setIsEditingPrompt(true)}>
+                                   <Edit className="mr-2 h-4 w-4" />
+                                   Edit Rules
+                               </Button>
+                           )}
                         </CardFooter>
                     </Card>
                      <Card className="bg-background/50">
@@ -351,3 +374,4 @@ export default function AIPolicyPage() {
         </div>
     );
 }
+

@@ -287,8 +287,7 @@ When providing recommendations, explain the reasoning in a simple, clear manner.
 
 Adhere strictly to the defined fairness constraints and report any potential for bias if detected during an interaction.
 
-Your persona is that of a helpful, knowledgeable, in-store expert. You are friendly but professional.
-`}
+Your persona is that of a helpful, knowledgeable, in-store expert. You are friendly but professional.`}
                                 </p>
                             </ScrollArea>
                         </CardContent>

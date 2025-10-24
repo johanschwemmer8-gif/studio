@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -139,86 +139,92 @@ export default function BulkQRCodeGenerator() {
 
     return (
         <TooltipProvider>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Create New QR Code Campaign</CardTitle>
-                        <CardDescription>
-                            Generate a large batch of unique, trackable QR codes for your products or campaigns.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <Label htmlFor="campaignId">Campaign ID</Label>
-                                <Input id="campaignId" {...form.register('campaignId')} placeholder="e.g., summer-sale-2024" />
-                                {form.formState.errors.campaignId && <p className="text-sm text-destructive mt-1">{form.formState.errors.campaignId.message}</p>}
+            <div>
+                 <h2 className="text-2xl font-bold tracking-tight mb-2">
+                    Create New QR Code Campaign
+                </h2>
+                <p className="text-muted-foreground max-w-3xl mb-4">
+                    Generate a large batch of unique, trackable QR codes for your products or campaigns.
+                </p>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <Card className="p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                            <div className="grid sm:grid-cols-3 gap-4 flex-1 w-full">
+                                <div>
+                                    <Label htmlFor="campaignId">Campaign ID</Label>
+                                    <Input id="campaignId" {...form.register('campaignId')} placeholder="e.g., summer-sale-2024" />
+                                    {form.formState.errors.campaignId && <p className="text-sm text-destructive mt-1">{form.formState.errors.campaignId.message}</p>}
+                                </div>
+                                <div>
+                                    <Label htmlFor="count">Number of Codes</Label>
+                                    <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} />
+                                    {form.formState.errors.count && <p className="text-sm text-destructive mt-1">{form.formState.errors.count.message}</p>}
+                                </div>
+                                <div>
+                                    <Label htmlFor="baseRedirect">Base Redirect URL</Label>
+                                    <div className="relative">
+                                        <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input id="baseRedirect" {...form.register('baseRedirect')} placeholder="https://your-store.com/product" className="pl-9"/>
+                                    </div>
+                                    {form.formState.errors.baseRedirect && <p className="text-sm text-destructive mt-1">{form.formState.errors.baseRedirect.message}</p>}
+                                </div>
                             </div>
-                            <div>
-                                <Label htmlFor="count">Number of Codes</Label>
-                                <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} />
-                                {form.formState.errors.count && <p className="text-sm text-destructive mt-1">{form.formState.errors.count.message}</p>}
-                            </div>
-                        </div>
-                        <div>
-                            <Label htmlFor="baseRedirect">Base Redirect URL</Label>
-                             <div className="relative">
-                                <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input id="baseRedirect" {...form.register('baseRedirect')} placeholder="https://your-store.com/product-landing" className="pl-9"/>
-                            </div>
-                            {form.formState.errors.baseRedirect && <p className="text-sm text-destructive mt-1">{form.formState.errors.baseRedirect.message}</p>}
-                        </div>
 
-                        <Accordion type="single" collapsible>
-                            <AccordionItem value="styling">
-                                <AccordionTrigger>Choose QR Template</AccordionTrigger>
-                                <AccordionContent className="pt-4 space-y-6">
-                                    <div className="space-y-2">
-                                        <Label>Load from Template</Label>
-                                        <Select onValueChange={handleTemplateChange}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a template to apply styles..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {templates.map(template => (
-                                                    <SelectItem key={template.templateId} value={template.templateId}>{template.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-xs text-muted-foreground">Selecting a template will pre-fill the options below. You can still override them.</p>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="logoPath">Logo URL (Optional)</Label>
-                                        <Input id="logoPath" {...form.register('options.logoPath')} placeholder="https://your-cdn.com/logo.png" />
-                                        {form.formState.errors.options?.logoPath && <p className="text-sm text-destructive mt-1">{form.formState.errors.options.logoPath.message}</p>}
-                                    </div>
-                                    
-                                    <div className="p-4 border rounded-md space-y-4 bg-muted/30">
-                                        <h4 className="font-semibold flex items-center gap-2"><Sparkles className="text-accent" /> AI Content Generation</h4>
-                                        <div className="grid md:grid-cols-2 gap-6">
-                                            <div>
-                                                <Label htmlFor="aiTone">AI Tone</Label>
-                                                <Textarea id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="aiGoal">Campaign Goal</Label>
-                                                <Textarea id="aiGoal" {...form.register('options.aiGoal')} placeholder="e.g., Drive sales for the new shoe line" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </CardContent>
-                    <CardFooter>
-                         <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
-                            Queue Generation Job
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </form>
+                            <div className="flex-shrink-0 flex items-end gap-2 w-full sm:w-auto">
+                                <Accordion type="single" collapsible className="w-full sm:w-64">
+                                    <AccordionItem value="styling" className="border-b-0">
+                                        <AccordionTrigger className="h-10 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md">Choose QR Template</AccordionTrigger>
+                                        <AccordionContent className="absolute z-10 mt-2 w-full sm:w-80 p-0">
+                                            <Card className="p-4">
+                                                <div className="space-y-6">
+                                                    <div className="space-y-2">
+                                                        <Label>Load from Template</Label>
+                                                        <Select onValueChange={handleTemplateChange}>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select a template to apply styles..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {templates.map(template => (
+                                                                    <SelectItem key={template.templateId} value={template.templateId}>{template.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <p className="text-xs text-muted-foreground">Selecting a template will pre-fill the options below.</p>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="logoPath">Logo URL (Optional)</Label>
+                                                        <Input id="logoPath" {...form.register('options.logoPath')} placeholder="https://your-cdn.com/logo.png" />
+                                                        {form.formState.errors.options?.logoPath && <p className="text-sm text-destructive mt-1">{form.formState.errors.options.logoPath.message}</p>}
+                                                    </div>
+                                                    
+                                                    <div className="p-4 border rounded-md space-y-4 bg-muted/30">
+                                                        <h4 className="font-semibold flex items-center gap-2"><Sparkles className="text-accent" /> AI Content Generation</h4>
+                                                        <div className="grid md:grid-cols-2 gap-6">
+                                                            <div>
+                                                                <Label htmlFor="aiTone">AI Tone</Label>
+                                                                <Textarea id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
+                                                            </div>
+                                                            <div>
+                                                                <Label htmlFor="aiGoal">Campaign Goal</Label>
+                                                                <Textarea id="aiGoal" {...form.register('options.aiGoal')} placeholder="e.g., Drive sales for the new shoe line" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
+                                    Queue Job
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </form>
+            </div>
         </TooltipProvider>
     );
 }

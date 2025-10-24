@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -18,22 +18,34 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function RoiPage() {
+  const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    // Automatically fetch metrics when the page loads
+    const fetchInitialData = async () => {
+      try {
+        const result = await analyzeEngagementMetrics({});
+        setMetricsData(result);
+      } catch (e) {
+        console.error(e);
+        setError("We couldn't load the initial dashboard metrics. Please try again later.");
+      }
+    };
+    fetchInitialData();
+  }, []);
+
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
-        try {
-            const result = await analyzeEngagementMetrics({
-                // The flow now fetches its own data, so we can pass an empty object
-            });
-            setAnalysis(result);
-        } catch (e) {
-            console.error(e);
-            setError("We couldn't generate the analysis at this time. Please try again later.");
-        }
+      // Use the already fetched data to generate the text analysis
+      if (metricsData) {
+        setAnalysis(metricsData);
+      } else {
+        setError("Metrics data is not available to analyze.");
+      }
     });
   };
 
@@ -48,7 +60,7 @@ export default function RoiPage() {
             Click the button to get AI-driven conclusions and recommendations based on all engagement and conversion metrics below.
           </p>
         </div>
-        <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
+        <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing || !metricsData}>
             <Sparkles className="mr-2 h-4 w-4" />
             Analyze All Metrics
         </Button>
@@ -75,7 +87,7 @@ export default function RoiPage() {
       {error && (
           <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Analysis Failed</AlertTitle>
+              <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
           </Alert>
       )}
@@ -126,7 +138,7 @@ export default function RoiPage() {
             <QrCode className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analysis?.engagement.totalScans.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
+            <div className="text-2xl font-bold">{metricsData?.engagement.totalScans.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
             <p className="text-xs text-muted-foreground">
               All QR code scans across all stores.
             </p>
@@ -141,7 +153,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {analysis?.engagement.uniqueScans.toLocaleString() || <Skeleton className="h-8 w-20" />}
+              {metricsData?.engagement.uniqueScans.toLocaleString() || <Skeleton className="h-8 w-20" />}
             </div>
             <p className="text-xs text-muted-foreground">
               Individual customers who have scanned.
@@ -157,7 +169,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {analysis?.engagement.scanRate.toFixed(2) || '0.00'}%
+              {metricsData?.engagement.scanRate.toFixed(2) || '0.00'}%
             </div>
             <p className="text-xs text-muted-foreground">
               Based on total scans vs. unique visitors.
@@ -172,7 +184,7 @@ export default function RoiPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analysis?.engagement.engagementDuration || <Skeleton className="h-8 w-12" />}s</div>
+            <div className="text-2xl font-bold">{metricsData?.engagement.engagementDuration || <Skeleton className="h-8 w-12" />}s</div>
             <p className="text-xs text-muted-foreground">
               Average time spent on product page.
             </p>
@@ -204,15 +216,15 @@ export default function RoiPage() {
             <CardContent className="space-y-4">
                 <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground text-sm">AOE Users</span>
-                    {analysis ? <span className="text-lg font-bold">R{analysis.conversion.avgBasketSizeAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
+                    {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
                 </div>
                  <div className="flex justify-between items-baseline">
                     <span className="text-muted-foreground text-sm">Non-Users</span>
-                    {analysis ? <span className="text-lg font-bold">R{analysis.conversion.avgBasketSizeNonAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
+                    {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
                 </div>
                 <div className="flex justify-between items-baseline pt-2 border-t">
                     <span className="text-primary font-semibold text-sm">Uplift</span>
-                    {analysis ? <span className="text-lg font-bold text-primary">{analysis.conversion.basketUpliftPercentage.toFixed(2)}%</span> : <Skeleton className="h-6 w-16" />}
+                    {metricsData ? <span className="text-lg font-bold text-primary">{metricsData.conversion.basketUpliftPercentage.toFixed(2)}%</span> : <Skeleton className="h-6 w-16" />}
                 </div>
             </CardContent>
         </Card>
@@ -222,13 +234,13 @@ export default function RoiPage() {
                 <Tag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="text-3xl font-bold">{analysis?.conversion.offerRedemptionRate.toFixed(2) || '0.00'}%</div >
+                 <div className="text-3xl font-bold">{metricsData?.conversion.offerRedemptionRate.toFixed(2) || '0.00'}%</div >
                 <p className="text-xs text-muted-foreground">
                     Percentage of personalized offers redeemed.
                 </p>
                 <div className="pt-4">
                     <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
-                     <div className="text-2xl font-bold">R{analysis?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
+                     <div className="text-2xl font-bold">R{metricsData?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
                 </div>
             </CardContent>
         </Card>
@@ -238,7 +250,7 @@ export default function RoiPage() {
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-4xl font-bold">{analysis?.conversion.aoeTransactions.toLocaleString() || <Skeleton className="h-10 w-20" />}</div>
+                <div className="text-4xl font-bold">{metricsData?.conversion.aoeTransactions.toLocaleString() || <Skeleton className="h-10 w-20" />}</div>
                 <p className="text-xs text-muted-foreground">
                     Total transactions where a customer engaged with the platform before purchase.
                 </p>

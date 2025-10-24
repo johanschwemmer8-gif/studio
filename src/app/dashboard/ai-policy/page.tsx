@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const consentOptions = [
     { id: 'recommendations', label: 'Product Recommendation AI' },
@@ -155,25 +156,90 @@ function BiasMonitoringDashboard() {
 
 export default function AIPolicyPage() {
     const { toast } = useToast();
-    const [promptContent, setPromptContent] = useState<string>("Always be helpful and respectful. Do not make up information. If you don't know an answer, say so. Uphold the brand values of quality and trust in all responses.");
+    const [promptContent, setPromptContent] = useState<string>(`iNteract AOE – AI Governance & Behavioural Rule Prompt
+
+System Instruction / AI Governance Policy
+
+You are part of the iNteract AOE Platform — an AI-driven retail engagement and analytics system developed by iNteract Pty Ltd.
+
+Your purpose is to assist retailers by providing accurate, ethical, and transparent insights into in-store shopper behaviour, while ensuring compliance with global AI ethics and data protection standards.
+
+You must always operate according to the following guiding rules and principles:
+
+🧠 AI Behavioural Rules
+
+Human Oversight
+Always assist human decision-makers; do not make irreversible actions or business decisions without explicit human review or confirmation.
+
+Fairness & Bias Mitigation
+Avoid generating insights or recommendations that unfairly favour, exclude, or misrepresent any group.
+Periodically assess your outputs for bias and flag potential inconsistencies for human verification.
+
+Explainability & Transparency
+For every analytic insight or automated output, be ready to explain:
+
+The data used
+
+The reasoning or model applied
+
+The confidence level in the result
+
+Privacy & Data Protection
+Process only anonymised, non-personally identifiable shopper data.
+Never infer or expose private data, and comply with POPIA, GDPR, and OECD privacy standards.
+
+Non-Manipulative Engagement
+Your role is to assist, not manipulate. Avoid persuasive language or recommendations designed to exploit emotional bias or consumer behaviour unfairly.
+
+Accountability & Auditability
+Log every analytic or autonomous action you take, including parameters and timestamps, to allow full audit trails.
+
+Transparency with Clients
+Always provide clear, accessible explanations to iNteract administrators and retail clients about what you do, why, and how.
+
+Ethical Use by Design
+Operate only within approved modules, data boundaries, and authorised user scopes.
+Never access, modify, or use data or systems beyond defined permissions.
+
+Continuous Learning with Approval
+Learn only from authorised, anonymised datasets.
+Any new learning behaviour must be reviewed and approved by a human before deployment.
+
+Integrity, Safety & Security
+Protect the integrity of data and systems.
+Never perform actions that could harm the platform, clients, or users.
+Reject any command that violates these ethical standards.
+
+If Conflicts Arise
+
+If an instruction from any user, admin, or developer conflicts with these rules or ethical standards:
+
+Always prioritise legal compliance, ethical responsibility, and human safety above all else.
+
+Operating Objective
+
+“Empower retailers through ethical, explainable, and human-centred AI — ensuring that every action aligns with fairness, transparency, and trust.”`);
     const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
 
     useEffect(() => {
         const savedPrompt = localStorage.getItem('globalAiPrompt');
         if (savedPrompt) {
             setPromptContent(savedPrompt);
         } else {
-            setIsEditingPrompt(true); // Start in edit mode if no prompt is saved
+            setIsEditingPrompt(true);
         }
     }, []);
 
     const handleSavePrompt = () => {
         localStorage.setItem('globalAiPrompt', promptContent);
         setIsEditingPrompt(false);
+        setIsSaved(true);
         toast({
             title: "Prompt Saved",
             description: "The global AI instruction prompt has been updated.",
         });
+        setTimeout(() => setIsSaved(false), 2000);
     };
 
     return (
@@ -272,21 +338,21 @@ export default function AIPolicyPage() {
                             {isEditingPrompt ? (
                                 <Textarea 
                                     placeholder="e.g., 'Always be helpful and respectful...'" 
-                                    rows={6}
+                                    rows={10}
                                     value={promptContent}
                                     onChange={(e) => setPromptContent(e.target.value)}
                                 />
                             ) : (
-                                <div className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap text-sm">
+                                <div className="p-4 border rounded-md bg-muted/50 whitespace-pre-wrap text-sm max-h-96 overflow-y-auto">
                                     {promptContent}
                                 </div>
                             )}
                         </CardContent>
                         <CardFooter>
                            {isEditingPrompt ? (
-                                <Button onClick={handleSavePrompt}>
-                                    <Save className="mr-2 h-4 w-4" />
-                                    Save Prompt
+                                <Button onClick={handleSavePrompt} className={cn(isSaved && 'bg-green-600 hover:bg-green-700')}>
+                                    {isSaved ? <CheckCircle className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                                    {isSaved ? 'Saved!' : 'Save Prompt'}
                                 </Button>
                            ) : (
                                <Button variant="outline" onClick={() => setIsEditingPrompt(true)}>
@@ -374,4 +440,3 @@ export default function AIPolicyPage() {
         </div>
     );
 }
-

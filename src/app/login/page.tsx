@@ -30,6 +30,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -195,9 +196,15 @@ export default function LoginPage() {
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Log In
             </Button>
+            <div className="relative w-full">
+              <Separator />
+              <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
+                OR
+              </span>
+            </div>
             <Button asChild className="w-full" variant="secondary">
               <Link href="/retailer-mvp/dashboard">
-                View Retailer MVP Demo
+                Retailer MVP Login
               </Link>
             </Button>
           </CardFooter>

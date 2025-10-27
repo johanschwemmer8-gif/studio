@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ import { AlertTriangle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [retailerEmail, setRetailerEmail] = useState('');
@@ -48,6 +48,8 @@ export default function LoginPage() {
 
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view');
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>, userType: 'admin' | 'retailer') => {
     event.preventDefault();
@@ -115,11 +117,13 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
-      <Tabs defaultValue="admin" className="w-full max-w-sm">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="admin">iNteract Admin</TabsTrigger>
-          <TabsTrigger value="retailer">Retailer MVP</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue={view === 'retailer' ? 'retailer' : 'admin'} className="w-full max-w-sm">
+        {view !== 'retailer' && (
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="admin">iNteract Admin</TabsTrigger>
+            <TabsTrigger value="retailer">Retailer MVP</TabsTrigger>
+          </TabsList>
+        )}
         
         {/* Admin Login Tab */}
         <TabsContent value="admin">
@@ -315,4 +319,12 @@ export default function LoginPage() {
       </Tabs>
     </div>
   );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginPageContent />
+    </Suspense>
+  )
 }

@@ -164,14 +164,6 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="QR & AI Management">
-                    <Link href="/dashboard/qr-ai-management">
-                        <QrCode />
-                        <span>QR & AI Management</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
             
             <SidebarSeparator />
 
@@ -204,11 +196,6 @@ export default function DashboardLayout({
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="System Integration & Testing">
                             <Link href="/dashboard/system-integration"><FlaskConical /><span>System Integration</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="UI/UX Development">
-                            <Link href="/dashboard/ui-ux-development"><Smartphone /><span>UI/UX Development</span></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>

@@ -16,7 +16,8 @@ import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-ex
 import { getQrTemplates, type GetQrTemplatesInput } from './get-qr-templates';
 import { type QrTemplate } from '@/lib/schemas/qr-templates';
 import { getScanEvents, type GetScanEventsInput, type GetScanEventsOutput } from './get-scan-events';
-import { getScanInteraction, type GetScanInteractionInput, type GetScanInteractionOutput } from './get-scan-interaction';
+import { getScanInteraction } from './get-scan-interaction';
+import { type GetScanInteractionInput, type GetScanInteractionOutput } from '@/lib/schemas/scan-interaction';
 import { importExternalQrCodes, type ImportExternalQrCodesInput, type ImportExternalQrCodesOutput } from './import-external-qr-codes';
 import { logABTestConversion, type LogABTestConversionInput } from './log-ab-test-conversion';
 import { logAdClick, type LogAdClickInput } from './log-ad-click';

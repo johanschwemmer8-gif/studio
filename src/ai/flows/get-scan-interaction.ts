@@ -5,36 +5,26 @@
  *               and returns AI-generated engagement messages for the scan interaction screen.
  *
  * - getScanInteraction - Fetches data for the scan interaction screen.
- * - GetScanInteractionInput - The input type for the function.
- * - GetScanInteractionOutput - The return type for the function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import {
+  GetScanInteractionInputSchema,
+  type GetScanInteractionInput,
+  GetScanInteractionOutputSchema,
+  type GetScanInteractionOutput,
+} from '@/lib/schemas/scan-interaction';
+
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-export const GetScanInteractionInputSchema = z.object({
-  qrId: z.string(),
-});
-export type GetScanInteractionInput = z.infer<typeof GetScanInteractionInputSchema>;
-
-export const GetScanInteractionOutputSchema = z.object({
-  messages: z.array(z.string()).describe('An array of short, engaging messages from the AI assistant.'),
-  destinationUrl: z.string().url().describe('The final URL the user should be redirected to.'),
-  retailerLogoUrl: z.string().url().optional().describe('The URL of the retailer\'s logo.'),
-});
-export type GetScanInteractionOutput = z.infer<typeof GetScanInteractionOutputSchema>;
-
-
 const InteractionPromptInputSchema = z.object({
     retailerName: z.string(),
     campaignName: z.string(),
-    // In a real app, you would fetch and include more product/campaign context
-    // productName: z.string().optional(),
     personality: z.string(),
     intent: z.string(),
     constraints: z.string().optional(),
@@ -80,8 +70,6 @@ const getScanInteractionFlow = ai.defineFlow(
     }
     const qrData = qrDoc.data()!;
 
-    // If there's no AI profile, or some other issue, we must have a graceful fallback.
-    // The primary goal is to get the user to the product page.
     const fallbackResponse = {
         messages: [],
         destinationUrl: qrData.redirectUrl,
@@ -95,7 +83,7 @@ const getScanInteractionFlow = ai.defineFlow(
     try {
         const [aiProfileDoc, retailerDoc] = await Promise.all([
             db.collection('ai_profiles').doc(qrData.aiProfileId).get(),
-            db.collection('tenants').doc(qrData.retailerId).get() // Assuming tenant info is in 'tenants' collection
+            db.collection('tenants').doc(qrData.retailerId).get()
         ]);
         
         if (!aiProfileDoc.exists) {
@@ -120,10 +108,9 @@ const getScanInteractionFlow = ai.defineFlow(
           return { ...fallbackResponse, retailerLogoUrl };
         }
 
-        // Log the interaction to Firestore for analytics
         await db.collection('qr_interactions').add({
             qrId,
-            scanId: 'simulated-scan-id', // In a real app, you'd pass a unique scan ID
+            scanId: 'simulated-scan-id',
             retailerId: qrData.retailerId,
             aiProfileId: qrData.aiProfileId,
             interactionShownAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -139,7 +126,6 @@ const getScanInteractionFlow = ai.defineFlow(
 
     } catch (error) {
         console.error(`Error during scan interaction for qrId ${qrId}:`, error);
-        // If anything in the AI interaction fails, we still want to redirect the user.
         return fallbackResponse;
     }
   }

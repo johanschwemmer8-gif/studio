@@ -13,7 +13,7 @@ import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 import { Button } from '@/components/ui/button';
-import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
+import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 

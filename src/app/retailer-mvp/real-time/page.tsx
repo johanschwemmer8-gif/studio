@@ -8,8 +8,7 @@ import { PieChart, Hand, Timer, MousePointerClick, Repeat, Gift, Trophy, Users, 
 import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { useState, useTransition } from 'react';
-import { analyzeCampaignPerformance, AnalyzeCampaignPerformanceOutput } from '@/ai/flows/analyze-campaign-performance';
-import { analyzeBehavioralInsights, AnalyzeBehavioralInsightsOutput } from '@/ai/flows/analyze-behavioral-insights';
+import { analyzeCampaignPerformance, analyzeBehavioralInsights, type AnalyzeCampaignPerformanceOutput, type AnalyzeBehavioralInsightsOutput } from '@/ai/flows';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import theme from '@/config/theme.json';

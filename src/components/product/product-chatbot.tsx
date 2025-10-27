@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
@@ -15,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageCircle, Send, Sparkles } from 'lucide-react';
 import type { Product } from '@/lib/data';
-import { productChat, ProductChatInput } from '@/ai/flows/product-chat-flow';
+import { productChat, type ProductChatInput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 

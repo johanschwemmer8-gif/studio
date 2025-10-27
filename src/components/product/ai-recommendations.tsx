@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
 import {
   generateCrossSellRecommendations,
   type GenerateCrossSellRecommendationsOutput,
-} from '@/ai/flows/generate-cross-sell-recommendations';
+} from '@/ai/flows';
 import type { Product } from '@/lib/data';
 import {
   Card,

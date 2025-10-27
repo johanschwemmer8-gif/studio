@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getScanInteraction, GetScanInteractionOutput } from '@/ai/flows/get-scan-interaction';
+import { getScanInteraction, type GetScanInteractionOutput } from '@/ai/flows';
 import { Button } from '../ui/button';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -158,4 +158,3 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
     </div>
   );
 }
-

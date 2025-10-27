@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   Link as LinkIcon,
   Sparkles,
+  PlusCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
@@ -142,9 +143,16 @@ export default function BulkQRCodeGenerator() {
     return (
         <TooltipProvider>
             <div>
-                 <h2 className="text-2xl font-bold tracking-tight mb-2">
-                    Create New QR Code Campaign
-                </h2>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+                    <h2 className="text-2xl font-bold tracking-tight">
+                        Create New QR Code Campaign
+                    </h2>
+                    <Button variant="outline">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Campaign
+                    </Button>
+                </div>
+
                 <p className="text-muted-foreground max-w-3xl mb-4">
                     Generate a large batch of unique, trackable QR codes for your products or campaigns.
                 </p>

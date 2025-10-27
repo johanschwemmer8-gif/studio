@@ -119,11 +119,6 @@ export default function DashboardLayout({
               <SidebarGroupLabel>Platform Administration</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="iNteract Admin Panel">
-                    <Link href="/dashboard/admin"><Cog /><span>Admin Panel</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="User Admin">
                     <Link href="/create-admin"><UserCog /><span>User Admin</span></Link>
                   </SidebarMenuButton>
@@ -133,19 +128,16 @@ export default function DashboardLayout({
                     <Link href="/dashboard/core-integration"><DatabaseZap /><span>Core Integration</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Admin / Retailer Management">
+                        <Link href="/dashboard/admin"><Cog /><span>Admin / Retailer Mgt</span></Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarGroupContent>
             </SidebarGroup>
             
             <SidebarSeparator />
 
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Retailer Management">
-                <Link href="/dashboard/retailer-management">
-                  <Store />
-                  <span>Retailer Management</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
              <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Executive ROI">
                     <Link href="/dashboard/executive-roi"><DollarSign /><span>Executive ROI</span></Link>

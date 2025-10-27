@@ -82,6 +82,13 @@ export default function RetailerSidebar({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
+                 {optionalModules.retailerAdmin && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Retailer Admin Panel">
+                      <Link href="/retailer-mvp/admin"><UserCog /><span>Retailer Admin Panel</span></Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Brands">
                     <Link href="/retailer-mvp/brands"><Palette /><span>Brands</span></Link>
@@ -144,13 +151,6 @@ export default function RetailerSidebar({
                     <Link href="/retailer-mvp/ai-policy"><Shield /><span>AI Policy</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {optionalModules.retailerAdmin && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Retailer Admin Panel">
-                      <Link href="/retailer-mvp/admin"><UserCog /><span>Retailer Admin Panel</span></Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="System & Integration">
                         <Link href="/retailer-mvp/system-integration"><Blocks /><span>System & Integration</span></Link>

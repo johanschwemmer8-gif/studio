@@ -137,9 +137,9 @@ export default function AdminPage() {
                             {retailer.name}
                         </Link>
                          <Button asChild variant="outline" size="sm">
-                            <Link href={`/retailer/${slugify(retailer.name)}`} target="_blank">
+                            <Link href="/login">
                                 <Eye className="mr-2 h-4 w-4" />
-                                View Landing Page
+                                View Login Page
                             </Link>
                         </Button>
                         <AlertDialog>

@@ -4,40 +4,22 @@
  * @fileOverview Retrieves recent scan events with optional filtering.
  *
  * - getScanEvents - Fetches a list of scan events.
- * - GetScanEventsInput - The input type for the function.
- * - GetScanEventsOutput - The return type for the function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
 import { subHours, subDays } from 'date-fns';
+import {
+  GetScanEventsInputSchema,
+  type GetScanEventsInput,
+  GetScanEventsOutputSchema,
+  type GetScanEventsOutput,
+} from '@/lib/schemas/scan-events';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
-
-const GetScanEventsInputSchema = z.object({
-  retailerId: z.string().optional(),
-  campaignId: z.string().optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
-  limit: z.number().int().min(1).max(1000).default(100),
-});
-export type GetScanEventsInput = z.infer<typeof GetScanEventsInputSchema>;
-
-const ScanEventSchema = z.object({
-    eventId: z.string(),
-    qrCodeId: z.string(),
-    retailerId: z.string(),
-    campaignId: z.string(),
-    timestamp: z.string(),
-    userAgent: z.string(),
-    referrer: z.string(),
-});
-
-const GetScanEventsOutputSchema = z.array(ScanEventSchema);
-export type GetScanEventsOutput = z.infer<typeof GetScanEventsOutputSchema>;
 
 export async function getScanEvents(input: GetScanEventsInput): Promise<GetScanEventsOutput> {
   // In a real environment, add auth/permission checks.

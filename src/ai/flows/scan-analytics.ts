@@ -11,13 +11,14 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
-import { getScanEvents, type GetScanEventsInput } from './get-scan-events';
+import { getScanEvents } from './get-scan-events';
+import { GetScanEventsInputSchema } from '@/lib/schemas/scan-events';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-const ScanAnalyticsInputSchema = GetScanEventsInput.extend({
+const ScanAnalyticsInputSchema = GetScanEventsInputSchema.extend({
     // Future: add fields like `groupBy` (e.g., 'day', 'campaign', 'retailer')
 });
 export type ScanAnalyticsInput = z.infer<typeof ScanAnalyticsInputSchema>;

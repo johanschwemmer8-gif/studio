@@ -61,12 +61,6 @@ function RetailerMvpLayoutContent({
                 <div className="flex flex-1 items-center justify-center">
                     <SearchBar />
                 </div>
-                <Button asChild>
-                    <Link href="/dashboard/retailers-dashboards">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    <span>Back to Admin</span>
-                    </Link>
-                </Button>
                 </header>
                 <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">{children}</main>
                 <footer className="p-4 text-center text-xs text-muted-foreground border-t">

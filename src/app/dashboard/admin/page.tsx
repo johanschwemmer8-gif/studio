@@ -235,53 +235,58 @@ export default function AdminPage() {
         </CardContent>
       </Card>
       
-      {savedRetailers.length > 0 && (
-        <Card>
-            <CardHeader>
-                <CardTitle>Retailers Added</CardTitle>
-                <CardDescription>A list of all successfully configured retailers.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ul className="space-y-2">
-                    {savedRetailers.map((retailer, index) => (
-                        <li key={index} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
-                            <List className="h-4 w-4 text-muted-foreground" />
-                            <Link href={`/dashboard/admin/view/${slugify(retailer.name)}`} className="font-medium hover:underline flex-1">
-                                {retailer.name}
+      <Card>
+        <CardHeader>
+            <CardTitle>Retailers Added</CardTitle>
+            <CardDescription>A list of all successfully configured retailers.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {savedRetailers.length > 0 ? (
+            <ul className="space-y-2">
+                {savedRetailers.map((retailer, index) => (
+                    <li key={index} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                        <List className="h-4 w-4 text-muted-foreground" />
+                        <Link href={`/dashboard/admin/view/${slugify(retailer.name)}`} className="font-medium hover:underline flex-1">
+                            {retailer.name}
+                        </Link>
+                         <Button asChild variant="outline" size="sm">
+                            <Link href={`/retailer/${slugify(retailer.name)}`} target="_blank">
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Landing Page
                             </Link>
-                             <Button asChild variant="outline" size="sm">
-                                <Link href={`/retailer/${slugify(retailer.name)}`} target="_blank">
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    View Landing Page
-                                </Link>
-                            </Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action will permanently delete the retailer "{retailer.name}" and all associated configuration. This cannot be undone.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteRetailer(retailer)}>
-                                            Yes, delete retailer
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </li>
-                    ))}
-                </ul>
-            </CardContent>
-        </Card>
-      )}
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action will permanently delete the retailer "{retailer.name}" and all associated configuration. This cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteRetailer(retailer)}>
+                                        Yes, delete retailer
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </li>
+                ))}
+            </ul>
+          ) : (
+            <div className="text-center text-muted-foreground py-8 border-2 border-dashed rounded-lg">
+                <p>No retailers have been configured yet.</p>
+                <p className="text-sm">Add a new retailer above to see them listed here.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {addedRetailer && (
         <Card>

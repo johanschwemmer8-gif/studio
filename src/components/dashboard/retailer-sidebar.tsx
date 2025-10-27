@@ -151,6 +151,11 @@ export default function RetailerSidebar({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="System & Integration">
+                        <Link href="/retailer-mvp/system-integration"><Blocks /><span>System & Integration</span></Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Documentation & Training Modules">
                     <Link href="/retailer-mvp/documentation"><BookOpen /><span>Documentation</span></Link>

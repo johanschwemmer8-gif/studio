@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 export const QrTemplateDefaultsSchema = z.object({
@@ -21,6 +20,7 @@ export type QrTemplate = z.infer<typeof QrTemplateSchema>;
 export const GetQrTemplatesInputSchema = z.object({
   retailerId: z.string(),
 });
+export type GetQrTemplatesInput = z.infer<typeof GetQrTemplatesInputSchema>;
 
 export const SaveQrTemplateInputSchema = z.object({
   retailerId: z.string(),
@@ -28,8 +28,10 @@ export const SaveQrTemplateInputSchema = z.object({
   description: z.string().optional(),
   defaults: QrTemplateDefaultsSchema,
 });
+export type SaveQrTemplateInput = z.infer<typeof SaveQrTemplateInputSchema>;
 
 export const SaveQrTemplateOutputSchema = z.object({
   success: z.boolean(),
   templateId: z.string(),
 });
+export type SaveQrTemplateOutput = z.infer<typeof SaveQrTemplateOutputSchema>;

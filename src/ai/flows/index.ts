@@ -13,8 +13,8 @@ import { generateCrossSellRecommendations, type GenerateCrossSellRecommendations
 import { generateZipForRequest, type GenerateZipForRequestInput, type GenerateZipForRequestOutput } from './generate-zip-for-request';
 import { getDisplays, type Display } from './get-displays';
 import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
-import { getQrTemplates, type GetQrTemplatesInput } from './get-qr-templates';
-import { type QrTemplate } from '@/lib/schemas/qr-templates';
+import { getQrTemplates } from './get-qr-templates';
+import { type GetQrTemplatesInput, type QrTemplate } from '@/lib/schemas/qr-templates';
 import { getScanEvents, type GetScanEventsInput, type GetScanEventsOutput } from './get-scan-events';
 import { getScanInteraction } from './get-scan-interaction';
 import { type GetScanInteractionInput, type GetScanInteractionOutput } from '@/lib/schemas/scan-interaction';
@@ -27,7 +27,8 @@ import { productChat, type ProductChatInput, type ProductChatOutput } from './pr
 import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutput } from './regenerate-qr-code';
 import { registerDisplay } from './register-display';
 import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDisplayCommandOutput } from './remote-display-command';
-import { saveQrTemplate, type SaveQrTemplateInput, type SaveQrTemplateOutput } from './save-qr-template';
+import { saveQrTemplate } from './save-qr-template';
+import { type SaveQrTemplateInput, type SaveQrTemplateOutput } from '@/lib/schemas/qr-templates';
 import { saveRetailerApiKey, type SaveRetailerApiKeyInput, type SaveRetailerApiKeyOutput } from './save-retailer-api-key';
 import { getScanAnalytics, type ScanAnalyticsInput, type ScanAnalyticsOutput } from './scan-analytics';
 import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledProductSyncOutput } from './scheduled-product-sync';

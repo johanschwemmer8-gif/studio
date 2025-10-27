@@ -4,22 +4,16 @@
  * @fileOverview Saves a new QR code template to Firestore.
  *
  * - saveQrTemplate - A callable function to create a new QR template.
- * - SaveQrTemplateInput - The input type for the function.
- * - SaveQrTemplateOutput - The return type for the function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
-import { SaveQrTemplateInputSchema, SaveQrTemplateOutputSchema } from '@/lib/schemas/qr-templates';
+import { SaveQrTemplateInputSchema, SaveQrTemplateOutputSchema, type SaveQrTemplateInput, type SaveQrTemplateOutput } from '@/lib/schemas/qr-templates';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
-
-export type SaveQrTemplateInput = z.infer<typeof SaveQrTemplateInputSchema>;
-export type SaveQrTemplateOutput = z.infer<typeof SaveQrTemplateOutputSchema>;
-
 
 export async function saveQrTemplate(input: SaveQrTemplateInput): Promise<SaveQrTemplateOutput> {
   return saveQrTemplateFlow(input);

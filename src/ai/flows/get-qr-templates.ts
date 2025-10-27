@@ -4,20 +4,17 @@
  * @fileOverview Retrieves QR code templates for a given retailer.
  *
  * - getQrTemplates - Fetches templates available to a retailer.
- * - GetQrTemplatesInput - The input type for the function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
-import type { QrTemplate } from '@/lib/schemas/qr-templates';
+import type { QrTemplate, GetQrTemplatesInput } from '@/lib/schemas/qr-templates';
 import { QrTemplateSchema, GetQrTemplatesInputSchema } from '@/lib/schemas/qr-templates';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
-
-export type GetQrTemplatesInput = z.infer<typeof GetQrTemplatesInputSchema>;
 
 export async function getQrTemplates(input: GetQrTemplatesInput): Promise<QrTemplate[]> {
   return getQrTemplatesFlow(input);

@@ -160,6 +160,7 @@ export default function LoginPage() {
                       onChange={(e) => setAdminPassword(e.target.value)}
                       required
                       className="pr-10"
+                      autoComplete="new-password"
                     />
                     <Button
                         type="button"
@@ -255,6 +256,7 @@ export default function LoginPage() {
                       onChange={(e) => setRetailerPassword(e.target.value)}
                       required
                       className="pr-10"
+                      autoComplete="new-password"
                     />
                     <Button
                         type="button"

@@ -25,6 +25,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
   Info,
   RefreshCw,
   Loader2,
@@ -38,6 +48,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { getQrTemplates, type QrTemplate } from '@/ai/flows/get-qr-templates';
+import { type FormValues as BrandFormValues } from './brand-management-form';
 
 const styleSchema = z.object({
   logoPath: z.string().url().optional(),
@@ -60,11 +71,57 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+type User = {
+    id: string;
+    fullName: string;
+    email: string;
+    brand: string;
+    division?: string;
+    region?: string;
+    area?: string;
+    store?: string;
+};
+
+type Selection = {
+    brands: string[];
+    divisions: string[];
+    regions: string[];
+    areas: string[];
+    stores: string[];
+};
 
 export default function BulkQRCodeGenerator() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [templates, setTemplates] = useState<QrTemplate[]>([]);
+    const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+    const [brandData, setBrandData] = useState<BrandFormValues | null>(null);
+    const [users, setUsers] = useState<User[]>([]);
+    const [selection, setSelection] = useState<Selection>({ brands: [], divisions: [], regions: [], areas: [], stores: [] });
+
+    useEffect(() => {
+        // Load organizational structure and users from localStorage
+        const savedBrandData = localStorage.getItem('brandManagement');
+        if (savedBrandData) setBrandData(JSON.parse(savedBrandData));
+
+        const savedUsers = localStorage.getItem('userManagement');
+        if (savedUsers) setUsers(JSON.parse(savedUsers));
+
+        const fetchTemplates = async () => {
+            try {
+                const result = await getQrTemplates({ retailerId: 'simulated-retailer-id' });
+                setTemplates(result);
+            } catch (error) {
+                toast({
+                    title: 'Error',
+                    description: 'Could not load QR code templates.',
+                    variant: 'destructive',
+                });
+            }
+        };
+        fetchTemplates();
+    }, [toast]);
+
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -83,22 +140,6 @@ export default function BulkQRCodeGenerator() {
             }
         },
     });
-
-    useEffect(() => {
-        const fetchTemplates = async () => {
-            try {
-                const result = await getQrTemplates({ retailerId: 'simulated-retailer-id' });
-                setTemplates(result);
-            } catch (error) {
-                toast({
-                    title: 'Error',
-                    description: 'Could not load QR code templates.',
-                    variant: 'destructive',
-                });
-            }
-        };
-        fetchTemplates();
-    }, [toast]);
     
     const handleTemplateChange = (templateId: string) => {
         const selectedTemplate = templates.find(t => t.templateId === templateId);
@@ -141,6 +182,32 @@ export default function BulkQRCodeGenerator() {
             setIsSubmitting(false);
         }
     };
+
+    const handleSelectionChange = (type: keyof Selection, value: string, checked: boolean) => {
+        setSelection(prev => {
+            const newSelection = { ...prev };
+            if (checked) {
+                newSelection[type] = [...newSelection[type], value];
+            } else {
+                newSelection[type] = newSelection[type].filter(item => item !== value);
+            }
+            return newSelection;
+        });
+    };
+
+    const getSelectedEmails = () => {
+        const emails = new Set<string>();
+        users.forEach(user => {
+            if (selection.brands.includes(user.brand) && !user.division && !user.region && !user.area && !user.store) emails.add(user.email);
+            if (user.division && selection.divisions.includes(user.division)) emails.add(user.email);
+            if (user.region && selection.regions.includes(user.region)) emails.add(user.email);
+            if (user.area && selection.areas.includes(user.area)) emails.add(user.email);
+            if (user.store && selection.stores.includes(user.store)) emails.add(user.email);
+        });
+        return Array.from(emails);
+    };
+    
+    const selectedEmails = getSelectedEmails();
 
     return (
         <TooltipProvider>
@@ -292,13 +359,89 @@ export default function BulkQRCodeGenerator() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div>
-                                <Label htmlFor="store-select">Select Stores/Regions</Label>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                    <Store className="mr-2 h-4 w-4" />
-                                    Choose destinations...
-                                </Button>
-                            </div>
+                            <Dialog open={isStoreModalOpen} onOpenChange={setIsStoreModalOpen}>
+                                <DialogTrigger asChild>
+                                    <div>
+                                        <Label htmlFor="store-select-trigger">Select Stores/Regions</Label>
+                                        <Button id="store-select-trigger" variant="outline" className="w-full justify-start text-left font-normal">
+                                            <Store className="mr-2 h-4 w-4" />
+                                            Choose destinations...
+                                        </Button>
+                                    </div>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl">
+                                    <DialogHeader>
+                                        <DialogTitle>Select Destinations</DialogTitle>
+                                        <DialogDescription>Choose brands, divisions, regions, or stores to send this campaign to.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid md:grid-cols-2 gap-6 py-4 max-h-[60vh] overflow-y-auto">
+                                        <div className="space-y-4">
+                                            <h4 className="font-semibold">Organizational Structure</h4>
+                                            {brandData?.brands.map(brand => (
+                                                <Accordion key={brand.name} type="multiple" className="w-full">
+                                                    <AccordionItem value={brand.name}>
+                                                        <AccordionTrigger>
+                                                             <Checkbox id={`brand-${brand.name}`} onCheckedChange={(checked) => handleSelectionChange('brands', brand.name, !!checked)} />
+                                                            <Label htmlFor={`brand-${brand.name}`} className="ml-2 font-semibold">{brand.name}</Label>
+                                                        </AccordionTrigger>
+                                                        <AccordionContent className="pl-6">
+                                                            {brand.divisions.map(division => (
+                                                                <Accordion key={division.name} type="multiple" className="w-full">
+                                                                     <AccordionItem value={division.name}>
+                                                                        <AccordionTrigger>
+                                                                            <Checkbox id={`div-${division.name}`} onCheckedChange={(checked) => handleSelectionChange('divisions', division.name, !!checked)} />
+                                                                            <Label htmlFor={`div-${division.name}`} className="ml-2">{division.name}</Label>
+                                                                        </AccordionTrigger>
+                                                                         <AccordionContent className="pl-6">
+                                                                            {division.regions.map(region => (
+                                                                                <Accordion key={region.name} type="multiple" className="w-full">
+                                                                                    <AccordionItem value={region.name}>
+                                                                                        <AccordionTrigger>
+                                                                                             <Checkbox id={`reg-${region.name}`} onCheckedChange={(checked) => handleSelectionChange('regions', region.name, !!checked)} />
+                                                                                            <Label htmlFor={`reg-${region.name}`} className="ml-2">{region.name}</Label>
+                                                                                        </AccordionTrigger>
+                                                                                        <AccordionContent className="pl-6">
+                                                                                            {region.areas.map(area => (
+                                                                                                <div key={area.name} className="mt-2">
+                                                                                                    <div className="flex items-center gap-2">
+                                                                                                        <Checkbox id={`area-${area.name}`} onCheckedChange={(checked) => handleSelectionChange('areas', area.name, !!checked)} />
+                                                                                                        <Label htmlFor={`area-${area.name}`} className="font-semibold">{area.name}</Label>
+                                                                                                    </div>
+                                                                                                    <div className="pl-6 mt-1 space-y-1">
+                                                                                                        {area.stores.map(store => (
+                                                                                                             <div key={store.code} className="flex items-center gap-2">
+                                                                                                                <Checkbox id={`store-${store.name}`} onCheckedChange={(checked) => handleSelectionChange('stores', store.name, !!checked)} />
+                                                                                                                <Label htmlFor={`store-${store.name}`} className="font-normal">{store.name}</Label>
+                                                                                                            </div>
+                                                                                                        ))}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </AccordionContent>
+                                                                                    </AccordionItem>
+                                                                                </Accordion>
+                                                                            ))}
+                                                                        </AccordionContent>
+                                                                    </AccordionItem>
+                                                                </Accordion>
+                                                            ))}
+                                                        </AccordionContent>
+                                                    </AccordionItem>
+                                                </Accordion>
+                                            ))}
+                                        </div>
+                                        <div className="space-y-4">
+                                            <h4 className="font-semibold">Selected Emails ({selectedEmails.length})</h4>
+                                            <div className="border rounded-md p-2 h-72 overflow-y-auto bg-muted/50 text-sm text-muted-foreground">
+                                                {selectedEmails.length > 0 ? selectedEmails.join(', ') : 'No emails selected.'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={() => setIsStoreModalOpen(false)}>Done</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </CardContent>
                     <CardContent>
@@ -313,4 +456,6 @@ export default function BulkQRCodeGenerator() {
         </TooltipProvider>
     );
 
+    
+}
     

@@ -29,25 +29,32 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
-import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [retailerEmail, setRetailerEmail] = useState('');
+  const [retailerPassword, setRetailerPassword] = useState('');
+  
   const [resetEmail, setResetEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>, userType: 'admin' | 'retailer') => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    const email = userType === 'admin' ? adminEmail : retailerEmail;
+    const password = userType === 'admin' ? adminPassword : retailerPassword;
+    const redirectPath = userType === 'admin' ? '/dashboard/admin' : '/retailer-mvp/dashboard';
 
     if (!auth) {
         setError("Firebase is not configured correctly. Please check your environment variables.");
@@ -61,7 +68,7 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      router.push('/dashboard/admin');
+      router.push(redirectPath);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -106,110 +113,202 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <form onSubmit={handleLogin}>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">iNteract AOE Login</CardTitle>
-            <CardDescription>
-              Enter your credentials to access the platform.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Login Failed</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@interact.io"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="pr-10"
-                />
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-1/2 right-1 -translate-y-1/2 h-7 w-7 text-muted-foreground"
-                    onClick={() => setShowPassword(!showPassword)}
-                >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+      <Tabs defaultValue="admin" className="w-full max-w-sm">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="admin">iNteract Admin</TabsTrigger>
+          <TabsTrigger value="retailer">Retailer MVP</TabsTrigger>
+        </TabsList>
+        
+        {/* Admin Login Tab */}
+        <TabsContent value="admin">
+          <Card>
+            <form onSubmit={(e) => handleLogin(e, 'admin')}>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Admin Login</CardTitle>
+                <CardDescription>
+                  Enter your credentials to access the platform.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Login Failed</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="admin-email">Email</Label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    placeholder="admin@interact.io"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="admin-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1/2 right-1 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-sm">
+                    <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                        <DialogTrigger asChild>
+                            <button type="button" className="underline text-muted-foreground">Forgot password?</button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Reset Password</DialogTitle>
+                                <DialogDescription>
+                                    Enter your email address and we will send you a link to reset your password.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-2">
+                                <Label htmlFor="reset-email">Email Address</Label>
+                                <Input
+                                    id="reset-email"
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                />
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
+                                <Button type="button" onClick={handlePasswordReset} disabled={isResetting}>
+                                    {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Send Reset Link
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Log In
                 </Button>
-              </div>
-            </div>
-            <div className="text-sm">
-                <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-                    <DialogTrigger asChild>
-                        <button type="button" className="underline text-muted-foreground">Forgot password?</button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Reset Password</DialogTitle>
-                            <DialogDescription>
-                                Enter your email address below and we will send you a link to reset your password.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-2">
-                            <Label htmlFor="reset-email">Email Address</Label>
-                            <Input
-                                id="reset-email"
-                                type="email"
-                                placeholder="you@example.com"
-                                value={resetEmail}
-                                onChange={(e) => setResetEmail(e.target.value)}
-                            />
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="secondary">Cancel</Button>
-                            </DialogClose>
-                            <Button type="button" onClick={handlePasswordReset} disabled={isResetting}>
-                                {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Send Reset Link
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Log In
-            </Button>
-            <div className="relative w-full">
-              <Separator />
-              <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
-                OR
-              </span>
-            </div>
-            <Button asChild className="w-full" variant="secondary">
-              <Link href="/retailer-mvp/dashboard">
-                Retailer MVP Login
-              </Link>
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+              </CardFooter>
+            </form>
+          </Card>
+        </TabsContent>
+        
+        {/* Retailer Login Tab */}
+        <TabsContent value="retailer">
+           <Card>
+            <form onSubmit={(e) => handleLogin(e, 'retailer')}>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Retailer Login</CardTitle>
+                <CardDescription>
+                  Access your Retailer MVP dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Login Failed</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="retailer-email">Email</Label>
+                  <Input
+                    id="retailer-email"
+                    type="email"
+                    placeholder="manager@retailer.com"
+                    value={retailerEmail}
+                    onChange={(e) => setRetailerEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="retailer-password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="retailer-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={retailerPassword}
+                      onChange={(e) => setRetailerPassword(e.target.value)}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1/2 right-1 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        <span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-sm">
+                    <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                        <DialogTrigger asChild>
+                            <button type="button" className="underline text-muted-foreground">Forgot password?</button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Reset Password</DialogTitle>
+                                <DialogDescription>
+                                    Enter your email address and we will send you a link to reset your password.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-2">
+                                <Label htmlFor="reset-email-retailer">Email Address</Label>
+                                <Input
+                                    id="reset-email-retailer"
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                />
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
+                                <Button type="button" onClick={handlePasswordReset} disabled={isResetting}>
+                                    {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Send Reset Link
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Log In
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

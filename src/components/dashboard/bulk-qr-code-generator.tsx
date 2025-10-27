@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -45,11 +46,13 @@ import {
   Store,
   Send,
   X,
+  Printer,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { getQrTemplates, type QrTemplate } from '@/ai/flows/get-qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
+import Image from 'next/image';
 
 const styleSchema = z.object({
   logoPath: z.string().url().optional(),
@@ -91,6 +94,18 @@ type Selection = {
     stores: string[];
 };
 
+const PrintableQrCode = React.forwardRef<HTMLDivElement, { url: string }>(({ url }, ref) => {
+    return (
+        <div ref={ref} className="p-4">
+            <h1 className="text-lg font-bold mb-4 text-center">QR Code Test Print</h1>
+            <Image src={url} alt="Test QR Code" width={300} height={300} />
+            <p className="text-xs text-center mt-2">Scan to test. This is for quality assurance only.</p>
+        </div>
+    );
+});
+PrintableQrCode.displayName = 'PrintableQrCode';
+
+
 export default function BulkQRCodeGenerator() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,6 +115,35 @@ export default function BulkQRCodeGenerator() {
     const [users, setUsers] = useState<User[]>([]);
     const [selection, setSelection] = useState<Selection>({ brands: [], divisions: [], regions: [], areas: [], stores: [] });
 
+    const testQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+      'https://'
+    )}`;
+
+    const handlePrint = () => {
+        const url = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(form.getValues('baseRedirect') || 'https://example.com')}`;
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                    <head><title>Test Print</title></head>
+                    <body style="text-align: center; margin-top: 50px;">
+                        <img src="${url}" alt="Test QR Code" />
+                        <p>Scan to test</p>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        } else {
+            toast({
+                title: "Print Error",
+                description: "Could not open print window. Please check your browser's pop-up settings.",
+                variant: "destructive",
+            });
+        }
+    };
+    
     useEffect(() => {
         // Load organizational structure and users from localStorage
         const savedBrandData = localStorage.getItem('brandManagement');
@@ -336,6 +380,10 @@ export default function BulkQRCodeGenerator() {
                                             </AccordionContent>
                                         </AccordionItem>
                                     </Accordion>
+                                    <Button type="button" variant="outline" onClick={handlePrint}>
+                                        <Printer className="mr-2 h-4 w-4" />
+                                        Test Print
+                                    </Button>
                                 </div>
                             </div>
                         </Card>
@@ -382,11 +430,11 @@ export default function BulkQRCodeGenerator() {
                                                 <Accordion key={brand.name} type="multiple" className="w-full">
                                                     <AccordionItem value={brand.name}>
                                                         <div className="flex items-center">
-                                                            <div className="flex items-center gap-2 py-4 font-medium flex-1">
-                                                                <Checkbox id={`brand-${brand.name}`} onCheckedChange={(checked) => handleSelectionChange('brands', brand.name, !!checked)} />
-                                                                <Label htmlFor={`brand-${brand.name}`} className="font-semibold cursor-pointer">{brand.name}</Label>
-                                                            </div>
-                                                            <AccordionTrigger className="w-10 hover:no-underline justify-center" />
+                                                          <div className="flex items-center gap-2 py-4 font-medium flex-1">
+                                                              <Checkbox id={`brand-${brand.name}`} onCheckedChange={(checked) => handleSelectionChange('brands', brand.name, !!checked)} />
+                                                              <Label htmlFor={`brand-${brand.name}`} className="font-semibold cursor-pointer">{brand.name}</Label>
+                                                          </div>
+                                                          <AccordionTrigger className="w-10 hover:no-underline justify-center" />
                                                         </div>
                                                         <AccordionContent className="pl-6">
                                                             {brand.divisions.map(division => (

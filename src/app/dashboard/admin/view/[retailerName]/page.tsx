@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
 function slugify(text: string) {
+    if (!text) return '';
     return text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 }
 
@@ -57,18 +58,6 @@ export default function RetailerViewPage() {
     );
   }
 
-  const getPermissionLabel = (permissionKey: string) => {
-    const labels: {[key: string]: string} = {
-        dashboard: 'Retailer Dashboard',
-        roi: 'Retailer ROI',
-        visualsReporting: 'Visuals & Reporting',
-        realTime: 'Real-Time Data',
-        admin: 'Admin Panel',
-        systemIntegration: 'System Integration',
-    };
-    return labels[permissionKey] || permissionKey;
-  }
-
   return (
     <div className="space-y-8">
         <div>
@@ -78,64 +67,21 @@ export default function RetailerViewPage() {
             </Button>
             <h2 className="text-3xl font-bold tracking-tight">{retailer.name}</h2>
             <p className="text-muted-foreground">
-                Detailed configuration for {retailer.name}.
+                This page is a placeholder for viewing detailed retailer configuration. The actual management is done by the retailer in their own admin panel.
             </p>
         </div>
         
         <Separator />
-
-        {retailer.brands.map((brand, brandIndex) => (
-            <Card key={brandIndex}>
-                <CardHeader>
-                    <CardTitle>{brand.name}</CardTitle>
-                    <CardDescription>Brand details, including stores and user access.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div>
-                        <h3 className="font-semibold mb-3 flex items-center gap-2"><Building2 className="text-primary"/> Stores</h3>
-                        {brand.stores.length > 0 ? (
-                             <ul className="space-y-2 list-inside">
-                                {brand.stores.map((store, storeIndex) => (
-                                    <li key={storeIndex} className="p-3 rounded-md bg-muted/50">
-                                        <p className="font-medium">{store.name}</p>
-                                        <p className="text-sm text-muted-foreground">Store Code: {store.code}</p>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">No stores configured for this brand.</p>
-                        )}
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                        <h3 className="font-semibold mb-3 flex items-center gap-2"><User className="text-primary"/> User Access</h3>
-                         {brand.users.length > 0 ? (
-                            <div className="space-y-4">
-                                {brand.users.map((user, userIndex) => (
-                                    <div key={userIndex} className="p-4 border rounded-md">
-                                        <p className="font-medium">{user.name}</p>
-                                        <p className="text-sm text-muted-foreground mb-3">{user.email}</p>
-                                        <div className="flex items-center gap-2">
-                                            <ShieldCheck className="h-4 w-4 text-green-500" />
-                                            <h4 className="font-semibold text-sm">Granted Permissions:</h4>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                            {Object.entries(user.permissions).map(([key, value]) => 
-                                               value && <Badge key={key} variant="secondary">{getPermissionLabel(key)}</Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                             <p className="text-sm text-muted-foreground">No users configured for this brand.</p>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-        ))}
+        
+        <Card>
+            <CardHeader>
+                <CardTitle>Configuration Overview</CardTitle>
+                <CardDescription>High-level summary of the retailer's setup.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">Detailed brand, store, and user information is managed within the retailer's own dashboard.</p>
+            </CardContent>
+        </Card>
     </div>
   );
 }

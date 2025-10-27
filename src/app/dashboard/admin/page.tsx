@@ -137,7 +137,7 @@ export default function AdminPage() {
                             {retailer.name}
                         </Link>
                          <Button asChild variant="outline" size="sm">
-                            <Link href="/login">
+                            <Link href="/login" target="_blank">
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Login Page
                             </Link>

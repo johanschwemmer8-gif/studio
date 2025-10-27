@@ -35,7 +35,7 @@ import { db } from '@/lib/firebase';
 import { collection, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { processSubscriptionPayment } from '@/ai/flows/process-subscription-payment';
+// import { processSubscriptionPayment } from '@/ai/flows/process-subscription-payment';
 
 
 type Invoice = {
@@ -118,13 +118,14 @@ export default function BillingPage() {
   const handlePlanChange = async (newPlanId: string) => {
       setIsChangingPlan(true);
       try {
-          const { sessionId } = await processSubscriptionPayment({ planId: newPlanId, retailerId });
-          toast({ title: "Redirecting to Checkout", description: "Please complete your payment to change your plan." });
+        //   const { sessionId } = await processSubscriptionPayment({ planId: newPlanId, retailerId });
+          toast({ title: "Redirecting to Checkout", description: "Stripe integration is currently disabled. This is a placeholder action." });
           
           // In a real application, you would use the Stripe.js library
           // to redirect to the checkout session.
           // For this simulation, we'll just log the ID.
-          console.log(`(Simulation) Redirecting to Stripe Checkout with session ID: ${sessionId}`);
+        //   console.log(`(Simulation) Redirecting to Stripe Checkout with session ID: ${sessionId}`);
+          console.log(`(Simulation) Would redirect to Stripe Checkout for plan ${newPlanId}`);
           
           setIsPlanModalOpen(false);
 

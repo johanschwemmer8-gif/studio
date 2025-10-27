@@ -2,63 +2,94 @@
 'use server';
 
 // This file exports all the Genkit flows for easy access from the client.
-export { analyzeBehavioralInsights } from './analyze-behavioral-insights';
-export { analyzeCampaignPerformance } from './analyze-campaign-performance';
-export { analyzeEngagementMetrics } from './analyze-engagement-metrics';
-export { assignDisplayConfig } from './assign-display-config';
-export { deleteBulkQrRequest } from './delete-bulk-qr-request';
-export { generateBulkQrCodes } from './generate-bulk-qr-codes';
-export { generateCampaignAI } from './generate-campaign-ai';
-export { generateCrossSellRecommendations } from './generate-cross-sell-recommendations';
-export { generateZipForRequest } from './generate-zip-for-request';
-export { getDisplays } from './get-displays';
-export { getExecutiveRoiMetrics } from './get-executive-roi-metrics';
-export { getQrTemplates } from './get-qr-templates';
-export { getScanEvents } from './get-scan-events';
-export { getScanInteraction } from './get-scan-interaction';
-export { importExternalQrCodes } from './import-external-qr-codes';
-export { logABTestConversion } from './log-ab-test-conversion';
-export { logAdClick } from './log-ad-click';
-export { logPurchaseConversion } from './log-purchase-conversion';
-export { processBulkQrQueue } from './process-bulk-qr-queue';
-export { processSubscriptionPayment } from './process-subscription-payment';
-export { productChat } from './product-chat-flow';
-export { regenerateQrCode } from './regenerate-qr-code';
-export { registerDisplay } from './register-display';
-export { remoteDisplayCommand } from './remote-display-command';
-export { saveQrTemplate } from './save-qr-template';
-export { saveRetailerApiKey } from './save-retailer-api-key';
-export { getScanAnalytics } from './scan-analytics';
-export { scheduledProductSync } from './scheduled-product-sync';
-export { submitBulkQrRequest } from './submit-bulk-qr-request';
-export { syncProducts } from './sync-products';
+import { analyzeBehavioralInsights, type AnalyzeBehavioralInsightsInput, type AnalyzeBehavioralInsightsOutput } from './analyze-behavioral-insights';
+import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
+import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
+import { assignDisplayConfig } from './assign-display-config';
+import { deleteBulkQrRequest, type DeleteBulkQrRequestInput, type DeleteBulkQrRequestOutput } from './delete-bulk-qr-request';
+import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './generate-bulk-qr-codes';
+import { generateCampaignAI, type GenerateCampaignAIInput, type GenerateCampaignAIOutput } from './generate-campaign-ai';
+import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
+import { generateZipForRequest, type GenerateZipForRequestInput, type GenerateZipForRequestOutput } from './generate-zip-for-request';
+import { getDisplays, type Display } from './get-displays';
+import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
+import { getQrTemplates, type GetQrTemplatesInput } from './get-qr-templates';
+import { type QrTemplate } from '@/lib/schemas/qr-templates';
+import { getScanEvents, type GetScanEventsInput, type GetScanEventsOutput } from './get-scan-events';
+import { getScanInteraction, type GetScanInteractionInput, type GetScanInteractionOutput } from './get-scan-interaction';
+import { importExternalQrCodes, type ImportExternalQrCodesInput, type ImportExternalQrCodesOutput } from './import-external-qr-codes';
+import { logABTestConversion, type LogABTestConversionInput } from './log-ab-test-conversion';
+import { logAdClick, type LogAdClickInput } from './log-ad-click';
+import { logPurchaseConversion, type LogPurchaseConversionInput } from './log-purchase-conversion';
+import { processBulkQrQueue, type ProcessBulkQrQueueOutput } from './process-bulk-qr-queue';
+import { productChat, type ProductChatInput, type ProductChatOutput } from './product-chat-flow';
+import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutput } from './regenerate-qr-code';
+import { registerDisplay } from './register-display';
+import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDisplayCommandOutput } from './remote-display-command';
+import { saveQrTemplate, type SaveQrTemplateInput, type SaveQrTemplateOutput } from './save-qr-template';
+import { saveRetailerApiKey, type SaveRetailerApiKeyInput, type SaveRetailerApiKeyOutput } from './save-retailer-api-key';
+import { getScanAnalytics, type ScanAnalyticsInput, type ScanAnalyticsOutput } from './scan-analytics';
+import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledProductSyncOutput } from './scheduled-product-sync';
+import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from './sync-products';
 
-// Export types for client-side usage
-export type { AnalyzeBehavioralInsightsInput, AnalyzeBehavioralInsightsOutput } from './analyze-behavioral-insights';
-export type { AnalyzeCampaignPerformanceInput, AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
-export type { AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
-export type { DeleteBulkQrRequestInput, DeleteBulkQrRequestOutput } from './delete-bulk-qr-request';
-export type { SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput } from './generate-bulk-qr-codes';
-export type { GenerateCampaignAIInput, GenerateCampaignAIOutput } from './generate-campaign-ai';
-export type { GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
-export type { GenerateZipForRequestInput, GenerateZipForRequestOutput } from './generate-zip-for-request';
-export type { Display } from './get-displays';
-export type { ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
-export type { GetQrTemplatesInput } from './get-qr-templates';
-export type { QrTemplate } from '@/lib/schemas/qr-templates';
-export type { GetScanEventsInput, GetScanEventsOutput } from './get-scan-events';
-export type { GetScanInteractionInput, GetScanInteractionOutput } from './get-scan-interaction';
-export type { ImportExternalQrCodesInput, ImportExternalQrCodesOutput } from './import-external-qr-codes';
-export type { LogABTestConversionInput } from './log-ab-test-conversion';
-export type { LogAdClickInput } from './log-ad-click';
-export type { LogPurchaseConversionInput } from './log-purchase-conversion';
-export type { ProcessBulkQrQueueOutput } from './process-bulk-qr-queue';
-export type { ProcessSubscriptionPaymentInput, ProcessSubscriptionPaymentOutput } from './process-subscription-payment';
-export type { ProductChatInput, ProductChatOutput } from './product-chat-flow';
-export type { RegenerateQrCodeInput, RegenerateQrCodeOutput } from './regenerate-qr-code';
-export type { RemoteDisplayCommandInput, RemoteDisplayCommandOutput } from './remote-display-command';
-export type { SaveQrTemplateInput, SaveQrTemplateOutput } from './save-qr-template';
-export type { SaveRetailerApiKeyInput, SaveRetailerApiKeyOutput } from './save-retailer-api-key';
-export type { ScanAnalyticsInput, ScanAnalyticsOutput } from './scan-analytics';
-export type { ScheduledProductSyncInput, ScheduledProductSyncOutput } from './scheduled-product-sync';
-export type { SyncProductsInput, SyncProductsOutput } from './sync-products';
+
+export {
+    analyzeBehavioralInsights,
+    analyzeCampaignPerformance,
+    analyzeEngagementMetrics,
+    assignDisplayConfig,
+    deleteBulkQrRequest,
+    submitBulkQrRequest,
+    generateCampaignAI,
+    generateCrossSellRecommendations,
+    generateZipForRequest,
+    getDisplays,
+    getExecutiveRoiMetrics,
+    getQrTemplates,
+    getScanEvents,
+    getScanInteraction,
+    importExternalQrCodes,
+    logABTestConversion,
+    logAdClick,
+    logPurchaseConversion,
+    processBulkQrQueue,
+    productChat,
+    regenerateQrCode,
+    registerDisplay,
+    remoteDisplayCommand,
+    saveQrTemplate,
+    saveRetailerApiKey,
+    getScanAnalytics,
+    scheduledProductSync,
+    syncProducts,
+};
+
+export type {
+    AnalyzeBehavioralInsightsInput, AnalyzeBehavioralInsightsOutput,
+    AnalyzeCampaignPerformanceInput, AnalyzeCampaignPerformanceOutput,
+    AnalyzeEngagementMetricsOutput,
+    DeleteBulkQrRequestInput, DeleteBulkQrRequestOutput,
+    SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput,
+    GenerateCampaignAIInput, GenerateCampaignAIOutput,
+    GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput,
+    GenerateZipForRequestInput, GenerateZipForRequestOutput,
+    Display,
+    ExecutiveRoiMetricsOutput,
+    GetQrTemplatesInput,
+    QrTemplate,
+    GetScanEventsInput, GetScanEventsOutput,
+    GetScanInteractionInput, GetScanInteractionOutput,
+    ImportExternalQrCodesInput, ImportExternalQrCodesOutput,
+    LogABTestConversionInput,
+    LogAdClickInput,
+    LogPurchaseConversionInput,
+    ProcessBulkQrQueueOutput,
+    ProductChatInput, ProductChatOutput,
+    RegenerateQrCodeInput, RegenerateQrCodeOutput,
+    RemoteDisplayCommandInput, RemoteDisplayCommandOutput,
+    SaveQrTemplateInput, SaveQrTemplateOutput,
+    SaveRetailerApiKeyInput, SaveRetailerApiKeyOutput,
+    ScanAnalyticsInput, ScanAnalyticsOutput,
+    ScheduledProductSyncInput, ScheduledProductSyncOutput,
+    SyncProductsInput, SyncProductsOutput
+};

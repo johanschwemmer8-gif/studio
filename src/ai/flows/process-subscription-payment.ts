@@ -1,94 +1,96 @@
-
 'use server';
-/**
- * @fileOverview A Genkit flow to process subscription payments with Stripe.
- *
- * - processSubscriptionPayment - Creates a Stripe Checkout session for a subscription.
- * - ProcessSubscriptionPaymentInput - The input type for the flow.
- * - ProcessSubscriptionPaymentOutput - The return type for the flow.
- */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-import Stripe from 'stripe';
+// This file exports all the Genkit flows for easy access from the client.
+import { analyzeBehavioralInsights, type AnalyzeBehavioralInsightsInput, type AnalyzeBehavioralInsightsOutput } from './analyze-behavioral-insights';
+import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
+import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
+import { assignDisplayConfig } from './assign-display-config';
+import { deleteBulkQrRequest, type DeleteBulkQrRequestInput, type DeleteBulkQrRequestOutput } from './delete-bulk-qr-request';
+import { generateBulkQrCodes } from './generate-bulk-qr-codes';
+import { generateCampaignAI, type GenerateCampaignAIInput, type GenerateCampaignAIOutput } from './generate-campaign-ai';
+import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
+import { generateZipForRequest, type GenerateZipForRequestInput, type GenerateZipForRequestOutput } from './generate-zip-for-request';
+import { getDisplays, type Display } from './get-displays';
+import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
+import { getQrTemplates, type GetQrTemplatesInput } from './get-qr-templates';
+import { type QrTemplate } from '@/lib/schemas/qr-templates';
+import { getScanEvents, type GetScanEventsInput, type GetScanEventsOutput } from './get-scan-events';
+import { getScanInteraction, type GetScanInteractionInput, type GetScanInteractionOutput } from './get-scan-interaction';
+import { importExternalQrCodes, type ImportExternalQrCodesInput, type ImportExternalQrCodesOutput } from './import-external-qr-codes';
+import { logABTestConversion, type LogABTestConversionInput } from './log-ab-test-conversion';
+import { logAdClick, type LogAdClickInput } from './log-ad-click';
+import { logPurchaseConversion, type LogPurchaseConversionInput } from './log-purchase-conversion';
+import { processBulkQrQueue, type ProcessBulkQrQueueOutput } from './process-bulk-qr-queue';
+import { productChat, type ProductChatInput, type ProductChatOutput } from './product-chat-flow';
+import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutput } from './regenerate-qr-code';
+import { registerDisplay } from './register-display';
+import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDisplayCommandOutput } from './remote-display-command';
+import { saveQrTemplate, type SaveQrTemplateInput, type SaveQrTemplateOutput } from './save-qr-template';
+import { saveRetailerApiKey, type SaveRetailerApiKeyInput, type SaveRetailerApiKeyOutput } from './save-retailer-api-key';
+import { getScanAnalytics, type ScanAnalyticsInput, type ScanAnalyticsOutput } from './scan-analytics';
+import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledProductSyncOutput } from './scheduled-product-sync';
+import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './submit-bulk-qr-request';
+import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from './sync-products';
 
-const ProcessSubscriptionPaymentInputSchema = z.object({
-  planId: z.string().describe("The ID of the plan the user is subscribing to (e.g., 'pro_plan')."),
-  retailerId: z.string().describe('The ID of the retailer making the purchase.'),
-});
-export type ProcessSubscriptionPaymentInput = z.infer<typeof ProcessSubscriptionPaymentInputSchema>;
 
-const ProcessSubscriptionPaymentOutputSchema = z.object({
-  sessionId: z.string().describe('The ID of the Stripe Checkout session.'),
-});
-export type ProcessSubscriptionPaymentOutput = z.infer<typeof ProcessSubscriptionPaymentOutputSchema>;
+export {
+    analyzeBehavioralInsights,
+    analyzeCampaignPerformance,
+    analyzeEngagementMetrics,
+    assignDisplayConfig,
+    deleteBulkQrRequest,
+    generateBulkQrCodes,
+    generateCampaignAI,
+    generateCrossSellRecommendations,
+    generateZipForRequest,
+    getDisplays,
+    getExecutiveRoiMetrics,
+    getQrTemplates,
+    getScanEvents,
+    getScanInteraction,
+    importExternalQrCodes,
+    logABTestConversion,
+    logAdClick,
+    logPurchaseConversion,
+    processBulkQrQueue,
+    productChat,
+    regenerateQrCode,
+    registerDisplay,
+    remoteDisplayCommand,
+    saveQrTemplate,
+    saveRetailerApiKey,
+    getScanAnalytics,
+    scheduledProductSync,
+    submitBulkQrRequest,
+    syncProducts,
+};
 
-export async function processSubscriptionPayment(input: ProcessSubscriptionPaymentInput): Promise<ProcessSubscriptionPaymentOutput> {
-  // In a real environment, you'd add auth/permission checks here to ensure
-  // the authenticated user matches the retailerId.
-  return processSubscriptionPaymentFlow(input);
-}
-
-
-const processSubscriptionPaymentFlow = ai.defineFlow(
-  {
-    name: 'processSubscriptionPaymentFlow',
-    inputSchema: ProcessSubscriptionPaymentInputSchema,
-    outputSchema: ProcessSubscriptionPaymentOutputSchema,
-  },
-  async ({ planId, retailerId }) => {
-    
-    // Ensure the Stripe Secret Key is set in your environment variables.
-    // Do NOT hardcode it here.
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeSecretKey) {
-        throw new Error('Stripe secret key is not configured. Please set STRIPE_SECRET_KEY in your environment variables.');
-    }
-    
-    try {
-        const stripe = new Stripe(stripeSecretKey, {
-            apiVersion: '2024-06-20',
-        });
-
-        // Map your internal planId to your Stripe Price IDs.
-        // These are example IDs. Replace them with your actual Price IDs from your Stripe dashboard.
-        const priceIds: { [key: string]: string } = {
-            'basic': 'price_basic_plan_id_from_stripe',
-            'pro': 'price_pro_plan_id_from_stripe',
-            'enterprise': 'price_enterprise_plan_id_from_stripe'
-        };
-
-        const priceId = priceIds[planId];
-
-        if (!priceId) {
-            throw new Error(`Invalid planId: ${planId}. No matching Price ID found.`);
-        }
-
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{
-                price: priceId,
-                quantity: 1,
-            }],
-            mode: 'subscription',
-            success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/retailer-mvp/billing?payment_success=true`,
-            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/retailer-mvp/billing?payment_canceled=true`,
-            // Pass retailerId in metadata to identify the customer in webhook events
-            metadata: {
-                retailerId: retailerId,
-            }
-        });
-
-        if (!session.id) {
-            throw new Error('Failed to create a Stripe session.');
-        }
-
-        return { sessionId: session.id };
-        
-    } catch (error: any) {
-        console.error('Stripe session creation failed:', error);
-        // It's crucial to throw the error so the flow fails and the client can handle it.
-        throw new Error(`Failed to create payment session: ${error.message}`);
-    }
-  }
-);
+export type {
+    AnalyzeBehavioralInsightsInput, AnalyzeBehavioralInsightsOutput,
+    AnalyzeCampaignPerformanceInput, AnalyzeCampaignPerformanceOutput,
+    AnalyzeEngagementMetricsOutput,
+    DeleteBulkQrRequestInput, DeleteBulkQrRequestOutput,
+    SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput,
+    GenerateCampaignAIInput, GenerateCampaignAIOutput,
+    GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput,
+    GenerateZipForRequestInput, GenerateZipForRequestOutput,
+    Display,
+    ExecutiveRoiMetricsOutput,
+    GetQrTemplatesInput,
+    QrTemplate,
+    GetScanEventsInput, GetScanEventsOutput,
+    GetScanInteractionInput, GetScanInteractionOutput,
+    ImportExternalQrCodesInput, ImportExternalQrCodesOutput,
+    LogABTestConversionInput,
+    LogAdClickInput,
+    LogPurchaseConversionInput,
+    ProcessBulkQrQueueOutput,
+    ProductChatInput, ProductChatOutput,
+    RegenerateQrCodeInput, RegenerateQrCodeOutput,
+    RemoteDisplayCommandInput, RemoteDisplayCommandOutput,
+    SaveQrTemplateInput, SaveQrTemplateOutput,
+    SaveRetailerApiKeyInput, SaveRetailerApiKeyOutput,
+    ScanAnalyticsInput, ScanAnalyticsOutput,
+    ScheduledProductSyncInput, ScheduledProductSyncOutput,
+    SyncProductsInput, SyncProductsOutput
+};

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -44,6 +44,7 @@ import {
   PlusCircle,
   Store,
   Send,
+  X,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
@@ -380,38 +381,47 @@ export default function BulkQRCodeGenerator() {
                                             {brandData?.brands.map(brand => (
                                                 <Accordion key={brand.name} type="multiple" className="w-full">
                                                     <AccordionItem value={brand.name}>
-                                                        <AccordionTrigger>
-                                                             <Checkbox id={`brand-${brand.name}`} onCheckedChange={(checked) => handleSelectionChange('brands', brand.name, !!checked)} />
-                                                            <Label htmlFor={`brand-${brand.name}`} className="ml-2 font-semibold">{brand.name}</Label>
-                                                        </AccordionTrigger>
+                                                        <div className="flex items-center">
+                                                            <div className="flex items-center gap-2 py-4 font-medium flex-1">
+                                                                <Checkbox id={`brand-${brand.name}`} onCheckedChange={(checked) => handleSelectionChange('brands', brand.name, !!checked)} />
+                                                                <Label htmlFor={`brand-${brand.name}`} className="font-semibold cursor-pointer">{brand.name}</Label>
+                                                            </div>
+                                                            <AccordionTrigger className="w-10 hover:no-underline justify-center" />
+                                                        </div>
                                                         <AccordionContent className="pl-6">
                                                             {brand.divisions.map(division => (
                                                                 <Accordion key={division.name} type="multiple" className="w-full">
                                                                      <AccordionItem value={division.name}>
-                                                                        <AccordionTrigger>
-                                                                            <Checkbox id={`div-${division.name}`} onCheckedChange={(checked) => handleSelectionChange('divisions', division.name, !!checked)} />
-                                                                            <Label htmlFor={`div-${division.name}`} className="ml-2">{division.name}</Label>
-                                                                        </AccordionTrigger>
+                                                                        <div className="flex items-center">
+                                                                            <div className="flex items-center gap-2 py-4 font-medium flex-1">
+                                                                                <Checkbox id={`div-${division.name}`} onCheckedChange={(checked) => handleSelectionChange('divisions', division.name, !!checked)} />
+                                                                                <Label htmlFor={`div-${division.name}`} className="cursor-pointer">{division.name}</Label>
+                                                                            </div>
+                                                                            <AccordionTrigger className="w-10 hover:no-underline justify-center" />
+                                                                        </div>
                                                                          <AccordionContent className="pl-6">
                                                                             {division.regions.map(region => (
                                                                                 <Accordion key={region.name} type="multiple" className="w-full">
                                                                                     <AccordionItem value={region.name}>
-                                                                                        <AccordionTrigger>
-                                                                                             <Checkbox id={`reg-${region.name}`} onCheckedChange={(checked) => handleSelectionChange('regions', region.name, !!checked)} />
-                                                                                            <Label htmlFor={`reg-${region.name}`} className="ml-2">{region.name}</Label>
-                                                                                        </AccordionTrigger>
+                                                                                        <div className="flex items-center">
+                                                                                            <div className="flex items-center gap-2 py-4 font-medium flex-1">
+                                                                                                 <Checkbox id={`reg-${region.name}`} onCheckedChange={(checked) => handleSelectionChange('regions', region.name, !!checked)} />
+                                                                                                <Label htmlFor={`reg-${region.name}`} className="cursor-pointer">{region.name}</Label>
+                                                                                            </div>
+                                                                                            <AccordionTrigger className="w-10 hover:no-underline justify-center" />
+                                                                                        </div>
                                                                                         <AccordionContent className="pl-6">
                                                                                             {region.areas.map(area => (
                                                                                                 <div key={area.name} className="mt-2">
                                                                                                     <div className="flex items-center gap-2">
                                                                                                         <Checkbox id={`area-${area.name}`} onCheckedChange={(checked) => handleSelectionChange('areas', area.name, !!checked)} />
-                                                                                                        <Label htmlFor={`area-${area.name}`} className="font-semibold">{area.name}</Label>
+                                                                                                        <Label htmlFor={`area-${area.name}`} className="font-semibold cursor-pointer">{area.name}</Label>
                                                                                                     </div>
                                                                                                     <div className="pl-6 mt-1 space-y-1">
                                                                                                         {area.stores.map(store => (
                                                                                                              <div key={store.code} className="flex items-center gap-2">
                                                                                                                 <Checkbox id={`store-${store.name}`} onCheckedChange={(checked) => handleSelectionChange('stores', store.name, !!checked)} />
-                                                                                                                <Label htmlFor={`store-${store.name}`} className="font-normal">{store.name}</Label>
+                                                                                                                <Label htmlFor={`store-${store.name}`} className="font-normal cursor-pointer">{store.name}</Label>
                                                                                                             </div>
                                                                                                         ))}
                                                                                                     </div>

@@ -51,15 +51,15 @@ export default function SystemIntegrationPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Database className="text-primary" />
-                    ERP System
+                    POS / ERP System
                 </CardTitle>
                 <CardDescription>
-                    Connect to your Enterprise Resource Planning system for live stock and pricing data.
+                    Connect to your Point-of-Sale or ERP system for live stock and pricing data.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Button asChild className="w-full" disabled>
-                  <Link href="#">Configure ERP</Link>
+                <Button asChild className="w-full">
+                  <Link href="/retailer-mvp/system-integration/pos">Configure POS/ERP</Link>
                 </Button>
             </CardContent>
         </Card>
@@ -67,15 +67,15 @@ export default function SystemIntegrationPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <ShoppingBasket className="text-primary" />
-                    PIM System
+                    PIM / E-commerce
                 </CardTitle>
                 <CardDescription>
-                   Sync your Product Information Management system to keep product details up-to-date.
+                   Sync your Product Information and E-commerce platforms.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Button asChild className="w-full" disabled>
-                  <Link href="#">Configure PIM</Link>
+                <Button asChild className="w-full">
+                  <Link href="/retailer-mvp/system-integration/pim">Configure PIM</Link>
                 </Button>
             </CardContent>
         </Card>
@@ -83,15 +83,15 @@ export default function SystemIntegrationPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Cloud className="text-primary" />
-                    Cloud Services
+                    Loyalty / CRM
                 </CardTitle>
                 <CardDescription>
-                    Manage connections to cloud providers and generative AI model configurations.
+                    Manage connections to customer relationship and loyalty systems.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Button asChild className="w-full" disabled>
-                    <Link href="#">Configure Cloud</Link>
+                <Button asChild className="w-full">
+                    <Link href="/retailer-mvp/system-integration/crm">Configure CRM</Link>
                 </Button>
             </CardContent>
         </Card>

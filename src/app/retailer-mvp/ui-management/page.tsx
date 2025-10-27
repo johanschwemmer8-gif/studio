@@ -106,11 +106,12 @@ export default function UiManagementPage() {
   const [logoAlign, setLogoAlign] = useState('flex-start');
   const [logoPadding, setLogoPadding] = useState(0);
   const [selectedTemplate, setSelectedTemplate] = useState('template1');
+  const [landingPageUrl, setLandingPageUrl] = useState('');
 
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load landing page logo settings from localStorage on component mount
+    // Load settings from localStorage on component mount
     const savedLandingLogo = localStorage.getItem('landing-page-logo');
     if (savedLandingLogo) setLogoPreview(savedLandingLogo);
     const savedLandingWidth = localStorage.getItem('landing-page-logo-width');
@@ -119,9 +120,10 @@ export default function UiManagementPage() {
     if (savedLandingAlign) setLogoAlign(savedLandingAlign);
     const savedLandingPadding = localStorage.getItem('landing-page-logo-padding');
     if (savedLandingPadding) setLogoPadding(Number(savedLandingPadding));
-
     const savedTemplate = localStorage.getItem('selected-ui-template');
     if (savedTemplate) setSelectedTemplate(savedTemplate);
+    const savedUrl = localStorage.getItem('landing-page-url');
+    if (savedUrl) setLandingPageUrl(savedUrl);
   }, []);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,6 +150,8 @@ export default function UiManagementPage() {
           localStorage.removeItem('landing-page-logo-padding');
       }
       localStorage.setItem('selected-ui-template', selectedTemplate);
+      localStorage.setItem('landing-page-url', landingPageUrl);
+
       // Dispatch a custom event to notify other components (like the preview) of the change
       window.dispatchEvent(new CustomEvent('logoUpdated', { detail: { key: 'landing-page-logo' }}));
       toast({ title: "UI Settings Saved" });
@@ -215,6 +219,19 @@ export default function UiManagementPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    <div>
+                        <Label htmlFor="landing-page-url">Landing Page URL</Label>
+                        <Input
+                            id="landing-page-url"
+                            type="url"
+                            placeholder="https://yourstore.com/product/..."
+                            value={landingPageUrl}
+                            onChange={(e) => setLandingPageUrl(e.target.value)}
+                            className="mt-2"
+                        />
+                         <p className="text-xs text-muted-foreground mt-1">This is the destination URL for the QR code.</p>
+                    </div>
+
                     <div>
                         <Label htmlFor="logo-upload-landing">Landing Page Logo</Label>
                         <Input id="logo-upload-landing" type="file" accept="image/*" onChange={handleLogoUpload} className="mt-2" />

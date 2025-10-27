@@ -42,8 +42,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   
+  const [isAdminResetOpen, setIsAdminResetOpen] = useState(false);
+  const [isRetailerResetOpen, setIsRetailerResetOpen] = useState(false);
+
   const router = useRouter();
   const { toast } = useToast();
 
@@ -76,8 +78,8 @@ export default function LoginPage() {
     }
   };
 
-  const handlePasswordReset = async () => {
-    if (!resetEmail) {
+  const handlePasswordReset = async (emailToReset: string, closeDialog: () => void) => {
+    if (!emailToReset) {
         toast({
             title: "Email Required",
             description: "Please enter your email address.",
@@ -92,12 +94,12 @@ export default function LoginPage() {
 
     setIsResetting(true);
     try {
-        await sendPasswordResetEmail(auth, resetEmail);
+        await sendPasswordResetEmail(auth, emailToReset);
         toast({
             title: "Password Reset Email Sent",
-            description: `If an account exists for ${resetEmail}, you will receive an email with instructions.`,
+            description: `If an account exists for ${emailToReset}, you will receive an email with instructions.`,
         });
-        setIsResetDialogOpen(false);
+        closeDialog();
         setResetEmail('');
     } catch (error: any) {
          toast({
@@ -172,30 +174,30 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <div className="text-sm">
-                    <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                    <Dialog open={isAdminResetOpen} onOpenChange={setIsAdminResetOpen}>
                         <DialogTrigger asChild>
                             <button type="button" className="underline text-muted-foreground">Forgot password?</button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Reset Password</DialogTitle>
+                                <DialogTitle>Reset Admin Password</DialogTitle>
                                 <DialogDescription>
-                                    Enter your email address and we will send you a link to reset your password.
+                                    Enter your admin email address to receive a password reset link.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-2">
-                                <Label htmlFor="reset-email">Email Address</Label>
+                                <Label htmlFor="reset-email-admin">Email Address</Label>
                                 <Input
-                                    id="reset-email"
+                                    id="reset-email-admin"
                                     type="email"
-                                    placeholder="you@example.com"
+                                    placeholder="admin@interact.io"
                                     value={resetEmail}
                                     onChange={(e) => setResetEmail(e.target.value)}
                                 />
                             </div>
                             <DialogFooter>
                                 <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-                                <Button type="button" onClick={handlePasswordReset} disabled={isResetting}>
+                                <Button type="button" onClick={() => handlePasswordReset(resetEmail, () => setIsAdminResetOpen(false))} disabled={isResetting}>
                                     {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Send Reset Link
                                 </Button>
@@ -267,15 +269,15 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <div className="text-sm">
-                    <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                    <Dialog open={isRetailerResetOpen} onOpenChange={setIsRetailerResetOpen}>
                         <DialogTrigger asChild>
                             <button type="button" className="underline text-muted-foreground">Forgot password?</button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Reset Password</DialogTitle>
+                                <DialogTitle>Reset Retailer Password</DialogTitle>
                                 <DialogDescription>
-                                    Enter your email address and we will send you a link to reset your password.
+                                    Enter your retailer email address to receive a password reset link.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-2">
@@ -283,14 +285,14 @@ export default function LoginPage() {
                                 <Input
                                     id="reset-email-retailer"
                                     type="email"
-                                    placeholder="you@example.com"
+                                    placeholder="manager@retailer.com"
                                     value={resetEmail}
                                     onChange={(e) => setResetEmail(e.target.value)}
                                 />
                             </div>
                             <DialogFooter>
                                 <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-                                <Button type="button" onClick={handlePasswordReset} disabled={isResetting}>
+                                <Button type="button" onClick={() => handlePasswordReset(resetEmail, () => setIsRetailerResetOpen(false))} disabled={isResetting}>
                                     {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Send Reset Link
                                 </Button>

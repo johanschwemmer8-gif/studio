@@ -88,9 +88,33 @@ export default function DocumentationPage() {
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="item-2">
-                            <AccordionTrigger className="text-lg font-semibold">2. Analyzing Performance (Coming Soon)</AccordionTrigger>
+                            <AccordionTrigger className="text-lg font-semibold">2. The Retailer ROI Page</AccordionTrigger>
                             <AccordionContent>
-                                This section will explain how to use the AI-powered analysis tools to get deeper insights from your data.
+                                <div className="space-y-4">
+                                    <p className="text-muted-foreground">The Retailer ROI page is your deep-dive command center for analyzing performance. It provides a more granular look at the same key metrics from your dashboard, along with detailed charts and tables.</p>
+                                    
+                                    <div>
+                                        <h4 className="font-semibold text-base">Core Engagement Metrics</h4>
+                                        <p className="text-sm text-muted-foreground">This section shows how customers are interacting with your QR codes. It includes Total Scans, Unique Scans, Engagement Rate, and Engagement Duration. Use these to gauge the health and adoption of your in-store digital initiatives.</p>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="font-semibold text-base">Performance & Conversion Metrics</h4>
+                                        <p className="text-sm text-muted-foreground">This is where engagement translates into financial results. Track Basket Uplift, Offer Redemption, and the number of transactions directly influenced by the platform to quantify the value iNteract AOE is bringing to your business.</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <h4 className="font-semibold text-base">Charts & Tables</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            - <strong>Scan Frequency Chart:</strong> Visualize scan volumes over time to identify trends and the impact of new campaigns.
+                                            <br/>
+                                            - <strong>Top-Scanned Products Table:</strong> Discover which products are generating the most interest from your customers in-store.
+                                            <br/>
+                                            - <strong>Time-Based Performance Chart:</strong> Compare engagement and conversion rates month-over-month to track your progress.
+                                        </p>
+                                    </div>
+                                    <p className="text-sm text-primary font-medium border-l-2 border-primary pl-3"><strong>Key Tip:</strong> Use the "Analyze All Metrics" button at the top of this page to get an AI-generated summary of all the data, providing you with instant conclusions and actionable recommendations.</p>
+                                </div>
                             </AccordionContent>
                         </AccordionItem>
                          <AccordionItem value="item-3">

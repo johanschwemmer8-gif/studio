@@ -78,7 +78,11 @@ const analyzeBehavioralInsightsFlow = ai.defineFlow(
     outputSchema: AnalyzeBehavioralInsightsOutputSchema,
   },
   async input => {
-    const { output } = await prompt(input);
-    return output!;
+    // MOCKED RESPONSE to avoid rate-limiting
+    return {
+        findings: "- Repeat scans per shopper (2.8) is healthy, indicating repeat engagement.\n- Top redeemed offers are high-value discounts ('15% Off', 'BOGO').\n- A significant portion of the customer base is 'At Risk' (28%).\n- The 'High Value' segment is small but likely contributes disproportionately to revenue.",
+        conclusions: "- Customers are motivated by clear, monetary-based incentives.\n- The loyalty program is effective at retaining a core group, but is failing to re-engage a large 'At Risk' segment.\n- The platform is successfully creating habitual users.",
+        recommendations: "- Launch a re-engagement campaign with a compelling offer specifically targeting the 'At Risk' segment.\n- Nurture the 'High Value' segment with exclusive, non-discount-based offers like early access or VIP events.\n- Analyze the journey of 'Loyal' customers to replicate their experience for other segments."
+    };
   }
 );

@@ -85,45 +85,12 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     };
     
     // --- Step 2: Generate AI analysis from the calculated metrics ---
-    const prompt = ai.definePrompt({
-        name: 'analyzeEngagementMetricsPrompt',
-        output: { schema: z.object({
-            overallPerformance: z.string().describe('A high-level summary of the overall performance based on all provided metrics.'),
-            conclusions: z.string().describe('Bulleted list of key conclusions drawn from the metrics.'),
-            recommendations: z.string().describe('Bulleted list of actionable recommendations based on the conclusions.'),
-        }) },
-        prompt: `You are an expert retail analyst. You have been provided with a set of core engagement and conversion metrics for the iNteract-AOE in-store digital platform.
-
-        Your task is to analyze these metrics, write an overall performance summary, provide insightful conclusions, and provide actionable recommendations. It's crucial that you analyze the relationship between the engagement and conversion metrics.
-
-        **Provided Metrics:**
-
-        **Engagement:**
-        - Total Scans: ${engagement.totalScans}
-        - Unique Scans: ${engagement.uniqueScans}
-        - Engagement Rate: ${engagement.scanRate.toFixed(2)}%
-        - Average Engagement Duration: ${engagement.engagementDuration} seconds
-
-        **Conversion:**
-        - Average Basket Size (AOE Users): R${conversion.avgBasketSizeAoe.toFixed(2)}
-        - Average Basket Size (Non-Users): R${conversion.avgBasketSizeNonAoe.toFixed(2)}
-        - Basket Uplift Percentage: ${conversion.basketUpliftPercentage.toFixed(2)}%
-        - Offer Redemption Rate: ${conversion.offerRedemptionRate.toFixed(2)}%
-        - Total Redeemed Value: R${conversion.totalRedeemedValue.toFixed(2)}
-        - Transactions Influenced by AOE: ${conversion.aoeTransactions}
-
-        **Instructions:**
-        1.  **Summarize Overall Performance:** Start with a paragraph summarizing the overall performance. What is the big picture that the data tells you?
-        2.  **Formulate Conclusions:** Based on your analysis, write a concise, bulleted list of the most important conclusions. What does the data say about the platform's performance and its impact on sales?
-        3.  **Provide Recommendations:** Based on your conclusions, provide a bulleted list of clear, actionable recommendations. What should the retailer do next to improve both engagement and conversion metrics?
-
-        Format your response as a JSON object with 'overallPerformance', 'conclusions', and 'recommendations' fields. Ensure the text in the 'conclusions' and 'recommendations' fields uses bullet points (e.g., "- Conclusion one.\\n- Conclusion two.").`,
-    });
-
-    const { output: analysisOutput } = await prompt();
-    if (!analysisOutput) {
-        throw new Error('AI analysis failed to generate.');
-    }
+    // MOCK AI ANALYSIS TO AVOID RATE LIMITING ERRORS DURING DEVELOPMENT/SCREENSHOTS
+    const analysisOutput = {
+        overallPerformance: "The iNteract-AOE platform is demonstrating a strong positive impact on customer behavior and sales. A significant 12.5% uplift in basket size for engaged users, coupled with a healthy engagement rate, indicates that the in-store digital experience is effectively driving higher transaction values. While the offer redemption rate is solid, there is an opportunity to further convert the high volume of unique scans into more direct sales.",
+        conclusions: "- The platform successfully increases customer spend, proving its ROI.\n- Engagement is high, but there's a gap between scanning a product and redeeming an offer.\n- The average engagement duration of 32 seconds suggests customers are genuinely interested in the content provided.",
+        recommendations: "- To boost the conversion rate, consider implementing more aggressive or personalized real-time offers triggered after a user spends more than 45 seconds on a page.\n- Launch a targeted mini-campaign to educate users on the benefits of creating a profile to receive personalized offers, thereby improving redemption rates.\n- A/B test different calls-to-action on the product pages to guide users more effectively towards a purchase or offer redemption."
+    };
     
     // --- Step 3: Return the combined result ---
     return {

@@ -162,10 +162,22 @@ export let retailPortfolio: RetailPortfolio = [
   },
 ];
 
-export const salesData: { name: string; revenue: number; scans: number; crossSells: number; }[] = [];
+export const salesData = [
+  { name: 'Mar', revenue: 23000, scans: 980, crossSells: 320 },
+  { name: 'Apr', revenue: 29000, scans: 1100, crossSells: 400 },
+  { name: 'May', revenue: 25000, scans: 1050, crossSells: 380 },
+  { name: 'Jun', revenue: 31000, scans: 1240, crossSells: 450 },
+  { name: 'Jul', revenue: 34000, scans: 1300, crossSells: 480 },
+  { name: 'Aug', revenue: 38000, scans: 1450, crossSells: 520 },
+];
 export const revenueUpliftData: { month: string; ratio: number; }[] = [];
 export const ytdData: { month: string; revenue: number; cost: number; net: number; }[] = [];
-export const realTimeStockLevels: { id: string; name: string; stock: number; status: 'In Stock' | 'Low Stock' | 'Out of Stock'; }[] = [];
+export const realTimeStockLevels = [
+    { id: 'prod-001', name: 'Eco-Friendly Water Bottle', stock: 152, status: 'In Stock' as const },
+    { id: 'prod-002', name: 'Wireless Charging Pad', stock: 48, status: 'Low Stock' as const },
+    { id: 'prod-003', name: 'Smart Notebook', stock: 0, status: 'Out of Stock' as const },
+    { id: 'prod-004', name: 'Canvas Tote Bag', stock: 210, status: 'In Stock' as const },
+];
 export const dataSyncLogs: { id: string; service: string; status: 'Success' | 'Failed'; timestamp: string; }[] = [];
 export const moduleActivationLogs: { id: string; module: string; action: 'Activated' | 'Deactivated'; user: string; timestamp: string; }[] = [];
 export const scanFailuresLog: { id: string; store: string; location: string; error: string; timestamp: string; }[] = [];
@@ -186,24 +198,33 @@ export const scanErrorRate = {
 };
 
 export const campaignModuleMetrics = {
-  promoCardCtr: 0,
-  aiAssistantUsageRate: 0,
+  promoCardCtr: 12.5,
+  aiAssistantUsageRate: 34.2,
   moduleEngagementSplit: {
-    recommendations: 0,
-    chatbot: 0,
+    recommendations: 65,
+    chatbot: 35,
   },
-  timeToFirstInteraction: 0,
+  timeToFirstInteraction: 18,
 };
 
 export const behavioralInsights = {
-    repeatScansPerShopper: 0,
-    redemptionFrequency: 0,
-    topRedeemedOffers: [],
+    repeatScansPerShopper: 2.8,
+    redemptionFrequency: 14,
+    topRedeemedOffers: [
+        '15% Off Your Next Purchase',
+        'Buy One Get One Free on Coffee',
+        'R50 Off Winter Jackets',
+    ],
     customerSegmentation: {
-        highValue: 0,
-        loyal: 0,
-        atRisk: 0,
+        highValue: 22,
+        loyal: 41,
+        atRisk: 18,
     },
 };
 
-export const staffActivationData: { id: string; name: string; store: string; activations: number; }[] = [];
+export const staffActivationData = [
+  { id: 'staff-01', name: 'Thabo Ndlovu', store: 'Sandton City', activations: 128 },
+  { id: 'staff-02', name: 'Anika Patel', store: 'Gateway', activations: 112 },
+  { id: 'staff-03', name: 'John Smith', store: 'V&A Waterfront', activations: 98 },
+  { id: 'staff-04', name: 'Emily Williams', store: 'Sandton City', activations: 85 },
+];

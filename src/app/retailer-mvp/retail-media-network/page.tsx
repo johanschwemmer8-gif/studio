@@ -61,7 +61,14 @@ type AggregateMetrics = {
     topProducts: any[];
 };
 
-const analyticsChartData: { name: string; impressions: number; clicks: number; }[] = [];
+const analyticsChartData = [
+    { name: 'Week 1', impressions: 4000, clicks: 240 },
+    { name: 'Week 2', impressions: 3000, clicks: 139 },
+    { name: 'Week 3', impressions: 2000, clicks: 980 },
+    { name: 'Week 4', impressions: 2780, clicks: 390 },
+    { name: 'Week 5', impressions: 1890, clicks: 480 },
+    { name: 'Week 6', impressions: 2390, clicks: 380 },
+];
 
 function formatNumber(num: number, options?: Intl.NumberFormatOptions) {
     return new Intl.NumberFormat('en-US', options).format(num);
@@ -203,20 +210,59 @@ type Product = {
   sku: string;
 };
 
+const mockCampaigns: Campaign[] = [
+    {
+      id: 'campaign_1',
+      campaignName: 'Summer Sizzlers',
+      status: 'Running',
+      budget: 5000,
+      impressions: 125430,
+      clicks: 8780,
+      startDate: Timestamp.fromDate(new Date('2024-07-01')),
+      conversions: 439,
+      totalRevenue: 43800,
+      sponsoredProducts: ['SKU-TSHIRT-SUM', 'SKU-SHORTS-SUM'],
+    },
+    {
+      id: 'campaign_2',
+      campaignName: 'Winter Warmers',
+      status: 'Completed',
+      budget: 3500,
+      impressions: 98210,
+      clicks: 5401,
+      startDate: Timestamp.fromDate(new Date('2024-05-01')),
+      endDate: Timestamp.fromDate(new Date('2024-06-30')),
+      conversions: 216,
+      totalRevenue: 31500,
+      sponsoredProducts: ['SKU-JACKET-WIN', 'SKU-BEANIE-WIN'],
+    },
+     {
+      id: 'campaign_3',
+      campaignName: 'Back to School',
+      status: 'Paused',
+      budget: 2000,
+      impressions: 45000,
+      clicks: 1200,
+      startDate: Timestamp.fromDate(new Date('2024-08-01')),
+      conversions: 50,
+      totalRevenue: 5500,
+      sponsoredProducts: ['SKU-BAG-SCH', 'SKU-PENCIL-SCH'],
+    },
+];
 
 export default function RetailMediaNetworkPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(mockCampaigns);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState<AggregateMetrics>({
-      totalRoas: 0,
-      totalClicks: 0,
-      totalImpressions: 0,
-      totalConversions: 0,
-      overallCtr: 0,
-      overallConversionRate: 0,
+      totalRoas: 6.8,
+      totalClicks: 15381,
+      totalImpressions: 268640,
+      totalConversions: 705,
+      overallCtr: 5.73,
+      overallConversionRate: 4.58,
       topProducts: []
   });
   const { toast } = useToast();
@@ -275,65 +321,6 @@ export default function RetailMediaNetworkPage() {
   const removeProduct = (productId: string) => {
     setSelectedProducts(prev => prev.filter(p => p.id !== productId));
   };
-
-
-  useEffect(() => {
-    if (!db) {
-        toast({
-            title: 'Firebase Not Connected',
-            description: 'Please configure your Firebase credentials to use this feature.',
-            variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-    }
-
-    setLoading(true);
-    const q = query(collection(db, 'adCampaigns'), orderBy('startDate', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const campaignsData: Campaign[] = [];
-      let totalBudget = 0, totalRevenue = 0, totalClicks = 0, totalImpressions = 0, totalConversions = 0;
-
-      querySnapshot.forEach((doc) => {
-        const campaign = { id: doc.id, ...doc.data() } as Campaign;
-        campaignsData.push(campaign);
-
-        totalBudget += campaign.budget || 0;
-        totalRevenue += campaign.totalRevenue || 0;
-        totalClicks += campaign.clicks || 0;
-        totalImpressions += campaign.impressions || 0;
-        totalConversions += campaign.conversions || 0;
-      });
-
-      const totalRoas = totalBudget > 0 ? totalRevenue / totalBudget : 0;
-      const overallCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-      const overallConversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
-      
-      setCampaigns(campaignsData);
-      setMetrics({
-          totalRoas,
-          totalClicks,
-          totalImpressions,
-          totalConversions,
-          overallCtr,
-          overallConversionRate,
-          topProducts: [] // This would be calculated separately
-      });
-
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching campaigns: ", error);
-      toast({
-        title: 'Error',
-        description: 'Could not fetch campaigns. Please check your connection and Firestore setup.',
-        variant: 'destructive',
-      });
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
 
   const handleCreateCampaign = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

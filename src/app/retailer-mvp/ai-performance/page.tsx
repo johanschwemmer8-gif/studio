@@ -18,10 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -34,11 +32,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
 
-const responseTimeData: { time: string; avg: number; p95: number; }[] = [];
+const responseTimeData = [
+  { time: '10:00', avg: 1.2, p95: 2.5 },
+  { time: '10:05', avg: 1.4, p95: 2.8 },
+  { time: '10:10', avg: 1.1, p95: 2.2 },
+  { time: '10:15', avg: 1.5, p95: 3.1 },
+  { time: '10:20', avg: 1.3, p95: 2.6 },
+];
 
-const queryCategoriesData: { name: string; value: number; }[] = [];
+const queryCategoriesData = [
+    { name: 'Pricing', value: 400 },
+    { name: 'Availability', value: 300 },
+    { name: 'Features', value: 300 },
+    { name: 'Shipping', value: 200 },
+];
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 
@@ -62,43 +70,19 @@ function MetricCard({ title, value, trend, icon: Icon, trendDirection = 'up' }: 
     );
 }
 
-function ConversationItem({ customerId }: { customerId: number }) {
-  const [timestamp, setTimestamp] = useState('');
-
-  useEffect(() => {
-    // Generate a more realistic, client-side timestamp
-    setTimestamp(new Date().toLocaleTimeString());
-  }, []);
-
-  return (
-    <div>
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground"/>
-                <p className="text-sm font-medium">Customer #{customerId || '...'}</p>
-            </div>
-            <div className="flex items-center gap-1.5 text-yellow-500">
-                {[...Array(5)].map((_, j) => <Star key={j} className={`h-4 w-4 ${j < 4 ? 'fill-current' : ''}`} />)}
-            </div>
-        </div>
-        <p className="text-xs text-muted-foreground ml-6">"How do I clean this product?" &rarr; AI: "It's top-rack dishwasher safe!" ({timestamp})</p>
-    </div>
-  );
-}
-
-
 export default function AIPerformanceMonitor() {
   const [testPrompt, setTestPrompt] = useState('');
   const [testResponse, setTestResponse] = useState('');
   const [isTesting, setIsTesting] = useState(false);
-  const [customerIds, setCustomerIds] = useState<number[]>([]);
-  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Generate customer IDs on the client-side to avoid hydration mismatch
-    setCustomerIds(Array.from({ length: 5 }, () => Math.floor(1000 + Math.random() * 9000)));
-  }, []);
+  const mockConversations = [
+      { id: 1, customerId: 4381, rating: 5, query: "Is this waterproof?", response: "Yes, it's fully waterproof!" },
+      { id: 2, customerId: 8219, rating: 4, query: "What colors does it come in?", response: "It comes in blue, black, and red." },
+      { id: 3, customerId: 1023, rating: 5, query: "What's the warranty?", response: "It has a 2-year manufacturer warranty." },
+      { id: 4, customerId: 9845, rating: 3, query: "When will it be back in stock?", response: "We expect a new shipment next week." },
+      { id: 5, customerId: 2398, rating: 5, query: "Can I get a discount?", response: "There's a 10% off coupon available today!" },
+  ];
 
   const handleTestPrompt = () => {
     if (!testPrompt) return;
@@ -109,15 +93,6 @@ export default function AIPerformanceMonitor() {
     }, 1200);
   };
     
-  const handleSavePrompt = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-        title: "Prompt Saved",
-        description: "The improved prompt has been saved and will be used for future interactions."
-    });
-    setIsPromptModalOpen(false);
-  };
-
   return (
     <div className="space-y-8">
       <div>
@@ -127,11 +102,11 @@ export default function AIPerformanceMonitor() {
       
       {/* Header Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <MetricCard title="Total Conversations" value="0" icon={MessageSquare} />
-        <MetricCard title="Avg. Response Time" value="0s" trendDirection="down" icon={Clock} />
-        <MetricCard title="Success Rate" value="0%" icon={CheckCircle} />
-        <MetricCard title="Customer Satisfaction" value="0/5" icon={Smile} />
-        <MetricCard title="Upsell Success" value="0%" icon={TrendingUp} />
+        <MetricCard title="Total Conversations" value="1,823" trend="+20.1% from last month" icon={MessageSquare} />
+        <MetricCard title="Avg. Response Time" value="1.3s" trend="+5.2% from last month" trendDirection="down" icon={Clock} />
+        <MetricCard title="Success Rate" value="92.4%" trend="+2.1% from last month" icon={CheckCircle} />
+        <MetricCard title="Customer Satisfaction" value="4.6/5" trend="+0.2 from last month" icon={Smile} />
+        <MetricCard title="Upsell Success" value="12.8%" trend="+1.5% from last month" icon={TrendingUp} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -144,8 +119,21 @@ export default function AIPerformanceMonitor() {
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-96">
-                        <div className="space-y-4 pr-4 text-center text-muted-foreground pt-16">
-                           No conversation data available.
+                        <div className="space-y-4 pr-4">
+                           {mockConversations.map((convo) => (
+                                <div key={convo.id}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Users className="h-4 w-4 text-muted-foreground"/>
+                                            <p className="text-sm font-medium">Customer #{convo.customerId}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-yellow-500">
+                                            {[...Array(5)].map((_, j) => <Star key={j} className={`h-4 w-4 ${j < convo.rating ? 'fill-current' : ''}`} />)}
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground ml-6">"{convo.query}" &rarr; AI: "{convo.response}" ({new Date(Date.now() - Math.random() * 100000).toLocaleTimeString()})</p>
+                                </div>
+                            ))}
                         </div>
                     </ScrollArea>
                 </CardContent>
@@ -167,8 +155,17 @@ export default function AIPerformanceMonitor() {
                         </TableHeader>
                         <TableBody>
                             <TableRow>
-                                <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
-                                    No insights available.
+                                <TableCell><Badge variant="outline" className="text-yellow-600 border-yellow-500/50">High Response Time</Badge></TableCell>
+                                <TableCell className="text-sm">Response time for 'shipping' queries is 25% above average. Consider adding a specific FAQ.</TableCell>
+                                <TableCell><Button size="sm" variant="outline">Create FAQ</Button></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell><Badge variant="outline" className="text-blue-600 border-blue-500/50">Cost Optimization</Badge></TableCell>
+                                <TableCell className="text-sm">Switching 'pricing' queries to a faster model could save ~R200/month with no impact on quality.</TableCell>
+                                <TableCell>
+                                    <DialogTrigger asChild>
+                                        <Button size="sm" variant="outline">Adjust Model</Button>
+                                    </DialogTrigger>
                                 </TableCell>
                             </TableRow>
                         </TableBody>
@@ -198,11 +195,11 @@ export default function AIPerformanceMonitor() {
                     <div className="grid grid-cols-2 gap-4 text-center text-sm mt-4">
                         <div className="p-2 bg-green-100 rounded-lg">
                             <p className="font-semibold text-green-800">API Uptime</p>
-                            <p className="text-lg font-bold text-green-900">0%</p>
+                            <p className="text-lg font-bold text-green-900">99.98%</p>
                         </div>
                          <div className="p-2 bg-red-100 rounded-lg">
                             <p className="font-semibold text-red-800">Error Rate</p>
-                            <p className="text-lg font-bold text-red-900">0%</p>
+                            <p className="text-lg font-bold text-red-900">0.3%</p>
                         </div>
                     </div>
                 </CardContent>
@@ -213,17 +210,13 @@ export default function AIPerformanceMonitor() {
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="h-[200px] w-full flex items-center justify-center">
-                        {queryCategoriesData.length > 0 ? (
-                            <RechartsPieChart>
-                                <Pie data={queryCategoriesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} fill="#8884d8">
-                                    {queryCategoriesData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                </Pie>
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <Legend iconSize={10} />
-                            </RechartsPieChart>
-                        ) : (
-                            <p className="text-muted-foreground">No data</p>
-                        )}
+                        <RechartsPieChart>
+                            <Pie data={queryCategoriesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} fill="#8884d8">
+                                {queryCategoriesData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Legend iconSize={10} />
+                        </RechartsPieChart>
                     </ChartContainer>
                 </CardContent>
             </Card>

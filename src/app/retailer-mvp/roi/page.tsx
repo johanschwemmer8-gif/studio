@@ -49,6 +49,23 @@ export default function RoiPage() {
     });
   };
 
+  const topProductsData = [
+    { id: '1', name: 'Eco-Friendly Water Bottle', scans: 1254, category: 'Lifestyle' },
+    { id: '2', name: 'Wireless Charging Pad', scans: 980, category: 'Electronics' },
+    { id: '3', name: 'Smart Notebook', scans: 872, category: 'Stationery' },
+    { id: '4', name: 'Canvas Tote Bag', scans: 765, category: 'Accessories' },
+    { id: '5', name: 'Aromatic Candle', scans: 654, category: 'Home Goods' },
+  ];
+  
+  const timeBasedPerformanceData = [
+    { time: 'Mar', engagement: 4.5, conversion: 2.1 },
+    { time: 'Apr', engagement: 4.8, conversion: 2.5 },
+    { time: 'May', engagement: 5.1, conversion: 2.8 },
+    { time: 'Jun', engagement: 5.3, conversion: 3.1 },
+    { time: 'Jul', engagement: 5.8, conversion: 3.4 },
+    { time: 'Aug', engagement: 6.2, conversion: 3.8 },
+  ];
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -193,7 +210,7 @@ export default function RoiPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <TopProductsTable data={[]} />
+        <TopProductsTable data={topProductsData} />
       </div>
 
       <Separator />
@@ -260,7 +277,7 @@ export default function RoiPage() {
 
       <Separator />
 
-      <TimeBasedPerformanceChart data={[]} />
+      <TimeBasedPerformanceChart data={timeBasedPerformanceData} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { storesByRegion } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
@@ -17,7 +17,6 @@ import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/f
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import theme from '@/config/theme.json';
-import { getScanAnalytics } from '@/ai/flows/scan-analytics';
 
 
 export default function DashboardPage() {
@@ -27,7 +26,7 @@ export default function DashboardPage() {
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
 
   const { optionalModules } = theme;
 
@@ -40,12 +39,12 @@ export default function DashboardPage() {
     setSelectedStore(null); // Reset store when region changes
   };
 
-  useState(() => {
+  useEffect(() => {
     // In a real app, filters would be passed here based on selectors
     analyzeEngagementMetrics({}).then(data => {
       setAnalyticsData(data);
     });
-  });
+  }, []);
 
   const handleAnalyzeMetrics = () => {
     setError(null);

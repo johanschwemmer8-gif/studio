@@ -59,26 +59,21 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
   async (filters) => {
     
     // --- Step 1: Fetch and calculate metrics ---
-    // In a real application, this would involve complex queries across multiple collections.
-    // For this demonstration, we'll generate realistic but simulated data to avoid local auth issues.
-    
-    // Simulating fetching and aggregation
-    const totalScans = Math.floor(Math.random() * 5000) + 1000;
-    const uniqueScans = Math.floor(totalScans * (Math.random() * 0.2 + 0.6)); // 60-80% unique
+    // For this demonstration, we use fixed, realistic data to ensure consistency for screenshots.
     
     const engagement = {
-        totalScans,
-        uniqueScans,
-        engagementDuration: Math.floor(Math.random() * 30) + 20, // 20-50s
-        scanRate: Math.random() * 5 + 2, // 2-7%
+        totalScans: 4829,
+        uniqueScans: 3210,
+        engagementDuration: 32,
+        scanRate: 5.4,
     };
 
-    const avgBasketSizeNonAoe = Math.random() * 150 + 100; // R100-R250
-    const basketUpliftPercentage = Math.random() * 15 + 5; // 5-20%
+    const avgBasketSizeNonAoe = 185.50;
+    const basketUpliftPercentage = 12.5;
     const avgBasketSizeAoe = avgBasketSizeNonAoe * (1 + basketUpliftPercentage / 100);
-    const offerRedemptionRate = Math.random() * 20 + 10; // 10-30%
-    const totalRedeemedValue = uniqueScans * (offerRedemptionRate / 100) * (Math.random() * 10 + 5); // Avg R5-R15 per redemption
-    const aoeTransactions = Math.floor(uniqueScans * (Math.random() * 0.3 + 0.1)); // 10-40% conversion
+    const offerRedemptionRate = 18.2;
+    const totalRedeemedValue = 3210 * (18.2 / 100) * 12.50; // Avg R12.50 per redemption
+    const aoeTransactions = Math.floor(3210 * 0.25); // 25% conversion from unique scans
 
     const conversion = {
         avgBasketSizeAoe,

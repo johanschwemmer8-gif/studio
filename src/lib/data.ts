@@ -178,9 +178,21 @@ export const realTimeStockLevels = [
     { id: 'prod-003', name: 'Smart Notebook', stock: 0, status: 'Out of Stock' as const },
     { id: 'prod-004', name: 'Canvas Tote Bag', stock: 210, status: 'In Stock' as const },
 ];
-export const dataSyncLogs: { id: string; service: string; status: 'Success' | 'Failed'; timestamp: string; }[] = [];
-export const moduleActivationLogs: { id: string; module: string; action: 'Activated' | 'Deactivated'; user: string; timestamp: string; }[] = [];
-export const scanFailuresLog: { id: string; store: string; location: string; error: string; timestamp: string; }[] = [];
+export const dataSyncLogs: { id: string; service: string; status: 'Success' | 'Failed'; timestamp: string; }[] = [
+  { id: 'sync-001', service: 'ERP Stock Levels', status: 'Success' as const, timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+  { id: 'sync-002', service: 'PIM Product Details', status: 'Success' as const, timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+  { id: 'sync-003', service: 'Salesforce CRM', status: 'Failed' as const, timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString() },
+];
+export const moduleActivationLogs: { id: string; module: string; action: 'Activated' | 'Deactivated'; user: string; timestamp: string; }[] = [
+    { id: 'act-001', module: 'A/B Testing', action: 'Activated' as const, user: 'j.doe@example.com', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    { id: 'act-002', module: 'Retail Media Network', action: 'Activated' as const, user: 's.smith@example.com', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+    { id: 'act-003', module: 'AI Chatbot', action: 'Deactivated' as const, user: 'j.doe@example.com', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+];
+export const scanFailuresLog: { id: string; store: string; location: string; error: string; timestamp: string; }[] = [
+    { id: 'fail-001', store: 'Sandton City', location: 'Aisle 5', error: 'Invalid QR Code', timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString() },
+    { id: 'fail-002', store: 'V&A Waterfront', location: 'Checkout', error: 'Product Not Found', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+    { id: 'fail-003', store: 'Menlyn Park', location: 'Entrance', error: 'Expired Campaign', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
+];
 
 export const systemUptime = {
   status: 'Operational',

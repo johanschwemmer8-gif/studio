@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -163,9 +164,23 @@ export default function AIPerformanceMonitor() {
                                 <TableCell><Badge variant="outline" className="text-blue-600 border-blue-500/50">Cost Optimization</Badge></TableCell>
                                 <TableCell className="text-sm">Switching 'pricing' queries to a faster model could save ~R200/month with no impact on quality.</TableCell>
                                 <TableCell>
-                                    <DialogTrigger asChild>
-                                        <Button size="sm" variant="outline">Adjust Model</Button>
-                                    </DialogTrigger>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button size="sm" variant="outline">Adjust Model</Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Adjust AI Model</DialogTitle>
+                                                <DialogDescription>
+                                                    This is a placeholder for the model adjustment UI.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <DialogFooter>
+                                                <Button type="button" variant="secondary">Cancel</Button>
+                                                <Button type="button">Confirm</Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
                                 </TableCell>
                             </TableRow>
                         </TableBody>

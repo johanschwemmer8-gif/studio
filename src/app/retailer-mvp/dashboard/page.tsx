@@ -17,6 +17,7 @@ import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/f
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import theme from '@/config/theme.json';
+import HourlyPerformanceChart from '@/components/dashboard/hourly-performance-chart';
 
 
 export default function DashboardPage() {
@@ -250,6 +251,10 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <Separator />
+
+      <HourlyPerformanceChart />
     </div>
   );
 }

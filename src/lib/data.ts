@@ -170,8 +170,22 @@ export const salesData = [
   { name: 'Jul', revenue: 34000, scans: 1300, crossSells: 480 },
   { name: 'Aug', revenue: 38000, scans: 1450, crossSells: 520 },
 ];
-export const revenueUpliftData: { month: string; ratio: number; }[] = [];
-export const ytdData: { month: string; revenue: number; cost: number; net: number; }[] = [];
+export const revenueUpliftData = [
+    { month: 'Mar', ratio: 2.1 },
+    { month: 'Apr', ratio: 2.5 },
+    { month: 'May', ratio: 2.3 },
+    { month: 'Jun', ratio: 2.8 },
+    { month: 'Jul', ratio: 3.1 },
+    { month: 'Aug', ratio: 3.4 },
+];
+export const ytdData = [
+    { month: 'Mar', revenue: 23000, cost: 5000, net: 18000 },
+    { month: 'Apr', revenue: 29000, cost: 5000, net: 24000 },
+    { month: 'May', revenue: 25000, cost: 5000, net: 20000 },
+    { month: 'Jun', revenue: 31000, cost: 5000, net: 26000 },
+    { month: 'Jul', revenue: 34000, cost: 5000, net: 29000 },
+    { month: 'Aug', revenue: 38000, cost: 5000, net: 33000 },
+];
 export const realTimeStockLevels = [
     { id: 'prod-001', name: 'Eco-Friendly Water Bottle', stock: 152, status: 'In Stock' as const },
     { id: 'prod-002', name: 'Wireless Charging Pad', stock: 48, status: 'Low Stock' as const },
@@ -239,4 +253,17 @@ export const staffActivationData = [
   { id: 'staff-02', name: 'Anika Patel', store: 'Gateway', activations: 112 },
   { id: 'staff-03', name: 'John Smith', store: 'V&A Waterfront', activations: 98 },
   { id: 'staff-04', name: 'Emily Williams', store: 'Sandton City', activations: 85 },
+];
+
+export const hourlyPerformanceData = [
+  { time: '8am', uniqueScans: 50, engagementRate: 4.1, offerRedemption: 15.2, basketUplift: 8.1, conversionRate: 20.5, dwellTime: 25 },
+  { time: '9am', uniqueScans: 120, engagementRate: 4.5, offerRedemption: 16.0, basketUplift: 9.2, conversionRate: 22.1, dwellTime: 28 },
+  { time: '10am', uniqueScans: 180, engagementRate: 5.1, offerRedemption: 17.5, basketUplift: 10.5, conversionRate: 24.3, dwellTime: 31 },
+  { time: '11am', uniqueScans: 250, engagementRate: 5.8, offerRedemption: 18.2, basketUplift: 11.8, conversionRate: 25.0, dwellTime: 33 },
+  { time: '12pm', uniqueScans: 300, engagementRate: 6.2, offerRedemption: 19.1, basketUplift: 12.5, conversionRate: 26.1, dwellTime: 35 },
+  { time: '1pm', uniqueScans: 320, engagementRate: 6.5, offerRedemption: 20.0, basketUplift: 13.1, conversionRate: 27.2, dwellTime: 36 },
+  { time: '2pm', uniqueScans: 280, engagementRate: 6.1, offerRedemption: 19.5, basketUplift: 12.8, conversionRate: 26.8, dwellTime: 34 },
+  { time: '3pm', uniqueScans: 260, engagementRate: 5.9, offerRedemption: 18.8, basketUplift: 12.1, conversionRate: 25.5, dwellTime: 32 },
+  { time: '4pm', uniqueScans: 220, engagementRate: 5.5, offerRedemption: 18.0, basketUplift: 11.2, conversionRate: 24.0, dwellTime: 30 },
+  { time: '5pm', uniqueScans: 190, engagementRate: 5.2, offerRedemption: 17.1, basketUplift: 10.1, conversionRate: 23.1, dwellTime: 29 },
 ];

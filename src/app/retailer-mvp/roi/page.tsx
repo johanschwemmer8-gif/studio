@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useTransition, useEffect } from 'react';
 import {
@@ -58,11 +57,11 @@ export default function RoiPage() {
   } : null;
 
   const topProductsData = [
-    { id: '1', name: 'Eco-Friendly Water Bottle', scans: 1254, category: 'Lifestyle' },
-    { id: '2', name: 'Wireless Charging Pad', scans: 980, category: 'Electronics' },
-    { id: '3', name: 'Smart Notebook', scans: 872, category: 'Stationery' },
-    { id: '4', name: 'Canvas Tote Bag', scans: 765, category: 'Accessories' },
-    { id: '5', name: 'Aromatic Candle', scans: 654, category: 'Home Goods' },
+    { id: '1', name: 'Eco-Friendly Water Bottle', scans: 1254, category: 'Lifestyle', trend: [30, 40, 35, 50, 45, 60] },
+    { id: '2', name: 'Wireless Charging Pad', scans: 980, category: 'Electronics', trend: [20, 25, 22, 30, 28, 35] },
+    { id: '3', name: 'Smart Notebook', scans: 872, category: 'Stationery', trend: [15, 18, 20, 25, 22, 30] },
+    { id: '4', name: 'Canvas Tote Bag', scans: 765, category: 'Accessories', trend: [10, 15, 12, 18, 20, 25] },
+    { id: '5', name: 'Aromatic Candle', scans: 654, category: 'Home Goods', trend: [5, 8, 7, 10, 12, 15] },
   ];
   
   const timeBasedPerformanceData = [

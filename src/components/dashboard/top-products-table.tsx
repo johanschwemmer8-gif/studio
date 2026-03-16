@@ -14,12 +14,14 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Line, LineChart, ResponsiveContainer } from 'recharts';
 
 type TableData = {
   id: string;
   name: string;
   scans: number;
   category: string;
+  trend: number[];
 }[];
 
 export default function TopProductsTable({ data }: { data: TableData }) {
@@ -36,6 +38,7 @@ export default function TopProductsTable({ data }: { data: TableData }) {
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
+              <TableHead>Trend</TableHead>
               <TableHead className="text-right">Scans</TableHead>
             </TableRow>
           </TableHeader>
@@ -45,6 +48,15 @@ export default function TopProductsTable({ data }: { data: TableData }) {
                 <TableCell>
                   <div className="font-medium">{product.name}</div>
                   <Badge variant="outline" className='mt-1'>{product.category}</Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="h-10 w-24">
+                     <ResponsiveContainer>
+                        <LineChart data={product.trend.map(val => ({ scans: val }))}>
+                            <Line type="monotone" dataKey="scans" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {product.scans}

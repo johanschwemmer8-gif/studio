@@ -254,7 +254,38 @@ export default function DashboardPage() {
       
       <Separator />
 
-      <HourlyPerformanceChart />
+      <div className="grid gap-8 grid-cols-1 lg:grid-cols-2">
+        <HourlyPerformanceChart
+          metric="uniqueScans"
+          title="Hourly Unique Scans"
+          description="Number of unique customers scanning QR codes each hour."
+        />
+        <HourlyPerformanceChart
+          metric="engagementRate"
+          title="Hourly Engagement Rate"
+          description="Percentage of visitors who scanned a QR code each hour."
+        />
+        <HourlyPerformanceChart
+          metric="offerRedemption"
+          title="Hourly Offer Redemption"
+          description="Rate of personalized offers redeemed each hour."
+        />
+        <HourlyPerformanceChart
+          metric="basketUplift"
+          title="Hourly Basket Uplift"
+          description="Average basket size uplift for engaged users each hour."
+        />
+        <HourlyPerformanceChart
+          metric="conversionRate"
+          title="Hourly Conversion Rate"
+          description="Percentage of engaged users who made a purchase each hour."
+        />
+        <HourlyPerformanceChart
+          metric="dwellTime"
+          title="Hourly Dwell Time"
+          description="Average time spent on product pages after a scan each hour."
+        />
+      </div>
     </div>
   );
 }

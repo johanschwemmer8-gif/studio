@@ -1,6 +1,5 @@
 
 'use client';
-import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import {
   Card,
@@ -13,13 +12,6 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { hourlyPerformanceData } from '@/lib/data';
 
 type MetricKey = 'uniqueScans' | 'engagementRate' | 'offerRedemption' | 'basketUplift' | 'conversionRate' | 'dwellTime';
@@ -42,33 +34,13 @@ const chartConfig = {
   dwellTime: { label: 'Dwell Time', color: 'hsl(var(--chart-1))' },
 };
 
-
-export default function HourlyPerformanceChart() {
-  const [selectedMetric, setSelectedMetric] = useState<MetricKey>('uniqueScans');
-
+export default function HourlyPerformanceChart({ metric, title, description }: { metric: MetricKey, title: string, description: string }) {
+  
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <CardTitle>Hourly Performance Breakdown</CardTitle>
-                <CardDescription>
-                    Key metrics by hour of the day.
-                </CardDescription>
-            </div>
-            <div className="w-full sm:w-[200px]">
-                <Select value={selectedMetric} onValueChange={(value) => setSelectedMetric(value as MetricKey)}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a metric" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {Object.entries(metricConfig).map(([key, config]) => (
-                            <SelectItem key={key} value={key}>{config.label}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -84,10 +56,10 @@ export default function HourlyPerformanceChart() {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value) => `${value}${metricConfig[selectedMetric].unit}`}
+              tickFormatter={(value) => `${value}${metricConfig[metric].unit}`}
             />
             <Tooltip content={<ChartTooltipContent />} />
-            <Bar dataKey={selectedMetric} fill={`var(--color-${selectedMetric})`} radius={4} name={metricConfig[selectedMetric].label} />
+            <Bar dataKey={metric} fill={`var(--color-${metric})`} radius={4} name={metricConfig[metric].label} />
           </BarChart>
         </ChartContainer>
       </CardContent>

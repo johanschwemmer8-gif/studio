@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import SalesFunnelChart from '@/components/dashboard/sales-funnel-chart';
 
 export default function RoiPage() {
   const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
@@ -48,6 +49,13 @@ export default function RoiPage() {
       }
     });
   };
+  
+  const funnelData = metricsData ? {
+    scans: metricsData.engagement.totalScans,
+    interactions: metricsData.engagement.uniqueScans,
+    conversions: Math.round(metricsData.engagement.uniqueScans * (metricsData.conversion.offerRedemptionRate / 100)),
+    sales: metricsData.conversion.aoeTransactions,
+  } : null;
 
   const topProductsData = [
     { id: '1', name: 'Eco-Friendly Water Bottle', scans: 1254, category: 'Lifestyle' },
@@ -224,55 +232,75 @@ export default function RoiPage() {
         </p>
       </div>
 
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Basket Uplift Analysis</CardTitle>
-                <Percent className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex justify-between items-baseline">
-                    <span className="text-muted-foreground text-sm">AOE Users</span>
-                    {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
-                </div>
-                 <div className="flex justify-between items-baseline">
-                    <span className="text-muted-foreground text-sm">Non-Users</span>
-                    {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
-                </div>
-                <div className="flex justify-between items-baseline pt-2 border-t">
-                    <span className="text-primary font-semibold text-sm">Uplift</span>
-                    {metricsData ? <span className="text-lg font-bold text-primary">{metricsData.conversion.basketUpliftPercentage.toFixed(2)}%</span> : <Skeleton className="h-6 w-16" />}
-                </div>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
-                <Tag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="text-3xl font-bold">{metricsData?.conversion.offerRedemptionRate.toFixed(2) || '0.00'}%</div >
-                <p className="text-xs text-muted-foreground">
-                    Percentage of personalized offers redeemed.
-                </p>
-                <div className="pt-4">
-                    <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
-                     <div className="text-2xl font-bold">R{metricsData?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
-                </div>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Transactions Influenced by AOE</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-4xl font-bold">{metricsData?.conversion.aoeTransactions.toLocaleString() || <Skeleton className="h-10 w-20" />}</div>
-                <p className="text-xs text-muted-foreground">
-                    Total transactions where a customer engaged with the platform before purchase.
-                </p>
-            </CardContent>
-        </Card>
+       <div className="grid gap-8 lg:grid-cols-2">
+           {funnelData ? (
+               <SalesFunnelChart data={funnelData} />
+            ) : (
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-3/4"/>
+                        <Skeleton className="h-4 w-1/2"/>
+                    </CardHeader>
+                    <CardContent className="flex justify-center">
+                        <div className="space-y-6">
+                            <Skeleton className="h-16 w-80" />
+                            <Skeleton className="h-16 w-80" />
+                            <Skeleton className="h-16 w-80" />
+                            <Skeleton className="h-16 w-80" />
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+           <div className="space-y-8">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Basket Uplift Analysis</CardTitle>
+                        <Percent className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex justify-between items-baseline">
+                            <span className="text-muted-foreground text-sm">AOE Users</span>
+                            {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
+                        </div>
+                         <div className="flex justify-between items-baseline">
+                            <span className="text-muted-foreground text-sm">Non-Users</span>
+                            {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
+                        </div>
+                        <div className="flex justify-between items-baseline pt-2 border-t">
+                            <span className="text-primary font-semibold text-sm">Uplift</span>
+                            {metricsData ? <span className="text-lg font-bold text-primary">{metricsData.conversion.basketUpliftPercentage.toFixed(2)}%</span> : <Skeleton className="h-6 w-16" />}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                         <div className="text-3xl font-bold">{metricsData?.conversion.offerRedemptionRate.toFixed(2) || '0.00'}%</div >
+                        <p className="text-xs text-muted-foreground">
+                            Percentage of personalized offers redeemed.
+                        </p>
+                        <div className="pt-4">
+                            <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
+                             <div className="text-2xl font-bold">R{metricsData?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Transactions Influenced by AOE</CardTitle>
+                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-4xl font-bold">{metricsData?.conversion.aoeTransactions.toLocaleString() || <Skeleton className="h-10 w-20" />}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Total transactions where a customer engaged with the platform before purchase.
+                        </p>
+                    </CardContent>
+                </Card>
+           </div>
       </div>
 
       <Separator />

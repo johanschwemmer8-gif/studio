@@ -43,7 +43,7 @@ export default function HourlyPerformanceChart({ metric, title, description }: {
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        <ChartContainer config={chartConfig} className="h-[200px] w-full">
           <BarChart data={hourlyPerformanceData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
@@ -51,14 +51,19 @@ export default function HourlyPerformanceChart({ metric, title, description }: {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              fontSize={12}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={8}
               tickFormatter={(value) => `${value}${metricConfig[metric].unit}`}
+              fontSize={12}
             />
-            <Tooltip content={<ChartTooltipContent />} />
+            <Tooltip
+              cursor={false}
+              content={<ChartTooltipContent indicator="dot" />}
+            />
             <Bar dataKey={metric} fill={`var(--color-${metric})`} radius={4} name={metricConfig[metric].label} />
           </BarChart>
         </ChartContainer>

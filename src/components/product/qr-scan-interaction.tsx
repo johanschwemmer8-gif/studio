@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { AlertTriangle, Sparkles } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 type QrScanInteractionProps = {
   qrId: string;
@@ -44,8 +45,9 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
     const fetchInteraction = async () => {
       try {
         const result = await getScanInteraction({ qrId });
-        if (!result.messages || result.messages.length === 0) {
-           // If no messages, redirect immediately
+        // If there's no AI message but there IS media, we show the page.
+        // If there's no media and no message, we redirect immediately.
+        if (!result.messages?.length && !result.mediaUrl) {
            window.location.href = result.destinationUrl;
            return;
         }
@@ -53,9 +55,6 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
       } catch (e: any) {
         setError(e.message || 'An unexpected error occurred.');
         console.error(e);
-        // In case of an API error, we might not have the destination URL yet.
-        // A robust solution would be to have a fallback lookup or redirect to a generic error page.
-        // For now, we show an error.
       } finally {
         setLoading(false);
       }
@@ -64,7 +63,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
   }, [qrId]);
   
    useEffect(() => {
-    if (data?.messages.length) {
+    if (data?.messages?.length) {
       let currentMessageIndex = 0;
       const interval = setInterval(() => {
         if (currentMessageIndex < data.messages.length) {
@@ -80,7 +79,6 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
 
   const handleContinue = () => {
     if (data?.destinationUrl) {
-      // In a real app, you would log the 'continue' click to Firestore here
       console.log(`Interaction complete for ${qrId}. Redirecting...`);
       window.location.href = data.destinationUrl;
     }
@@ -90,6 +88,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
             <div className="w-full max-w-sm mx-auto animate-pulse">
+                <Skeleton className="w-full aspect-video rounded-lg mb-4" />
                  <div className="flex items-start space-x-3">
                     <Skeleton className="rounded-full h-10 w-10" />
                     <div className="flex-1 space-y-4 py-1">
@@ -117,31 +116,48 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
     );
   }
   
-  const showContinueButton = displayedMessages.length === data?.messages.length;
+  const showContinueButton = !data?.messages?.length || displayedMessages.length === data.messages.length;
 
   return (
     <div className="flex flex-col min-h-screen bg-background p-6">
-      <div className="flex-1 flex flex-col justify-end">
-        <div className="space-y-4 w-full max-w-sm mx-auto">
-          {displayedMessages.map((msg, index) => (
-            <div key={index} className="flex items-end space-x-3">
-                <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
-                    <AvatarImage src={data?.retailerLogoUrl} alt="Retailer Logo" />
-                    <AvatarFallback><Sparkles className="text-accent"/></AvatarFallback>
-                </Avatar>
-                <MessageBubble text={msg} isTyping={false} />
+      <div className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-end">
+        {/* Media and Headline Section */}
+        {data?.mediaUrl && (
+            <div className="mb-6 text-center">
+                {data.mediaType === 'video' ? (
+                    <video src={data.mediaUrl} controls autoPlay muted loop className="w-full rounded-lg shadow-lg aspect-video object-cover" />
+                ) : (
+                    <Image src={data.mediaUrl} alt={data.headline || 'Campaign Media'} width={400} height={225} className="w-full rounded-lg shadow-lg object-cover aspect-video" />
+                )}
+                {data.headline && <h1 className="text-2xl font-bold mt-4">{data.headline}</h1>}
+                {data.subhead && <p className="text-muted-foreground mt-1">{data.subhead}</p>}
             </div>
-          ))}
-           {!showContinueButton && (
-                <div className="flex items-end space-x-3">
-                    <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
-                         <AvatarImage src={data?.retailerLogoUrl} alt="Retailer Logo" />
-                         <AvatarFallback><Sparkles className="text-accent"/></AvatarFallback>
-                    </Avatar>
-                    <MessageBubble text="" isTyping={true} />
-                </div>
-           )}
-        </div>
+        )}
+        
+        {/* Chat Section */}
+        {data?.messages && data.messages.length > 0 && (
+             <div className="space-y-4">
+                {displayedMessages.map((msg, index) => (
+                    <div key={index} className="flex items-end space-x-3 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+                        <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
+                            <AvatarImage src={data?.retailerLogoUrl} alt="Retailer Logo" />
+                            <AvatarFallback><Sparkles className="text-accent"/></AvatarFallback>
+                        </Avatar>
+                        <MessageBubble text={msg} isTyping={false} />
+                    </div>
+                ))}
+                {!showContinueButton && (
+                        <div className="flex items-end space-x-3">
+                            <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
+                                <AvatarImage src={data?.retailerLogoUrl} alt="Retailer Logo" />
+                                <AvatarFallback><Sparkles className="text-accent"/></AvatarFallback>
+                            </Avatar>
+                            <MessageBubble text="" isTyping={true} />
+                        </div>
+                )}
+            </div>
+        )}
+
       </div>
       <div className="w-full max-w-sm mx-auto pt-8">
         <Button

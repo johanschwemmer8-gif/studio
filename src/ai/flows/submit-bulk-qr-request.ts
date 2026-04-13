@@ -27,6 +27,11 @@ const QrOptionsSchema = z.object({
   aiRecommendations: z.string().optional().describe("e.g., Recommend matching accessories, Suggest the premium version of this product"),
   expiresAt: z.string().datetime().optional(),
   redirectType: z.enum(['permanent', 'temporary']).default('temporary'),
+  // New fields for media content
+  mediaType: z.enum(['image', 'video']).optional(),
+  mediaUrl: z.string().url("Must be a valid URL for the media.").optional().or(z.literal('')),
+  headline: z.string().optional(),
+  subhead: z.string().optional(),
 });
 
 // Define the input schema for the callable function
@@ -59,16 +64,57 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     outputSchema: SubmitBulkQrRequestOutputSchema,
   },
   async (data) => {
-    // MOCK RESPONSE TO AVOID AUTHENTICATION ERRORS IN LOCAL DEVELOPMENT
-    // This simulates a successful submission without needing a live database connection.
-    console.log(`(Simulation) Received QR request for campaign: ${data.campaignId}, count: ${data.count}`);
-    const mockRequestId = `req_${Math.random().toString(36).substring(2, 9)}`;
+    if (!db) {
+        throw new Error('Firestore is not initialized. Check Firebase Admin SDK configuration.');
+    }
     
-    // In a real application, the Firestore logic would be here.
-    // The error "Could not refresh access token" indicates that the
-    // server environment isn't authenticated with Google Cloud, so we
-    // bypass the database call to allow the UI to function correctly.
+    // In a real Firebase Callable Function, you'd get auth context here.
+    const createdBy = 'simulated-user@example.com';
+    const callerRetailerId = 'simulated-retailer-id'; 
     
-    return { success: true, requestId: mockRequestId };
+    // Enforce tenant matching
+    if (callerRetailerId !== data.retailerId) {
+      throw new Error('User is not authorized to create requests for this retailer.');
+    }
+
+    const { retailerId, campaignId, count, baseRedirect, options } = data;
+    
+    const requestRef = db.collection('bulkQrRequests').doc();
+    const batch = db.batch();
+    const requestData = {
+        retailerId,
+        campaignId,
+        totalRequested: count,
+        status: 'QUEUED',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: createdBy,
+        options: options || {},
+    };
+    batch.set(requestRef, requestData);
+
+    const trackingUrlBase = 'https://interact-aoe.app/track/';
+
+    // Create N item stubs
+    for (let i = 0; i < count; i++) {
+      const qrCodeId = db.collection('qrcodes').doc().id;
+      const itemRef = requestRef.collection('items').doc(qrCodeId);
+      
+      const itemData = {
+          index: i,
+          qrCodeId: qrCodeId,
+          trackingUrl: `${trackingUrlBase}${qrCodeId}`, // The URL the QR code will encode
+          finalRedirectUrl: baseRedirect, // The URL the user goes to after the interaction
+          status: 'PENDING',
+          error: '',
+          checksum: '',
+          params: {},
+      };
+      batch.set(itemRef, itemData);
+    }
+
+    await batch.commit();
+    
+    return { success: true, requestId: requestRef.id };
   }
 );

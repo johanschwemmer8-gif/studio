@@ -20,8 +20,6 @@ export async function GET(
   const qrRef = db.collection('qrcodes').doc(qrCodeId);
 
   try {
-    // We still log the scan here, but now we redirect to the interaction page
-    // instead of the final destination. The interaction page will handle the final redirect.
     const qrData = await db.runTransaction(async (transaction) => {
         const qrDoc = await transaction.get(qrRef);
 
@@ -50,13 +48,13 @@ export async function GET(
             });
             
             // For external codes, we still redirect directly as they might not have AI profiles.
-            return { redirectUrl: externalData.originalUrl, immediate: true };
+            return { redirectUrl: externalData.originalUrl };
         }
         
         const data = qrDoc.data()!;
         
         if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
-            return { redirectUrl: '/error?code=expired', immediate: true };
+            return { redirectUrl: '/error?code=expired' };
         }
         
         transaction.update(qrRef, {
@@ -75,24 +73,16 @@ export async function GET(
             referrer: request.headers.get('referer') || '',
         });
         
-        // If an AI profile is attached, redirect to the interaction screen.
-        // Otherwise, redirect directly to the product page.
-        if (data.aiProfileId) {
-             return { redirectUrl: `/scan/${qrCodeId}`, immediate: false };
-        } else {
-             return { redirectUrl: data.redirectUrl, immediate: true };
-        }
+        // For all iNteract-generated codes, redirect to the interaction screen.
+        // The interaction screen will handle the final redirect to `data.redirectUrl`.
+        return { redirectUrl: `/scan/${qrCodeId}` };
     });
 
     if (qrData === null) {
         return NextResponse.redirect(new URL('/error?code=404', request.url));
     }
 
-    // For immediate redirects, we use the original URL.
-    // For interaction screen, we use the app's own URL structure.
-    const redirectTarget = qrData.immediate ? new URL(qrData.redirectUrl) : new URL(qrData.redirectUrl, request.url);
-
-    return NextResponse.redirect(redirectTarget, 302);
+    return NextResponse.redirect(new URL(qrData.redirectUrl, request.url), 302);
 
   } catch (error) {
     console.error(`Transaction failed for qrCodeId ${qrCodeId}:`, error);

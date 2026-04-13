@@ -70,14 +70,29 @@ const getScanInteractionFlow = ai.defineFlow(
     }
     const qrData = qrDoc.data()!;
 
+    // Base response with final redirect URL and empty media/messages
     const fallbackResponse = {
         messages: [],
         destinationUrl: qrData.redirectUrl,
         retailerLogoUrl: '',
+        mediaType: undefined,
+        mediaUrl: undefined,
+        headline: undefined,
+        subhead: undefined,
     };
-
+    
+    // Fetch campaign-level settings if requestId exists
+    let mediaOptions: any = {};
+    if (qrData.requestId) {
+        const requestDoc = await db.collection('bulkQrRequests').doc(qrData.requestId).get();
+        if (requestDoc.exists) {
+            mediaOptions = requestDoc.data()?.options || {};
+        }
+    }
+    
+    // If no AI profile is attached, return immediately with media if available.
     if (!qrData.aiProfileId) {
-      return fallbackResponse;
+      return { ...fallbackResponse, ...mediaOptions };
     }
 
     try {
@@ -88,7 +103,7 @@ const getScanInteractionFlow = ai.defineFlow(
         
         if (!aiProfileDoc.exists) {
           console.warn(`AI Profile with ID ${qrData.aiProfileId} not found. Skipping interaction.`);
-          return fallbackResponse;
+          return { ...fallbackResponse, ...mediaOptions };
         }
 
         const aiProfile = aiProfileDoc.data()!;
@@ -105,7 +120,7 @@ const getScanInteractionFlow = ai.defineFlow(
 
         if (!output?.messages || output.messages.length === 0) {
           console.warn('AI generated no messages. Skipping interaction.');
-          return { ...fallbackResponse, retailerLogoUrl };
+          return { ...fallbackResponse, retailerLogoUrl, ...mediaOptions };
         }
 
         await db.collection('qr_interactions').add({
@@ -122,11 +137,15 @@ const getScanInteractionFlow = ai.defineFlow(
           messages: output.messages,
           destinationUrl: qrData.redirectUrl,
           retailerLogoUrl,
+          mediaType: mediaOptions.mediaType,
+          mediaUrl: mediaOptions.mediaUrl,
+          headline: mediaOptions.headline,
+          subhead: mediaOptions.subhead,
         };
 
     } catch (error) {
         console.error(`Error during scan interaction for qrId ${qrId}:`, error);
-        return fallbackResponse;
+        return { ...fallbackResponse, ...mediaOptions };
     }
   }
 );

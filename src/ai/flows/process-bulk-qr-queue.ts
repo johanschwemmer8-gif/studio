@@ -38,7 +38,7 @@ const generateQrForItem = (item: any, requestData: any) => {
     const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
     const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
 
-    const qrData = `${item.redirectUrl}`; // The redirectUrl is already pre-built
+    const qrData = item.trackingUrl; // The URL to be encoded in the QR code
     const encodedQrData = encodeURIComponent(qrData);
 
     let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
@@ -113,15 +113,13 @@ const processBulkQrQueueFlow = ai.defineFlow(
                         campaignId: requestData.campaignId,
                         qrCodeId: itemData.qrCodeId,
                         requestId: requestDoc.id,
-                        redirectUrl: itemData.originalTargetUrl, // Use originalTargetUrl for final destination
+                        redirectUrl: itemData.finalRedirectUrl, // The final destination after interaction
+                        trackingUrl: itemData.trackingUrl, // The URL embedded in the QR
                         storagePath: updateData.storagePath,
                         signedUrl: updateData.signedUrl,
                         scanCount: 0,
                         createdAt: admin.firestore.FieldValue.serverTimestamp(),
                         expiresAt: requestData.options?.expiresAt ? new Date(requestData.options.expiresAt) : null,
-                        meta: {
-                            originalUrl: itemData.originalTargetUrl, // Keep original target here too
-                        },
                     });
                 }
                 await batch.commit();
@@ -183,10 +181,10 @@ const processBulkQrQueueFlow = ai.defineFlow(
                     campaignId: requestData.campaignId,
                     qrCodeId: itemData.qrCodeId,
                     requestId: requestDoc.id,
-                    redirectUrl: itemData.originalTargetUrl, // Use originalTargetUrl for final destination
+                    redirectUrl: itemData.finalRedirectUrl, // The final destination
+                    trackingUrl: itemData.trackingUrl, // The URL embedded in the QR
                     storagePath: updateData.storagePath,
                     signedUrl: updateData.signedUrl,
-                    // Keep existing scanCount on retry
                 }, { merge: true });
 
                 await batch.commit();

@@ -1,60 +1,56 @@
 
 'use client';
 
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAnalytics, isSupported } from 'firebase/analytics';
-import { getRemoteConfig } from 'firebase/remote-config';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
+import { getRemoteConfig, RemoteConfig } from 'firebase/remote-config';
+import { getAuth, Auth } from 'firebase/auth';
 
-// In a real application, these values would be populated, likely from environment variables.
 const firebaseConfig = {
-  "projectId": "interact-aoe-kidkn",
-  "appId": "1:783333671853:web:53f7f226c95ac08fbd5724",
-  "storageBucket": "interact-aoe-kidkn.firebasestorage.app",
-  "apiKey": "AIzaSyAuB__O0Bo4uQLeyZ3UH2wYpbEbcuGevFI",
-  "authDomain": "interact-aoe-kidkn.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "783333671853"
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Check if the config has been populated
-const isConfigValid = firebaseConfig.projectId;
+const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
 
-// Initialize Firebase
 let app: FirebaseApp;
-if (isConfigValid && !getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else if (isConfigValid) {
-  app = getApps()[0];
+let db: Firestore | null = null;
+let auth: Auth | null = null;
+let analytics: Promise<Analytics | null> | null = null;
+let remoteConfig: RemoteConfig | null = null;
+
+if (isConfigValid) {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
+    
+    db = getFirestore(app);
+    auth = getAuth(app);
+    
+    if (typeof window !== 'undefined') {
+        analytics = (async () => {
+            if (await isSupported()) {
+                return getAnalytics(app);
+            }
+            return null;
+        })();
+        
+        remoteConfig = getRemoteConfig(app);
+        remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
+        remoteConfig.defaultConfig = {
+            'in_store_greeting_message': 'Welcome to our store!',
+        };
+    }
+} else {
+    console.warn("Firebase config is missing or invalid. Firebase services will not be available.");
 }
-
-// @ts-ignore
-const db = isConfigValid ? getFirestore(app) : null;
-// @ts-ignore
-const auth = isConfigValid ? getAuth(app) : null;
-
-// Initialize Analytics and Remote Config only on the client side and if the config is valid
-const analytics = isConfigValid && typeof window !== 'undefined' && process.env.NODE_ENV === 'production'
-  ? (async () => {
-      if (await isSupported()) {
-        return getAnalytics(app);
-      }
-      return null;
-    })()
-  : null;
-  
-const remoteConfig = isConfigValid && typeof window !== 'undefined' 
-  // @ts-ignore
-  ? getRemoteConfig(app) 
-  : null;
-
-if (remoteConfig) {
-    remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
-    remoteConfig.defaultConfig = {
-        'in_store_greeting_message': 'Welcome to our store!',
-    };
-}
-
 
 export { db, auth, analytics, remoteConfig };

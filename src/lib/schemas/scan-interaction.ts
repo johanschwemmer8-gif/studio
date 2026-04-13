@@ -12,7 +12,7 @@ export const GetScanInteractionOutputSchema = z.object({
   retailerLogoUrl: z.string().url().optional().describe('The URL of the retailer\'s logo.'),
   // Fields for campaign media content
   mediaType: z.enum(['image', 'video']).optional(),
-  mediaUrl: z.string().url().optional(),
+  mediaUrl: z.string().url().optional().or(z.literal('')),
   headline: z.string().optional(),
   subhead: z.string().optional(),
 });

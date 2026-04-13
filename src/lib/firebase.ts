@@ -17,40 +17,41 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
-
 let app: FirebaseApp;
-let db: Firestore | null = null;
-let auth: Auth | null = null;
+
+// This pattern prevents re-initialization on hot reloads.
+// It's robust for both local development (using .env) and deployed environments
+// where Firebase configuration is often auto-injected.
+if (!getApps().length) {
+    try {
+        app = initializeApp(firebaseConfig);
+    } catch(e) {
+        console.error("Firebase initialization with explicit config failed, trying default. This is expected in a deployed environment.", e);
+        // This will work in App Hosting by picking up the injected config
+        app = initializeApp({});
+    }
+} else {
+    app = getApp();
+}
+
+const db: Firestore = getFirestore(app);
+const auth: Auth = getAuth(app);
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
-if (isConfigValid) {
-    if (!getApps().length) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = getApp();
-    }
+if (typeof window !== 'undefined') {
+    analytics = (async () => {
+        if (await isSupported()) {
+            return getAnalytics(app);
+        }
+        return null;
+    })();
     
-    db = getFirestore(app);
-    auth = getAuth(app);
-    
-    if (typeof window !== 'undefined') {
-        analytics = (async () => {
-            if (await isSupported()) {
-                return getAnalytics(app);
-            }
-            return null;
-        })();
-        
-        remoteConfig = getRemoteConfig(app);
-        remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
-        remoteConfig.defaultConfig = {
-            'in_store_greeting_message': 'Welcome to our store!',
-        };
-    }
-} else {
-    console.warn("Firebase config is missing or invalid. Firebase services will not be available.");
+    remoteConfig = getRemoteConfig(app);
+    remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
+    remoteConfig.defaultConfig = {
+        'in_store_greeting_message': 'Welcome to our store!',
+    };
 }
 
 export { db, auth, analytics, remoteConfig };

@@ -2,10 +2,10 @@
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getFirestore, type Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { getRemoteConfig, type RemoteConfig } from 'firebase/remote-config';
-import { getAuth, type Auth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -39,17 +39,6 @@ if (!getApps().length) {
 
 const db: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);
-
-// Connect to emulators in development mode. This will not affect your live app.
-// This check ensures it only runs in the browser and in a development environment.
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log("Connecting to Firebase Emulators for local development.");
-    // Point auth to the emulator
-    connectAuthEmulator(auth, "http://0.0.0.0:9099", { disableWarnings: true });
-    // Point firestore to the emulator
-    connectFirestoreEmulator(db, "0.0.0.0", 8080);
-}
-
 
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;

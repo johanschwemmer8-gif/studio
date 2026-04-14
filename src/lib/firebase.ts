@@ -17,38 +17,38 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+
+// This is the key logic. We check if all required config values are present.
+// If they are, we are likely in a local environment using a .env file.
+// If they are NOT, we assume we are in a deployed Firebase environment
+// where the config is auto-injected.
+const isConfigComplete = firebaseConfig.apiKey && firebaseConfig.projectId;
+
+if (!getApps().length) {
+    if (isConfigComplete) {
+        // Use the explicit config from .env for local development
+        app = initializeApp(firebaseConfig);
+    } else {
+        // Use Firebase Hosting's auto-injected config for the live app
+        app = initializeApp({});
+    }
+} else {
+    app = getApp();
+}
+
+const db: Firestore = getFirestore(app);
+const auth: Auth = getAuth(app);
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
-// This robust pattern ensures Firebase is initialized correctly once,
-// handling both local development and deployed environments.
-if (getApps().length === 0) {
-  // If the projectId is available via environment variables, we are likely
-  // in a local environment. Otherwise, initialize with an empty object
-  // to allow Firebase Hosting to auto-configure.
-  if (firebaseConfig.projectId) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = initializeApp({});
-  }
-} else {
-  app = getApp();
-}
-
-db = getFirestore(app);
-auth = getAuth(app);
-
-
 if (typeof window !== 'undefined') {
-    analytics = isSupported().then((supported) => {
-        if(supported) {
+    analytics = (async () => {
+        if (await isSupported()) {
             return getAnalytics(app);
         }
         return null;
-    });
-
+    })();
+    
     remoteConfig = getRemoteConfig(app);
     remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
     remoteConfig.defaultConfig = {

@@ -6,22 +6,29 @@ import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { getRemoteConfig, type RemoteConfig } from 'firebase/remote-config';
 import { getAuth, type Auth } from 'firebase/auth';
 
-// Using the static config you provided to ensure consistency.
 const firebaseConfig = {
-  apiKey: "AIzaSyBWJOWD2W9O5g2z-NBHZiJiNHJXpyWETXA",
-  authDomain: "interact-aoe-kidkn.firebaseapp.com",
-  projectId: "interact-aoe-kidkn",
-  storageBucket: "interact-aoe-kidkn.firebasestorage.app",
-  messagingSenderId: "783333671853",
-  appId: "1:783333671853:web:3b524dfe26bf0915bd5724"
-  // measurementId is missing, which causes the Analytics error.
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 let app: FirebaseApp;
 
 // This pattern prevents re-initialization on hot reloads.
 if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
+    // A simple check for the apiKey is enough to determine if the config is valid.
+    if (firebaseConfig.apiKey) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        console.error("Firebase config is missing. Please check your .env file.");
+        // We can't proceed without a valid config.
+        // You might want to render an error state in your components.
+        app = {} as FirebaseApp; // Avoid crashing the app, but it won't work.
+    }
 } else {
     app = getApp();
 }
@@ -31,11 +38,8 @@ const auth: Auth = getAuth(app);
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
-if (typeof window !== 'undefined') {
-    
-    // The analytics/config-fetch-failed error is due to missing measurementId.
-    // Disabling for now to fix the main login issue.
-    if (firebaseConfig.apiKey && (firebaseConfig as any).measurementId) {
+if (typeof window !== 'undefined' && app.options?.apiKey) {
+    if (firebaseConfig.measurementId) {
         analytics = (async () => {
             if (await isSupported()) {
                 return getAnalytics(app);

@@ -164,7 +164,7 @@ function LoginPageContent() {
                       onChange={(e) => setAdminPassword(e.target.value)}
                       required
                       className="pr-10"
-                      autoComplete="new-password"
+                      autoComplete="current-password"
                     />
                     <Button
                         type="button"
@@ -260,7 +260,7 @@ function LoginPageContent() {
                       onChange={(e) => setRetailerPassword(e.target.value)}
                       required
                       className="pr-10"
-                      autoComplete="new-password"
+                      autoComplete="current-password"
                     />
                     <Button
                         type="button"

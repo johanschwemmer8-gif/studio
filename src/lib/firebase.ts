@@ -17,24 +17,11 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let app: FirebaseApp;
+// Initialize Firebase app (and handle hot-reloading)
+const app: FirebaseApp = !getApps().length
+  ? initializeApp(firebaseConfig.projectId ? firebaseConfig : {})
+  : getApp();
 
-// This pattern prevents re-initialization on hot reloads.
-// It's robust for both local development (using .env) and deployed environments
-// where Firebase configuration is often auto-injected.
-if (!getApps().length) {
-    // On App Hosting, the config is auto-injected when the env vars are not present.
-    // For local dev, we rely on the .env files.
-    // A simple check for the apiKey is enough to distinguish.
-    if (firebaseConfig.apiKey) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        // This will work in App Hosting by picking up the injected config
-        app = initializeApp({});
-    }
-} else {
-    app = getApp();
-}
 
 const db: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);

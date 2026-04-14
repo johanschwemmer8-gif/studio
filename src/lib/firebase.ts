@@ -18,18 +18,12 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 
-// This is the key logic. We check if all required config values are present.
-// If they are, we are likely in a local environment using a .env file.
-// If they are NOT, we assume we are in a deployed Firebase environment
-// where the config is auto-injected.
-const isConfigComplete = firebaseConfig.apiKey && firebaseConfig.projectId;
-
+// This pattern prevents re-initialization on hot reloads and works for both
+// local development (using .env) and deployed environments (auto-injected config).
 if (!getApps().length) {
-    if (isConfigComplete) {
-        // Use the explicit config from .env for local development
+    if (firebaseConfig.apiKey) {
         app = initializeApp(firebaseConfig);
     } else {
-        // Use Firebase Hosting's auto-injected config for the live app
         app = initializeApp({});
     }
 } else {
@@ -42,12 +36,22 @@ let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
 if (typeof window !== 'undefined') {
-    analytics = (async () => {
-        if (await isSupported()) {
-            return getAnalytics(app);
-        }
-        return null;
-    })();
+    const isCloudWorkstation = window.location.hostname.endsWith('cloudworkstations.dev');
+    
+    // Only initialize Analytics if not in a Cloud Workstation dev environment
+    // to avoid the "referer blocked" error during development.
+    if (!isCloudWorkstation) {
+        analytics = (async () => {
+            try {
+                if (await isSupported()) {
+                    return getAnalytics(app);
+                }
+            } catch (error) {
+                console.error("Failed to initialize Analytics:", error);
+            }
+            return null;
+        })();
+    }
     
     remoteConfig = getRemoteConfig(app);
     remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour

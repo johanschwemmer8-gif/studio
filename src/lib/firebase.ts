@@ -7,51 +7,39 @@ import { getRemoteConfig, type RemoteConfig } from 'firebase/remote-config';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyBWJOWD2W9O5g2z-NBHZiJiNHJXpyWETXA",
+  authDomain: "interact-aoe-kidkn.firebaseapp.com",
+  projectId: "interact-aoe-kidkn",
+  storageBucket: "interact-aoe-kidkn.firebasestorage.app",
+  messagingSenderId: "783333671853",
+  appId: "1:783333671853:web:3b524dfe26bf0915bd5724"
 };
 
 let app: FirebaseApp;
 
-// This pattern prevents re-initialization on hot reloads and works for both
-// local development (using .env) and deployed environments (auto-injected config).
+// This pattern prevents re-initialization on hot reloads.
 if (!getApps().length) {
-    if (firebaseConfig.apiKey) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        app = initializeApp({});
-    }
+    app = initializeApp(firebaseConfig);
 } else {
     app = getApp();
 }
 
 const db: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);
+// Analytics is disabled for now as measurementId is missing from the config.
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
 if (typeof window !== 'undefined') {
-    const isCloudWorkstation = window.location.hostname.endsWith('cloudworkstations.dev');
     
-    // Only initialize Analytics if not in a Cloud Workstation dev environment
-    // to avoid the "referer blocked" error during development.
-    if (!isCloudWorkstation) {
-        analytics = (async () => {
-            try {
-                if (await isSupported()) {
-                    return getAnalytics(app);
-                }
-            } catch (error) {
-                console.error("Failed to initialize Analytics:", error);
-            }
-            return null;
-        })();
-    }
+    // The analytics/config-fetch-failed error is due to missing measurementId 
+    // and/or the dev domain not being whitelisted. Disabling for now to fix the main login issue.
+    // analytics = (async () => {
+    //     if (await isSupported()) {
+    //         return getAnalytics(app);
+    //     }
+    //     return null;
+    // })();
     
     remoteConfig = getRemoteConfig(app);
     remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour

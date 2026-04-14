@@ -7,27 +7,30 @@ import { getRemoteConfig, type RemoteConfig } from 'firebase/remote-config';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 let app: FirebaseApp;
 
-// This pattern prevents re-initialization on hot reloads.
+// This pattern prevents re-initialization on hot reloads. It's robust for both
+// local development (which uses the .env file) and deployed environments on
+// Firebase App Hosting, which auto-injects the configuration.
 if (!getApps().length) {
-    // A simple check for the apiKey is enough to determine if the config is valid.
+    // If the API key is available as an environment variable, we're likely in a local
+    // development environment. Use the config from .env.
     if (firebaseConfig.apiKey) {
         app = initializeApp(firebaseConfig);
     } else {
-        console.error("Firebase config is missing. Please check your .env file.");
-        // We can't proceed without a valid config.
-        // You might want to render an error state in your components.
-        app = {} as FirebaseApp; // Avoid crashing the app, but it won't work.
+        // Otherwise, we're likely in a deployed Firebase environment.
+        // Initialize with an empty object to let Firebase's auto-discovery mechanism work.
+        console.log("Firebase config not found in environment variables. Attempting auto-initialization for deployed environment.");
+        app = initializeApp({});
     }
 } else {
     app = getApp();
@@ -39,7 +42,8 @@ let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
 if (typeof window !== 'undefined' && app.options?.apiKey) {
-    if (firebaseConfig.measurementId) {
+    // Conditionally initialize analytics only if a measurementId is present
+    if (app.options.measurementId) {
         analytics = (async () => {
             if (await isSupported()) {
                 return getAnalytics(app);

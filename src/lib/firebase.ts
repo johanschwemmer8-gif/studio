@@ -2,10 +2,10 @@
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
-import { getRemoteConfig, RemoteConfig } from 'firebase/remote-config';
-import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
+import { getRemoteConfig, type RemoteConfig } from 'firebase/remote-config';
+import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -18,37 +18,30 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-
-// This pattern prevents re-initialization on hot reloads and correctly handles
-// both local development (with .env) and deployed environments where config
-// is auto-injected.
-if (!getApps().length) {
-    // On App Hosting, the config is auto-injected when the env vars are not present.
-    // For local dev, we rely on the .env files.
-    // A simple check for the apiKey is enough to distinguish.
-    if (firebaseConfig.apiKey) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        // This will work in App Hosting by picking up the injected config
-        app = initializeApp({});
-    }
-} else {
-    app = getApp();
-}
-
-const db: Firestore = getFirestore(app);
-const auth: Auth = getAuth(app);
+let auth: Auth;
+let db: Firestore;
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
+
+// This robust pattern ensures Firebase is initialized correctly once.
+if (firebaseConfig.projectId && getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
+
+db = getFirestore(app);
+auth = getAuth(app);
+
+
 if (typeof window !== 'undefined') {
-    analytics = (async () => {
-        if (await isSupported()) {
-            return getAnalytics(app);
+    isSupported().then((supported) => {
+        if(supported) {
+            analytics = getAnalytics(app);
         }
-        return null;
-    })();
-    
+    });
+
     remoteConfig = getRemoteConfig(app);
     remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
     remoteConfig.defaultConfig = {

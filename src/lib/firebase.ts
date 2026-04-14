@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
@@ -23,10 +22,17 @@ let db: Firestore;
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
-
-// This robust pattern ensures Firebase is initialized correctly once.
-if (firebaseConfig.projectId && getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
+// This robust pattern ensures Firebase is initialized correctly once,
+// handling both local development and deployed environments.
+if (getApps().length === 0) {
+  // If the projectId is available via environment variables, we are likely
+  // in a local environment. Otherwise, initialize with an empty object
+  // to allow Firebase Hosting to auto-configure.
+  if (firebaseConfig.projectId) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = initializeApp({});
+  }
 } else {
   app = getApp();
 }
@@ -36,10 +42,11 @@ auth = getAuth(app);
 
 
 if (typeof window !== 'undefined') {
-    isSupported().then((supported) => {
+    analytics = isSupported().then((supported) => {
         if(supported) {
-            analytics = getAnalytics(app);
+            return getAnalytics(app);
         }
+        return null;
     });
 
     remoteConfig = getRemoteConfig(app);

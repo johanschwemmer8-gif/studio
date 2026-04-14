@@ -23,10 +23,12 @@ let app: FirebaseApp;
 // It's robust for both local development (using .env) and deployed environments
 // where Firebase configuration is often auto-injected.
 if (!getApps().length) {
-    try {
+    // On App Hosting, the config is auto-injected when the env vars are not present.
+    // For local dev, we rely on the .env files.
+    // A simple check for the apiKey is enough to distinguish.
+    if (firebaseConfig.apiKey) {
         app = initializeApp(firebaseConfig);
-    } catch(e) {
-        console.error("Firebase initialization with explicit config failed, trying default. This is expected in a deployed environment.", e);
+    } else {
         // This will work in App Hosting by picking up the injected config
         app = initializeApp({});
     }

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { ImageIcon, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import EmbeddedChat from './embedded-chat';
 
 type TemplateProps = {
     logoPreview: string | null;
@@ -68,7 +69,9 @@ export function Template1({ isThumbnail, ...props }: TemplateProps) {
         {commonScanner(isThumbnail)}
       </div>
       <div className={cn("p-4", isThumbnail ? "p-2" : "")}>
-        <Button size={isThumbnail ? "sm" : "lg"} className={cn("w-full", isThumbnail ? "text-[8px] h-6" : "")}>Simulated Button</Button>
+        <div className={cn(isThumbnail ? "h-12" : "h-48")}>
+            <EmbeddedChat isThumbnail={isThumbnail} />
+        </div>
       </div>
     </div>
   );
@@ -80,7 +83,7 @@ export function Template2({ isThumbnail, ...props }: TemplateProps) {
         <div className="relative w-full aspect-video bg-slate-200 dark:bg-slate-700">
              <ImageIcon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground/50"/>
         </div>
-        <div className="p-4 text-left">
+        <div className="p-4 text-left flex-1 flex flex-col">
           {commonLogo({ ...props, isThumbnail })}
           <h2 className={cn("font-bold tracking-tighter mb-1", isThumbnail ? "text-sm" : "text-2xl")}>
               Product Name Here
@@ -89,6 +92,9 @@ export function Template2({ isThumbnail, ...props }: TemplateProps) {
               A brief, compelling description of the product and what makes it special goes here.
           </p>
           {commonScanner(isThumbnail)}
+           <div className={cn("mt-4 flex-1", isThumbnail ? "mt-2" : "")}>
+              <EmbeddedChat isThumbnail={isThumbnail} />
+          </div>
         </div>
       </div>
     );
@@ -108,7 +114,9 @@ export function Template3({ isThumbnail, ...props }: TemplateProps) {
                 {commonScanner(isThumbnail)}
             </div>
              <div className={cn("p-4", isThumbnail ? "p-2" : "")}>
-                <Button size={isThumbnail ? "sm" : "lg"} className={cn("w-full bg-primary text-primary-foreground", isThumbnail ? "text-[8px] h-6" : "")}>Explore Now</Button>
+                <div className={cn(isThumbnail ? "h-12" : "h-48")}>
+                    <EmbeddedChat isThumbnail={isThumbnail} />
+                </div>
             </div>
         </div>
     );
@@ -128,8 +136,9 @@ export function Template4({ isThumbnail, ...props }: TemplateProps) {
             </Card>
              <Card className={cn("flex-1", isThumbnail ? "p-2" : "p-4")}>
                 <CardContent className={cn("p-0 h-full flex flex-col justify-center items-center", isThumbnail ? "gap-1" : "gap-2")}>
-                    {commonScanner(isThumbnail)}
-                    <p className={cn("text-muted-foreground", isThumbnail ? "text-[8px]" : "text-xs")}>Point your camera here</p>
+                     <div className={cn("w-full flex-1", isThumbnail ? "h-24" : "h-48")}>
+                        <EmbeddedChat isThumbnail={isThumbnail} />
+                    </div>
                 </CardContent>
             </Card>
         </div>
@@ -147,6 +156,11 @@ export function Template5({ isThumbnail, ...props }: TemplateProps) {
                     Capture attention with a colorful and dynamic layout.
                 </p>
                 {commonScanner(isThumbnail)}
+                <div className={cn("mt-4", isThumbnail ? "mt-2" : "")}>
+                    <div className={cn(isThumbnail ? "h-12" : "h-48")}>
+                        <EmbeddedChat isThumbnail={isThumbnail} />
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -168,7 +182,9 @@ export function Template6({ isThumbnail, ...props }: TemplateProps) {
                 {commonScanner(isThumbnail)}
             </div>
             <div className={cn("p-4 border-t", isThumbnail ? "p-2" : "")}>
-                <Button variant="outline" size={isThumbnail ? "sm" : "lg"} className={cn("w-full", isThumbnail ? "text-[8px] h-6" : "")}>Learn More</Button>
+                 <div className={cn(isThumbnail ? "h-12" : "h-48")}>
+                    <EmbeddedChat isThumbnail={isThumbnail} />
+                </div>
             </div>
         </div>
     );
@@ -189,7 +205,11 @@ export function Template7({ isThumbnail, ...props }: TemplateProps) {
                         R1,234.56
                     </p>
                 </div>
-                 <Button size={isThumbnail ? "sm" : "lg"} className={cn("w-full mt-2", isThumbnail ? "text-[8px] h-6" : "")}>Add to Cart</Button>
+                <div className={cn("mt-4", isThumbnail ? "mt-2" : "")}>
+                    <div className={cn(isThumbnail ? "h-12" : "h-48")}>
+                        <EmbeddedChat isThumbnail={isThumbnail} />
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -208,7 +228,9 @@ export function Template8({ isThumbnail, ...props }: TemplateProps) {
                 </p>
             </div>
             <div className={cn("pt-4 border-t", isThumbnail ? "pt-2" : "")}>
-                {commonScanner(isThumbnail)}
+                <div className={cn(isThumbnail ? "h-24" : "h-48")}>
+                    <EmbeddedChat isThumbnail={isThumbnail} />
+                </div>
             </div>
         </div>
     );
@@ -227,7 +249,11 @@ export function Template9({ isThumbnail, ...props }: TemplateProps) {
                 <p className={cn("opacity-80", isThumbnail ? "text-[8px] leading-tight" : "text-sm")}>
                     This layout drives users towards a single, clear call-to-action.
                 </p>
-                 <Button size={isThumbnail ? "sm" : "lg"} className={cn("w-full bg-accent text-accent-foreground", isThumbnail ? "text-[8px] h-6" : "")}>Sign Up Now</Button>
+                <div className={cn("mt-4", isThumbnail ? "mt-2" : "")}>
+                    <div className={cn(isThumbnail ? "h-12" : "h-48")}>
+                        <EmbeddedChat isThumbnail={isThumbnail} />
+                    </div>
+                </div>
             </div>
         </div>
     );

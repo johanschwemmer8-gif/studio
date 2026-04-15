@@ -30,6 +30,7 @@ import {
   Printer,
   Image as ImageIcon,
   Video,
+  Upload,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
@@ -48,7 +49,7 @@ const styleSchema = z.object({
   aiRecommendations: z.string().optional(),
   // Media Options
   mediaType: z.enum(['image', 'video']).optional(),
-  mediaUrl: z.string().url({ message: "Please enter a valid URL for the media." }).optional().or(z.literal('')),
+  mediaUrl: z.string().optional().or(z.literal('')),
   headline: z.string().optional(),
   subhead: z.string().optional(),
   barcode: z.string().optional(),
@@ -136,6 +137,21 @@ export default function BulkQRCodeGenerator() {
                 title: 'Template Applied',
                 description: `"${selectedTemplate.name}" styles have been loaded.`,
             });
+        }
+    };
+
+    const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                form.setValue('options.mediaUrl', reader.result as string);
+                toast({
+                    title: 'Media Selected',
+                    description: `File "${file.name}" has been loaded and added as a data URL.`,
+                });
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -309,7 +325,24 @@ export default function BulkQRCodeGenerator() {
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="mediaUrl">Media URL</Label>
-                                                <Input id="mediaUrl" {...form.register('options.mediaUrl')} placeholder="https://your-cdn.com/video.mp4" />
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        id="mediaUrl"
+                                                        {...form.register('options.mediaUrl')}
+                                                        placeholder="https:// or upload file"
+                                                        className="flex-grow"
+                                                    />
+                                                    <Button type="button" variant="outline" onClick={() => document.getElementById('media-upload-input')?.click()}>
+                                                        <Upload className="mr-2 h-4 w-4" /> Upload
+                                                    </Button>
+                                                    <Input 
+                                                        id="media-upload-input"
+                                                        type="file" 
+                                                        className="hidden" 
+                                                        accept="image/*,video/*"
+                                                        onChange={handleMediaUpload}
+                                                    />
+                                                </div>
                                                  {form.formState.errors.options?.mediaUrl && <p className="text-sm text-destructive mt-1">{form.formState.errors.options.mediaUrl.message}</p>}
                                             </div>
                                         </div>

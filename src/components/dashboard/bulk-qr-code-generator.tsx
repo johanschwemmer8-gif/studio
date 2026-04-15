@@ -59,6 +59,7 @@ const styleSchema = z.object({
 });
 
 const formSchema = z.object({
+  retailerId: z.string().min(1, 'Retailer ID is required'),
   campaignId: z.string().min(1, 'Campaign ID is required'),
   count: z.number().int().min(1, "Must request at least 1 code.").max(10000, "Cannot request more than 10,000 codes."),
   baseRedirect: z.string().url("Must be a valid HTTPS URL.").refine(s => s.startsWith('https://'), "URL must be HTTPS."),
@@ -111,6 +112,7 @@ export default function BulkQRCodeGenerator() {
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            retailerId: 'simulated-retailer-id',
             campaignId: `campaign-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
             count: 100,
             baseRedirect: 'https://',
@@ -160,10 +162,7 @@ export default function BulkQRCodeGenerator() {
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
         try {
-            const result = await submitBulkQrRequest({
-                ...data,
-                retailerId: 'simulated-retailer-id'
-            });
+            const result = await submitBulkQrRequest(data);
 
             if (result.success) {
                 toast({
@@ -229,7 +228,12 @@ export default function BulkQRCodeGenerator() {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <Card className="p-4">
                         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-                            <div className="grid sm:grid-cols-3 gap-4 flex-1 w-full">
+                            <div className="grid sm:grid-cols-4 gap-4 flex-1 w-full">
+                                <div>
+                                    <Label htmlFor="retailerId">Retailer ID</Label>
+                                    <Input id="retailerId" {...form.register('retailerId')} placeholder="e.g., store-123" />
+                                    {form.formState.errors.retailerId && <p className="text-sm text-destructive mt-1">{form.formState.errors.retailerId.message}</p>}
+                                </div>
                                 <div>
                                     <Label htmlFor="campaignId">Campaign ID</Label>
                                     <Input id="campaignId" {...form.register('campaignId')} placeholder="e.g., summer-sale-2024" />

@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { getQrTemplates, type QrTemplate } from '@/ai/flows/get-qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 const styleSchema = z.object({
   logoPath: z.string().url().optional().or(z.literal('')),
@@ -89,6 +90,7 @@ export default function BulkQRCodeGenerator() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [templates, setTemplates] = useState<QrTemplate[]>([]);
+    const [mediaInputMethod, setMediaInputMethod] = useState<'url' | 'upload'>('url');
 
     useEffect(() => {
         const fetchTemplates = async () => {
@@ -323,27 +325,41 @@ export default function BulkQRCodeGenerator() {
                                                     )}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="mediaUrl">Media URL</Label>
-                                                <div className="flex gap-2">
-                                                    <Input
-                                                        id="mediaUrl"
-                                                        {...form.register('options.mediaUrl')}
-                                                        placeholder="https:// or upload file"
-                                                        className="flex-grow"
-                                                    />
-                                                    <Button type="button" variant="outline" onClick={() => document.getElementById('media-upload-input')?.click()}>
-                                                        <Upload className="mr-2 h-4 w-4" /> Upload
-                                                    </Button>
-                                                    <Input 
-                                                        id="media-upload-input"
-                                                        type="file" 
-                                                        className="hidden" 
-                                                        accept="image/*,video/*"
-                                                        onChange={handleMediaUpload}
-                                                    />
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label>Media Source</Label>
+                                                    <RadioGroup value={mediaInputMethod} onValueChange={(v) => setMediaInputMethod(v as 'url' | 'upload')} className="flex gap-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <RadioGroupItem value="url" id="media-url-option" />
+                                                            <Label htmlFor="media-url-option" className="font-normal">URL</Label>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <RadioGroupItem value="upload" id="media-upload-option" />
+                                                            <Label htmlFor="media-upload-option" className="font-normal">Upload</Label>
+                                                        </div>
+                                                    </RadioGroup>
                                                 </div>
-                                                 {form.formState.errors.options?.mediaUrl && <p className="text-sm text-destructive mt-1">{form.formState.errors.options.mediaUrl.message}</p>}
+                                                {mediaInputMethod === 'url' ? (
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="mediaUrl">Media URL</Label>
+                                                        <Input
+                                                            id="mediaUrl"
+                                                            {...form.register('options.mediaUrl')}
+                                                            placeholder="https://example.com/image.png"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="media-upload-input">File Upload</Label>
+                                                        <Input 
+                                                            id="media-upload-input"
+                                                            type="file" 
+                                                            accept="image/*,video/*"
+                                                            onChange={handleMediaUpload}
+                                                        />
+                                                    </div>
+                                                )}
+                                                {form.formState.errors.options?.mediaUrl && <p className="text-sm text-destructive mt-1">{form.formState.errors.options.mediaUrl.message}</p>}
                                             </div>
                                         </div>
                                         <div className="grid md:grid-cols-3 gap-6 pt-4 border-t">

@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow to submit a bulk QR code generation request.
@@ -32,6 +31,9 @@ const QrOptionsSchema = z.object({
   mediaUrl: z.string().url("Must be a valid URL for the media.").optional().or(z.literal('')),
   headline: z.string().optional(),
   subhead: z.string().optional(),
+  barcode: z.string().optional(),
+  price: z.number().optional(),
+  category: z.string().optional(),
 });
 
 // Define the input schema for the callable function

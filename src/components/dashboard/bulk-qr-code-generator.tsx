@@ -51,6 +51,9 @@ const styleSchema = z.object({
   mediaUrl: z.string().url({ message: "Please enter a valid URL for the media." }).optional().or(z.literal('')),
   headline: z.string().optional(),
   subhead: z.string().optional(),
+  barcode: z.string().optional(),
+  price: z.number().optional(),
+  category: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -308,6 +311,20 @@ export default function BulkQRCodeGenerator() {
                                                 <Label htmlFor="mediaUrl">Media URL</Label>
                                                 <Input id="mediaUrl" {...form.register('options.mediaUrl')} placeholder="https://your-cdn.com/video.mp4" />
                                                  {form.formState.errors.options?.mediaUrl && <p className="text-sm text-destructive mt-1">{form.formState.errors.options.mediaUrl.message}</p>}
+                                            </div>
+                                        </div>
+                                        <div className="grid md:grid-cols-3 gap-6 pt-4 border-t">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="barcode">Barcode/SKU</Label>
+                                                <Input id="barcode" {...form.register('options.barcode')} placeholder="e.g., 9780321765723" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="price">Price</Label>
+                                                <Input id="price" type="number" step="0.01" {...form.register('options.price', { valueAsNumber: true })} placeholder="e.g., 199.99" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="category">Category</Label>
+                                                <Input id="category" {...form.register('options.category')} placeholder="e.g., Footwear" />
                                             </div>
                                         </div>
                                     </div>

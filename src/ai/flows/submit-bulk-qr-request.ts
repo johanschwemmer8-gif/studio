@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow to submit a bulk QR code generation request.
@@ -39,6 +40,7 @@ const QrOptionsSchema = z.object({
 // Define the input schema for the callable function
 const SubmitBulkQrRequestInputSchema = z.object({
   retailerId: z.string().describe('The ID of the retailer for this batch.'),
+  brandId: z.string().describe('The brand within the retailer to associate with this campaign.'),
   campaignId: z.string().describe('The ID of the campaign for this batch.'),
   count: z.number().int().min(1).max(10000, "Cannot request more than 10,000 codes at a time.").describe('The number of QR codes to generate (max 10000).'),
   baseRedirect: z.string().url().refine(s => s.startsWith('https://'), "Base redirect URL must be HTTPS."),
@@ -79,12 +81,13 @@ const submitBulkQrRequestFlow = ai.defineFlow(
       throw new Error('User is not authorized to create requests for this retailer.');
     }
 
-    const { retailerId, campaignId, count, baseRedirect, options } = data;
+    const { retailerId, brandId, campaignId, count, baseRedirect, options } = data;
     
     const requestRef = db.collection('bulkQrRequests').doc();
     const batch = db.batch();
     const requestData = {
         retailerId,
+        brandId,
         campaignId,
         totalRequested: count,
         status: 'QUEUED',

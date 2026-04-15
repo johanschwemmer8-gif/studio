@@ -60,6 +60,7 @@ const styleSchema = z.object({
 
 const formSchema = z.object({
   retailerId: z.string().min(1, 'Retailer ID is required'),
+  brandId: z.string().min(1, 'Brand is required'),
   campaignId: z.string().min(1, 'Campaign ID is required'),
   count: z.number().int().min(1, "Must request at least 1 code.").max(10000, "Cannot request more than 10,000 codes."),
   baseRedirect: z.string().url("Must be a valid HTTPS URL.").refine(s => s.startsWith('https://'), "URL must be HTTPS."),
@@ -68,30 +69,12 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type User = {
-    id: string;
-    fullName: string;
-    email: string;
-    brand: string;
-    division?: string;
-    region?: string;
-    area?: string;
-    store?: string;
-};
-
-type Selection = {
-    brands: string[];
-    divisions: string[];
-    regions: string[];
-    areas: string[];
-    stores: string[];
-};
-
 export default function BulkQRCodeGenerator() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [templates, setTemplates] = useState<QrTemplate[]>([]);
     const [mediaInputMethod, setMediaInputMethod] = useState<'url' | 'upload'>('url');
+    const [brands, setBrands] = useState<BrandFormValues['brands']>([]);
 
     useEffect(() => {
         const fetchTemplates = async () => {
@@ -107,6 +90,21 @@ export default function BulkQRCodeGenerator() {
             }
         };
         fetchTemplates();
+        
+        try {
+            const savedBrandData = localStorage.getItem('brandManagement');
+            if (savedBrandData) {
+                const parsedData: BrandFormValues = JSON.parse(savedBrandData);
+                setBrands(parsedData.brands || []);
+            }
+        } catch (error) {
+            console.error("Failed to parse brand data from localStorage", error);
+            toast({
+                title: 'Error Loading Brands',
+                description: 'Could not load brand data from your browser storage.',
+                variant: 'destructive',
+            });
+        }
     }, [toast]);
 
     const form = useForm<FormValues>({
@@ -228,12 +226,30 @@ export default function BulkQRCodeGenerator() {
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <Card className="p-4">
                         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-                            <div className="grid sm:grid-cols-4 gap-4 flex-1 w-full">
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 w-full">
                                 <div>
                                     <Label htmlFor="retailerId">Retailer ID</Label>
                                     <Input id="retailerId" {...form.register('retailerId')} placeholder="e.g., store-123" />
                                     {form.formState.errors.retailerId && <p className="text-sm text-destructive mt-1">{form.formState.errors.retailerId.message}</p>}
                                 </div>
+                                <Controller
+                                    control={form.control}
+                                    name="brandId"
+                                    render={({ field }) => (
+                                        <div className="space-y-2">
+                                            <Label>Brand</Label>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <SelectTrigger><SelectValue placeholder="Select a brand..." /></SelectTrigger>
+                                                <SelectContent>
+                                                    {brands.length > 0 ? brands.map(brand => (
+                                                        <SelectItem key={brand.name} value={brand.name}>{brand.name}</SelectItem>
+                                                    )) : <SelectItem value="none" disabled>No brands configured.</SelectItem>}
+                                                </SelectContent>
+                                            </Select>
+                                            {form.formState.errors.brandId && <p className="text-sm text-destructive mt-1">{form.formState.errors.brandId.message}</p>}
+                                        </div>
+                                    )}
+                                />
                                 <div>
                                     <Label htmlFor="campaignId">Campaign ID</Label>
                                     <Input id="campaignId" {...form.register('campaignId')} placeholder="e.g., summer-sale-2024" />
@@ -244,7 +260,7 @@ export default function BulkQRCodeGenerator() {
                                     <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} />
                                     {form.formState.errors.count && <p className="text-sm text-destructive mt-1">{form.formState.errors.count.message}</p>}
                                 </div>
-                                <div>
+                                <div className="lg:col-span-2">
                                     <Label htmlFor="baseRedirect">Final Redirect URL</Label>
                                     <div className="relative">
                                         <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -161,7 +161,14 @@ export default function BulkQRCodeGenerator() {
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
         try {
-            const result = await submitBulkQrRequest(data);
+            const result = await submitBulkQrRequest({
+              ...data,
+              options: {
+                errorCorrection: "M",
+                redirectType: "temporary",
+                ...data.options,
+              }
+            });
 
             if (result.success) {
                 toast({
@@ -418,4 +425,3 @@ export default function BulkQRCodeGenerator() {
     );
 }
 
-    

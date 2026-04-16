@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { PlusCircle, Loader2, Image as ImageIcon, Trash2, Pencil, Copy, Send } from 'lucide-react';
-import { getQrTemplates, type GetQrTemplatesInput } from '@/ai/flows/get-qr-templates';
-import type { QrTemplate } from '@/lib/schemas/qr-templates';
+import { getQrTemplates } from '@/ai/flows/get-qr-templates';
+import type { QrTemplate, GetQrTemplatesInput } from '@/lib/schemas/qr-templates';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import {

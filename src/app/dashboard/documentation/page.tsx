@@ -238,5 +238,5 @@ export default function AdminDocumentationPage() {
             </div>
         </div>
     );
-
+}
     

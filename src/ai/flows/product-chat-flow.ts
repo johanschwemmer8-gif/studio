@@ -60,7 +60,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
         - Category: ${input.product.category}
         - Price: R${input.product.price.toFixed(2)}`,
         messages: conversationHistory,
-    });
+    }as any);
 
     return { message: llmResponse.text };
 }

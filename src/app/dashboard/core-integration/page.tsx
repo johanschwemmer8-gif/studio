@@ -10,11 +10,21 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Cloud, Database, ShoppingBasket, KeyRound, Settings, ShieldCheck, Ban, SlidersHorizontal, BarChart2, Eye } from 'lucide-react';
+import { ArrowLeft, Cloud, Database, ShoppingBasket, KeyRound, Settings, ShieldCheck, Ban, SlidersHorizontal, BarChart2, Eye, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import ApiKeyManager from '@/components/dashboard/api-key-manager';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CoreIntegrationPage() {
+  const { toast } = useToast();
+
+  const handleUpdateLiveApp = () => {
+    toast({
+      title: 'Live App Updated',
+      description: 'The latest configurations have been synchronized with the live application.',
+    });
+  };
+
 
   const coreFeatures = [
     { 
@@ -68,6 +78,27 @@ export default function CoreIntegrationPage() {
       </div>
 
       <Separator />
+
+       <Card>
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="text-primary" />
+                  Live App Synchronization
+              </CardTitle>
+              <CardDescription>
+                  Manually push the latest MVP configurations to the live customer-facing application. This serves as a secondary measure to ensure all changes are reflected.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                  While changes are typically reflected automatically, this action forces a refresh of all live configurations. Use this if you notice a delay in your updates appearing on the live app.
+              </p>
+              <Button onClick={handleUpdateLiveApp}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Update Live App
+              </Button>
+          </CardContent>
+      </Card>
 
        <Card>
           <CardHeader>

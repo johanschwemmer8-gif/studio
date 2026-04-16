@@ -1,6 +1,5 @@
-
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -9,63 +8,69 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag, Sparkles, AlertTriangle } from 'lucide-react';
-import ScanFrequencyChart from '@/components/dashboard/scan-frequency-chart';
 import TopProductsTable from '@/components/dashboard/top-products-table';
-import { dashboardMetrics } from '@/lib/data';
 import { Separator } from '@/components/ui/separator';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 import { Button } from '@/components/ui/button';
-import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
+import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import SalesFunnelChart from '@/components/dashboard/sales-funnel-chart';
 
 export default function RoiPage() {
-  const metrics = dashboardMetrics.getMetrics(null); // Using all stores data for this page
+  const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    // Automatically fetch metrics when the page loads
+    const fetchInitialData = async () => {
+      try {
+        const result = await analyzeEngagementMetrics({});
+        setMetricsData(result);
+      } catch (e) {
+        console.error(e);
+        setError("We couldn't load the initial dashboard metrics. Please try again later.");
+      }
+    };
+    fetchInitialData();
+  }, []);
+
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
-        try {
-            const result = await analyzeEngagementMetrics({
-                engagement: {
-                  totalScans: metrics.stats.totalScans,
-                  uniqueScans: metrics.stats.uniqueScans,
-                  engagementDuration: metrics.stats.engagementDuration,
-                  scanRate: metrics.stats.scanRate,
-                },
-                conversion: {
-                    avgBasketSizeAoe: metrics.stats.avgBasketSizeAoe,
-                    avgBasketSizeNonAoe: metrics.stats.avgBasketSizeNonAoe,
-                    basketUpliftPercentage: metrics.stats.basketUpliftPercentage,
-                    offerRedemptionRate: metrics.stats.offerRedemptionRate,
-                    totalRedeemedValue: metrics.stats.totalRedeemedValue,
-                    aoeTransactions: metrics.stats.aoeTransactions,
-                }
-            });
-            setAnalysis(result);
-        } catch (e) {
-            console.error(e);
-            setError("We couldn't generate the analysis at this time. Please try again later.");
-        }
+      // Use the already fetched data to generate the text analysis
+      if (metricsData) {
+        setAnalysis(metricsData);
+      } else {
+        setError("Metrics data is not available to analyze.");
+      }
     });
   };
+  
+  const funnelData = metricsData ? {
+    scans: metricsData.engagement.totalScans,
+    interactions: metricsData.engagement.uniqueScans,
+    conversions: Math.round(metricsData.engagement.uniqueScans * (metricsData.conversion.offerRedemptionRate / 100)),
+    sales: metricsData.conversion.aoeTransactions,
+  } : null;
 
-  const scanFrequencyData = [
-    { name: 'Mar', scans: 980 },
-    { name: 'Apr', scans: 390 },
-    { name: 'May', scans: 480 },
-    { name: 'Jun', scans: 380 },
-    { name: 'Jul', scans: 520 },
-    { name: 'Aug', scans: 610 },
-    { name: 'Sep', scans: 750 },
-    { name: 'Oct', scans: 880 },
-    { name: 'Nov', scans: 1050 },
-    { name: 'Dec', scans: 1500 },
-    { name: 'Jan', scans: 1240 },
-    { name: 'Feb', scans: 1139 },
+  const topProductsData = [
+    { id: '1', name: 'Eco-Friendly Water Bottle', scans: 1254, category: 'Lifestyle', trend: [30, 40, 35, 50, 45, 60] },
+    { id: '2', name: 'Wireless Charging Pad', scans: 980, category: 'Electronics', trend: [20, 25, 22, 30, 28, 35] },
+    { id: '3', name: 'Smart Notebook', scans: 872, category: 'Stationery', trend: [15, 18, 20, 25, 22, 30] },
+    { id: '4', name: 'Canvas Tote Bag', scans: 765, category: 'Accessories', trend: [10, 15, 12, 18, 20, 25] },
+    { id: '5', name: 'Aromatic Candle', scans: 654, category: 'Home Goods', trend: [5, 8, 7, 10, 12, 15] },
+  ];
+  
+  const timeBasedPerformanceData = [
+    { time: 'Mar', engagement: 4.5, conversion: 2.1 },
+    { time: 'Apr', engagement: 4.8, conversion: 2.5 },
+    { time: 'May', engagement: 5.1, conversion: 2.8 },
+    { time: 'Jun', engagement: 5.3, conversion: 3.1 },
+    { time: 'Jul', engagement: 5.8, conversion: 3.4 },
+    { time: 'Aug', engagement: 6.2, conversion: 3.8 },
   ];
 
   return (
@@ -79,7 +84,7 @@ export default function RoiPage() {
             Click the button to get AI-driven conclusions and recommendations based on all engagement and conversion metrics below.
           </p>
         </div>
-        <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
+        <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing || !metricsData}>
             <Sparkles className="mr-2 h-4 w-4" />
             Analyze All Metrics
         </Button>
@@ -106,7 +111,7 @@ export default function RoiPage() {
       {error && (
           <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Analysis Failed</AlertTitle>
+              <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
           </Alert>
       )}
@@ -157,7 +162,7 @@ export default function RoiPage() {
             <QrCode className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.stats.totalScans.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{metricsData?.engagement.totalScans.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
             <p className="text-xs text-muted-foreground">
               All QR code scans across all stores.
             </p>
@@ -172,7 +177,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metrics.stats.uniqueScans.toLocaleString()}
+              {metricsData?.engagement.uniqueScans.toLocaleString() || <Skeleton className="h-8 w-20" />}
             </div>
             <p className="text-xs text-muted-foreground">
               Individual customers who have scanned.
@@ -188,7 +193,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metrics.stats.scanRate}%
+              {metricsData?.engagement.scanRate.toFixed(2) || '0.00'}%
             </div>
             <p className="text-xs text-muted-foreground">
               Based on total scans vs. unique visitors.
@@ -203,7 +208,7 @@ export default function RoiPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.stats.engagementDuration}s</div>
+            <div className="text-2xl font-bold">{metricsData?.engagement.engagementDuration || <Skeleton className="h-8 w-12" />}s</div>
             <p className="text-xs text-muted-foreground">
               Average time spent on product page.
             </p>
@@ -212,8 +217,7 @@ export default function RoiPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ScanFrequencyChart data={scanFrequencyData} />
-        <TopProductsTable data={metrics.topProducts} />
+        <TopProductsTable data={topProductsData} />
       </div>
 
       <Separator />
@@ -227,60 +231,80 @@ export default function RoiPage() {
         </p>
       </div>
 
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Basket Uplift Analysis</CardTitle>
-                <Percent className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex justify-between items-baseline">
-                    <span className="text-muted-foreground text-sm">AOE Users</span>
-                    <span className="text-lg font-bold">R{metrics.stats.avgBasketSizeAoe.toFixed(2)}</span>
-                </div>
-                 <div className="flex justify-between items-baseline">
-                    <span className="text-muted-foreground text-sm">Non-Users</span>
-                    <span className="text-lg font-bold">R{metrics.stats.avgBasketSizeNonAoe.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-baseline pt-2 border-t">
-                    <span className="text-primary font-semibold text-sm">Uplift</span>
-                    <span className="text-lg font-bold text-primary">{metrics.stats.basketUpliftPercentage}%</span>
-                </div>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
-                <Tag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="text-3xl font-bold">{metrics.stats.offerRedemptionRate}%</div >
-                <p className="text-xs text-muted-foreground">
-                    Percentage of personalized offers redeemed.
-                </p>
-                <div className="pt-4">
-                    <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
-                     <p className="text-2xl font-bold">R{metrics.stats.totalRedeemedValue.toLocaleString()}</p>
-                </div>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Transactions Influenced by AOE</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-4xl font-bold">{metrics.stats.aoeTransactions}</div>
-                <p className="text-xs text-muted-foreground">
-                    Total transactions where a customer engaged with the platform before purchase.
-                </p>
-            </CardContent>
-        </Card>
+       <div className="grid gap-8 lg:grid-cols-2">
+           {funnelData ? (
+               <SalesFunnelChart data={funnelData} />
+            ) : (
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-3/4"/>
+                        <Skeleton className="h-4 w-1/2"/>
+                    </CardHeader>
+                    <CardContent className="flex justify-center">
+                        <div className="space-y-6">
+                            <Skeleton className="h-16 w-80" />
+                            <Skeleton className="h-16 w-80" />
+                            <Skeleton className="h-16 w-80" />
+                            <Skeleton className="h-16 w-80" />
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+           <div className="space-y-8">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Basket Uplift Analysis</CardTitle>
+                        <Percent className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex justify-between items-baseline">
+                            <span className="text-muted-foreground text-sm">AOE Users</span>
+                            {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
+                        </div>
+                         <div className="flex justify-between items-baseline">
+                            <span className="text-muted-foreground text-sm">Non-Users</span>
+                            {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
+                        </div>
+                        <div className="flex justify-between items-baseline pt-2 border-t">
+                            <span className="text-primary font-semibold text-sm">Uplift</span>
+                            {metricsData ? <span className="text-lg font-bold text-primary">{metricsData.conversion.basketUpliftPercentage.toFixed(2)}%</span> : <Skeleton className="h-6 w-16" />}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                         <div className="text-3xl font-bold">{metricsData?.conversion.offerRedemptionRate.toFixed(2) || '0.00'}%</div >
+                        <p className="text-xs text-muted-foreground">
+                            Percentage of personalized offers redeemed.
+                        </p>
+                        <div className="pt-4">
+                            <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
+                             <div className="text-2xl font-bold">R{metricsData?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Transactions Influenced by AOE</CardTitle>
+                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-4xl font-bold">{metricsData?.conversion.aoeTransactions.toLocaleString() || <Skeleton className="h-10 w-20" />}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Total transactions where a customer engaged with the platform before purchase.
+                        </p>
+                    </CardContent>
+                </Card>
+           </div>
       </div>
 
       <Separator />
 
-      <TimeBasedPerformanceChart data={metrics.timeBasedPerformance} />
+      <TimeBasedPerformanceChart data={timeBasedPerformanceData} />
     </div>
   );
 }

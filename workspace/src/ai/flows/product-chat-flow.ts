@@ -36,32 +36,25 @@ export type ProductChatOutput = z.infer<typeof ProductChatOutputSchema>;
 
 
 export async function productChat(input: ProductChatInput): Promise<ProductChatOutput> {
-    // In a real Firebase environment, you would check for App Check token here.
-    // Example for a callable function:
-    // if (context.app == undefined) {
-    //   throw new functions.https.HttpsError(
-    //     'failed-precondition',
-    //     'The function must be called from an App Check verified app.'
-    //   );
-    // }
-
-    const chatHistory = input.history.map((msg) => ({
+    const conversationHistory = input.history.map((msg) => ({
         role: msg.role,
         content: [{text: msg.content}],
     }));
 
-
-    const llmResponse = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
-        system: `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product they are looking at. Keep your answers concise and conversational.
+    const systemPrompt = `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product they are looking at. Keep your answers concise and conversational.
 
         Here is the product information:
         - Name: ${input.product.name}
         - Description: ${input.product.description}
         - Category: ${input.product.category}
-        - Price: R${input.product.price.toFixed(2)}
-        `,
-        history: chatHistory,
+        - Price: R${input.product.price.toFixed(2)}`;
+
+    const llmResponse = await ai.generate({
+        model: 'googleai/gemini-2.5-flash',
+        messages: [
+            { role: 'system', content: [{ text: systemPrompt }] },
+            ...conversationHistory
+        ],
     });
 
     return { message: llmResponse.text };

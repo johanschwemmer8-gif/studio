@@ -2,7 +2,7 @@
 'use client';
 
 import { cn } from "@/lib/utils";
-import { Case, Camera, Speaker } from 'lucide-react';
+import { Smartphone, Camera, Speaker } from 'lucide-react';
 import React from "react";
 
 type PhoneMockupProps = {

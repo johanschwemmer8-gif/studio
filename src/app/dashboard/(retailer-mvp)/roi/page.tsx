@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useTransition, useEffect } from 'react';
 import {
@@ -193,7 +194,7 @@ export default function RoiPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metricsData?.engagement.scanRate.toFixed(2) || '0.00'}%
+              {metricsData ? `${metricsData.engagement.scanRate.toFixed(2)}%` : <Skeleton className="h-8 w-20" />}
             </div>
             <p className="text-xs text-muted-foreground">
               Based on total scans vs. unique visitors.
@@ -208,7 +209,7 @@ export default function RoiPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metricsData?.engagement.engagementDuration || <Skeleton className="h-8 w-12" />}s</div>
+            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.engagementDuration}s` : <Skeleton className="h-8 w-12" />}</div>
             <p className="text-xs text-muted-foreground">
               Average time spent on product page.
             </p>
@@ -267,7 +268,7 @@ export default function RoiPage() {
                         </div>
                         <div className="flex justify-between items-baseline pt-2 border-t">
                             <span className="text-primary font-semibold text-sm">Uplift</span>
-                            {metricsData ? <span className="text-lg font-bold text-primary">{metricsData.conversion.basketUpliftPercentage.toFixed(2)}%</span> : <Skeleton className="h-6 w-16" />}
+                            {metricsData ? <span className="text-lg font-bold text-primary">{`${metricsData.conversion.basketUpliftPercentage.toFixed(2)}%`}</span> : <Skeleton className="h-6 w-16" />}
                         </div>
                     </CardContent>
                 </Card>
@@ -277,13 +278,13 @@ export default function RoiPage() {
                         <Tag className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent className="space-y-4">
-                         <div className="text-3xl font-bold">{metricsData?.conversion.offerRedemptionRate.toFixed(2) || '0.00'}%</div >
+                         <div className="text-3xl font-bold">{metricsData ? `${metricsData.conversion.offerRedemptionRate.toFixed(2)}%` : <Skeleton className="h-8 w-20" />}</div >
                         <p className="text-xs text-muted-foreground">
                             Percentage of personalized offers redeemed.
                         </p>
                         <div className="pt-4">
                             <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
-                             <div className="text-2xl font-bold">R{metricsData?.conversion.totalRedeemedValue.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
+                             <div className="text-2xl font-bold">{metricsData ? `R${metricsData.conversion.totalRedeemedValue.toLocaleString()}` : <Skeleton className="h-8 w-24" />}</div>
                         </div>
                     </CardContent>
                 </Card>
@@ -293,7 +294,7 @@ export default function RoiPage() {
                         <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-4xl font-bold">{metricsData?.conversion.aoeTransactions.toLocaleString() || <Skeleton className="h-10 w-20" />}</div>
+                        <div className="text-4xl font-bold">{metricsData ? metricsData.conversion.aoeTransactions.toLocaleString() : <Skeleton className="h-10 w-20" />}</div>
                         <p className="text-xs text-muted-foreground">
                             Total transactions where a customer engaged with the platform before purchase.
                         </p>

@@ -52,7 +52,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
 
 
     const llmResponse = await ai.generate({
-        prompt: `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product they are looking at. Keep your answers concise and conversational.
+        system: `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product they are looking at. Keep your answers concise and conversational.
 
         Here is the product information:
         - Name: ${input.product.name}

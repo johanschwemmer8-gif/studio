@@ -52,14 +52,13 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
 
     const llmResponse = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
-        system: `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product they are looking at. Keep your answers concise and conversational.
+        system: `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product.
 
         Here is the product information:
         - Name: ${input.product.name}
         - Description: ${input.product.description}
         - Category: ${input.product.category}
-        - Price: R${input.product.price.toFixed(2)}
-        `,
+        - Price: R${input.product.price.toFixed(2)}`,
         messages: conversationHistory,
     });
 

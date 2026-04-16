@@ -34,7 +34,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
-import { getQrTemplates, type QrTemplate } from '@/ai/flows/get-qr-templates';
+import { getQrTemplates } from '@/ai/flows/get-qr-templates';
+import type { QrTemplate } from '@/lib/schemas/qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
@@ -416,3 +417,5 @@ export default function BulkQRCodeGenerator() {
         </div>
     );
 }
+
+    

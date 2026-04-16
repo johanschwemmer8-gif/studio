@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import { PlusCircle, Loader2, Image as ImageIcon, Trash2, Pencil, Copy, Send } from 'lucide-react';
 import { getQrTemplates } from '@/ai/flows/get-qr-templates';
-import type { QrTemplate, GetQrTemplatesInput } from '@/lib/schemas/qr-templates';
+import type { QrTemplate } from '@/lib/schemas/qr-templates';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import {
@@ -27,7 +27,11 @@ import BrandQrTemplateDesigner from './brand-qr-template-designer';
 
 
 function TemplatePreview({ template }: { template: QrTemplate }) {
-    const { colorHex = '#000000', bgColorHex = '#FFFFFF', logoPath } = template.defaults || {};
+    const defaults = template.defaults || {};
+    const colorHex = defaults.colorHex || '#000000';
+    const bgColorHex = defaults.bgColorHex || '#FFFFFF';
+    const logoPath = defaults.logoPath;
+
     return (
         <TooltipProvider>
             <Tooltip>
@@ -98,8 +102,7 @@ export default function BrandQrTemplateGallery() {
     useEffect(() => {
         const fetchTemplates = async () => {
             try {
-                const input: GetQrTemplatesInput = { retailerId: 'simulated-retailer-id' };
-                const result = await getQrTemplates(input);
+                const result = await getQrTemplates({ retailerId: 'simulated-retailer-id' });
                 setTemplates(result);
             } catch (error: any) {
                 console.error('Failed to fetch templates:', error);

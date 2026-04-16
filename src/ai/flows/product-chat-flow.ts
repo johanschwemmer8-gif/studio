@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A conversational AI flow for answering product-related questions.
@@ -48,16 +49,15 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
         role: msg.role,
         content: [{text: msg.content}],
     }));
-    
-    const systemPrompt = `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product.
+
+    const systemPrompt = `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product they are looking at. Keep your answers concise and conversational.
 
         Here is the product information:
         - Name: ${input.product.name}
         - Description: ${input.product.description}
         - Category: ${input.product.category}
         - Price: R${input.product.price.toFixed(2)}`;
-
-
+    
     const llmResponse = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         messages: [

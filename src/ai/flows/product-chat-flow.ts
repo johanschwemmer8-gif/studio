@@ -50,8 +50,6 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
         content: [{text: msg.content}],
     }));
 
-    // The `ai.generate` function in this version of Genkit expects the full
-    // conversation to be passed in the `prompt` property. The `history` property is not valid.
     const llmResponse = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         system: `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product they are looking at. Keep your answers concise and conversational.
@@ -62,7 +60,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
         - Category: ${input.product.category}
         - Price: R${input.product.price.toFixed(2)}
         `,
-        prompt: conversationHistory, // Pass the full conversation here
+        messages: conversationHistory,
     });
 
     return { message: llmResponse.text };

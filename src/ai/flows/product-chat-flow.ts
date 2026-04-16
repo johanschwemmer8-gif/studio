@@ -44,23 +44,27 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     //   );
     // }
 
-    // The entire conversation history, including the latest user message.
     const conversationHistory = input.history.map((msg) => ({
         role: msg.role,
         content: [{text: msg.content}],
     }));
-
-    const llmResponse = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
-        system: `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product.
+    
+    const systemPrompt = `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product.
 
         Here is the product information:
         - Name: ${input.product.name}
         - Description: ${input.product.description}
         - Category: ${input.product.category}
-        - Price: R${input.product.price.toFixed(2)}`,
-        messages: conversationHistory,
-    }as any);
+        - Price: R${input.product.price.toFixed(2)}`;
+
+
+    const llmResponse = await ai.generate({
+        model: 'googleai/gemini-2.5-flash',
+        messages: [
+            { role: 'system', content: [{ text: systemPrompt }] },
+            ...conversationHistory
+        ],
+    } as any);
 
     return { message: llmResponse.text };
 }

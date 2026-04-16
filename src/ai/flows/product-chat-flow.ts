@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A conversational AI flow for answering product-related questions.
@@ -59,8 +60,10 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     
     const llmResponse = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
-        system: systemPrompt,
-        messages: conversationHistory,
+        messages: [
+            { role: 'system', content: [{ text: systemPrompt }] },
+            ...conversationHistory
+        ],
     });
 
     return { message: llmResponse.text };

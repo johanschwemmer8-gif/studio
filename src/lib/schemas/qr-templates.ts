@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const QrTemplateDefaultsSchema = z.object({
   colorHex: z.string().optional(),
   bgColorHex: z.string().optional(),
+  logoPath: z.string().url().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).optional(),
   aiTone: z.string().optional(),
   aiGoal: z.string().optional(),

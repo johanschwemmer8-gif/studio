@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -33,13 +34,15 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { saveQrCampaignDraft } from '@/ai/flows/save-qr-campaign-draft';
 import { getQrTemplates } from '@/ai/flows/get-qr-templates';
 import { QrTemplate } from '@/lib/schemas/qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import Link from 'next/link';
+import { db } from '@/lib/firebase';
+import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
+
 
 const styleSchema = z.object({
   logoPath: z.string().url().optional().or(z.literal('')),
@@ -59,6 +62,10 @@ const styleSchema = z.object({
   barcode: z.string().optional(),
   price: z.number().optional(),
   category: z.string().optional(),
+  colorHex: z.string().optional(),
+  bgColorHex: z.string().optional(),
+  errorCorrection: z.enum(['L', 'M', 'Q', 'H']).optional(),
+  expiresAt: z.string().datetime().optional(),
 });
 
 const formSchema = z.object({
@@ -138,6 +145,10 @@ export default function BulkQRCodeGenerator() {
         if (selectedTemplate) {
             form.setValue('options.aiTone', selectedTemplate.defaults.aiTone || '');
             form.setValue('options.aiGoal', selectedTemplate.defaults.aiGoal || '');
+            form.setValue('options.colorHex', selectedTemplate.defaults.colorHex || '#000000');
+            form.setValue('options.bgColorHex', selectedTemplate.defaults.bgColorHex || '#FFFFFF');
+            form.setValue('options.errorCorrection', selectedTemplate.defaults.errorCorrection || 'M');
+            form.setValue('options.logoPath', selectedTemplate.defaults.logoPath || '');
             toast({
                 title: 'Template Applied',
                 description: `"${selectedTemplate.name}" styles have been loaded.`,
@@ -162,28 +173,87 @@ export default function BulkQRCodeGenerator() {
 
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
-        try {
-            const result = await submitBulkQrRequest({
-              ...data,
-              options: {
-                errorCorrection: "M",
-                redirectType: "temporary",
-                ...data.options,
-              }
+        if (!db) {
+          toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
+          setIsSubmitting(false);
+          return;
+        }
+    
+        const batch = writeBatch(db);
+        const requestRef = doc(collection(db, 'bulkQrRequests'));
+        
+        const requestData = {
+            retailerId: data.retailerId,
+            brandId: data.brandId,
+            campaignId: data.campaignId,
+            totalRequested: data.count,
+            status: 'COMPLETED',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            createdBy: 'simulated-user@example.com',
+            options: data.options || {},
+            itemsDone: data.count,
+        };
+        batch.set(requestRef, requestData);
+    
+        const itemsRef = collection(db, `bulkQrRequests/${requestRef.id}/items`);
+        const qrcodesRef = collection(db, 'qrcodes');
+    
+        for (let i = 0; i < data.count; i++) {
+            const qrCodeId = doc(collection(db, 'id_generator')).id;
+    
+            const itemRef = doc(itemsRef, qrCodeId);
+    
+            const qrOptions = data.options || {};
+            const qrColor = qrOptions.colorHex?.replace('#', '') || '000000';
+            const qrBgColor = qrOptions.bgColorHex?.replace('#', '') || 'ffffff';
+            const qrError = qrOptions.errorCorrection || 'M';
+    
+            const trackingUrl = `${window.location.origin}/track/${qrCodeId}`;
+            const encodedQrData = encodeURIComponent(trackingUrl);
+    
+            let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
+    
+            const storagePath = `qr/${data.retailerId}/${data.campaignId}/${qrCodeId}.png`;
+    
+            const itemData = {
+                index: i,
+                qrCodeId: qrCodeId,
+                redirectUrl: `/product/1`,
+                trackingUrl: trackingUrl,
+                signedUrl: generatedQrUrl,
+                storagePath: storagePath,
+                status: 'DONE',
+                checksum: '',
+            };
+            batch.set(itemRef, itemData);
+    
+            const qrMasterRef = doc(db, 'qrcodes', qrCodeId);
+             batch.set(qrMasterRef, {
+                retailerId: data.retailerId,
+                campaignId: data.campaignId,
+                qrCodeId: qrCodeId,
+                requestId: requestRef.id,
+                redirectUrl: `/product/1`,
+                trackingUrl: trackingUrl,
+                storagePath: storagePath,
+                signedUrl: generatedQrUrl,
+                scanCount: 0,
+                createdAt: serverTimestamp(),
+                expiresAt: data.options?.expiresAt ? new Date(data.options.expiresAt) : null,
+                aiProfileId: null,
             });
-
-            if (result.success) {
-                toast({
-                    title: 'Request Submitted!',
-                    description: `Job ${result.requestId} for campaign "${data.campaignId}" has been queued.`,
-                });
-                form.reset();
-            } else {
-                 throw new Error('Submission failed on the server.');
-            }
-
+        }
+    
+        try {
+            await batch.commit();
+            toast({
+                title: 'Campaign Created!',
+                description: `Job for campaign "${data.campaignId}" has been created and processed.`,
+            });
+            form.reset();
         } catch (error: any) {
-             toast({
+            toast({
                 title: "Submission Failed",
                 description: error.message,
                 variant: 'destructive',
@@ -452,9 +522,16 @@ export default function BulkQRCodeGenerator() {
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
                                 Queue Generation Job
                             </Button>
-                            <Button type="button" variant="outline" onClick={handlePrint}>
-                                <Printer className="mr-2 h-4 w-4" />
-                                Test Print
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    const dashboard = document.getElementById('job-dashboard');
+                                    dashboard?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                            >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Generation Jobs
                             </Button>
                         </div>
                     </Card>

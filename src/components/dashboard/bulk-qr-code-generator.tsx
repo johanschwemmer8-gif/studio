@@ -85,6 +85,32 @@ export default function BulkQRCodeGenerator() {
     const [mediaInputMethod, setMediaInputMethod] = useState<'url' | 'upload'>('url');
     const [brands, setBrands] = useState<BrandFormValues['brands']>([]);
 
+    const form = useForm<FormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            retailerId: 'simulated-retailer-id',
+            brandId: '',
+            campaignId: `campaign-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+            count: 100,
+            options: {
+              aiTone: 'Professional',
+              aiGoal: 'Drive sales',
+              aiPersona: 'Knowledgeable product expert',
+              aiGreeting: 'Hello! How can I help you with this product today?',
+              aiKeyPoints: '',
+              aiOffer: '',
+              aiRecommendations: '',
+              mediaType: undefined,
+              mediaUrl: '',
+              headline: '',
+              subhead: '',
+            }
+        },
+    });
+
+    const mediaUrl = form.watch('options.mediaUrl');
+    const mediaType = form.watch('options.mediaType');
+
     useEffect(() => {
         const fetchTemplates = async () => {
             try {
@@ -116,29 +142,6 @@ export default function BulkQRCodeGenerator() {
         }
     }, [toast]);
 
-    const form = useForm<FormValues>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            retailerId: 'simulated-retailer-id',
-            brandId: '',
-            campaignId: `campaign-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
-            count: 100,
-            options: {
-              aiTone: 'Professional',
-              aiGoal: 'Drive sales',
-              aiPersona: 'Knowledgeable product expert',
-              aiGreeting: 'Hello! How can I help you with this product today?',
-              aiKeyPoints: '',
-              aiOffer: '',
-              aiRecommendations: '',
-              mediaType: undefined,
-              mediaUrl: '',
-              headline: '',
-              subhead: '',
-            }
-        },
-    });
-    
     const handleTemplateChange = (templateId: string) => {
         const selectedTemplate = templates.find(t => t.templateId === templateId);
         if (selectedTemplate) {
@@ -450,6 +453,23 @@ export default function BulkQRCodeGenerator() {
                                 </AccordionTrigger>
                                 <AccordionContent className="pt-4">
                                     <div className="space-y-4">
+                                        {mediaUrl && (
+                                            <div className="space-y-2">
+                                                <Label>Media Preview</Label>
+                                                <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden relative border">
+                                                    {mediaType === 'image' ? (
+                                                        <Image src={mediaUrl} alt="Media Preview" layout="fill" objectFit="contain" />
+                                                    ) : mediaType === 'video' ? (
+                                                        <video src={mediaUrl} controls className="w-full h-full object-contain" />
+                                                    ) : (
+                                                        <div className="text-center text-muted-foreground p-4">
+                                                            <ImageIcon className="h-10 w-10 mx-auto" />
+                                                            <p className="mt-2 text-sm">Select a media type to see preview</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
                                                 <Label htmlFor="headline">Headline</Label>
@@ -548,5 +568,3 @@ export default function BulkQRCodeGenerator() {
         </div>
     );
 }
-
-    

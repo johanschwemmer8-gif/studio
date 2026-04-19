@@ -23,7 +23,7 @@ import {
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 
@@ -37,6 +37,8 @@ type BulkRequest = {
     aiStatus?: 'PENDING' | 'READY' | 'ERROR';
     aiOutputs?: GenerateCampaignAIOutput;
     aiError?: string;
+    retailerId?: string;
+    options?: any;
 };
 
 type QrItem = {
@@ -309,6 +311,7 @@ export default function QrCampaignDashboard() {
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<BulkRequest | null>(null);
     const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
+    const [processingIds, setProcessingIds] = useState<string[]>([]);
 
     const { toast } = useToast();
     
@@ -336,11 +339,9 @@ export default function QrCampaignDashboard() {
                 ...doc.data(),
             }));
 
-            // In a real app, itemsDone would be an aggregated field updated by a backend function.
-            // For the client-side, we simulate this by assuming completion if status is COMPLETED.
             setRequests(fetchedRequests.map(r => ({ 
                 ...r, 
-                itemsDone: r.status === 'COMPLETED' ? r.totalRequested : (r.itemsDone || 0) // Fallback to a field if it exists
+                itemsDone: r.status === 'COMPLETED' ? r.totalRequested : (r.itemsDone || 0)
             })));
             setLoading(false);
         }, (error) => {
@@ -357,7 +358,6 @@ export default function QrCampaignDashboard() {
         try {
             const result = await generateZipForRequest({ requestId });
             if (result.success && result.zipDataUri) {
-                // Trigger download
                 const link = document.createElement("a");
                 link.href = result.zipDataUri;
                 link.download = `${requestId}.zip`;
@@ -379,6 +379,91 @@ export default function QrCampaignDashboard() {
             });
         } finally {
             setDownloadingIds(prev => prev.filter(id => id !== requestId));
+        }
+    };
+
+    const handleProcessJob = async (request: BulkRequest) => {
+        setProcessingIds(prev => [...prev, request.id]);
+        if (!db) {
+            toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
+            setProcessingIds(prev => prev.filter(id => id !== request.id));
+            return;
+        }
+    
+        try {
+            const requestRef = doc(db, 'bulkQrRequests', request.id);
+    
+            await updateDoc(requestRef, { status: 'PROCESSING', updatedAt: new Date() });
+    
+            const batch = writeBatch(db);
+            const itemsRef = collection(db, `bulkQrRequests/${request.id}/items`);
+            
+            for (let i = 0; i < request.totalRequested; i++) {
+                const qrCodeId = doc(collection(db, 'id_generator')).id;
+                const itemRef = doc(itemsRef, qrCodeId);
+                
+                const qrOptions = request.options || {};
+                const qrColor = (qrOptions.colorHex || '#000000').replace('#', '');
+                const qrBgColor = (qrOptions.bgColorHex || '#FFFFFF').replace('#', '');
+                const qrError = qrOptions.errorCorrection || 'M';
+    
+                const trackingUrl = `${window.location.origin}/track/${qrCodeId}`;
+                const encodedQrData = encodeURIComponent(trackingUrl);
+                let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
+                const storagePath = `qr/${request.retailerId}/${request.campaignId}/${qrCodeId}.png`;
+    
+                const itemData = {
+                    index: i,
+                    qrCodeId: qrCodeId,
+                    redirectUrl: `/product/1`,
+                    trackingUrl: trackingUrl,
+                    signedUrl: generatedQrUrl,
+                    storagePath: storagePath,
+                    status: 'DONE',
+                    checksum: '',
+                };
+                batch.set(itemRef, itemData);
+    
+                const qrMasterRef = doc(db, 'qrcodes', qrCodeId);
+                 batch.set(qrMasterRef, {
+                    retailerId: request.retailerId,
+                    campaignId: request.campaignId,
+                    qrCodeId: qrCodeId,
+                    requestId: request.id,
+                    redirectUrl: `/product/1`,
+                    trackingUrl: trackingUrl,
+                    storagePath: storagePath,
+                    signedUrl: generatedQrUrl,
+                    scanCount: 0,
+                    createdAt: new Date(),
+                    expiresAt: request.options?.expiresAt ? new Date(request.options.expiresAt) : null,
+                    aiProfileId: null,
+                });
+            }
+    
+            await batch.commit();
+    
+            await updateDoc(requestRef, {
+                status: 'COMPLETED',
+                itemsDone: request.totalRequested,
+                updatedAt: new Date()
+            });
+    
+            toast({
+                title: 'Campaign Processed!',
+                description: `"${request.campaignId}" is now complete and ready for download.`,
+            });
+    
+        } catch (error: any) {
+            toast({
+                title: "Processing Failed",
+                description: error.message,
+                variant: 'destructive',
+            });
+            const requestRef = doc(db, 'bulkQrRequests', request.id);
+            await updateDoc(requestRef, { status: 'DRAFT' });
+        } finally {
+            setProcessingIds(prev => prev.filter(id => id !== request.id));
         }
     };
 
@@ -412,6 +497,7 @@ export default function QrCampaignDashboard() {
                             {requests.map(req => {
                                 const progress = req.totalRequested > 0 ? (req.itemsDone / req.totalRequested) * 100 : 0;
                                 const isDownloading = downloadingIds.includes(req.id);
+                                const isProcessing = processingIds.includes(req.id);
                                 return (
                                     <Card key={req.id} className="flex flex-col sm:flex-row">
                                         <CardHeader className="flex-1">
@@ -421,26 +507,41 @@ export default function QrCampaignDashboard() {
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="pt-6 flex-1 space-y-3">
-                                            <div>
-                                                <div className="flex justify-between text-sm font-medium mb-1">
-                                                    <span>{req.status}</span>
-                                                    <span>{req.itemsDone} / {req.totalRequested}</span>
+                                            {req.status === 'DRAFT' ? (
+                                                <div className="text-sm text-muted-foreground pt-3">
+                                                    This campaign is a draft. Process it to generate QR codes.
                                                 </div>
-                                                <Progress value={progress} />
-                                            </div>
+                                            ) : (
+                                                <div>
+                                                    <div className="flex justify-between text-sm font-medium mb-1">
+                                                        <span>{req.status}</span>
+                                                        <span>{req.itemsDone} / {req.totalRequested}</span>
+                                                    </div>
+                                                    <Progress value={progress} />
+                                                </div>
+                                            )}
                                         </CardContent>
                                         <CardContent className="pt-6 flex-none flex items-center gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => setSelectedRequest(req)}>
-                                                <Eye className="mr-2 h-4 w-4" /> View
-                                            </Button>
-                                            <Button 
-                                                size="sm" 
-                                                disabled={req.status !== 'COMPLETED' || isDownloading}
-                                                onClick={() => handleDownloadZip(req.id)}
-                                            >
-                                                {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                                Download
-                                            </Button>
+                                            {req.status === 'DRAFT' ? (
+                                                <Button variant="secondary" size="sm" onClick={() => handleProcessJob(req)} disabled={isProcessing}>
+                                                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
+                                                    Process Job
+                                                </Button>
+                                            ) : (
+                                                <>
+                                                    <Button variant="outline" size="sm" onClick={() => setSelectedRequest(req)}>
+                                                        <Eye className="mr-2 h-4 w-4" /> View
+                                                    </Button>
+                                                    <Button 
+                                                        size="sm" 
+                                                        disabled={req.status !== 'COMPLETED' || isDownloading}
+                                                        onClick={() => handleDownloadZip(req.id)}
+                                                    >
+                                                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                                        Download
+                                                    </Button>
+                                                </>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 )

@@ -259,13 +259,6 @@ export default function BulkQRCodeGenerator() {
         }
     };
 
-    const handleViewJobs = () => {
-        const element = document.getElementById('job-dashboard');
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
-
     return (
         <div className="space-y-8">
             <div>
@@ -462,10 +455,6 @@ export default function BulkQRCodeGenerator() {
                             <Button type="button" variant="outline" onClick={handlePrint}>
                                 <Printer className="mr-2 h-4 w-4" />
                                 Test Print
-                            </Button>
-                            <Button variant="secondary" onClick={handleViewJobs}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Generation Jobs
                             </Button>
                         </div>
                     </Card>

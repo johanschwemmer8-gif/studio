@@ -236,6 +236,28 @@ export default function UiManagementPage() {
                         <Label htmlFor="logo-upload-landing">Landing Page Logo</Label>
                         <Input id="logo-upload-landing" type="file" accept="image/*" onChange={handleLogoUpload} className="mt-2" />
                     </div>
+                    <div className="space-y-2">
+                        <Label>Logo Preview</Label>
+                        <div className="p-4 border rounded-lg bg-muted/50 min-h-[120px] flex items-center justify-center">
+                            <div style={{ width: '100%', textAlign: logoAlign.replace('flex-start', 'left').replace('flex-end', 'right') as 'left' | 'center' | 'right' }}>
+                                {logoPreview ? (
+                                    <Image
+                                        src={logoPreview}
+                                        alt="Logo Preview"
+                                        width={logoWidth}
+                                        height={logoWidth / (128 / 50)} // Maintain aspect ratio
+                                        className="inline-block transition-all"
+                                        style={{ width: `${logoWidth}px` }}
+                                    />
+                                ) : (
+                                    <div className="text-center text-muted-foreground">
+                                        <ImageIcon className="mx-auto h-8 w-8" />
+                                        <p className="text-xs mt-1">Upload a logo to see the preview</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                      <div className="space-y-4">
                         <Label>Logo Sizing & Spacing</Label>
                         <div className="p-4 border rounded-lg space-y-4">

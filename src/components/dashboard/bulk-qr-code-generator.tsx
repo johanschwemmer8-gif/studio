@@ -457,7 +457,7 @@ export default function BulkQRCodeGenerator() {
                                         {mediaUrl && (
                                             <div className="space-y-2">
                                                 <Label>Media Preview</Label>
-                                                <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden relative border">
+                                                <div className="w-full max-w-sm aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden relative border">
                                                     {mediaType === 'image' ? (
                                                         <Image src={mediaUrl} alt="Media Preview" layout="fill" objectFit="contain" />
                                                     ) : mediaType === 'video' ? (

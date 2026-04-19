@@ -351,7 +351,7 @@ export default function UserManagement() {
                                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                                 <SelectTrigger><SelectValue placeholder="All Divisions" /></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="">All Divisions</SelectItem>
+                                                    <SelectItem value="all-divisions">All Divisions</SelectItem>
                                                     {divisions.map(d => <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -369,7 +369,7 @@ export default function UserManagement() {
                                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                                 <SelectTrigger><SelectValue placeholder="All Regions" /></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="">All Regions</SelectItem>
+                                                    <SelectItem value="all-regions">All Regions</SelectItem>
                                                     {regions.map(r => <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -387,7 +387,7 @@ export default function UserManagement() {
                                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                                 <SelectTrigger><SelectValue placeholder="All Areas" /></SelectTrigger>
                                                 <SelectContent>
-                                                     <SelectItem value="">All Areas</SelectItem>
+                                                     <SelectItem value="all-areas">All Areas</SelectItem>
                                                     {areas.map(a => <SelectItem key={a.name} value={a.name}>{a.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -405,7 +405,7 @@ export default function UserManagement() {
                                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                                 <SelectTrigger><SelectValue placeholder="All Stores" /></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="">All Stores</SelectItem>
+                                                    <SelectItem value="all-stores">All Stores</SelectItem>
                                                     {stores.map(s => <SelectItem key={s.code} value={s.name}>{s.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>

@@ -71,9 +71,10 @@ const getScanInteractionFlow = ai.defineFlow(
     const qrData = qrDoc.data()!;
 
     // Base response with final redirect URL and empty media/messages
+    // MODIFIED: Always redirect to the internal product page for product ID 1.
     const fallbackResponse = {
         messages: [],
-        destinationUrl: qrData.redirectUrl,
+        destinationUrl: '/product/1',
         retailerLogoUrl: '',
         mediaType: undefined,
         mediaUrl: undefined,
@@ -135,7 +136,7 @@ const getScanInteractionFlow = ai.defineFlow(
 
         return {
           messages: output.messages,
-          destinationUrl: qrData.redirectUrl,
+          destinationUrl: '/product/1', // MODIFIED: Always redirect to the internal product page
           retailerLogoUrl,
           mediaType: mediaOptions.mediaType,
           mediaUrl: mediaOptions.mediaUrl,

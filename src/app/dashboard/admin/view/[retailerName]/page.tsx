@@ -16,10 +16,37 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Building2, User, ShieldCheck } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import BrandSettingsForm from '@/components/dashboard/brand-settings-form';
+import BrandManagementForm from '@/components/dashboard/brand-management-form';
+import UserManagement from '@/components/dashboard/user-management';
 
 function slugify(text: string) {
     if (!text) return '';
     return text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+}
+
+function RetailerBilling() {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Subscription Plan</CardTitle>
+                <CardDescription>Manage the retailer's subscription and view billing history.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                        <h3 className="text-lg font-semibold text-primary">Pro Plan</h3>
+                        <p className="text-muted-foreground">
+                            Renews on: {new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleDateString()}
+                        </p>
+                    </div>
+                     <p className="text-3xl font-bold">R1,250<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                    <Button>Change Plan</Button>
+                </div>
+            </CardContent>
+        </Card>
+    )
 }
 
 export default function RetailerViewPage() {
@@ -61,27 +88,35 @@ export default function RetailerViewPage() {
   return (
     <div className="space-y-8">
         <div>
-            <Button onClick={() => router.push('/dashboard/admin')} variant="ghost" className='mb-4'>
+            <Button onClick={() => router.push('/dashboard/admin')} variant="ghost" className='mb-4 -ml-4'>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Admin Panel
             </Button>
             <h2 className="text-3xl font-bold tracking-tight">{retailer.name}</h2>
             <p className="text-muted-foreground">
-                This page is a placeholder for viewing detailed retailer configuration. The actual management is done by the retailer in their own admin panel.
+                Manage all configurations for this retailer, from branding and store structure to users and billing.
             </p>
         </div>
         
-        <Separator />
-        
-        <Card>
-            <CardHeader>
-                <CardTitle>Configuration Overview</CardTitle>
-                <CardDescription>High-level summary of the retailer's setup.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">Detailed brand, store, and user information is managed within the retailer's own dashboard.</p>
-            </CardContent>
-        </Card>
+        <Tabs defaultValue="configuration">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="configuration">Brand & Stores</TabsTrigger>
+                <TabsTrigger value="users">User Management</TabsTrigger>
+                <TabsTrigger value="billing">Billing</TabsTrigger>
+            </TabsList>
+            <TabsContent value="configuration" className="mt-6">
+                <div className="space-y-6">
+                    <BrandSettingsForm />
+                    <BrandManagementForm />
+                </div>
+            </TabsContent>
+            <TabsContent value="users" className="mt-6">
+                <UserManagement />
+            </TabsContent>
+            <TabsContent value="billing" className="mt-6">
+                <RetailerBilling />
+            </TabsContent>
+        </Tabs>
     </div>
   );
 }

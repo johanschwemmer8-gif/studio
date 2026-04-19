@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { generateZipForRequest } from '@/ai/flows/generate-zip-for-request';
 import { regenerateQrCode } from '@/ai/flows/regenerate-qr-code';
-import { generateCampaignAI, type GenerateCampaignAIOutput } from '@/ai/flows/generate-campaign-ai';
+import { type GenerateCampaignAIOutput } from '@/ai/flows/generate-campaign-ai';
 import { Badge } from '../ui/badge';
 import {
   Select,
@@ -23,7 +23,7 @@ import {
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, Timestamp, updateDoc, writeBatch, addDoc } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 
@@ -138,17 +138,37 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     
     const handleRegenerateAI = () => {
         startAiRegenerating(async () => {
+            if (!db) {
+                toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
+                return;
+            }
+
+            const mockAiOutput: GenerateCampaignAIOutput = {
+              landingCopy: 'Discover the fresh look of our summer collection! Quality and style you can feel.',
+              cta: 'Shop Now & Get 15% Off',
+              scanTriggers: [
+                'Scan for a surprise!',
+                'Unlock exclusive content.',
+                'See if your size is in stock.'
+              ]
+            };
+
             try {
-                const result = await generateCampaignAI({ requestId: currentRequest.id });
-                // The onSnapshot listener will update the UI automatically.
+                const requestRef = doc(db, 'bulkQrRequests', currentRequest.id);
+                await updateDoc(requestRef, {
+                    aiStatus: 'READY',
+                    aiOutputs: mockAiOutput,
+                    aiError: '', // Clear any previous error
+                });
+                
                 toast({
                     title: "AI Content Generated!",
-                    description: "The campaign content has been refreshed.",
+                    description: "The campaign content has been refreshed (simulation).",
                 });
             } catch (e: any) {
                  toast({
-                    title: "AI Generation Failed",
-                    description: e.message || 'Could not generate AI content at this time.',
+                    title: "AI Simulation Failed",
+                    description: e.message || 'Could not update campaign with mock AI content.',
                     variant: 'destructive',
                 });
             }
@@ -437,7 +457,7 @@ export default function QrCampaignDashboard() {
                     updatedAt: new Date()
                 });
 
-                await new Promise(resolve => setTimeout(resolve, 10)); // Reduced delay
+                await new Promise(resolve => setTimeout(resolve, 1)); // Reduced delay
             }
             
             await updateDoc(requestRef, {

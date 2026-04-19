@@ -31,7 +31,7 @@ type BulkRequest = {
     id: string;
     campaignId: string;
     totalRequested: number;
-    status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+    status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'DRAFT';
     createdAt: { toDate: () => Date };
     itemsDone: number;
     aiStatus?: 'PENDING' | 'READY' | 'ERROR';

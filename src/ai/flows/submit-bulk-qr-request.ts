@@ -43,7 +43,7 @@ const SubmitBulkQrRequestInputSchema = z.object({
   brandId: z.string().describe('The brand within the retailer to associate with this campaign.'),
   campaignId: z.string().describe('The ID of the campaign for this batch.'),
   count: z.number().int().min(1).max(10000, "Cannot request more than 10,000 codes at a time.").describe('The number of QR codes to generate (max 10000).'),
-  baseRedirect: z.string().url().refine(s => s.startsWith('https://'), "Base redirect URL must be HTTPS."),
+  baseRedirect: z.string().url().optional(),
   options: QrOptionsSchema.optional(),
   // createdBy would be derived from the auth context in a real scenario
 });

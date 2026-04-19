@@ -64,7 +64,6 @@ const formSchema = z.object({
   brandId: z.string().min(1, 'Brand is required'),
   campaignId: z.string().min(1, 'Campaign ID is required'),
   count: z.number().int().min(1, "Must request at least 1 code.").max(10000, "Cannot request more than 10,000 codes."),
-  baseRedirect: z.string().url("Must be a valid HTTPS URL.").refine(s => s.startsWith('https://'), "URL must be HTTPS."),
   options: styleSchema.optional(),
 });
 
@@ -114,7 +113,6 @@ export default function BulkQRCodeGenerator() {
             retailerId: 'simulated-retailer-id',
             campaignId: `campaign-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
             count: 100,
-            baseRedirect: 'https://',
             options: {
               aiTone: 'Professional',
               aiGoal: 'Drive sales',
@@ -163,6 +161,7 @@ export default function BulkQRCodeGenerator() {
         try {
             const result = await submitBulkQrRequest({
               ...data,
+              baseRedirect: 'https://interact.io/placeholder', // This is no longer used but the backend flow still expects it.
               options: {
                 errorCorrection: "M",
                 redirectType: "temporary",
@@ -192,7 +191,7 @@ export default function BulkQRCodeGenerator() {
     };
     
      const handlePrint = () => {
-        const url = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(form.getValues('baseRedirect') || 'https://example.com')}`;
+        const url = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent('https://example.com')}`;
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.write(`
@@ -267,14 +266,6 @@ export default function BulkQRCodeGenerator() {
                                     <Label htmlFor="count">Number of Codes</Label>
                                     <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} />
                                     {form.formState.errors.count && <p className="text-sm text-destructive mt-1">{form.formState.errors.count.message}</p>}
-                                </div>
-                                <div className="lg:col-span-2">
-                                    <Label htmlFor="baseRedirect">Final Redirect URL</Label>
-                                    <div className="relative">
-                                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input id="baseRedirect" {...form.register('baseRedirect')} placeholder="https://your-store.com/product" className="pl-9"/>
-                                    </div>
-                                    {form.formState.errors.baseRedirect && <p className="text-sm text-destructive mt-1">{form.formState.errors.baseRedirect.message}</p>}
                                 </div>
                             </div>
                         </div>

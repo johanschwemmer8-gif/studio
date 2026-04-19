@@ -181,6 +181,11 @@ export default function BulkQRCodeGenerator() {
         const batch = writeBatch(db);
         const requestRef = doc(collection(db, 'bulkQrRequests'));
         
+        const cleanedOptions = { ...data.options };
+        if (cleanedOptions.mediaType === undefined) {
+          delete (cleanedOptions as Partial<typeof cleanedOptions>).mediaType;
+        }
+
         const requestData = {
             retailerId: data.retailerId,
             brandId: data.brandId,
@@ -190,7 +195,7 @@ export default function BulkQRCodeGenerator() {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             createdBy: 'simulated-user@example.com',
-            options: data.options || {},
+            options: cleanedOptions || {},
             itemsDone: data.count,
         };
         batch.set(requestRef, requestData);
@@ -203,7 +208,7 @@ export default function BulkQRCodeGenerator() {
     
             const itemRef = doc(itemsRef, qrCodeId);
     
-            const qrOptions = data.options || {};
+            const qrOptions = cleanedOptions || {};
             const qrColor = qrOptions.colorHex?.replace('#', '') || '000000';
             const qrBgColor = qrOptions.bgColorHex?.replace('#', '') || 'ffffff';
             const qrError = qrOptions.errorCorrection || 'M';
@@ -282,6 +287,11 @@ export default function BulkQRCodeGenerator() {
             return;
         }
     
+        const cleanedOptions = { ...data.options };
+        if (cleanedOptions.mediaType === undefined) {
+          delete (cleanedOptions as Partial<typeof cleanedOptions>).mediaType;
+        }
+
         const requestData = {
             retailerId: data.retailerId,
             brandId: data.brandId,
@@ -291,7 +301,7 @@ export default function BulkQRCodeGenerator() {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             createdBy: 'simulated-user@example.com',
-            options: data.options || {},
+            options: cleanedOptions || {},
             itemsDone: 0,
         };
     

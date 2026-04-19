@@ -41,6 +41,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { collection, writeBatch, doc, serverTimestamp, addDoc } from 'firebase/firestore';
+import Image from 'next/image';
 
 
 const styleSchema = z.object({

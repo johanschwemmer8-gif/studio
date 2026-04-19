@@ -196,8 +196,8 @@ export default function BulkQRCodeGenerator() {
             campaignId: data.campaignId,
             totalRequested: data.count,
             status: 'COMPLETED',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
             createdBy: 'simulated-user@example.com',
             options: cleanedOptions || {},
             itemsDone: data.count,
@@ -247,7 +247,7 @@ export default function BulkQRCodeGenerator() {
                 storagePath: storagePath,
                 signedUrl: generatedQrUrl,
                 scanCount: 0,
-                createdAt: serverTimestamp(),
+                createdAt: new Date(),
                 expiresAt: data.options?.expiresAt ? new Date(data.options.expiresAt) : null,
                 aiProfileId: null,
             });
@@ -302,8 +302,8 @@ export default function BulkQRCodeGenerator() {
             campaignId: data.campaignId,
             totalRequested: data.count,
             status: 'DRAFT' as const,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
             createdBy: 'simulated-user@example.com',
             options: cleanedOptions || {},
             itemsDone: 0,
@@ -457,15 +457,15 @@ export default function BulkQRCodeGenerator() {
                                         {mediaUrl && (
                                             <div className="space-y-2">
                                                 <Label>Media Preview</Label>
-                                                <div className="w-full max-w-sm aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden relative border">
+                                                <div className="w-full max-w-[200px] aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden relative border">
                                                     {mediaType === 'image' ? (
                                                         <Image src={mediaUrl} alt="Media Preview" layout="fill" objectFit="contain" />
                                                     ) : mediaType === 'video' ? (
                                                         <video src={mediaUrl} controls className="w-full h-full object-contain" />
                                                     ) : (
                                                         <div className="text-center text-muted-foreground p-4">
-                                                            <ImageIcon className="h-10 w-10 mx-auto" />
-                                                            <p className="mt-2 text-sm">Select a media type to see preview</p>
+                                                            <ImageIcon className="h-8 w-8 mx-auto" />
+                                                            <p className="mt-2 text-xs">Select media type</p>
                                                         </div>
                                                     )}
                                                 </div>

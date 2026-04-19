@@ -23,7 +23,7 @@ import {
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, Timestamp } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 
@@ -32,7 +32,7 @@ type BulkRequest = {
     campaignId: string;
     totalRequested: number;
     status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'DRAFT';
-    createdAt: { toDate: () => Date };
+    createdAt: Timestamp | Date; // Can be a Firestore Timestamp or a JS Date
     itemsDone: number;
     aiStatus?: 'PENDING' | 'READY' | 'ERROR';
     aiOutputs?: GenerateCampaignAIOutput;
@@ -46,6 +46,20 @@ type QrItem = {
     signedUrl: string;
     regeneratedAt?: { toDate: () => Date };
 };
+
+// Helper function to robustly format dates
+const getDisplayDate = (timestamp: any) => {
+    if (!timestamp) {
+        return 'Date pending...';
+    }
+    // Firestore Timestamps have a toDate() method
+    if (typeof timestamp.toDate === 'function') {
+        return new Date(timestamp.toDate()).toLocaleString();
+    }
+    // Handle JS Date objects or ISO strings
+    return new Date(timestamp).toLocaleString();
+};
+
 
 function QrRequestDetails({ request }: { request: BulkRequest }) {
     const [items, setItems] = useState<QrItem[]>([]);
@@ -380,7 +394,7 @@ export default function QrCampaignDashboard() {
                                         <CardHeader className="flex-1">
                                             <CardTitle className="text-lg">{req.campaignId}</CardTitle>
                                             <CardDescription>
-                                                {req.createdAt ? new Date(req.createdAt.toDate()).toLocaleString() : 'Date pending...'}
+                                                {getDisplayDate(req.createdAt)}
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="pt-6 flex-1 space-y-3">

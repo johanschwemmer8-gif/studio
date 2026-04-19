@@ -138,33 +138,20 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     
     const handleRegenerateAI = () => {
         startAiRegenerating(async () => {
-             // Simulate the AI call to avoid backend auth errors
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            const mockAiOutput: GenerateCampaignAIOutput = {
-              landingCopy: "Discover the magic behind our latest collection. Each piece tells a story, waiting for you to begin the next chapter.",
-              cta: "See the Collection",
-              scanTriggers: [
-                "Scan to unlock a special offer!",
-                "What's the story behind this item?",
-                "See it in your size.",
-                "Is this ethically sourced?"
-              ]
-            };
-
-            setCurrentRequest(prev => {
-                if (!prev) return null;
-                return {
-                    ...prev,
-                    aiStatus: 'READY',
-                    aiOutputs: mockAiOutput,
-                }
-            });
-
-            toast({
-                title: "AI Content Generated (Simulation)",
-                description: "Displaying sample AI-generated content."
-            });
+            try {
+                const result = await generateCampaignAI({ requestId: currentRequest.id });
+                // The onSnapshot listener will update the UI automatically.
+                toast({
+                    title: "AI Content Generated!",
+                    description: "The campaign content has been refreshed.",
+                });
+            } catch (e: any) {
+                 toast({
+                    title: "AI Generation Failed",
+                    description: e.message || 'Could not generate AI content at this time.',
+                    variant: 'destructive',
+                });
+            }
         });
     }
 
@@ -450,7 +437,7 @@ export default function QrCampaignDashboard() {
                     updatedAt: new Date()
                 });
 
-                await new Promise(resolve => setTimeout(resolve, 50));
+                await new Promise(resolve => setTimeout(resolve, 10)); // Reduced delay
             }
             
             await updateDoc(requestRef, {

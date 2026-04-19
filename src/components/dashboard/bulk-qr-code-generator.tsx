@@ -272,7 +272,6 @@ export default function BulkQRCodeGenerator() {
     };
 
     const handleSaveJob = async () => {
-        setIsSaving(true);
         const data = form.getValues();
         const isValid = await form.trigger();
         if (!isValid) {
@@ -281,21 +280,21 @@ export default function BulkQRCodeGenerator() {
                 description: 'Please fill in all required fields before saving.',
                 variant: 'destructive',
             });
-            setIsSaving(false);
             return;
         }
-
+    
         if (!db) {
             toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
-            setIsSaving(false);
             return;
         }
+    
+        setIsSaving(true);
     
         const cleanedOptions = { ...data.options };
         if (cleanedOptions.mediaType === undefined) {
           delete (cleanedOptions as Partial<typeof cleanedOptions>).mediaType;
         }
-
+    
         const requestData = {
             retailerId: data.retailerId,
             brandId: data.brandId,
@@ -309,22 +308,41 @@ export default function BulkQRCodeGenerator() {
             itemsDone: 0,
         };
     
-        try {
-            await addDoc(collection(db, 'bulkQrRequests'), requestData);
+        addDoc(collection(db, 'bulkQrRequests'), requestData)
+          .then(() => {
             toast({
-                title: 'Job Saved!',
-                description: `Campaign "${data.campaignId}" has been saved as a draft.`,
+              title: 'Job Saved!',
+              description: `Campaign "${data.campaignId}" has been saved as a draft.`,
             });
-            form.reset();
-        } catch (error: any) {
+          })
+          .catch((error: any) => {
             toast({
-                title: 'Save Failed',
-                description: error.message,
-                variant: 'destructive',
+              title: 'Save Failed',
+              description: error.message,
+              variant: 'destructive',
             });
-        } finally {
-            setIsSaving(false);
-        }
+          });
+          
+        form.reset({
+            retailerId: 'simulated-retailer-id',
+            brandId: '',
+            campaignId: `campaign-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+            count: 100,
+            options: {
+              aiTone: 'Professional',
+              aiGoal: 'Drive sales',
+              aiPersona: 'Knowledgeable product expert',
+              aiGreeting: 'Hello! How can I help you with this product today?',
+              aiKeyPoints: '',
+              aiOffer: '',
+              aiRecommendations: '',
+              mediaType: undefined,
+              mediaUrl: '',
+              headline: '',
+              subhead: '',
+            }
+        });
+        setIsSaving(false);
     };
     
      const handlePrint = () => {
@@ -454,23 +472,23 @@ export default function BulkQRCodeGenerator() {
                                 </AccordionTrigger>
                                 <AccordionContent className="pt-4">
                                     <div className="space-y-4">
-                                        {mediaUrl && (
-                                            <div className="space-y-2">
+                                        <div className="space-y-2">
                                                 <Label>Media Preview</Label>
                                                 <div className="w-full max-w-[200px] aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden relative border">
-                                                    {mediaType === 'image' ? (
-                                                        <Image src={mediaUrl} alt="Media Preview" layout="fill" objectFit="contain" />
-                                                    ) : mediaType === 'video' ? (
-                                                        <video src={mediaUrl} controls className="w-full h-full object-contain" />
+                                                    {mediaUrl && mediaType ? (
+                                                        mediaType === 'image' ? (
+                                                            <Image src={mediaUrl} alt="Media Preview" layout="fill" objectFit="contain" />
+                                                        ) : (
+                                                            <video src={mediaUrl} controls className="w-full h-full object-contain" />
+                                                        )
                                                     ) : (
                                                         <div className="text-center text-muted-foreground p-4">
                                                             <ImageIcon className="h-8 w-8 mx-auto" />
-                                                            <p className="mt-2 text-xs">Select media type</p>
+                                                            <p className="mt-2 text-xs">Select media to see preview</p>
                                                         </div>
                                                     )}
                                                 </div>
-                                            </div>
-                                        )}
+                                        </div>
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
                                                 <Label htmlFor="headline">Headline</Label>

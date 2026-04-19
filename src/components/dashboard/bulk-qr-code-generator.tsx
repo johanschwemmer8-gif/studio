@@ -34,14 +34,13 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { saveQrCampaignDraft } from '@/ai/flows/save-qr-campaign-draft';
 import { getQrTemplates } from '@/ai/flows/get-qr-templates';
 import { QrTemplate } from '@/lib/schemas/qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, writeBatch, doc, serverTimestamp, addDoc } from 'firebase/firestore';
 
 
 const styleSchema = z.object({
@@ -277,22 +276,32 @@ export default function BulkQRCodeGenerator() {
             return;
         }
 
+        if (!db) {
+            toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
+            setIsSaving(false);
+            return;
+        }
+    
+        const requestData = {
+            retailerId: data.retailerId,
+            brandId: data.brandId,
+            campaignId: data.campaignId,
+            totalRequested: data.count,
+            status: 'DRAFT' as const,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            createdBy: 'simulated-user@example.com',
+            options: data.options || {},
+            itemsDone: 0,
+        };
+    
         try {
-            const result = await saveQrCampaignDraft({
-                ...data,
-                options: {
-                    ...data.options,
-                },
+            await addDoc(collection(db, 'bulkQrRequests'), requestData);
+            toast({
+                title: 'Job Saved!',
+                description: `Campaign "${data.campaignId}" has been saved as a draft.`,
             });
-
-            if (result.success) {
-                toast({
-                    title: 'Job Saved!',
-                    description: `Campaign "${data.campaignId}" has been saved as a draft.`,
-                });
-            } else {
-                throw new Error('Saving failed on the server.');
-            }
+            form.reset();
         } catch (error: any) {
             toast({
                 title: 'Save Failed',
@@ -522,17 +531,6 @@ export default function BulkQRCodeGenerator() {
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
                                 Queue Generation Job
                             </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    const dashboard = document.getElementById('job-dashboard');
-                                    dashboard?.scrollIntoView({ behavior: 'smooth' });
-                                }}
-                            >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Generation Jobs
-                            </Button>
                         </div>
                     </Card>
                 </form>
@@ -540,3 +538,5 @@ export default function BulkQRCodeGenerator() {
         </div>
     );
 }
+
+    

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -260,6 +259,13 @@ export default function BulkQRCodeGenerator() {
         }
     };
 
+    const handleViewJobs = () => {
+        const element = document.getElementById('job-dashboard');
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <div className="space-y-8">
             <div>
@@ -457,11 +463,9 @@ export default function BulkQRCodeGenerator() {
                                 <Printer className="mr-2 h-4 w-4" />
                                 Test Print
                             </Button>
-                            <Button asChild variant="secondary">
-                                <Link href="#job-dashboard">
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    View Generation Jobs
-                                </Link>
+                            <Button variant="secondary" onClick={handleViewJobs}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Generation Jobs
                             </Button>
                         </div>
                     </Card>

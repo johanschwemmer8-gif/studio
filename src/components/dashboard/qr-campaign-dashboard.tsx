@@ -71,6 +71,7 @@ const getDisplayDate = (timestamp: any) => {
     return 'Invalid Date';
 };
 
+const CHUNK_SIZE = 50; // Process 50 QR codes at a time to be safe
 
 function QrRequestDetails({ request }: { request: BulkRequest }) {
     const [items, setItems] = useState<QrItem[]>([]);
@@ -339,10 +340,7 @@ export default function QrCampaignDashboard() {
                 ...doc.data(),
             }));
 
-            setRequests(fetchedRequests.map(r => ({ 
-                ...r, 
-                itemsDone: r.status === 'COMPLETED' ? r.totalRequested : (r.itemsDone || 0)
-            })));
+            setRequests(fetchedRequests);
             setLoading(false);
         }, (error) => {
             console.error("Error fetching QR requests:", error);
@@ -382,89 +380,104 @@ export default function QrCampaignDashboard() {
         }
     };
 
-    const handleProcessJob = async (request: BulkRequest) => {
-        setProcessingIds(prev => [...prev, request.id]);
+    const processRequestInChunks = async (request: BulkRequest) => {
         if (!db) {
             toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
-            setProcessingIds(prev => prev.filter(id => id !== request.id));
             return;
         }
-    
+        
+        const requestRef = doc(db, 'bulkQrRequests', request.id);
+
         try {
-            const requestRef = doc(db, 'bulkQrRequests', request.id);
-    
             await updateDoc(requestRef, { status: 'PROCESSING', updatedAt: new Date() });
-    
-            const batch = writeBatch(db);
-            const itemsRef = collection(db, `bulkQrRequests/${request.id}/items`);
-            
-            for (let i = 0; i < request.totalRequested; i++) {
-                const qrCodeId = doc(collection(db, 'id_generator')).id;
-                const itemRef = doc(itemsRef, qrCodeId);
+
+            let itemsDone = 0;
+            while (itemsDone < request.totalRequested) {
+                const batch = writeBatch(db);
+                const itemsRef = collection(db, `bulkQrRequests/${requestRef.id}/items`);
+                const qrcodesRef = collection(db, 'qrcodes');
+
+                const currentChunkSize = Math.min(CHUNK_SIZE, request.totalRequested - itemsDone);
                 
-                const qrOptions = request.options || {};
-                const qrColor = (qrOptions.colorHex || '#000000').replace('#', '');
-                const qrBgColor = (qrOptions.bgColorHex || '#FFFFFF').replace('#', '');
-                const qrError = qrOptions.errorCorrection || 'M';
-    
-                const trackingUrl = `${window.location.origin}/track/${qrCodeId}`;
-                const encodedQrData = encodeURIComponent(trackingUrl);
-                let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
-                const storagePath = `qr/${request.retailerId}/${request.campaignId}/${qrCodeId}.png`;
-    
-                const itemData = {
-                    index: i,
-                    qrCodeId: qrCodeId,
-                    redirectUrl: `/product/1`,
-                    trackingUrl: trackingUrl,
-                    signedUrl: generatedQrUrl,
-                    storagePath: storagePath,
-                    status: 'DONE',
-                    checksum: '',
-                };
-                batch.set(itemRef, itemData);
-    
-                const qrMasterRef = doc(db, 'qrcodes', qrCodeId);
-                 batch.set(qrMasterRef, {
-                    retailerId: request.retailerId,
-                    campaignId: request.campaignId,
-                    qrCodeId: qrCodeId,
-                    requestId: request.id,
-                    redirectUrl: `/product/1`,
-                    trackingUrl: trackingUrl,
-                    storagePath: storagePath,
-                    signedUrl: generatedQrUrl,
-                    scanCount: 0,
-                    createdAt: new Date(),
-                    expiresAt: request.options?.expiresAt ? new Date(request.options.expiresAt) : null,
-                    aiProfileId: null,
+                for (let i = 0; i < currentChunkSize; i++) {
+                    const qrCodeId = doc(collection(db, 'id_generator')).id;
+                    const itemRef = doc(itemsRef, qrCodeId);
+                    
+                    const qrOptions = request.options || {};
+                    const qrColor = (qrOptions.colorHex || '#000000').replace('#', '');
+                    const qrBgColor = (qrOptions.bgColorHex || '#FFFFFF').replace('#', '');
+                    const qrError = qrOptions.errorCorrection || 'M';
+
+                    const trackingUrl = `${window.location.origin}/track/${qrCodeId}`;
+                    const encodedQrData = encodeURIComponent(trackingUrl);
+                    let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
+                    const storagePath = `qr/${request.retailerId}/${request.campaignId}/${qrCodeId}.png`;
+
+                    const itemData = {
+                        index: itemsDone + i,
+                        qrCodeId: qrCodeId,
+                        redirectUrl: `/product/1`,
+                        trackingUrl: trackingUrl,
+                        signedUrl: generatedQrUrl,
+                        storagePath: storagePath,
+                        status: 'DONE' as const,
+                        checksum: '',
+                    };
+                    batch.set(itemRef, itemData);
+
+                    const qrMasterRef = doc(db, 'qrcodes', qrCodeId);
+                    batch.set(qrMasterRef, {
+                        retailerId: request.retailerId,
+                        campaignId: request.campaignId,
+                        qrCodeId: qrCodeId,
+                        requestId: request.id,
+                        redirectUrl: `/product/1`,
+                        trackingUrl: trackingUrl,
+                        storagePath: storagePath,
+                        signedUrl: generatedQrUrl,
+                        scanCount: 0,
+                        createdAt: new Date(),
+                        expiresAt: request.options?.expiresAt ? new Date(request.options.expiresAt) : null,
+                        aiProfileId: null,
+                    });
+                }
+                
+                await batch.commit();
+                itemsDone += currentChunkSize;
+                
+                await updateDoc(requestRef, {
+                    itemsDone: itemsDone,
+                    updatedAt: new Date()
                 });
+
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
-    
-            await batch.commit();
-    
+            
             await updateDoc(requestRef, {
                 status: 'COMPLETED',
-                itemsDone: request.totalRequested,
                 updatedAt: new Date()
             });
-    
+
             toast({
                 title: 'Campaign Processed!',
                 description: `"${request.campaignId}" is now complete and ready for download.`,
             });
-    
+            
         } catch (error: any) {
-            toast({
+             toast({
                 title: "Processing Failed",
                 description: error.message,
                 variant: 'destructive',
             });
-            const requestRef = doc(db, 'bulkQrRequests', request.id);
             await updateDoc(requestRef, { status: 'DRAFT' });
-        } finally {
-            setProcessingIds(prev => prev.filter(id => id !== request.id));
         }
+    };
+
+    const handleProcessJob = (request: BulkRequest) => {
+        setProcessingIds(prev => [...prev, request.id]);
+        processRequestInChunks(request).finally(() => {
+             setProcessingIds(prev => prev.filter(id => id !== request.id));
+        });
     };
 
     if (loading) {
@@ -495,9 +508,9 @@ export default function QrCampaignDashboard() {
                     ) : (
                         <div className="space-y-4">
                             {requests.map(req => {
-                                const progress = req.totalRequested > 0 ? (req.itemsDone / req.totalRequested) * 100 : 0;
+                                const progress = req.totalRequested > 0 ? ((req.itemsDone || 0) / req.totalRequested) * 100 : 0;
                                 const isDownloading = downloadingIds.includes(req.id);
-                                const isProcessing = processingIds.includes(req.id);
+                                const isProcessing = processingIds.includes(req.id) || req.status === 'PROCESSING';
                                 return (
                                     <Card key={req.id} className="flex flex-col sm:flex-row">
                                         <CardHeader className="flex-1">
@@ -515,7 +528,7 @@ export default function QrCampaignDashboard() {
                                                 <div>
                                                     <div className="flex justify-between text-sm font-medium mb-1">
                                                         <span>{req.status}</span>
-                                                        <span>{req.itemsDone} / {req.totalRequested}</span>
+                                                        <span>{req.itemsDone || 0} / {req.totalRequested}</span>
                                                     </div>
                                                     <Progress value={progress} />
                                                 </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -35,7 +36,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { getQrTemplates } from '@/ai/flows/get-qr-templates';
-import type { QrTemplate } from '@/lib/schemas/qr-templates';
+import { QrTemplate } from '@/lib/schemas/qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import Link from 'next/link';
@@ -112,6 +113,7 @@ export default function BulkQRCodeGenerator() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             retailerId: 'simulated-retailer-id',
+            brandId: '',
             campaignId: `campaign-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
             count: 100,
             options: {

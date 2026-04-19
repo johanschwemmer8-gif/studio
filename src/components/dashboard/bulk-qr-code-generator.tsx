@@ -308,6 +308,7 @@ export default function BulkQRCodeGenerator() {
             itemsDone: 0,
         };
     
+        // Fire-and-forget the database operation
         addDoc(collection(db, 'bulkQrRequests'), requestData)
           .then(() => {
             toast({
@@ -318,11 +319,13 @@ export default function BulkQRCodeGenerator() {
           .catch((error: any) => {
             toast({
               title: 'Save Failed',
-              description: error.message,
+              description: `The save operation failed in the background: ${error.message}`,
               variant: 'destructive',
             });
           });
           
+        // Immediately update UI
+        setIsSaving(false);
         form.reset({
             retailerId: 'simulated-retailer-id',
             brandId: '',
@@ -342,7 +345,6 @@ export default function BulkQRCodeGenerator() {
               subhead: '',
             }
         });
-        setIsSaving(false);
     };
     
      const handlePrint = () => {

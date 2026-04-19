@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -31,6 +30,7 @@ import {
   Image as ImageIcon,
   Video,
   Upload,
+  Eye,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
@@ -38,6 +38,7 @@ import { getQrTemplates } from '@/ai/flows/get-qr-templates';
 import type { QrTemplate } from '@/lib/schemas/qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import Link from 'next/link';
 
 const styleSchema = z.object({
   logoPath: z.string().url().optional().or(z.literal('')),
@@ -161,7 +162,6 @@ export default function BulkQRCodeGenerator() {
         try {
             const result = await submitBulkQrRequest({
               ...data,
-              baseRedirect: 'https://interact.io/placeholder', // This is no longer used but the backend flow still expects it.
               options: {
                 errorCorrection: "M",
                 redirectType: "temporary",
@@ -408,6 +408,12 @@ export default function BulkQRCodeGenerator() {
                                 <Printer className="mr-2 h-4 w-4" />
                                 Test Print
                             </Button>
+                            <Button asChild variant="secondary">
+                                <Link href="#job-dashboard">
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Generation Jobs
+                                </Link>
+                            </Button>
                         </div>
                     </Card>
                 </form>
@@ -415,4 +421,3 @@ export default function BulkQRCodeGenerator() {
         </div>
     );
 }
-

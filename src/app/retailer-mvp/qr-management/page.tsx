@@ -1,4 +1,3 @@
-
 'use client';
 
 import BulkQRCodeGenerator from '@/components/dashboard/bulk-qr-code-generator';
@@ -11,7 +10,9 @@ export default function QrManagementPage() {
         <div className="space-y-8">
             <BulkQRCodeGenerator />
             <Separator />
-            <QrCampaignDashboard />
+            <div id="job-dashboard">
+                <QrCampaignDashboard />
+            </div>
             <Separator />
             <BrandQrTemplateGallery />
         </div>

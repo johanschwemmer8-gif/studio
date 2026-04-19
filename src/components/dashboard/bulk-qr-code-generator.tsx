@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -22,19 +21,19 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import {
   RefreshCw,
   Loader2,
-  Link as LinkIcon,
   Sparkles,
-  PlusCircle,
   Store,
   Send,
   Printer,
-  Image as ImageIcon,
+  ImageIcon,
   Video,
   Upload,
   Eye,
+  Save,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
+import { saveQrCampaignDraft } from '@/ai/flows/save-qr-campaign-draft';
 import { getQrTemplates } from '@/ai/flows/get-qr-templates';
 import { QrTemplate } from '@/lib/schemas/qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
@@ -74,6 +73,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function BulkQRCodeGenerator() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [templates, setTemplates] = useState<QrTemplate[]>([]);
     const [mediaInputMethod, setMediaInputMethod] = useState<'url' | 'upload'>('url');
     const [brands, setBrands] = useState<BrandFormValues['brands']>([]);
@@ -183,12 +183,53 @@ export default function BulkQRCodeGenerator() {
 
         } catch (error: any) {
              toast({
-                title: 'Submission Failed',
+                title: "Submission Failed",
                 description: error.message,
                 variant: 'destructive',
             });
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleSaveJob = async () => {
+        setIsSaving(true);
+        const data = form.getValues();
+        const isValid = await form.trigger();
+        if (!isValid) {
+            toast({
+                title: 'Validation Error',
+                description: 'Please fill in all required fields before saving.',
+                variant: 'destructive',
+            });
+            setIsSaving(false);
+            return;
+        }
+
+        try {
+            const result = await saveQrCampaignDraft({
+                ...data,
+                options: {
+                    ...data.options,
+                },
+            });
+
+            if (result.success) {
+                toast({
+                    title: 'Job Saved!',
+                    description: `Campaign "${data.campaignId}" has been saved as a draft.`,
+                });
+            } else {
+                throw new Error('Saving failed on the server.');
+            }
+        } catch (error: any) {
+            toast({
+                title: 'Save Failed',
+                description: error.message,
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSaving(false);
         }
     };
     
@@ -402,7 +443,11 @@ export default function BulkQRCodeGenerator() {
                              </AccordionItem>
                         </Accordion>
                         <div className="flex flex-wrap gap-2 mt-6">
-                            <Button type="submit" disabled={isSubmitting}>
+                            <Button type="button" variant="secondary" onClick={handleSaveJob} disabled={isSaving || isSubmitting}>
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
+                                Save Generation Job
+                            </Button>
+                            <Button type="submit" disabled={isSubmitting || isSaving}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
                                 Queue Generation Job
                             </Button>

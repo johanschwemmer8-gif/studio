@@ -380,7 +380,7 @@ export default function QrCampaignDashboard() {
                                         <CardHeader className="flex-1">
                                             <CardTitle className="text-lg">{req.campaignId}</CardTitle>
                                             <CardDescription>
-                                                {new Date(req.createdAt.toDate()).toLocaleString()}
+                                                {req.createdAt ? new Date(req.createdAt.toDate()).toLocaleString() : 'Date pending...'}
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="pt-6 flex-1 space-y-3">

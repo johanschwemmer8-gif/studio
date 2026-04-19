@@ -200,7 +200,7 @@ export default function UiManagementPage() {
                                 "w-full aspect-[9/19.5] rounded-md border-2 p-2 bg-muted/50 transition-all",
                                 selectedTemplate === template.id ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-muted-foreground"
                             )}>
-                                <template.component logoPreview={null} logoWidth={0} logoAlign="" logoPadding={0} isThumbnail={true} />
+                                <template.component logoPreview={logoPreview} logoWidth={logoWidth} logoAlign={logoAlign} logoPadding={logoPadding} isThumbnail={true} />
                             </div>
                             <p className="text-center text-sm font-medium mt-2">{template.name}</p>
                         </div>

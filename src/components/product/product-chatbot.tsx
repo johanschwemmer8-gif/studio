@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -14,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Send, Sparkles } from 'lucide-react';
+import { MessageCircle, Send, Sparkles, QrCode } from 'lucide-react';
 import type { Product } from '@/lib/data';
 import { productChat, type ProductChatInput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
   const [input, setInput] = useState('');
   const [isPending, startTransition] = useTransition();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -57,6 +59,15 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
       const result = await productChat(chatInput);
       setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
     });
+  };
+
+  const handleSimulateScan = () => {
+    const otherProductId = product.id === '1' ? '2' : '1';
+    setIsOpen(false);
+    // A slight delay to allow the sheet to close before navigating
+    setTimeout(() => {
+        router.push(`/product/${otherProductId}`);
+    }, 200);
   };
 
   useEffect(() => {
@@ -126,8 +137,12 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
               )}
             </div>
           </ScrollArea>
-          <SheetFooter>
-            <form onSubmit={handleSendMessage} className="flex w-full gap-2 pt-4">
+          <SheetFooter className="flex-col gap-2 pt-4">
+            <Button variant="outline" onClick={handleSimulateScan}>
+              <QrCode className="mr-2 h-4 w-4" />
+              Scan Another Item
+            </Button>
+            <form onSubmit={handleSendMessage} className="flex w-full gap-2">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Image as ImageIcon, Palette, LayoutTemplate } from 'lucide-react';
+import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Image as ImageIcon, Palette, LayoutTemplate, Sparkles, Link2 } from 'lucide-react';
 import PhoneMockup from '@/components/dashboard/phone-mockup';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -107,7 +106,8 @@ export default function UiManagementPage() {
   const [logoPadding, setLogoPadding] = useState(0);
   const [selectedTemplate, setSelectedTemplate] = useState('template1');
   const [landingPageUrl, setLandingPageUrl] = useState('');
-
+  const [scanDestination, setScanDestination] = useState<'url' | 'ai'>('url');
+  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -124,6 +124,8 @@ export default function UiManagementPage() {
     if (savedTemplate) setSelectedTemplate(savedTemplate);
     const savedUrl = localStorage.getItem('landing-page-url');
     if (savedUrl) setLandingPageUrl(savedUrl);
+    const savedDestination = localStorage.getItem('scan-destination');
+    if (savedDestination) setScanDestination(savedDestination as 'url' | 'ai');
   }, []);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,6 +152,7 @@ export default function UiManagementPage() {
           localStorage.removeItem('landing-page-logo-padding');
       }
       localStorage.setItem('selected-ui-template', selectedTemplate);
+      localStorage.setItem('scan-destination', scanDestination);
       localStorage.setItem('landing-page-url', landingPageUrl);
 
       // Dispatch a custom event to notify other components (like the preview) of the change
@@ -219,24 +222,51 @@ export default function UiManagementPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div>
-                        <Label htmlFor="landing-page-url">Landing Page URL</Label>
-                        <Input
-                            id="landing-page-url"
-                            type="url"
-                            placeholder="https://yourstore.com/product/..."
-                            value={landingPageUrl}
-                            onChange={(e) => setLandingPageUrl(e.target.value)}
-                            className="mt-2"
-                        />
-                         <p className="text-xs text-muted-foreground mt-1">This is the destination URL for the QR code.</p>
+                     <div className="space-y-2">
+                        <Label>On-Scan Destination</Label>
+                        <RadioGroup value={scanDestination} onValueChange={(value) => setScanDestination(value as 'url' | 'ai')} className="flex gap-4">
+                            <Label htmlFor="dest-url" className="flex items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
+                                <RadioGroupItem value="url" id="dest-url" />
+                                <Link2 className="h-4 w-4 mr-1" />
+                                <span>Landing Page</span>
+                            </Label>
+                            <Label htmlFor="dest-ai" className="flex items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
+                                <RadioGroupItem value="ai" id="dest-ai" />
+                                <Sparkles className="h-4 w-4 mr-1" />
+                                <span>AI Assistant</span>
+                            </Label>
+                        </RadioGroup>
+                        <p className="text-xs text-muted-foreground mt-1">Choose what the customer sees immediately after scanning.</p>
                     </div>
+
+                    {scanDestination === 'url' && (
+                        <div>
+                            <Label htmlFor="landing-page-url">Landing Page URL</Label>
+                            <Input
+                                id="landing-page-url"
+                                type="url"
+                                placeholder="https://yourstore.com/product/..."
+                                value={landingPageUrl}
+                                onChange={(e) => setLandingPageUrl(e.target.value)}
+                                className="mt-2"
+                            />
+                             <p className="text-xs text-muted-foreground mt-1">This is the destination URL for the QR code.</p>
+                        </div>
+                    )}
+                    {scanDestination === 'ai' && (
+                        <div className="p-4 border rounded-lg bg-muted/50 text-center">
+                             <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                <Sparkles className="h-6 w-6" />
+                                <p className="text-sm">The QR code will open the AI Assistant on scan.</p>
+                             </div>
+                        </div>
+                    )}
 
                     <div>
                         <Label htmlFor="logo-upload-landing">Landing Page Logo</Label>
                         <Input id="logo-upload-landing" type="file" accept="image/*" onChange={handleLogoUpload} className="mt-2" />
                     </div>
-                    <div className="space-y-2">
+                     <div className="space-y-2">
                         <Label>Logo Preview</Label>
                         <div className="p-4 border rounded-lg bg-muted/50 min-h-[120px] flex items-center justify-center">
                             <div style={{ width: '100%', textAlign: logoAlign.replace('flex-start', 'left').replace('flex-end', 'right') as 'left' | 'center' | 'right' }}>
@@ -245,7 +275,7 @@ export default function UiManagementPage() {
                                         src={logoPreview}
                                         alt="Logo Preview"
                                         width={logoWidth}
-                                        height={logoWidth / (128 / 50)} // Maintain aspect ratio
+                                        height={logoWidth / (128 / 50)}
                                         className="inline-block transition-all"
                                         style={{ width: `${logoWidth}px` }}
                                     />

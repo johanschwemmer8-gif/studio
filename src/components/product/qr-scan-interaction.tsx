@@ -12,6 +12,9 @@ import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
+const AI_CONTENT_HEADLINE_KEY = 'ai-content-headline';
+const AI_CONTENT_SUBHEADING_KEY = 'ai-content-subheading';
+
 type QrScanInteractionProps = {
   qrId: string;
 };
@@ -41,16 +44,26 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
   const [displayedMessages, setDisplayedMessages] = useState<string[]>([]);
   const router = useRouter();
 
+  const [globalContent, setGlobalContent] = useState<{ headline: string | null; subhead: string | null }>({ headline: null, subhead: null });
+
   useEffect(() => {
     const fetchInteraction = async () => {
+      const savedHeadline = localStorage.getItem(AI_CONTENT_HEADLINE_KEY);
+      const savedSubheading = localStorage.getItem(AI_CONTENT_SUBHEADING_KEY);
+      setGlobalContent({ headline: savedHeadline, subhead: savedSubheading });
+      
       try {
         const result = await getScanInteraction({ qrId });
-        // If there's no AI message but there IS media, we show the page.
-        // If there's no media and no message, we redirect immediately.
-        if (!result.messages?.length && !result.mediaUrl) {
+        
+        const hasCampaignContent = result.mediaUrl || result.headline || result.subhead;
+        const hasGlobalContent = savedHeadline || savedSubheading;
+        const hasMessages = result.messages && result.messages.length > 0;
+
+        if (!hasCampaignContent && !hasGlobalContent && !hasMessages) {
            window.location.href = result.destinationUrl;
            return;
         }
+
         setData(result);
       } catch (e: any) {
         setError(e.message || 'An unexpected error occurred.');
@@ -116,21 +129,23 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
     );
   }
   
+  const displayHeadline = data?.headline || globalContent.headline;
+  const displaySubhead = data?.subhead || globalContent.subhead;
   const showContinueButton = !data?.messages?.length || displayedMessages.length === data.messages.length;
 
   return (
     <div className="flex flex-col min-h-screen bg-background p-6">
       <div className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-end">
         {/* Media and Headline Section */}
-        {data?.mediaUrl && (
+        {(data?.mediaUrl || displayHeadline || displaySubhead) && (
             <div className="mb-6 text-center">
-                {data.mediaType === 'video' ? (
+                {data?.mediaType === 'video' ? (
                     <video src={data.mediaUrl} controls autoPlay muted loop className="w-full rounded-lg shadow-lg aspect-video object-cover" />
-                ) : (
+                ) : data?.mediaUrl ? (
                     <Image src={data.mediaUrl} alt={data.headline || 'Campaign Media'} width={400} height={225} className="w-full rounded-lg shadow-lg object-cover aspect-video" />
-                )}
-                {data.headline && <h1 className="text-2xl font-bold mt-4">{data.headline}</h1>}
-                {data.subhead && <p className="text-muted-foreground mt-1">{data.subhead}</p>}
+                ) : null}
+                {displayHeadline && <h1 className="text-2xl font-bold mt-4">{displayHeadline}</h1>}
+                {displaySubhead && <p className="text-muted-foreground mt-1">{displaySubhead}</p>}
             </div>
         )}
         

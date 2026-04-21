@@ -14,7 +14,7 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, MonitorSmartphone, Settings, BrainCircuit, Palette, Video, Shield } from 'lucide-react';
+import { BarChart, Beaker, Blocks, Home, Network, QrCode, Server, TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, MonitorSmartphone, Settings, BrainCircuit, Palette, Video, Shield, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 import theme from '@/config/theme.json';
@@ -89,6 +89,11 @@ export default function RetailerSidebar({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="AI Content">
+                    <Link href="/retailer-mvp/ai-content"><MessageSquare /><span>AI Content</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Brands">
                     <Link href="/retailer-mvp/brands"><Palette /><span>Brands</span></Link>

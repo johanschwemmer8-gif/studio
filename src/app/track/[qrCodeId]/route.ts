@@ -47,7 +47,6 @@ export async function GET(
                 referrer: request.headers.get('referer') || '',
             });
             
-            // For external codes, we still redirect directly as they might not have AI profiles.
             return { redirectUrl: externalData.originalUrl };
         }
         
@@ -72,9 +71,23 @@ export async function GET(
             ip: request.ip || '',
             referrer: request.headers.get('referer') || '',
         });
+
+        // Fetch the campaign request to check for scan destination
+        if (data.requestId) {
+            const requestRef = db.collection('bulkQrRequests').doc(data.requestId);
+            const requestDoc = await transaction.get(requestRef); // Read inside transaction
+            if (requestDoc.exists) {
+                const requestData = requestDoc.data()!;
+                const scanDestination = requestData.options?.scanDestination;
+                const landingPageUrl = requestData.options?.landingPageUrl;
+
+                if (scanDestination === 'url' && landingPageUrl) {
+                    return { redirectUrl: landingPageUrl }; // Redirect to custom URL
+                }
+            }
+        }
         
-        // For all iNteract-generated codes, redirect to the interaction screen.
-        // The interaction screen will handle the final redirect to `data.redirectUrl`.
+        // Default behavior: redirect to the interaction screen.
         return { redirectUrl: `/scan/${qrCodeId}` };
     });
 

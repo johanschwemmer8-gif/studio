@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -65,6 +66,9 @@ const styleSchema = z.object({
   bgColorHex: z.string().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).optional(),
   expiresAt: z.string().datetime().optional(),
+  // Scan Destination
+  scanDestination: z.enum(['url', 'ai']).optional(),
+  landingPageUrl: z.string().url().optional().or(z.literal('')),
 });
 
 const formSchema = z.object({
@@ -104,6 +108,8 @@ export default function BulkQRCodeGenerator() {
               mediaUrl: '',
               headline: '',
               subhead: '',
+              scanDestination: 'ai',
+              landingPageUrl: '',
             }
         },
     });
@@ -140,7 +146,17 @@ export default function BulkQRCodeGenerator() {
                 variant: 'destructive',
             });
         }
-    }, [toast]);
+
+        const savedDestination = localStorage.getItem('scan-destination') as 'url' | 'ai' | null;
+        const savedUrl = localStorage.getItem('landing-page-url');
+        
+        if (savedDestination) {
+            form.setValue('options.scanDestination', savedDestination);
+        }
+        if (savedUrl) {
+            form.setValue('options.landingPageUrl', savedUrl);
+        }
+    }, [toast, form]);
 
     const handleTemplateChange = (templateId: string) => {
         const selectedTemplate = templates.find(t => t.templateId === templateId);

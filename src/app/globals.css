@@ -76,8 +76,10 @@
 
 .login-page {
   background-color: hsl(222 47% 11%); /* Deep Navy */
-  background-image: radial-gradient(ellipse at top, hsl(210 100% 20% / 0.5), transparent),
-                    radial-gradient(ellipse at bottom, hsl(222 47% 21% / 0.8), transparent);
+  background-image: 
+    radial-gradient(ellipse 50% 80% at 20% 40%, hsl(var(--accent) / 0.1), transparent),
+    radial-gradient(ellipse at top, hsl(210 100% 20% / 0.5), transparent),
+    radial-gradient(ellipse at bottom, hsl(var(--primary) / 0.8), transparent);
   background-size: cover;
   background-position: center;
 }

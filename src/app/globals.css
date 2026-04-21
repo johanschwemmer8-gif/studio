@@ -74,13 +74,6 @@
     }
 }
 
-.login-page {
-  background-image: url('/images/login-background.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
 .login-card {
   background-color: hsl(222 47% 15% / 0.7);
   backdrop-filter: blur(8px);

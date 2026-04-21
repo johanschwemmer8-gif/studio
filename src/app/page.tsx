@@ -116,7 +116,15 @@ function LoginPageContent() {
 
 
   return (
-    <div className="login-page flex items-center justify-center min-h-screen p-4">
+    <div
+      className="flex items-center justify-center min-h-screen p-4"
+      style={{
+          backgroundImage: "url('/images/login-background.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+      }}
+    >
       <Tabs defaultValue={view === 'retailer' ? 'retailer' : 'admin'} className="w-full max-w-sm">
         {view !== 'retailer' && (
           <TabsList className="grid w-full grid-cols-2">

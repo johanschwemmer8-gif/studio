@@ -73,32 +73,3 @@
         @apply bg-card/60 backdrop-blur-xl border border-border/20 shadow-sm;
     }
 }
-
-.login-card {
-  background-color: hsl(222 47% 15% / 0.7);
-  backdrop-filter: blur(8px);
-  border-color: hsl(217 32.6% 25% / 0.5);
-  color: hsl(210 40% 98%);
-}
-
-.login-card .card-header .card-title,
-.login-card .card-header .card-description,
-.login-card .card-content label,
-.login-card .card-footer,
-.login-card .text-muted-foreground {
-  color: hsl(215 20.2% 80.1%);
-}
-
-.login-card .card-header .card-title {
-    color: hsl(210 40% 98%);
-}
-
-.login-card .card-content input {
-  background-color: hsl(217 32.6% 17.5% / 0.8);
-  border-color: hsl(217 32.6% 25%);
-  color: hsl(210 40% 98%);
-}
-
-.login-card .card-content input::placeholder {
-  color: hsl(215 20.2% 65.1% / 0.8);
-}

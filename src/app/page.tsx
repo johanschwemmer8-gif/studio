@@ -119,10 +119,10 @@ function LoginPageContent() {
     <div
       className="flex items-center justify-center min-h-screen p-4"
       style={{
-          backgroundImage: "url('/images/login-background.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+        backgroundImage: "url('/images/login-background.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <Tabs defaultValue={view === 'retailer' ? 'retailer' : 'admin'} className="w-full max-w-sm">
@@ -135,7 +135,7 @@ function LoginPageContent() {
         
         {/* Admin Login Tab */}
         <TabsContent value="admin">
-          <Card className="login-card">
+          <Card>
             <form onSubmit={(e) => handleLogin(e, 'admin')}>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">Admin Login</CardTitle>
@@ -231,7 +231,7 @@ function LoginPageContent() {
         
         {/* Retailer Login Tab */}
         <TabsContent value="retailer">
-           <Card className="login-card">
+           <Card>
             <form onSubmit={(e) => handleLogin(e, 'retailer')}>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">Retailer Login</CardTitle>

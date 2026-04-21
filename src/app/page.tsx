@@ -116,7 +116,7 @@ function LoginPageContent() {
 
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
+    <div className="login-page flex items-center justify-center min-h-screen p-4">
       <Tabs defaultValue={view === 'retailer' ? 'retailer' : 'admin'} className="w-full max-w-sm">
         {view !== 'retailer' && (
           <TabsList className="grid w-full grid-cols-2">
@@ -127,7 +127,7 @@ function LoginPageContent() {
         
         {/* Admin Login Tab */}
         <TabsContent value="admin">
-          <Card>
+          <Card className="login-card">
             <form onSubmit={(e) => handleLogin(e, 'admin')}>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">Admin Login</CardTitle>
@@ -223,7 +223,7 @@ function LoginPageContent() {
         
         {/* Retailer Login Tab */}
         <TabsContent value="retailer">
-           <Card>
+           <Card className="login-card">
             <form onSubmit={(e) => handleLogin(e, 'retailer')}>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">Retailer Login</CardTitle>

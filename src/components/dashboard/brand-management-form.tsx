@@ -8,35 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { PlusCircle, Trash2, Save, Building2, Upload, Palette, Building, Map, MapPin, Video } from 'lucide-react';
+import { PlusCircle, Trash2, Save, Building2, Upload, Palette, Video } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
-const storeSchema = z.object({
-  name: z.string().min(1, 'Store name is required'),
-  code: z.string().min(1, 'Store code is required'),
-});
-
-const areaSchema = z.object({
-    name: z.string().min(1, 'Area name is required'),
-    stores: z.array(storeSchema),
-});
-
-const regionSchema = z.object({
-    name: z.string().min(1, 'Region name is required'),
-    areas: z.array(areaSchema),
-});
-
-const divisionSchema = z.object({
-    name: z.string().min(1, 'Division name is required'),
-    regions: z.array(regionSchema),
-});
-
 const colorRegex = /^#[0-9a-f]{6}$/i;
 const hexColorSchema = z.string().regex(colorRegex, "Must be a valid hex color");
 
+// Simplified schema for a single supplier brand
 const brandSchema = z.object({
   name: z.string().min(1, 'Brand name is required'),
   logoUrl: z.string().url().or(z.literal('')),
@@ -52,7 +33,6 @@ const brandSchema = z.object({
       type: z.enum(['image', 'video']).optional(),
       url: z.string().url("Must be a valid URL").or(z.literal('')).optional(),
   }).optional(),
-  divisions: z.array(divisionSchema),
 });
 
 const formSchema = z.object({
@@ -91,7 +71,16 @@ export default function BrandManagementForm() {
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData);
-        form.reset(parsedData);
+        // Ensure the loaded data structure matches the new simplified one
+        if (parsedData.brands && Array.isArray(parsedData.brands)) {
+            const sanitizedBrands = parsedData.brands.map((brand: any) => ({
+                name: brand.name || '',
+                logoUrl: brand.logoUrl || '',
+                colors: brand.colors || defaultColors,
+                advertisement: brand.advertisement || { type: 'image', url: '' },
+            }));
+            form.reset({ brands: sanitizedBrands });
+        }
       } catch (error) {
         console.error("Failed to parse brand management data from localStorage", error);
       }
@@ -101,8 +90,8 @@ export default function BrandManagementForm() {
   const onSubmit = (data: FormValues) => {
     localStorage.setItem('brandManagement', JSON.stringify(data));
     toast({
-      title: 'Brands Saved!',
-      description: 'Your brand and store structure has been updated.',
+      title: 'Supplier Brands Saved!',
+      description: 'Your supplier brand information has been updated.',
     });
   };
 
@@ -110,9 +99,9 @@ export default function BrandManagementForm() {
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
        <Card>
         <CardHeader>
-            <CardTitle>Brand Management</CardTitle>
+            <CardTitle>Supplier Brand Management</CardTitle>
             <CardDescription>
-                Define your organization's brands, their specific branding (logo, colors), and the stores within them.
+                Define your supplier brands, their specific branding (logo, colors), and advertisement media.
             </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -129,9 +118,9 @@ export default function BrandManagementForm() {
             <Button
             type="button"
             variant="outline"
-            onClick={() => appendBrand({ name: '', logoUrl: '', colors: defaultColors, advertisement: { type: 'image', url: '' }, divisions: [] })}
+            onClick={() => appendBrand({ name: '', logoUrl: '', colors: defaultColors, advertisement: { type: 'image', url: '' } })}
             >
-            <PlusCircle className="mr-2" /> Add Brand
+            <PlusCircle className="mr-2" /> Add Supplier Brand
             </Button>
             <Button type="submit">
             <Save className="mr-2" /> Save Configuration
@@ -144,11 +133,7 @@ export default function BrandManagementForm() {
 
 function BrandCard({ brandIndex, removeBrand, ...form }: { brandIndex: number, removeBrand: (index: number) => void } & BrandForm) {
   const { control, register, watch, setValue } = form;
-  const { fields: divisionFields, append: appendDivision, remove: removeDivision } = useFieldArray({
-    control,
-    name: `brands.${brandIndex}.divisions`,
-  });
-
+  
   const logoUrl = watch(`brands.${brandIndex}.logoUrl`);
   const adUrl = watch(`brands.${brandIndex}.advertisement.url`);
   const adType = watch(`brands.${brandIndex}.advertisement.type`);
@@ -164,7 +149,8 @@ function BrandCard({ brandIndex, removeBrand, ...form }: { brandIndex: number, r
           reader.readAsDataURL(file);
       }
   };
-    const colorFields: {name: keyof typeof defaultColors, label: string}[] = [
+
+  const colorFields: {name: keyof typeof defaultColors, label: string}[] = [
       { name: 'primary', label: 'Primary' },
       { name: 'secondary', label: 'Secondary' },
       { name: 'accent', label: 'Accent' },
@@ -179,7 +165,7 @@ function BrandCard({ brandIndex, removeBrand, ...form }: { brandIndex: number, r
         <CardTitle className="text-lg flex-grow">
           <Input
             {...register(`brands.${brandIndex}.name`)}
-            placeholder="Brand Name"
+            placeholder="Supplier Brand Name"
             className="text-lg font-semibold p-0 h-auto border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
           />
         </CardTitle>
@@ -251,121 +237,7 @@ function BrandCard({ brandIndex, removeBrand, ...form }: { brandIndex: number, r
                 </div>
             )}
         </div>
-
-        {/* Organizational Structure Section */}
-        <div className="space-y-4 p-4 border rounded-md bg-background/50">
-            <h4 className="font-medium flex items-center gap-2"><Building className="text-primary"/> Organizational Structure</h4>
-            {divisionFields.map((divisionField, divisionIndex) => (
-              <DivisionCard key={divisionField.id} brandIndex={brandIndex} divisionIndex={divisionIndex} removeDivision={removeDivision} {...form} />
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => appendDivision({ name: '', regions: [] })}>
-              <PlusCircle className="mr-2" /> Add Division
-            </Button>
-        </div>
       </CardContent>
     </Card>
   );
-}
-
-function DivisionCard({ brandIndex, divisionIndex, removeDivision, ...form }: { brandIndex: number, divisionIndex: number, removeDivision: (index: number) => void } & BrandForm) {
-    const { control, register } = form;
-    const { fields: regionFields, append: appendRegion, remove: removeRegion } = useFieldArray({
-        control,
-        name: `brands.${brandIndex}.divisions.${divisionIndex}.regions`,
-    });
-
-    return (
-        <Card className="bg-muted/80">
-            <CardHeader className="flex-row items-center gap-2 justify-between p-3">
-                <div className="flex items-center gap-2 flex-grow">
-                    <Map className="h-5 w-5 text-muted-foreground"/>
-                    <Input {...register(`brands.${brandIndex}.divisions.${divisionIndex}.name`)} placeholder="Division Name" className="font-semibold" />
-                </div>
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeDivision(divisionIndex)}>
-                    <Trash2 className="h-4 w-4 text-destructive"/>
-                </Button>
-            </CardHeader>
-            <CardContent className="p-3 space-y-4">
-                 {regionFields.map((regionField, regionIndex) => (
-                    <RegionCard key={regionField.id} brandIndex={brandIndex} divisionIndex={divisionIndex} regionIndex={regionIndex} removeRegion={removeRegion} {...form} />
-                 ))}
-                <Button type="button" variant="outline" size="sm" onClick={() => appendRegion({ name: '', areas: []})}>
-                    <PlusCircle className="mr-2 h-4 w-4"/> Add Region
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
-
-function RegionCard({ brandIndex, divisionIndex, regionIndex, removeRegion, ...form }: { brandIndex: number, divisionIndex: number, regionIndex: number, removeRegion: (index: number) => void } & BrandForm) {
-    const { control, register } = form;
-    const { fields: areaFields, append: appendArea, remove: removeArea } = useFieldArray({
-        control,
-        name: `brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas`,
-    });
-
-    return (
-        <Card>
-            <CardHeader className="flex-row items-center gap-2 justify-between p-3">
-                <div className="flex items-center gap-2 flex-grow">
-                    <MapPin className="h-5 w-5 text-muted-foreground"/>
-                    <Input {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.name`)} placeholder="Region Name" className="font-medium" />
-                </div>
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeRegion(regionIndex)}>
-                    <Trash2 className="h-4 w-4 text-destructive"/>
-                </Button>
-            </CardHeader>
-            <CardContent className="p-3 space-y-4">
-                {areaFields.map((areaField, areaIndex) => (
-                    <AreaCard key={areaField.id} brandIndex={brandIndex} divisionIndex={divisionIndex} regionIndex={regionIndex} areaIndex={areaIndex} removeArea={removeArea} {...form} />
-                ))}
-                <Button type="button" variant="outline" size="sm" onClick={() => appendArea({ name: '', stores: [] })}>
-                    <PlusCircle className="mr-2 h-4 w-4"/> Add Area
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
-
-function AreaCard({ brandIndex, divisionIndex, regionIndex, areaIndex, removeArea, ...form }: { brandIndex: number, divisionIndex: number, regionIndex: number, areaIndex: number, removeArea: (index: number) => void } & BrandForm) {
-    const { control, register } = form;
-    const { fields: storeFields, append: appendStore, remove: removeStore } = useFieldArray({
-        control,
-        name: `brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas.${areaIndex}.stores`,
-    });
-
-    return (
-        <Card className="bg-background/60">
-            <CardHeader className="flex-row items-center gap-2 justify-between p-3">
-                <div className="flex items-center gap-2 flex-grow">
-                     <Input {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas.${areaIndex}.name`)} placeholder="Area Name" />
-                </div>
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeArea(areaIndex)}>
-                    <Trash2 className="h-4 w-4 text-destructive"/>
-                </Button>
-            </CardHeader>
-            <CardContent className="p-3 space-y-2">
-                {storeFields.map((storeField, storeIndex) => (
-                     <div key={storeField.id} className="flex gap-2 items-center">
-                        <Building2 className="h-4 w-4 text-muted-foreground"/>
-                        <Input 
-                            {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas.${areaIndex}.stores.${storeIndex}.name`)}
-                            placeholder="Store Name"
-                        />
-                         <Input 
-                            {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas.${areaIndex}.stores.${storeIndex}.code`)}
-                            placeholder="Store Code"
-                            className="w-32"
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeStore(storeIndex)}>
-                            <Trash2 className="h-4 w-4 text-destructive"/>
-                        </Button>
-                    </div>
-                ))}
-                <Button type="button" variant="outline" size="sm" onClick={() => appendStore({ name: '', code: '' })}>
-                    <PlusCircle className="mr-2 h-4 w-4"/> Add Store
-                </Button>
-            </CardContent>
-        </Card>
-    );
 }

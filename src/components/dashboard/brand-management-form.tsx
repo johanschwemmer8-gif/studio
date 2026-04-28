@@ -1,17 +1,18 @@
 
 'use client';
 
-import { useForm, useFieldArray, Control } from 'react-hook-form';
+import { useForm, useFieldArray, Control, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PlusCircle, Trash2, Save, Building2, Upload, Palette, Building, Map, MapPin } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PlusCircle, Trash2, Save, Building2, Upload, Palette, Building, Map, MapPin, Video } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 const storeSchema = z.object({
   name: z.string().min(1, 'Store name is required'),
@@ -47,6 +48,10 @@ const brandSchema = z.object({
       foreground: hexColorSchema,
       destructive: hexColorSchema,
   }),
+  advertisement: z.object({
+      type: z.enum(['image', 'video']).optional(),
+      url: z.string().url("Must be a valid URL").or(z.literal('')).optional(),
+  }).optional(),
   divisions: z.array(divisionSchema),
 });
 
@@ -103,28 +108,36 @@ export default function BrandManagementForm() {
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="space-y-4">
-        {brandFields.map((brandField, brandIndex) => (
-          <BrandCard
-            key={brandField.id}
-            brandIndex={brandIndex}
-            removeBrand={removeBrand}
-            {...form}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between items-center">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => appendBrand({ name: '', logoUrl: '', colors: defaultColors, divisions: [] })}
-        >
-          <PlusCircle className="mr-2" /> Add Brand
-        </Button>
-        <Button type="submit">
-          <Save className="mr-2" /> Save Configuration
-        </Button>
-      </div>
+       <Card>
+        <CardHeader>
+            <CardTitle>Brand Management</CardTitle>
+            <CardDescription>
+                Define your organization's brands, their specific branding (logo, colors), and the stores within them.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            {brandFields.map((brandField, brandIndex) => (
+            <BrandCard
+                key={brandField.id}
+                brandIndex={brandIndex}
+                removeBrand={removeBrand}
+                {...form}
+            />
+            ))}
+        </CardContent>
+        <CardFooter className="flex justify-between items-center">
+            <Button
+            type="button"
+            variant="outline"
+            onClick={() => appendBrand({ name: '', logoUrl: '', colors: defaultColors, advertisement: { type: 'image', url: '' }, divisions: [] })}
+            >
+            <PlusCircle className="mr-2" /> Add Brand
+            </Button>
+            <Button type="submit">
+            <Save className="mr-2" /> Save Configuration
+            </Button>
+        </CardFooter>
+      </Card>
     </form>
   );
 }
@@ -137,6 +150,8 @@ function BrandCard({ brandIndex, removeBrand, ...form }: { brandIndex: number, r
   });
 
   const logoUrl = watch(`brands.${brandIndex}.logoUrl`);
+  const adUrl = watch(`brands.${brandIndex}.advertisement.url`);
+  const adType = watch(`brands.${brandIndex}.advertisement.type`);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (event.target.files && event.target.files[0]) {
@@ -191,6 +206,50 @@ function BrandCard({ brandIndex, removeBrand, ...form }: { brandIndex: number, r
                     </div>
                 ))}
             </div>
+        </div>
+
+        {/* Advertisement Section */}
+         <div className="space-y-4 p-4 border rounded-md bg-background/50">
+            <h4 className="font-medium flex items-center gap-2"><Video className="text-primary"/> Brand Advertisement</h4>
+            <div className="space-y-2">
+                <Label>Advertisement Type</Label>
+                <Controller
+                    control={control}
+                    name={`brands.${brandIndex}.advertisement.type`}
+                    render={({ field }) => (
+                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                            <Label htmlFor={`ad-type-image-${brandIndex}`} className="flex items-center gap-2 cursor-pointer">
+                                <RadioGroupItem value="image" id={`ad-type-image-${brandIndex}`} />
+                                Image
+                            </Label>
+                            <Label htmlFor={`ad-type-video-${brandIndex}`} className="flex items-center gap-2 cursor-pointer">
+                                <RadioGroupItem value="video" id={`ad-type-video-${brandIndex}`} />
+                                Video
+                            </Label>
+                        </RadioGroup>
+                    )}
+                />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor={`advertisement-url-${brandIndex}`}>Advertisement Media URL</Label>
+                <Input
+                    id={`advertisement-url-${brandIndex}`}
+                    placeholder="https://example.com/ad.mp4"
+                    {...register(`brands.${brandIndex}.advertisement.url`)}
+                />
+            </div>
+            {adUrl && (
+                <div className="space-y-2">
+                    <Label>Preview</Label>
+                    <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden relative border">
+                        {adType === 'image' ? (
+                            <Image src={adUrl} alt="Ad Preview" layout="fill" objectFit="contain" />
+                        ) : (
+                            <video key={adUrl} controls src={adUrl} className="w-full h-full object-contain bg-black" />
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
 
         {/* Organizational Structure Section */}
@@ -310,5 +369,3 @@ function AreaCard({ brandIndex, divisionIndex, regionIndex, areaIndex, removeAre
         </Card>
     );
 }
-
-    

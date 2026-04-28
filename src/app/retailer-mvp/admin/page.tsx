@@ -2,7 +2,6 @@
 'use client';
 
 import BrandSettingsForm from "@/components/dashboard/brand-settings-form";
-import BrandManagementForm from "@/components/dashboard/brand-management-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import UserManagement from "@/components/dashboard/user-management";
@@ -119,17 +118,6 @@ export default function RetailerAdminPage() {
                 </CardHeader>
                 <CardContent>
                     <BrandSettingsForm />
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Brand Management</CardTitle>
-                    <CardDescription>
-                       Define your organization's brands, their specific branding (logo, colors), and the stores within them.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <BrandManagementForm />
                 </CardContent>
             </Card>
             <UserManagement />

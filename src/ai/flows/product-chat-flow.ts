@@ -1,70 +1,99 @@
 
 'use server';
 /**
- * @fileOverview A conversational AI flow for answering product-related questions.
+ * @fileOverview An enhanced conversational AI flow that leverages persistent shopper history.
  *
- * - productChat - A function that handles the conversational chat about a product.
- * - ProductChatInput - The input type for the productChat function.
- * - ProductChatOutput - The return type for the productChat function.
+ * - productChat - Handles chat with awareness of the shopper's saved products and past interactions.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import { db } from '@/lib/firebase-admin';
 
 const ProductSchema = z.object({
-    name: z.string().describe('The name of the product.'),
-    description: z.string().describe('The description of the product.'),
-    category: z.string().describe('The category of the product.'),
-    price: z.number().describe('The price of the product.'),
+  name: z.string().describe('The name of the product.'),
+  description: z.string().describe('The description of the product.'),
+  category: z.string().describe('The category of the product.'),
+  price: z.number().describe('The price of the product.'),
 });
 
 const ChatMessageSchema = z.object({
-    role: z.enum(['user', 'model']),
-    content: z.string(),
+  role: z.enum(['user', 'model']),
+  content: z.string(),
 });
 
 const ProductChatInputSchema = z.object({
   product: ProductSchema,
-  history: z.array(ChatMessageSchema).describe("The chat history between the user and the model."),
+  history: z.array(ChatMessageSchema).describe("The chat history."),
+  shopperUid: z.string().optional().describe("The persistent ID of the shopper."),
 });
 export type ProductChatInput = z.infer<typeof ProductChatInputSchema>;
 
 const ProductChatOutputSchema = z.object({
-  message: z.string().describe("The model's response to the user."),
+  message: z.string().describe("The model's response."),
 });
 export type ProductChatOutput = z.infer<typeof ProductChatOutputSchema>;
 
-
 export async function productChat(input: ProductChatInput): Promise<ProductChatOutput> {
-    // In a real Firebase environment, you would check for App Check token here.
-    // Example for a callable function:
-    // if (context.app == undefined) {
-    //   throw new functions.https.HttpsError(
-    //     'failed-precondition',
-    //     'The function must be called from an App Check verified app.'
-    //   );
-    // }
+  let shopperContext = "";
 
-    const conversationHistory = input.history.map((msg) => ({
-        role: msg.role,
-        content: [{text: msg.content}],
-    }));
+  // 1. Fetch Behavioral Memory if shopper is identified
+  if (input.shopperUid) {
+    try {
+      const [savedSnapshot, interactionsSnapshot] = await Promise.all([
+        db.collection('shoppers').doc(input.shopperUid).collection('savedProducts').limit(5).get(),
+        db.collection('shoppers').doc(input.shopperUid).collection('interactions').orderBy('timestamp', 'desc').limit(5).get()
+      ]);
 
-    const systemPrompt = `You are a friendly and helpful in-store sales assistant. Your goal is to answer the customer's questions about the product they are looking at. Keep your answers concise and conversational.
+      const savedNames = savedSnapshot.docs.map(d => d.data().productName);
+      const pastEvents = interactionsSnapshot.docs.map(d => d.data().eventType);
 
-        Here is the product information:
-        - Name: ${input.product.name}
-        - Description: ${input.product.description}
-        - Category: ${input.product.category}
-        - Price: R${input.product.price.toFixed(2)}`;
+      if (savedNames.length > 0 || pastEvents.length > 0) {
+        shopperContext = `
+        SHOPPER PERSISTENT HISTORY (Memory):
+        - Recently Saved Items: ${savedNames.join(', ') || 'None'}
+        - Recent Actions: ${pastEvents.join(', ') || 'None'}
+        
+        USE THIS FOR BUYING GUIDANCE:
+        - If the current product matches their interests, highlight why.
+        - Compare this product to their saved items if relevant.
+        - Act as if you remember them; provide continuity.
+        `;
+      }
+    } catch (e) {
+      console.error("Error fetching shopper context:", e);
+    }
+  }
+
+  const conversationHistory = input.history.map((msg) => ({
+    role: msg.role,
+    content: [{ text: msg.content }],
+  }));
+
+  const systemPrompt = `You are a highly intelligent, friendly in-store retail consultant for iNteract.
+    Your goal is to provide expert "Buying Guidance" and answer questions about the product.
     
-    const llmResponse = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
-        messages: [
-            { role: 'system', content: [{ text: systemPrompt }] },
-            ...conversationHistory
-        ],
-    });
+    CURRENT PRODUCT:
+    - Name: ${input.product.name}
+    - Description: ${input.product.description}
+    - Category: ${input.product.category}
+    - Price: R${input.product.price.toFixed(2)}
 
-    return { message: llmResponse.text };
+    ${shopperContext}
+
+    INSTRUCTIONS:
+    1. Be conversational and concise.
+    2. Provide "Buying Guidance" that helps the shopper make a confident decision.
+    3. Use their history (if provided above) to personalize your advice.
+    4. If they haven't saved this product yet, suggest they click the "Save to Profile" button to remember it.`;
+
+  const llmResponse = await ai.generate({
+    model: 'googleai/gemini-2.5-flash',
+    messages: [
+      { role: 'system', content: [{ text: systemPrompt }] },
+      ...conversationHistory
+    ],
+  });
+
+  return { message: llmResponse.text };
 }

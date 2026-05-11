@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
@@ -20,6 +21,7 @@ import { productChat, type ProductChatInput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import QrScannerCamera from '../qr-scanner-camera';
+import { useAuth } from '@/context/auth-context';
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -31,6 +33,7 @@ type ProductChatbotProps = {
 };
 
 export default function ProductChatbot({ product }: ProductChatbotProps) {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -56,6 +59,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
             price: product.price,
         },
         history: newMessages,
+        shopperUid: user?.uid, // Pass the identity for behavioral memory
       };
       const result = await productChat(chatInput);
       setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
@@ -65,7 +69,6 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
   const handleScanSuccess = (url: string) => {
     setIsOpen(false);
     setIsScanning(false);
-    // Use the router to navigate to the URL found in the QR code.
     router.push(url);
   };
   
@@ -83,25 +86,27 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
   }, [messages]);
   
   useEffect(() => {
-      // Reset chat when sheet opens for a new product
-      if(isOpen) {
-          setMessages([]);
-          setIsScanning(false);
+      if(isOpen && messages.length === 0) {
+          // Optional: Initial greeting could be triggered here
       }
   }, [isOpen]);
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)} className="w-full mt-4">
-        <MessageCircle className="mr-2" /> Chat with an Assistant
+      <Button onClick={() => setIsOpen(true)} className="w-full mt-4 gap-2">
+        <MessageCircle className="h-4 w-4" /> 
+        {user ? 'Chat with your Assistant' : 'Ask a Question'}
       </Button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent className="flex flex-col">
           <SheetHeader>
-            <SheetTitle>{isScanning ? 'Scan a Product' : 'Your AI Sales Assistant'}</SheetTitle>
+            <SheetTitle className="flex items-center gap-2">
+              <BotIcon />
+              {isScanning ? 'Scan a Product' : 'Retail Intelligence Assistant'}
+            </SheetTitle>
             <SheetDescription>
-              {isScanning ? 'Point your camera at a QR code.' : `Ask me anything about the "${product.name}".`}
+              {user ? 'Leveraging your shopping memory for expert advice.' : 'Get instant product guidance and details.'}
             </SheetDescription>
           </SheetHeader>
 
@@ -112,6 +117,16 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
           ) : (
             <ScrollArea className="flex-1 pr-4 -mr-6" ref={scrollAreaRef}>
                 <div className="space-y-4 py-4">
+                {messages.length === 0 && (
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-8 w-8 border-2 border-accent">
+                      <AvatarFallback><Sparkles className="text-accent h-4 w-4" /></AvatarFallback>
+                    </Avatar>
+                    <div className="rounded-lg px-3 py-2 bg-muted text-sm">
+                      Hi! I'm your iNteract assistant. ${user ? `Welcome back! I can see your saved interests in ${product.category}. ` : ''}How can I help you with the ${product.name}?
+                    </div>
+                  </div>
+                )}
                 {messages.map((message, index) => (
                     <div
                     key={index}
@@ -123,7 +138,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     {message.role === 'model' && (
                         <Avatar className="h-8 w-8 border-2 border-accent">
                         <AvatarFallback>
-                            <Sparkles className="text-accent" />
+                            <Sparkles className="text-accent h-4 w-4" />
                         </AvatarFallback>
                         </Avatar>
                     )}
@@ -131,7 +146,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                         className={cn(
                         'rounded-lg px-3 py-2 max-w-[80%]',
                         message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-primary text-primary-foreground shadow-md'
                             : 'bg-muted'
                         )}
                     >
@@ -143,12 +158,12 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     <div className="flex items-start gap-3">
                         <Avatar className="h-8 w-8 border-2 border-accent">
                         <AvatarFallback>
-                            <Sparkles className="text-accent" />
+                            <Sparkles className="text-accent h-4 w-4" />
                         </AvatarFallback>
                         </Avatar>
                         <div className="rounded-lg px-3 py-2 bg-muted space-y-2">
-                            <Skeleton className="h-4 w-48" />
-                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-48" />
+                            <Skeleton className="h-3 w-32" />
                         </div>
                     </div>
                 )}
@@ -156,26 +171,27 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
             </ScrollArea>
           )}
 
-          <SheetFooter className="flex-col gap-2 pt-4">
+          <SheetFooter className="flex-col gap-2 pt-4 border-t">
             {isScanning ? (
                 <Button variant="outline" onClick={() => setIsScanning(false)}>
                     <X className="mr-2 h-4 w-4" /> Cancel Scan
                 </Button>
             ) : (
                 <>
-                    <Button variant="outline" onClick={handleStartScan}>
-                    <QrCode className="mr-2 h-4 w-4" />
+                    <Button variant="ghost" size="sm" onClick={handleStartScan} className="text-xs text-muted-foreground">
+                    <QrCode className="mr-2 h-3 w-3" />
                     Scan Another Item
                     </Button>
                     <form onSubmit={handleSendMessage} className="flex w-full gap-2">
                     <Input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="e.g., Is this waterproof?"
+                        placeholder="Ask for advice..."
                         disabled={isPending}
+                        className="bg-muted/50 border-none shadow-none"
                     />
-                    <Button type="submit" disabled={isPending || !input.trim()}>
-                        <Send />
+                    <Button type="submit" disabled={isPending || !input.trim()} size="icon">
+                        <Send className="h-4 w-4" />
                     </Button>
                     </form>
                 </>
@@ -184,5 +200,13 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
         </SheetContent>
       </Sheet>
     </>
+  );
+}
+
+function BotIcon() {
+  return (
+    <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center">
+      <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
+    </div>
   );
 }

@@ -1,20 +1,25 @@
 
+'use client';
+
 import { findProductById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, MessageSquare, Star, ArrowRightLeft, BookOpen, Utensils, Tag, Info } from 'lucide-react';
+import { ArrowLeft, Sparkles, Star, ArrowRightLeft, BookOpen, Utensils, Tag, Info, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import ProductChatbot from '@/components/product/product-chatbot';
 import theme from '@/config/theme.json';
 import SponsoredProduct from '@/components/product/sponsored-product';
 import ShopperProfileCta from '@/components/shopper/shopper-profile-cta';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/context/auth-context';
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const product = findProductById(params.id);
+  const { user } = useAuth();
 
   if (!product) {
     notFound();
@@ -32,14 +37,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     Back to Scanner
                 </Link>
             </Button>
-            <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
-                <Sparkles className="mr-1 h-3 w-3" /> iNteract Intelligence Active
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3">
+                <ShieldCheck className="h-3.5 w-3.5" /> Persistent Intelligence Active
             </Badge>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 mb-8">
           <div>
-            <div className="aspect-square relative rounded-xl overflow-hidden border shadow-xl">
+            <div className="aspect-square relative rounded-2xl overflow-hidden border shadow-2xl">
               <Image
                 src={product.image.src}
                 alt={product.name}
@@ -51,37 +56,37 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               />
             </div>
           </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-                <Badge variant="secondary">{product.category}</Badge>
-                <div className="flex items-center text-yellow-500">
-                    <Star className="h-4 w-4 fill-current" />
-                    <span className="text-sm font-medium ml-1 text-foreground">4.8 (124 reviews)</span>
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="px-3 py-1 font-medium">{product.category}</Badge>
+                <div className="flex items-center text-yellow-500 bg-yellow-500/5 px-2 py-1 rounded-full border border-yellow-500/10">
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                    <span className="text-xs font-bold ml-1 text-foreground">4.8</span>
                 </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{product.name}</h1>
-            <p className="text-3xl font-semibold text-primary">
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">{product.name}</h1>
+            <p className="text-4xl font-black text-primary">
               R{product.price.toFixed(2)}
             </p>
             
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed text-lg">
                 {product.description}
             </p>
 
             <ShopperProfileCta product={product} />
 
-            <div className="grid grid-cols-2 gap-2 mt-2">
-                <Button variant="outline" className="justify-start gap-2">
-                    <ArrowRightLeft className="h-4 w-4" /> Compare
+            <div className="grid grid-cols-2 gap-3 mt-2">
+                <Button variant="outline" className="justify-start gap-3 h-12">
+                    <ArrowRightLeft className="h-4 w-4 text-muted-foreground" /> Compare
                 </Button>
-                <Button variant="outline" className="justify-start gap-2">
-                    <BookOpen className="h-4 w-4" /> Reviews
+                <Button variant="outline" className="justify-start gap-3 h-12">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" /> Reviews
                 </Button>
-                 <Button variant="outline" className="justify-start gap-2">
-                    <Utensils className="h-4 w-4" /> Recipes
+                 <Button variant="outline" className="justify-start gap-3 h-12">
+                    <Utensils className="h-4 w-4 text-muted-foreground" /> Recipes
                 </Button>
-                 <Button variant="outline" className="justify-start gap-2">
-                    <Tag className="h-4 w-4" /> Promotions
+                 <Button variant="outline" className="justify-start gap-3 h-12">
+                    <Tag className="h-4 w-4 text-muted-foreground" /> Promotions
                 </Button>
             </div>
 
@@ -90,42 +95,65 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
 
         <Tabs defaultValue="guidance" className="w-full mt-12">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-max">
-                <TabsTrigger value="guidance">Buying Guidance</TabsTrigger>
-                <TabsTrigger value="details">Specifications</TabsTrigger>
-                <TabsTrigger value="reviews">Customer Reviews</TabsTrigger>
-                <TabsTrigger value="recipes">Usage & Recipes</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-max h-auto p-1 bg-muted/50 rounded-xl">
+                <TabsTrigger value="guidance" className="rounded-lg py-2.5">Buying Guidance</TabsTrigger>
+                <TabsTrigger value="details" className="rounded-lg py-2.5">Specifications</TabsTrigger>
+                <TabsTrigger value="reviews" className="rounded-lg py-2.5">Reviews</TabsTrigger>
+                <TabsTrigger value="recipes" className="rounded-lg py-2.5">Usage</TabsTrigger>
             </TabsList>
-            <TabsContent value="guidance" className="mt-6">
-                <Card>
+            <TabsContent value="guidance" className="mt-8">
+                <Card className="border-primary/10 shadow-lg">
                     <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <Info className="h-5 w-5 text-primary" /> Expert Buying Guidance
+                        <CardTitle className="text-xl flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Info className="h-5 w-5 text-primary" />
+                              </div>
+                              Personalized Buying Guidance
+                            </div>
+                            {user && <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20">Profile Connected</Badge>}
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4 text-sm text-muted-foreground">
-                        <p>Our AI Assistant suggests this is a high-value purchase based on durability tests and category comparisons.</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li><strong>Best For:</strong> Daily intensive use, environmentally conscious shoppers.</li>
-                            <li><strong>Maintenance:</strong> Top-rack dishwasher safe, but hand-wash recommended for logo longevity.</li>
-                            <li><strong>Value Rank:</strong> Top 10% in the {product.category} category.</li>
+                    <CardContent className="space-y-6 text-muted-foreground">
+                        <div className="p-4 bg-muted/30 rounded-xl border italic text-sm">
+                          {user ? 
+                            "Our Intelligence Layer has analyzed your profile. This guidance is optimized based on your interest in stainless steel and lifestyle accessories." : 
+                            "Connect your Smart Profile to unlock AI guidance tailored to your specific preferences and past purchases."}
+                        </div>
+                        <ul className="grid sm:grid-cols-2 gap-4">
+                            <li className="flex gap-3">
+                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
+                              <p><strong className="text-foreground">Best For:</strong> Daily intensive use, environmentally conscious shoppers.</p>
+                            </li>
+                            <li className="flex gap-3">
+                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
+                              <p><strong className="text-foreground">Maintenance:</strong> Top-rack dishwasher safe, but hand-wash recommended for logo longevity.</p>
+                            </li>
+                            <li className="flex gap-3">
+                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
+                              <p><strong className="text-foreground">Value Rank:</strong> Top 10% in the {product.category} category based on durability tests.</p>
+                            </li>
+                            <li className="flex gap-3">
+                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
+                              <p><strong className="text-foreground">Cross-Store Memory:</strong> Saved comparisons are available at all iNteract partner locations.</p>
+                            </li>
                         </ul>
                     </CardContent>
                 </Card>
             </TabsContent>
-            <TabsContent value="details">
-                 <Card>
-                    <CardContent className="p-6 space-y-4">
-                        <div className="grid grid-cols-2 text-sm border-b pb-2"><span className="text-muted-foreground">Material</span><span className="font-medium">Stainless Steel</span></div>
-                        <div className="grid grid-cols-2 text-sm border-b pb-2"><span className="text-muted-foreground">Weight</span><span className="font-medium">350g</span></div>
-                        <div className="grid grid-cols-2 text-sm border-b pb-2"><span className="text-muted-foreground">Dimensions</span><span className="font-medium">25cm x 7cm</span></div>
+            <TabsContent value="details" className="mt-8">
+                 <Card className="border-primary/10 shadow-lg">
+                    <CardContent className="p-8 space-y-6">
+                        <div className="grid grid-cols-2 text-base border-b pb-4"><span className="text-muted-foreground">Material</span><span className="font-semibold">Stainless Steel</span></div>
+                        <div className="grid grid-cols-2 text-base border-b pb-4"><span className="text-muted-foreground">Weight</span><span className="font-semibold">350g</span></div>
+                        <div className="grid grid-cols-2 text-base border-b pb-4"><span className="text-muted-foreground">Dimensions</span><span className="font-semibold">25cm x 7cm</span></div>
                     </CardContent>
                 </Card>
             </TabsContent>
         </Tabs>
         
         {optionalModules.aiRecommendations && (
-            <div className="mt-16">
+            <div className="mt-20">
                 <AiRecommendations product={product} />
             </div>
         )}

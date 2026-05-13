@@ -32,8 +32,9 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
 
     setIsSaving(true);
     try {
-      const savedRef = doc(db, 'shoppers', user.uid, 'savedProducts', product.id);
+      const savedRef = doc(db, 'saved_products', `${user.uid}_${product.id}`);
       await setDoc(savedRef, {
+        shopperId: user.uid,
         productId: product.id,
         productName: product.name,
         price: product.price,
@@ -42,12 +43,11 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
         savedAt: serverTimestamp(),
       });
       
-      const eventRef = doc(db, 'shoppers', user.uid, 'interactions', `save_${Date.now()}`);
-      await setDoc(eventRef, {
+      const interactionRef = doc(db, 'product_interactions', `save_${Date.now()}`);
+      await setDoc(interactionRef, {
         shopperId: user.uid,
         productId: product.id,
-        retailerId: 'simulated-retailer-id',
-        eventType: 'save',
+        type: 'save',
         timestamp: serverTimestamp(),
       });
 

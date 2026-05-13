@@ -14,14 +14,16 @@ import {
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Send, Sparkles, QrCode, X } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { MessageCircle, Send, Sparkles, QrCode, X, Loader2 } from 'lucide-react';
 import type { Product } from '@/lib/data';
 import { productChat, type ProductChatInput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import QrScannerCamera from '../qr-scanner-camera';
 import { useAuth } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -59,10 +61,21 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
             price: product.price,
         },
         history: newMessages,
-        shopperUid: user?.uid, // Pass the identity for behavioral memory
+        shopperUid: user?.uid,
       };
       const result = await productChat(chatInput);
       setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
+
+      // Log conversation for analysis
+      if (db) {
+          const conversationRef = doc(db, 'ai_conversations', `convo_${Date.now()}`);
+          setDoc(conversationRef, {
+              shopperId: user?.uid || 'guest',
+              productId: product.id,
+              transcript: [...newMessages, { role: 'model', content: result.message }],
+              timestamp: serverTimestamp(),
+          });
+      }
     });
   };
 
@@ -84,12 +97,6 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
         })
     }
   }, [messages]);
-  
-  useEffect(() => {
-      if(isOpen && messages.length === 0) {
-          // Optional: Initial greeting could be triggered here
-      }
-  }, [isOpen]);
 
   return (
     <>
@@ -120,10 +127,10 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                 {messages.length === 0 && (
                   <div className="flex items-start gap-3">
                     <Avatar className="h-8 w-8 border-2 border-accent">
-                      <AvatarFallback><Sparkles className="text-accent h-4 w-4" /></AvatarFallback>
+                      <AvatarFallback className="bg-primary text-white"><Sparkles className="text-accent h-4 w-4" /></AvatarFallback>
                     </Avatar>
                     <div className="rounded-lg px-3 py-2 bg-muted text-sm">
-                      Hi! I'm your iNteract assistant. ${user ? `Welcome back! I can see your saved interests in ${product.category}. ` : ''}How can I help you with the ${product.name}?
+                      Hi! I'm your iNteract assistant. {user ? `Welcome back, ${user.displayName}! ` : ''}How can I help you with the {product.name}?
                     </div>
                   </div>
                 )}
@@ -137,7 +144,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     >
                     {message.role === 'model' && (
                         <Avatar className="h-8 w-8 border-2 border-accent">
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-primary text-white">
                             <Sparkles className="text-accent h-4 w-4" />
                         </AvatarFallback>
                         </Avatar>
@@ -157,7 +164,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                 {isPending && (
                     <div className="flex items-start gap-3">
                         <Avatar className="h-8 w-8 border-2 border-accent">
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-primary text-white">
                             <Sparkles className="text-accent h-4 w-4" />
                         </AvatarFallback>
                         </Avatar>
@@ -191,7 +198,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                         className="bg-muted/50 border-none shadow-none"
                     />
                     <Button type="submit" disabled={isPending || !input.trim()} size="icon">
-                        <Send className="h-4 w-4" />
+                        {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
                     </Button>
                     </form>
                 </>

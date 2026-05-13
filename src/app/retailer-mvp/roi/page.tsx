@@ -209,21 +209,21 @@ export default function RoiPage() {
                     <div className="flex justify-between items-end">
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Intelligence Guided</p>
-                            <p className="text-4xl font-black">{metricsData ? `R${metricsData.conversion.avgBasketSizeAoe.toFixed(2)}` : <Skeleton className="h-10 w-32" />}</p>
+                            <div className="text-4xl font-black">{metricsData ? `R${metricsData.conversion.avgBasketSizeAoe.toFixed(2)}` : <Skeleton className="h-10 w-32" />}</div>
                         </div>
                         <div className="text-right space-y-1">
                             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Unguided Baseline</p>
-                            <p className="text-2xl font-bold text-muted-foreground">{metricsData ? `R${metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}` : <Skeleton className="h-8 w-24" />}</p>
+                            <div className="text-2xl font-bold text-muted-foreground">{metricsData ? `R${metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}` : <Skeleton className="h-8 w-24" />}</div>
                         </div>
                     </div>
                     <div className="p-4 bg-muted/50 rounded-xl border border-primary/5 flex items-center justify-between">
                         <div>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Economic Uplift (Rand)</p>
-                            <p className="text-xl font-black text-primary">{metricsData ? `R${metricsData.conversion.basketSizeIncreaseRand.toFixed(2)}` : <Skeleton className="h-6 w-20" />}</p>
+                            <div className="text-xl font-black text-primary">{metricsData ? `R${metricsData.conversion.basketSizeIncreaseRand.toFixed(2)}` : <Skeleton className="h-6 w-20" />}</div>
                         </div>
                         <div className="text-right">
                              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Uplift (%)</p>
-                            <p className="text-xl font-black text-green-600">{metricsData ? `+${metricsData.conversion.basketSizeIncreasePercent.toFixed(1)}%` : <Skeleton className="h-6 w-16" />}</p>
+                            <div className="text-xl font-black text-green-600">{metricsData ? `+${metricsData.conversion.basketSizeIncreasePercent.toFixed(1)}%` : <Skeleton className="h-6 w-16" />}</div>
                         </div>
                     </div>
                 </CardContent>

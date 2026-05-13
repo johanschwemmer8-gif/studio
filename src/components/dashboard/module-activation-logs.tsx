@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -30,7 +29,7 @@ type ActivationLog = {
 };
 
 type ModuleActivationLogsProps = {
-  logs: ActivationLog[];
+  logs?: ActivationLog[];
 };
 
 // This new component will ensure that date formatting only runs on the client
@@ -51,7 +50,7 @@ function ClientFormattedDate({ timestamp }: { timestamp: string }) {
 }
 
 
-export default function ModuleActivationLogs({ logs }: ModuleActivationLogsProps) {
+export default function ModuleActivationLogs({ logs = [] }: ModuleActivationLogsProps) {
   const getActionInfo = (action: ActivationLog['action']) => {
     switch (action) {
       case 'Activated':
@@ -88,38 +87,46 @@ export default function ModuleActivationLogs({ logs }: ModuleActivationLogsProps
             </TableRow>
           </TableHeader>
           <TableBody>
-            {logs.map((log) => {
-                const actionInfo = getActionInfo(log.action);
-                return (
-                    <TableRow key={log.id}>
-                        <TableCell className="font-medium">{log.module}</TableCell>
-                        <TableCell>
-                            <Badge
-                                variant="outline"
-                                className={cn(
-                                'font-semibold flex items-center gap-1 w-fit',
-                                actionInfo.color
-                                )}
-                            >
-                                {actionInfo.icon}
-                                {log.action}
-                            </Badge>
-                        </TableCell>
-                        <TableCell>
-                            <div className='flex items-center gap-2 text-muted-foreground'>
-                                <User className="h-3.5 w-3.5" />
-                                {log.user}
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            <div className='flex items-center gap-2 text-muted-foreground'>
-                                <Clock className="h-3.5 w-3.5" />
-                                <ClientFormattedDate timestamp={log.timestamp} />
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                )
-            })}
+            {logs.length === 0 ? (
+               <TableRow>
+                 <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                   No activation logs found.
+                 </TableCell>
+               </TableRow>
+            ) : (
+              logs.map((log) => {
+                  const actionInfo = getActionInfo(log.action);
+                  return (
+                      <TableRow key={log.id}>
+                          <TableCell className="font-medium">{log.module}</TableCell>
+                          <TableCell>
+                              <Badge
+                                  variant="outline"
+                                  className={cn(
+                                  'font-semibold flex items-center gap-1 w-fit',
+                                  actionInfo.color
+                                  )}
+                              >
+                                  {actionInfo.icon}
+                                  {log.action}
+                              </Badge>
+                          </TableCell>
+                          <TableCell>
+                              <div className='flex items-center gap-2 text-muted-foreground'>
+                                  <User className="h-3.5 w-3.5" />
+                                  {log.user}
+                              </div>
+                          </TableCell>
+                          <TableCell>
+                              <div className='flex items-center gap-2 text-muted-foreground'>
+                                  <Clock className="h-3.5 w-3.5" />
+                                  <ClientFormattedDate timestamp={log.timestamp} />
+                              </div>
+                          </TableCell>
+                      </TableRow>
+                  )
+              })
+            )}
           </TableBody>
         </Table>
       </CardContent>

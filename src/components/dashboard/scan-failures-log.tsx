@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -32,7 +31,7 @@ type ScanFailureLog = {
 };
 
 type ScanFailuresLogProps = {
-  logs: ScanFailureLog[];
+  logs?: ScanFailureLog[];
 };
 
 // This new component will ensure that date formatting only runs on the client
@@ -52,7 +51,7 @@ function ClientFormattedDate({ timestamp }: { timestamp: string }) {
   return <span>{formattedDate}</span>;
 }
 
-export default function ScanFailuresLog({ logs }: ScanFailuresLogProps) {
+export default function ScanFailuresLog({ logs = [] }: ScanFailuresLogProps) {
     
     // Display only the first 3 logs for the preview
     const previewLogs = logs.slice(0, 3);
@@ -75,28 +74,36 @@ export default function ScanFailuresLog({ logs }: ScanFailuresLogProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {previewLogs.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell>
-                    <div className='flex items-center gap-2 font-medium'>
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        {log.store}
-                    </div>
-                </TableCell>
-                 <TableCell>
-                    <Badge variant="destructive" className="gap-1.5 pl-1.5">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        {log.error}
-                    </Badge>
-                </TableCell>
-                <TableCell>
-                    <div className='flex items-center gap-2 text-muted-foreground text-sm'>
-                        <Clock className="h-4 w-4" />
-                        <ClientFormattedDate timestamp={log.timestamp} />
-                    </div>
+            {previewLogs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                  No scan failures logged.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              previewLogs.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell>
+                      <div className='flex items-center gap-2 font-medium'>
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          {log.store}
+                      </div>
+                  </TableCell>
+                   <TableCell>
+                      <Badge variant="destructive" className="gap-1.5 pl-1.5">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          {log.error}
+                      </Badge>
+                  </TableCell>
+                  <TableCell>
+                      <div className='flex items-center gap-2 text-muted-foreground text-sm'>
+                          <Clock className="h-4 w-4" />
+                          <ClientFormattedDate timestamp={log.timestamp} />
+                      </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>

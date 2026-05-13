@@ -24,10 +24,10 @@ type StockLevel = {
 };
 
 type RealTimeStockLevelsProps = {
-  data: StockLevel[];
+  data?: StockLevel[];
 };
 
-export default function RealTimeStockLevels({ data }: RealTimeStockLevelsProps) {
+export default function RealTimeStockLevels({ data = [] }: RealTimeStockLevelsProps) {
   const getStatusColor = (status: StockLevel['status']) => {
     switch (status) {
       case 'In Stock':
@@ -59,23 +59,31 @@ export default function RealTimeStockLevels({ data }: RealTimeStockLevelsProps) 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-right font-medium">{item.stock}</TableCell>
-                <TableCell className="text-right">
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'font-semibold',
-                      getStatusColor(item.status)
-                    )}
-                  >
-                    {item.status}
-                  </Badge>
+            {data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                  No stock data available.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              data.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="text-right font-medium">{item.stock}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'font-semibold',
+                        getStatusColor(item.status)
+                      )}
+                    >
+                      {item.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>

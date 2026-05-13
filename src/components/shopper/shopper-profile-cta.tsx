@@ -32,10 +32,11 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
 
     setIsSaving(true);
     try {
-      const savedRef = doc(db, 'saved_products', `${user.uid}_${product.id}`);
+      // Use GTIN-only identifier for saved products
+      const savedRef = doc(db, 'saved_products', `${user.uid}_${product.gtin}`);
       await setDoc(savedRef, {
         shopperId: user.uid,
-        productId: product.id,
+        gtin: product.gtin,
         productName: product.name,
         price: product.price,
         category: product.category,
@@ -46,21 +47,21 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
       const interactionRef = doc(db, 'product_interactions', `save_${Date.now()}`);
       await setDoc(interactionRef, {
         shopperId: user.uid,
-        productId: product.id,
+        gtin: product.gtin,
         type: 'save',
         timestamp: serverTimestamp(),
       });
 
       setIsSaved(true);
       toast({
-        title: "Product Saved",
-        description: "You can find this in your smart shopping profile.",
+        title: "Preference Synced",
+        description: "Your interest has been archived in the persistent intelligence layer.",
       });
     } catch (error: any) {
       console.error(error);
       toast({
-        title: "Error",
-        description: "Could not save product. Please try again.",
+        title: "Friction Detected",
+        description: "Could not sync preference. Retrying session connection...",
         variant: "destructive",
       });
     } finally {
@@ -72,7 +73,7 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
     <>
       <Card className={cn(
         "border-2 transition-all duration-500 overflow-hidden",
-        isSaved ? "border-green-500/50 bg-green-50/50" : "border-accent/50 bg-accent/5"
+        isSaved ? "border-green-500/50 bg-green-50/50" : "border-accent/50 bg-accent/5 shadow-inner"
       )}>
         <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
@@ -84,10 +85,10 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
             </div>
             <div>
               <p className="font-bold text-base">
-                {isSaved ? 'Identity Secure & Synced' : 'Persistent Shopping Memory'}
+                {isSaved ? 'Identity Secure & Synced' : 'Persistent Behavioural Memory'}
               </p>
               <p className="text-sm text-muted-foreground">
-                {isSaved ? 'This product is saved to your profile across all stores.' : 'Save your preferences and AI recommendations?'}
+                {isSaved ? 'Your decision history is archived for cross-store continuity.' : 'Archive this preference to build your unique shopping profile?'}
               </p>
             </div>
           </div>
@@ -109,7 +110,7 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
             ) : (
               <Heart className="mr-2 h-5 w-5 fill-current" />
             )}
-            {isSaved ? 'Saved to Profile' : 'Save Recommendations'}
+            {isSaved ? 'Identified & Synced' : 'Build Profile'}
           </Button>
         </CardContent>
       </Card>

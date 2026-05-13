@@ -2,7 +2,7 @@
 import placeholderImages from '@/app/lib/placeholder-images.json';
 
 export type Product = {
-  gtin: string; // GS1 Global Trade Item Number
+  gtin: string; // GS1 Global Trade Item Number (Mandatory Primary Key)
   name: string;
   brand: string;
   description: string;
@@ -46,10 +46,12 @@ export const findProductByGtin = (gtin: string) => {
   return products.find((p) => p.gtin === gtin);
 };
 
-// Legacy support: Internal IDs now map to GTINs for continuity
+/**
+ * ARCHITECTURAL RULE: Internal IDs are strictly deprecated.
+ * This wrapper is maintained for legacy routing but performs 
+ * exclusively GTIN-based lookups.
+ */
 export const findProductById = (id: string | number) => {
-    if (id === '1') return products[0];
-    if (id === '2') return products[1];
     return products.find((p) => p.gtin === String(id));
 };
 

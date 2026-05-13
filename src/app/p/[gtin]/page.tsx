@@ -36,7 +36,7 @@ export default function ExperienceLayerPage({ params }: { params: { gtin: string
 
   useEffect(() => {
     if (db && sessionId && product) {
-        // Log View Event anchored to session
+        // Log View Event anchored to session using GTIN dimension
         const eventId = `view_${Date.now()}`;
         setDoc(doc(db, 'events', eventId), {
             eventId,
@@ -75,7 +75,7 @@ export default function ExperienceLayerPage({ params }: { params: { gtin: string
               addedAt: new Date().toISOString(),
           };
 
-          // Update Basket (Transaction Layer)
+          // Update Basket (Transaction Layer uses GTIN-only)
           const basketDoc = await getDoc(basketRef);
           if (!basketDoc.exists()) {
               await setDoc(basketRef, {
@@ -105,7 +105,7 @@ export default function ExperienceLayerPage({ params }: { params: { gtin: string
               metadata: { basketId }
           });
 
-          toast({ title: "Added to Trolley", description: `"${product.name}" added using global identifiers.` });
+          toast({ title: "Added to Trolley", description: `"${product.name}" added using GTIN identifiers.` });
       } catch (e) {
           console.error(e);
       } finally {

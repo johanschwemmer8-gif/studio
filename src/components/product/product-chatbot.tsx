@@ -59,6 +59,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
             description: product.description,
             category: product.category,
             price: product.price,
+            gtin: product.gtin,
         },
         history: newMessages,
         shopperUid: user?.uid,
@@ -68,14 +69,14 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
           const result = await productChat(chatInput);
           setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
 
-          // --- Infrastructure Layer: Interaction Log ---
+          // --- Infrastructure Layer: Interaction Log (Enforced GTIN) ---
           if (db) {
               const conversationId = `convo_${Date.now()}`;
               const conversationRef = doc(db, 'ai_conversations', conversationId);
               setDoc(conversationRef, {
                   conversationId,
                   shopperId: user?.uid || 'guest',
-                  productId: product.id,
+                  gtin: product.gtin,
                   transcript: [...newMessages, { role: 'model', content: result.message }],
                   timestamp: serverTimestamp(),
                   aiModel: 'gemini-2.5-flash'
@@ -84,15 +85,15 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
               const interactionRef = doc(db, 'product_interactions', `chat_${Date.now()}`);
               setDoc(interactionRef, {
                   shopperId: user?.uid || 'guest',
-                  productId: product.id,
-                  type: 'review_read', // Chat acts as a deep review
+                  gtin: product.gtin,
+                  type: 'chat_interaction',
                   timestamp: serverTimestamp(),
                   metadata: { conversationId }
               }).catch(console.error);
           }
       } catch (err) {
           console.error("Assistant Logic Friction:", err);
-          setMessages((prev) => [...prev, { role: 'model', content: "I'm having trouble connecting to the Decision Intelligence layer. Please try again." }]);
+          setMessages((prev) => [...prev, { role: 'model', content: "Friction in Decision Intelligence layer. Synchronizing..." }]);
       }
     });
   };
@@ -118,9 +119,9 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)} className="w-full mt-4 h-14 rounded-xl text-lg font-bold gap-3 shadow-lg hover:shadow-xl transition-all">
+      <Button onClick={() => setIsOpen(true)} className="w-full mt-4 h-14 rounded-xl text-lg font-black gap-3 shadow-lg hover:shadow-xl transition-all">
         <MessageCircle className="h-5 w-5" /> 
-        {user ? 'Resume Buying Guidance' : 'Request Buying Guidance'}
+        {user ? 'Resume Buying Guidance' : 'Request Guidance'}
       </Button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -131,7 +132,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
               Decision Assistant
             </SheetTitle>
             <SheetDescription className="text-sm font-medium">
-              {user ? `Analysing lifecycle for ${user.displayName}...` : 'AI-powered in-store buying consultant.'}
+              {user ? `Analysing history for ${user.displayName}...` : 'AI-powered in-store buying consultant.'}
             </SheetDescription>
           </SheetHeader>
 
@@ -148,7 +149,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                       <AvatarFallback className="bg-primary text-white font-bold">iN</AvatarFallback>
                     </Avatar>
                     <div className="rounded-2xl px-4 py-3 bg-muted text-sm leading-relaxed border border-primary/5">
-                      Hello! I'm your iNteract Decision Consultant. {user ? `Welcome back! I've loaded your history with ${product.category} products. ` : ''}How can I assist your decision on the <strong>{product.name}</strong>?
+                      Hello! I've initialized your session for <strong>{product.name}</strong>. How can I assist your decision?
                     </div>
                   </div>
                 )}
@@ -202,20 +203,20 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     <div className="flex justify-between items-center px-1">
                         <Button variant="ghost" size="sm" onClick={handleStartScan} className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground h-auto p-0 hover:bg-transparent hover:text-primary">
                             <QrCode className="mr-2 h-3.5 w-3.5" />
-                            Compare with another product
+                            Compare Product
                         </Button>
-                        <Badge variant="outline" className="text-[8px] bg-accent/10 border-accent/20 text-accent-foreground font-black px-1.5 py-0 h-4">PERSISTENT MEMORY</Badge>
+                        <Badge variant="outline" className="text-[8px] bg-accent/10 border-accent/20 text-accent-foreground font-black px-1.5 py-0 h-4">BEHAVIOURAL MEMORY</Badge>
                     </div>
                     <form onSubmit={handleSendMessage} className="flex w-full gap-2 pb-2">
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask about lifecycle, specs, or comparison..."
+                            placeholder="Ask about specs or comparison..."
                             disabled={isPending}
                             className="bg-muted/80 border-none shadow-none h-12 rounded-xl text-sm"
                         />
                         <Button type="submit" disabled={isPending || !input.trim()} size="icon" className="h-12 w-12 rounded-xl shrink-0 shadow-lg">
-                            {isPending ? <Loader2 className="h-5 w-5 animate-spin"/> : <Send className="h-5 w-5" />}
+                            {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                         </Button>
                     </form>
                 </>

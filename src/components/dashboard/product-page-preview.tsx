@@ -1,5 +1,6 @@
 
-import { findProductById } from '@/lib/data';
+'use client';
+import { findProductByGtin } from '@/lib/data';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
@@ -7,11 +8,11 @@ import ProductChatbot from '@/components/product/product-chatbot';
 import theme from '@/config/theme.json';
 
 export default function ProductPagePreview() {
-  // We'll use the first product as a default for the preview
-  const product = findProductById('1');
+  // Use the standard GTIN for the default preview
+  const product = findProductByGtin('06001234567891');
 
   if (!product) {
-    return <div className="p-4 text-red-500">Preview product not found.</div>;
+    return <div className="p-4 text-red-500">Preview product not found (GTIN Error).</div>;
   }
 
   const { optionalModules } = theme;
@@ -33,12 +34,13 @@ export default function ProductPagePreview() {
             </div>
           </div>
           <div className="flex flex-col gap-2 p-2">
-            <Badge variant="outline" className="w-fit text-xs">{product.category}</Badge>
-            <h1 className="text-lg font-bold">{product.name}</h1>
-            <p className="text-xl font-semibold text-primary">
+            <Badge variant="outline" className="w-fit text-[10px] uppercase font-bold tracking-widest">{product.category}</Badge>
+            <h1 className="text-lg font-black tracking-tight leading-tight">{product.name}</h1>
+            <p className="text-xl font-black text-primary tracking-tighter">
               R{product.price.toFixed(2)}
             </p>
-            <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
+             <p className="text-[9px] font-mono text-muted-foreground">GTIN: {product.gtin}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-1">{product.description}</p>
             {optionalModules.productChatbot && <ProductChatbot product={product} />}
           </div>
         </div>

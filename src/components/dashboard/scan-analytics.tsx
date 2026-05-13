@@ -1,4 +1,3 @@
-
 'use server';
 import {
   Card,
@@ -7,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { BarChart2, QrCode, TrendingUp, Link as LinkIcon } from 'lucide-react';
+import { BarChart2, UserCheck, TrendingUp, Activity } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,111 +19,94 @@ import { Badge } from '../ui/badge';
 import { getScanAnalytics } from '@/ai/flows/scan-analytics';
 
 
-type QrCodeData = {
-  qrCodeId: string;
-  scanCount: number;
-  campaignId: string;
-};
-
-function AnalyticsCard({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) {
+function AnalyticsCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description?: string }) {
     return (
-        <Card>
+        <Card className="border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
+                <div className="text-2xl font-black">{value}</div>
+                {description && <p className="text-[10px] text-muted-foreground mt-1">{description}</p>}
             </CardContent>
         </Card>
     )
 }
 
 export default async function ScanAnalytics() {
-  // Fetch real data from the backend flow instead of using mock data
   const analyticsData = await getScanAnalytics({
-    retailerId: 'simulated-retailer-id', // In a real app, this would come from auth
+    retailerId: 'simulated-retailer-id',
     limit: 1000,
   });
 
-  const { totalScans, uniqueScans, topScannedCodes } = analyticsData;
-
-  // For this example, we'll assume external scans are not yet tracked in this flow.
-  const externalTotalScans = 0;
-  const topExternalScans: any[] = [];
+  const { totalRawEvents, uniqueSessions, topEngagedProducts } = analyticsData;
 
   return (
     <div className="space-y-8">
-      <Card>
+      <Card className="border-primary/10">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><BarChart2 className="text-primary"/> Scan Analytics</CardTitle>
+            <CardTitle className="flex items-center gap-2 font-black text-xl"><BarChart2 className="text-primary"/> Intelligence Reach</CardTitle>
             <CardDescription>
-                A real-time overview of QR code performance for both iNteract-generated and imported codes.
+                Analysing shopper reach through session-anchored behavioural events.
             </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <AnalyticsCard title="Total Scans (iNteract)" value={totalScans.toLocaleString()} icon={QrCode} />
-                <AnalyticsCard title="Unique QR Codes Scanned" value={uniqueScans.toLocaleString()} icon={TrendingUp} />
-                <AnalyticsCard title="Total Scans (External)" value={externalTotalScans.toLocaleString()} icon={LinkIcon} />
-                <AnalyticsCard title="Combined Total Scans" value={(totalScans + externalTotalScans).toLocaleString()} icon={TrendingUp} />
+        <CardContent className="space-y-8">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <AnalyticsCard 
+                    title="Unique Engagement Sessions" 
+                    value={uniqueSessions.toLocaleString()} 
+                    icon={UserCheck} 
+                    description="True reach (deduplicated by session)."
+                />
+                <AnalyticsCard 
+                    title="Total Event Nodes" 
+                    value={totalRawEvents.toLocaleString()} 
+                    icon={Activity} 
+                    description="Raw behavioural activity logs."
+                />
+                <AnalyticsCard 
+                    title="Engagement Density" 
+                    value={(totalRawEvents / (uniqueSessions || 1)).toFixed(2)} 
+                    icon={TrendingUp} 
+                    description="Avg. interactions per session."
+                />
             </div>
 
-            <div className="grid gap-8 md:grid-cols-2">
-                <div>
-                    <h3 className="font-semibold mb-2">Top 5 iNteract QR Codes</h3>
+            <div className="space-y-4">
+                <h3 className="font-black text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" /> 
+                    Product Sentiment (Sessions per GTIN)
+                </h3>
+                <div className="border rounded-xl overflow-hidden shadow-sm">
                     <Table>
-                        <TableHeader>
+                        <TableHeader className="bg-muted/50">
                             <TableRow>
-                                <TableHead>QR Code ID</TableHead>
-                                <TableHead>Campaign</TableHead>
-                                <TableHead className="text-right">Scans</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest">Global Identifier (GTIN-14)</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest">Campaign Reference</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">True Reach (Sessions)</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {topScannedCodes.length === 0 ? (
+                            {topEngagedProducts.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                                        No scan data available yet.
+                                        Initializing Intelligence stream...
                                     </TableCell>
                                 </TableRow>
-                            ) : topScannedCodes.slice(0, 5).map((qr) => (
-                            <TableRow key={qr.qrCodeId}>
-                                <TableCell className="font-mono text-xs">{qr.qrCodeId}</TableCell>
-                                <TableCell><Badge variant="outline">{qr.campaignId}</Badge></TableCell>
-                                <TableCell className="text-right font-bold text-primary">{qr.scanCount}</TableCell>
+                            ) : topEngagedProducts.map((p) => (
+                            <TableRow key={p.gtin}>
+                                <TableCell className="font-mono text-xs font-bold">{p.gtin}</TableCell>
+                                <TableCell><Badge variant="outline" className="text-[10px] uppercase font-bold border-primary/20">{p.campaignId}</Badge></TableCell>
+                                <TableCell className="text-right font-black text-primary text-lg">{p.uniqueSessions}</TableCell>
                             </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </div>
-                 <div>
-                    <h3 className="font-semibold mb-2">Top 5 External QR Codes</h3>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Original ID</TableHead>
-                                <TableHead>Campaign</TableHead>
-                                <TableHead className="text-right">Scans</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {topExternalScans.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                                        No external scan data available yet.
-                                    </TableCell>
-                                </TableRow>
-                            ) : topExternalScans.slice(0, 5).map((qr) => (
-                            <TableRow key={qr.id}>
-                                <TableCell className="font-mono text-xs">{qr.id}</TableCell>
-                                <TableCell><Badge variant="secondary">{qr.campaignId}</Badge></TableCell>
-                                <TableCell className="text-right font-bold text-primary">{qr.scanCount}</TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                <p className="text-[9px] italic text-muted-foreground">
+                    * Metrics are calculated based on unique shopper sessions to ensure high-fidelity intent mapping.
+                </p>
             </div>
         </CardContent>
       </Card>

@@ -9,9 +9,14 @@ export const GetScanEventsInputSchema = z.object({
 });
 export type GetScanEventsInput = z.infer<typeof GetScanEventsInputSchema>;
 
+/**
+ * Session-First Event Schema
+ * Ensures all behavioural nodes are anchored to a sessionId.
+ */
 const ScanEventSchema = z.object({
     eventId: z.string(),
-    qrCodeId: z.string(),
+    sessionId: z.string().describe('Mandatory session anchor for all behavioural analytics.'),
+    gtin: z.string().describe('Product dimension.'),
     retailerId: z.string(),
     campaignId: z.string(),
     timestamp: z.string(),

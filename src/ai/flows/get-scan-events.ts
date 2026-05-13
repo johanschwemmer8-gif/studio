@@ -1,9 +1,7 @@
-
 'use server';
 /**
  * @fileOverview Retrieves recent scan events with optional filtering.
- *
- * - getScanEvents - Fetches a list of scan events.
+ * Anchors all events to a sessionId to satisfy the Intelligence Layer requirements.
  */
 
 import { ai } from '@/ai/genkit';
@@ -22,7 +20,6 @@ if (!admin.apps.length) {
 }
 
 export async function getScanEvents(input: GetScanEventsInput): Promise<GetScanEventsOutput> {
-  // In a real environment, add auth/permission checks.
   return getScanEventsFlow(input);
 }
 
@@ -33,45 +30,48 @@ const getScanEventsFlow = ai.defineFlow(
     outputSchema: GetScanEventsOutputSchema,
   },
   async (filters) => {
-    // This flow would query Firestore. For this prototype, we return mock data
-    // consistent with the filters to demonstrate functionality.
-
+    // Infrastructure Simulation: Returning session-anchored events.
+    // Note: Multiple events may share the same sessionId (e.g., refresh or double-scan).
     const mockEvents: GetScanEventsOutput = [
         {
-            eventId: 'scan_1',
-            qrCodeId: 'qr_abc123',
+            eventId: 'ev_1',
+            sessionId: 'sess_alpha',
+            gtin: '06001234567891',
             retailerId: 'simulated-retailer-id',
-            campaignId: 'summer-sale-2023',
+            campaignId: 'summer-sale-2024',
             timestamp: new Date().toISOString(),
-            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
-            referrer: 'https://www.google.com/',
+            userAgent: 'iPhone/Safari',
+            referrer: 'https://google.com',
         },
         {
-            eventId: 'scan_2',
-            qrCodeId: 'qr_def456',
+            eventId: 'ev_2',
+            sessionId: 'sess_alpha', // Same session as ev_1 (Intelligence Layer should deduplicate)
+            gtin: '06001234567891',
             retailerId: 'simulated-retailer-id',
-            campaignId: 'summer-sale-2023',
+            campaignId: 'summer-sale-2024',
+            timestamp: subHours(new Date(), 1).toISOString(),
+            userAgent: 'iPhone/Safari',
+            referrer: 'https://google.com',
+        },
+        {
+            eventId: 'ev_3',
+            sessionId: 'sess_beta',
+            gtin: '06001234567891',
+            retailerId: 'simulated-retailer-id',
+            campaignId: 'summer-sale-2024',
             timestamp: subHours(new Date(), 2).toISOString(),
-            userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
+            userAgent: 'Android/Chrome',
             referrer: '',
         },
         {
-            eventId: 'scan_3',
-            qrCodeId: 'qr_ghi789',
-            retailerId: 'other-retailer',
-            campaignId: 'winter-clearance',
-            timestamp: subHours(new Date(), 5).toISOString(),
-            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
-            referrer: 'https://www.facebook.com/',
-        },
-         {
-            eventId: 'scan_4',
-            qrCodeId: 'qr_jkl012',
+            eventId: 'ev_4',
+            sessionId: 'sess_gamma',
+            gtin: '06009876543210',
             retailerId: 'simulated-retailer-id',
-            campaignId: 'daily-deals',
-            timestamp: subDays(new Date(), 3).toISOString(),
-            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
-            referrer: '',
+            campaignId: 'winter-clearance',
+            timestamp: subDays(new Date(), 1).toISOString(),
+            userAgent: 'iPhone/Safari',
+            referrer: 'https://instagram.com',
         }
     ];
     

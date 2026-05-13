@@ -1,11 +1,7 @@
-
 'use server';
 /**
- * @fileOverview Aggregates and analyzes scan event data.
- *
- * - getScanAnalytics - Fetches and processes scan analytics.
- * - ScanAnalyticsInput - The input type for the function.
- * - ScanAnalyticsOutput - The return type for the function.
+ * @fileOverview Intelligence Layer Aggregator.
+ * Enforces session-first logic: All GTIN analytics must be derived from session context.
  */
 
 import { ai } from '@/ai/genkit';
@@ -18,31 +14,27 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-const ScanAnalyticsInputSchema = GetScanEventsInputSchema.extend({
-    // Future: add fields like `groupBy` (e.g., 'day', 'campaign', 'retailer')
-});
+const ScanAnalyticsInputSchema = GetScanEventsInputSchema.extend({});
 export type ScanAnalyticsInput = z.infer<typeof ScanAnalyticsInputSchema>;
 
-const TopScannedQrSchema = z.object({
-    qrCodeId: z.string(),
-    scanCount: z.number(),
+const TopProductEngagementSchema = z.object({
+    gtin: z.string(),
+    uniqueSessions: z.number().describe('Number of unique sessions that interacted with this GTIN.'),
     campaignId: z.string(),
 });
 
 const ScanAnalyticsOutputSchema = z.object({
-    totalScans: z.number(),
-    uniqueScans: z.number(),
-    scansByDay: z.record(z.number()),
-    topScannedCodes: z.array(TopScannedQrSchema),
+    totalRawEvents: z.number().describe('Total raw log entries.'),
+    uniqueSessions: z.number().describe('Total unique customer sessions (True Reach).'),
+    engagementByDay: z.record(z.number()),
+    topEngagedProducts: z.array(TopProductEngagementSchema),
 });
 export type ScanAnalyticsOutput = z.infer<typeof ScanAnalyticsOutputSchema>;
 
 
 export async function getScanAnalytics(input: ScanAnalyticsInput): Promise<ScanAnalyticsOutput> {
-  // In a real environment, add auth/permission checks.
   return getScanAnalyticsFlow(input);
 }
-
 
 const getScanAnalyticsFlow = ai.defineFlow(
   {
@@ -51,34 +43,48 @@ const getScanAnalyticsFlow = ai.defineFlow(
     outputSchema: ScanAnalyticsOutputSchema,
   },
   async (filters) => {
-    const scanEvents = await getScanEvents(filters);
+    const events = await getScanEvents(filters);
 
-    const uniqueScans = new Set(scanEvents.map(e => e.qrCodeId)).size;
+    // 1. Calculate True Reach (Unique Sessions)
+    const uniqueSessions = new Set(events.map(e => e.sessionId)).size;
     
-    const scansByDay: Record<string, number> = {};
-    scanEvents.forEach(event => {
+    // 2. Aggregate by Day using unique sessions as unit
+    const sessionsByDay: Record<string, Set<string>> = {};
+    events.forEach(event => {
         const day = new Date(event.timestamp).toISOString().split('T')[0];
-        scansByDay[day] = (scansByDay[day] || 0) + 1;
-    });
-
-    const scansByCode: Record<string, { count: number, campaignId: string }> = {};
-    scanEvents.forEach(event => {
-        if (!scansByCode[event.qrCodeId]) {
-            scansByCode[event.qrCodeId] = { count: 0, campaignId: event.campaignId };
-        }
-        scansByCode[event.qrCodeId].count++;
+        if (!sessionsByDay[day]) sessionsByDay[day] = new Set();
+        sessionsByDay[day].add(event.sessionId);
     });
     
-    const topScannedCodes = Object.entries(scansByCode)
-        .map(([qrCodeId, data]) => ({ qrCodeId, scanCount: data.count, campaignId: data.campaignId }))
-        .sort((a, b) => b.scanCount - a.scanCount)
+    const engagementByDay: Record<string, number> = {};
+    Object.keys(sessionsByDay).forEach(day => {
+        engagementByDay[day] = sessionsByDay[day].size;
+    });
+
+    // 3. Aggregate GTIN Popularity (Unique Sessions per GTIN)
+    // Rule Enforcement: GTIN is a dimension of the session, not a direct primary key.
+    const sessionsByGtin: Record<string, { sessions: Set<string>, campaignId: string }> = {};
+    events.forEach(event => {
+        if (!sessionsByGtin[event.gtin]) {
+            sessionsByGtin[event.gtin] = { sessions: new Set(), campaignId: event.campaignId };
+        }
+        sessionsByGtin[event.gtin].sessions.add(event.sessionId);
+    });
+    
+    const topEngagedProducts = Object.entries(sessionsByGtin)
+        .map(([gtin, data]) => ({ 
+            gtin, 
+            uniqueSessions: data.sessions.size, 
+            campaignId: data.campaignId 
+        }))
+        .sort((a, b) => b.uniqueSessions - a.uniqueSessions)
         .slice(0, 10);
 
     return {
-      totalScans: scanEvents.length,
-      uniqueScans,
-      scansByDay,
-      topScannedCodes,
+      totalRawEvents: events.length,
+      uniqueSessions,
+      engagementByDay,
+      topEngagedProducts,
     };
   }
 );

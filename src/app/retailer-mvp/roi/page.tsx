@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -10,8 +9,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { 
-  QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, 
-  Sparkles, AlertTriangle, ArrowUp, DollarSign, Target, BarChart3
+  UserCheck, Clock, TrendingUp, ShoppingCart, Percent, 
+  Sparkles, AlertTriangle, ArrowUp, DollarSign, Target, BarChart3,
+  Download, Loader2, User, QrCode
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import TopProductsTable from '@/components/dashboard/top-products-table';
@@ -19,7 +19,6 @@ import { Separator } from '@/components/ui/separator';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows';
-import { Loader2, Download } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SalesFunnelChart from '@/components/dashboard/sales-funnel-chart';
 import { useToast } from '@/hooks/use-toast';
@@ -216,7 +215,7 @@ export default function RoiPage() {
            </Card>
 
            <div className="grid gap-4 sm:grid-cols-2">
-                <Card>
+                <Card className="border-primary/10">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
                             <BarChart3 className="h-3 w-3" /> Assisted Sales
@@ -227,7 +226,7 @@ export default function RoiPage() {
                         <p className="text-[10px] text-muted-foreground mt-1">Direct AI-guided transaction volume.</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="border-primary/10">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
                             <Target className="h-3 w-3" /> Scan-to-Purchase
@@ -244,7 +243,7 @@ export default function RoiPage() {
                     </CardHeader>
                     <CardContent className="flex items-center justify-between">
                         <div className="text-4xl font-black">{metricsData?.conversion.conversionRate.toFixed(1) || '---'}%</div>
-                        <Badge className="bg-primary text-white font-black text-[10px] tracking-wider">2.4x INDUSTRY AVG</Badge>
+                        <Badge className="bg-primary text-white font-black text-[10px] tracking-wider uppercase">2.4x INDUSTRY AVG</Badge>
                     </CardContent>
                 </Card>
            </div>
@@ -254,40 +253,44 @@ export default function RoiPage() {
 
       {/* RETAINER METRICS: INFRASTRUCTURE ADOPTION */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-muted/30">
+        <Card className="bg-muted/30 border-none shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total GS1 Resolves</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">True Reach (Sessions)</CardTitle>
+            <UserCheck className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metricsData?.engagement.uniqueScans.toLocaleString() || '---'}</div>
+            <p className="text-[9px] text-muted-foreground uppercase mt-1">Unique customer journeys initialized.</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-muted/30 border-none shadow-none">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Raw Resolve Events</CardTitle>
             <QrCode className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metricsData?.engagement.totalScans.toLocaleString() || '---'}</div>
+            <p className="text-[9px] text-muted-foreground uppercase mt-1">Total GS1-aligned parser triggers.</p>
           </CardContent>
         </Card>
-        <Card className="bg-muted/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Unique Sessions</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metricsData?.engagement.uniqueScans.toLocaleString() || '---'}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-muted/30">
+        <Card className="bg-muted/30 border-none shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Engagement Rate</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.scanRate.toFixed(2)}%` : '---'}</div>
+            <p className="text-[9px] text-muted-foreground uppercase mt-1">Footfall-to-session conversion.</p>
           </CardContent>
         </Card>
-         <Card className="bg-muted/30">
+         <Card className="bg-muted/30 border-none shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Interaction Dwell</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.engagementDuration}s` : '---'}</div>
+            <p className="text-[9px] text-muted-foreground uppercase mt-1">Avg. duration of the decision window.</p>
           </CardContent>
         </Card>
       </div>

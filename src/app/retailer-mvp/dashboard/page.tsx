@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useTransition, useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
@@ -11,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock } from 'lucide-react';
+import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, UserCheck, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -106,15 +105,15 @@ export default function DashboardPage() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <CardTitle>Executive Summary: The ROI Hero Section</CardTitle>
+              <CardTitle>Retail Intelligence Summary</CardTitle>
               <CardDescription>
-                A high-level overview of the key performance indicators for your investment in the iNteract-AOE platform.
+                Measuring identity conversion and the impact of AI-powered guidance on your business.
               </CardDescription>
             </div>
             {optionalModules.performanceAnalysis && (
               <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing}>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Analyze Summary
+                  Analyze Intelligence
               </Button>
             )}
           </div>
@@ -126,7 +125,7 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
-                    <CardDescription>Our AI is analyzing your performance metrics...</CardDescription>
+                    <CardDescription>Our AI is analyzing your intelligence metrics...</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                       <Skeleton className="h-4 w-full" />
@@ -175,51 +174,51 @@ export default function DashboardPage() {
 
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-               <Card>
+               <Card className="border-primary/20 bg-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Unique Scans</CardTitle>
-                  <User className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Identified Shoppers</CardTitle>
+                  <UserCheck className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{engagement.uniqueScans.toLocaleString()}</div>
+                  <div className="text-3xl font-bold">{engagement.identifiedShoppers.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
-                    Individual customers who scanned a QR code.
+                    Guest scanners who created a Smart Profile.
                   </p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-primary/20 bg-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Profile Conversion</CardTitle>
+                  <ShieldCheck className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{engagement.scanRate.toFixed(2)}%</div>
+                  <div className="text-3xl font-bold">{engagement.profileConversionRate.toFixed(1)}%</div>
                    <p className="text-xs text-muted-foreground">
-                    Percentage of unique visitors who scanned.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
-                  <Tag className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{conversion.offerRedemptionRate.toFixed(2)}%</div>
-                  <p className="text-xs text-muted-foreground">
-                    Rate of personalized offers redeemed.
+                    Percentage of guest scanners identifying themselves.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Basket Uplift</CardTitle>
-                  <ArrowUp className="h-4 w-4 text-muted-foreground" />
+                  <ArrowUp className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{conversion.basketUpliftPercentage.toFixed(2)}%</div>
+                  <div className="text-3xl font-bold">+{conversion.basketUpliftPercentage.toFixed(1)}%</div>
+                  <p className="text-xs text-muted-foreground">
+                    Spend increase for shoppers using AI guidance.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Unique Scans</CardTitle>
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{engagement.uniqueScans.toLocaleString()}</div>
                    <p className="text-xs text-muted-foreground">
-                    Increase in average basket size for engaged users.
+                    Total individual scanners this period.
                   </p>
                 </CardContent>
               </Card>
@@ -229,21 +228,21 @@ export default function DashboardPage() {
                   <Percent className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{((conversion.aoeTransactions / engagement.uniqueScans) * 100 || 0).toFixed(2)}%</div>
+                  <div className="text-3xl font-bold">{((conversion.aoeTransactions / engagement.uniqueScans) * 100 || 0).toFixed(1)}%</div>
                    <p className="text-xs text-muted-foreground">
-                    Engaged users who made a purchase.
+                    Engaged users who completed a purchase.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Dwell Time</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
+                  <Tag className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{engagement.engagementDuration}s</div>
+                  <div className="text-3xl font-bold">{conversion.offerRedemptionRate.toFixed(1)}%</div>
                   <p className="text-xs text-muted-foreground">
-                    Average time spent on product page after scan.
+                    Rate of personalized offers redeemed.
                   </p>
                 </CardContent>
               </Card>

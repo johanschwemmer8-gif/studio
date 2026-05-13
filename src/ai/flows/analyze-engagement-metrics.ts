@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Analyzes core engagement and conversion metrics to provide conclusions and recommendations.
@@ -10,7 +9,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { admin } from '@/lib/firebase-admin';
 
 // The input is now optional, as the flow can fetch its own data.
 const AnalyzeEngagementMetricsInputSchema = z.object({
@@ -22,6 +20,8 @@ const AnalyzeEngagementMetricsInputSchema = z.object({
 const EngagementSchema = z.object({
     totalScans: z.number().describe('All QR code scans across all stores.'),
     uniqueScans: z.number().describe('Individual customers who have scanned.'),
+    identifiedShoppers: z.number().describe('Shoppers who converted from guest to identified profile.'),
+    profileConversionRate: z.number().describe('Percentage of unique scanners who created a profile.'),
     engagementDuration: z.number().describe('Average time spent on product page in seconds.'),
     scanRate: z.number().describe('Engagement rate based on total scans vs. unique visitors.'),
 });
@@ -61,9 +61,14 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     // --- Step 1: Fetch and calculate metrics ---
     // For this demonstration, we use fixed, realistic data to ensure consistency for screenshots.
     
+    const uniqueScans = 3210;
+    const identifiedShoppers = 1184; // 36.8% conversion
+
     const engagement = {
         totalScans: 4829,
-        uniqueScans: 3210,
+        uniqueScans,
+        identifiedShoppers,
+        profileConversionRate: (identifiedShoppers / uniqueScans) * 100,
         engagementDuration: 32,
         scanRate: 5.4,
     };
@@ -87,9 +92,9 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     // --- Step 2: Generate AI analysis from the calculated metrics ---
     // MOCK AI ANALYSIS TO AVOID RATE LIMITING ERRORS DURING DEVELOPMENT/SCREENSHOTS
     const analysisOutput = {
-        overallPerformance: "The iNteract-AOE platform is demonstrating a strong positive impact on customer behavior and sales. A significant 12.5% uplift in basket size for engaged users, coupled with a healthy engagement rate, indicates that the in-store digital experience is effectively driving higher transaction values. While the offer redemption rate is solid, there is an opportunity to further convert the high volume of unique scans into more direct sales.",
-        conclusions: "- The platform successfully increases customer spend, proving its ROI.\n- Engagement is high, but there's a gap between scanning a product and redeeming an offer.\n- The average engagement duration of 32 seconds suggests customers are genuinely interested in the content provided.",
-        recommendations: "- To boost the conversion rate, consider implementing more aggressive or personalized real-time offers triggered after a user spends more than 45 seconds on a page.\n- Launch a targeted mini-campaign to educate users on the benefits of creating a profile to receive personalized offers, thereby improving redemption rates.\n- A/B test different calls-to-action on the product pages to guide users more effectively towards a purchase or offer redemption."
+        overallPerformance: "The platform is demonstrating a strong positive impact on customer behavior. A significant 36.8% of guest scanners are converting to identified 'Smart Profiles', creating a persistent retail memory. The 12.5% uplift in basket size for engaged users proves the financial value of AI-driven buying guidance.",
+        conclusions: "- The Identity Layer is successfully capturing first-party data (email/phone) from over a third of scanners.\n- AI Guidance is directly correlated with higher transaction values.\n- Average engagement duration of 32 seconds indicates high quality of interaction.",
+        recommendations: "- Target the 'Profile-Ready' segment with specific email follow-ups for products they saved but didn't buy.\n- Increase the prominence of the 'Save to Profile' button to push conversion past 40%.\n- A/B test personalized offers exclusively for Identified Shoppers to increase redemption frequency."
     };
     
     // --- Step 3: Return the combined result ---

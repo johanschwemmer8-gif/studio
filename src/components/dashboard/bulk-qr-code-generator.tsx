@@ -23,44 +23,32 @@ import {
   RefreshCw,
   Loader2,
   Sparkles,
-  Send,
-  ImageIcon,
   ShieldCheck,
-  Save,
-  PlusCircle,
-  Barcode
+  Barcode,
+  ExternalLink
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getQrTemplates } from '@/ai/flows/get-qr-templates';
-import { QrTemplate } from '@/lib/schemas/qr-templates';
-import { type FormValues as BrandFormValues } from './brand-management-form';
 import { db } from '@/lib/firebase';
-import { collection, writeBatch, doc, addDoc } from 'firebase/firestore';
-import Image from 'next/image';
+import { collection, writeBatch, doc } from 'firebase/firestore';
+import { Badge } from '../ui/badge';
 
 const styleSchema = z.object({
   gtin: z.string().length(14, "GTIN must be exactly 14 digits.").optional().or(z.literal('')),
   batchNumber: z.string().optional().or(z.literal('')),
   serialNumber: z.string().optional().or(z.literal('')),
-  colorHex: z.string().optional(),
-  bgColorHex: z.string().optional(),
-  errorCorrection: z.enum(['L', 'M', 'Q', 'H']).optional(),
+  colorHex: z.string().optional().default('#000000'),
+  bgColorHex: z.string().optional().default('#FFFFFF'),
+  errorCorrection: z.enum(['L', 'M', 'Q', 'H']).optional().default('M'),
   aiPersona: z.string().optional(),
   aiTone: z.string().optional(),
   aiGoal: z.string().optional(),
-  mediaType: z.enum(['image', 'video']).optional(),
-  mediaUrl: z.string().url().optional().or(z.literal('')),
-  headline: z.string().optional(),
-  subhead: z.string().optional(),
   scanDestination: z.enum(['url', 'ai']).default('ai'),
-  landingPageUrl: z.string().url().optional().or(z.literal('')),
 });
 
 const formSchema = z.object({
   retailerId: z.string().min(1, 'Retailer ID is required'),
-  brandId: z.string().min(1, 'Brand is required'),
   campaignId: z.string().min(1, 'Campaign ID is required'),
-  count: z.number().int().min(1).max(10000),
+  count: z.number().int().min(1).max(5000),
   options: styleSchema.optional(),
 });
 
@@ -69,34 +57,24 @@ type FormValues = z.infer<typeof formSchema>;
 export default function BulkQRCodeGenerator() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-    const [templates, setTemplates] = useState<QrTemplate[]>([]);
-    const [brands, setBrands] = useState<BrandFormValues['brands']>([]);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             retailerId: 'simulated-retailer-id',
-            brandId: '',
-            campaignId: `gs1-campaign-${Date.now()}`,
-            count: 100,
+            campaignId: `gs1-batch-${Date.now()}`,
+            count: 50,
             options: {
               gtin: '06001234567891',
               batchNumber: '',
               serialNumber: '',
-              aiTone: 'Professional',
-              aiGoal: 'Drive sales',
+              colorHex: '#000000',
+              bgColorHex: '#FFFFFF',
+              errorCorrection: 'M',
               scanDestination: 'ai',
-              mediaUrl: '',
             }
         },
     });
-
-    useEffect(() => {
-        getQrTemplates({ retailerId: 'simulated-retailer-id' }).then(setTemplates);
-        const savedBrandData = localStorage.getItem('brandManagement');
-        if (savedBrandData) setBrands(JSON.parse(savedBrandData).brands || []);
-    }, []);
 
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
@@ -109,9 +87,9 @@ export default function BulkQRCodeGenerator() {
         const batch = writeBatch(db);
         const requestRef = doc(collection(db, 'bulkQrRequests'));
         
-        // GS1 Digital Link Construction Logic
+        // Construct GS1 Digital Link Template
         const gtin = data.options?.gtin || '00000000000000';
-        const digitalLink = `https://id.interact-aoe.com/01/${gtin}`;
+        const digitalLinkTemplate = `${window.location.origin}/01/${gtin}`;
 
         await batch.set(requestRef, {
             ...data,
@@ -119,101 +97,110 @@ export default function BulkQRCodeGenerator() {
             createdAt: new Date(),
             itemsDone: data.count,
             isGs1Compliant: true,
-            digitalLinkTemplate: digitalLink
+            digitalLinkTemplate
         });
 
         try {
             await batch.commit();
-            toast({ title: 'GS1 Campaign Created!', description: `Generated ${data.count} compliant identifiers.` });
-            form.reset();
+            toast({ title: 'GS1 Batch Created!', description: `Successfully queued ${data.count} compliant identifiers.` });
+            form.reset({
+                ...form.getValues(),
+                campaignId: `gs1-batch-${Date.now()}`
+            });
         } catch (error: any) {
-            toast({ title: "Submission Failed", description: error.message, variant: 'destructive' });
+            toast({ title: "Queue Failed", description: error.message, variant: 'destructive' });
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    const currentGtin = form.watch('options.gtin');
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
-                    <Barcode className="text-primary h-8 w-8" />
+                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3 text-primary">
+                    <Barcode className="h-8 w-8" />
                     GS1 Digital Link Generator
                 </h2>
                 <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Interoperability Active
+                    <ShieldCheck className="h-3.5 w-3.5" /> Compliance Mode
                 </Badge>
             </div>
 
             <form onSubmit={form.handleSubmit(onSubmit)}>
-                <Card className="border-primary/10">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Infrastructure Configuration</CardTitle>
-                        <CardDescription>Define the global product identification and campaign parameters.</CardDescription>
+                <Card className="border-primary/10 shadow-lg">
+                    <CardHeader className="bg-muted/30">
+                        <CardTitle className="text-lg">Product Identity (Immutable)</CardTitle>
+                        <CardDescription>Establish the global product identification and campaign metadata.</CardDescription>
                     </CardHeader>
-                    <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
                          <div className="space-y-2">
-                            <Label htmlFor="gtin">Global Trade Item Number (GTIN-14)</Label>
-                            <Input id="gtin" {...form.register('options.gtin')} placeholder="e.g., 06001234567891" className="font-mono" />
+                            <Label htmlFor="gtin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">GTIN-14 (Required)</Label>
+                            <Input id="gtin" {...form.register('options.gtin')} placeholder="e.g., 06001234567891" className="font-mono bg-white h-11" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="batch">Batch / Lot (Optional)</Label>
-                            <Input id="batch" {...form.register('options.batchNumber')} placeholder="e.g., LOT-2024-A" className="font-mono" />
+                            <Label htmlFor="batch" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Batch / Lot (Optional)</Label>
+                            <Input id="batch" {...form.register('options.batchNumber')} placeholder="AI 10" className="font-mono bg-white h-11" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="campaignId">Campaign Identifier</Label>
-                            <Input id="campaignId" {...form.register('campaignId')} />
+                            <Label htmlFor="campaignId" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Campaign Slug</Label>
+                            <Input id="campaignId" {...form.register('campaignId')} className="bg-white h-11" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="count">Output Quantity</Label>
-                            <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} />
+                            <Label htmlFor="count" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Quantity</Label>
+                            <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} className="bg-white h-11" />
                         </div>
                     </CardContent>
 
                     <Accordion type="single" collapsible className="px-6 pb-6">
-                        <AccordionItem value="gs1-details" className="border-none">
-                            <AccordionTrigger className="text-xs font-black uppercase tracking-widest text-primary/60 hover:no-underline">
-                                Advanced GS1 Attributes
+                        <AccordionItem value="gs1-advanced" className="border-none">
+                            <AccordionTrigger className="text-xs font-black uppercase tracking-widest text-primary/60 hover:no-underline py-4">
+                                <Sparkles className="h-3.5 w-3.5 mr-2 text-accent" />
+                                Infrastructure & AI Options
                             </AccordionTrigger>
                             <AccordionContent className="pt-4 grid md:grid-cols-2 gap-8">
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label>AI Persona (Digital Link Guidance)</Label>
-                                        <Input {...form.register('options.aiPersona')} placeholder="e.g., GS1 Compliance Assistant" />
+                                        <Label className="text-[10px] font-black uppercase">AI Guidance Persona</Label>
+                                        <Input {...form.register('options.aiPersona')} placeholder="e.g., GS1 Compliance Assistant" className="bg-white" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Digital Link Destination</Label>
+                                        <Label className="text-[10px] font-black uppercase">Resolver Destination</Label>
                                         <Controller
                                             control={form.control}
                                             name="options.scanDestination"
                                             render={({ field }) => (
                                                 <Select onValueChange={field.onChange} value={field.value}>
-                                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="ai">AI Decision Assistant (Guidance)</SelectItem>
-                                                        <SelectItem value="url">Direct GS1 Resolver (Data Only)</SelectItem>
+                                                        <SelectItem value="ai">Intelligence Layer (Personalized Guidance)</SelectItem>
+                                                        <SelectItem value="url">Direct Resolver (Raw Product Data)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
                                         />
                                     </div>
                                 </div>
-                                <div className="p-4 bg-muted/50 rounded-xl border border-dashed text-center space-y-2">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Digital Link Format</p>
-                                    <code className="text-xs break-all text-primary font-bold">
-                                        https://id.interact.io/01/{form.watch('options.gtin') || '...'}
-                                    </code>
-                                    <p className="text-[10px] text-muted-foreground italic">Standardized URI structure for global interoperability.</p>
+                                <div className="p-6 bg-slate-900 rounded-2xl text-center space-y-4 border-2 border-primary/20 shadow-inner">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">GS1 Digital Link Format</p>
+                                    <div className="bg-white/5 p-3 rounded-lg flex items-center justify-between gap-3 group border border-white/10">
+                                        <code className="text-xs break-all text-white font-mono opacity-80 text-left">
+                                            {window.location.origin}/01/{currentGtin || '...'}
+                                        </code>
+                                        <ExternalLink className="h-4 w-4 text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 italic">Interoperable URI structure for global retail resolution.</p>
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
 
-                    <CardFooter className="bg-primary/5 p-6 flex justify-end gap-3">
-                        <Button type="button" variant="ghost" className="font-bold">Save Template</Button>
-                        <Button type="submit" disabled={isSubmitting} className="h-12 px-8 font-black gap-2">
-                            {isSubmitting ? <Loader2 className="animate-spin" /> : <RefreshCw className="h-5 w-5" />}
-                            Queue GS1 Generation
+                    <CardFooter className="bg-muted/20 p-6 flex justify-end gap-3 border-t border-black/5">
+                        <Button type="button" variant="ghost" className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest">Save Config</Button>
+                        <Button type="submit" disabled={isSubmitting} className="h-12 px-8 font-black gap-2 bg-primary text-white shadow-xl hover:shadow-2xl transition-all">
+                            {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
+                            Queue Compliant Generation
                         </Button>
                     </CardFooter>
                 </Card>

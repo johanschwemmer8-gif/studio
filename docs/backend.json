@@ -15,97 +15,73 @@
       },
       "required": ["uid", "email", "role"]
     },
+    "Product": {
+      "title": "GS1 Compliant Product",
+      "description": "Product data keyed by GTIN.",
+      "type": "object",
+      "properties": {
+        "gtin": { "type": "string", "description": "14-digit Global Trade Item Number (Primary Key)" },
+        "name": { "type": "string" },
+        "brand": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "batchNumber": { "type": "string", "description": "Optional GS1 AI 10" },
+        "serialNumber": { "type": "string", "description": "Optional GS1 AI 21" },
+        "gs1DigitalLink": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "retailerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["gtin", "name", "price", "retailerId"]
+    },
     "ShopperProfile": {
       "title": "Shopper Profile",
-      "description": "Persistent identity for a retail customer. The core of the retail memory layer.",
+      "description": "Persistent identity for a retail customer.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "displayName": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "phone": { "type": "string" },
-        "preferences": { "$ref": "#/backend/entities/ShopperPreferences" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid"]
     },
-    "ShopperPreferences": {
-      "title": "Shopper Preferences",
-      "description": "Personalized settings and categories for a shopper.",
-      "type": "object",
-      "properties": {
-        "categories": { "type": "array", "items": { "type": "string" } },
-        "budgetRange": { "type": "string" },
-        "aiPersonalityPref": { "type": "string" },
-        "marketingConsent": { "type": "boolean" }
-      }
-    },
     "ShoppingSession": {
       "title": "Shopping Session",
-      "description": "A single visit or interaction session initiated by a scan.",
+      "description": "A single visit initiated by a GS1 scan.",
       "type": "object",
       "properties": {
         "sessionId": { "type": "string" },
         "shopperId": { "type": "string" },
-        "storeId": { "type": "string" },
         "startTime": { "type": "string", "format": "date-time" },
-        "endTime": { "type": "string", "format": "date-time" },
-        "entryQrId": { "type": "string" }
-      },
-      "required": ["sessionId", "startTime"]
+        "entryGtin": { "type": "string" }
+      }
     },
     "ProductInteraction": {
-      "title": "Product Interaction",
-      "description": "GS1-compliant granular behavioural event tracking.",
+      "title": "Behavioural Event",
+      "description": "GS1-compliant granular behavioural event.",
       "type": "object",
       "properties": {
         "interactionId": { "type": "string" },
         "shopperId": { "type": "string" },
         "sessionId": { "type": "string" },
-        "gtin": { "type": "string", "description": "Global Trade Item Number (GS1 Standard)" },
-        "batchNumber": { "type": "string" },
-        "serialNumber": { "type": "string" },
-        "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "save", "reorder", "tutorial_view", "warranty_activate", "add_to_trolley"] },
-        "dwellTime": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["shopperId", "gtin", "type", "timestamp"]
-    },
-    "SavedProduct": {
-      "title": "Saved Product",
-      "description": "A bookmarked product in a shopper's profile using GS1 identification.",
-      "type": "object",
-      "properties": {
-        "shopperId": { "type": "string" },
         "gtin": { "type": "string" },
-        "productName": { "type": "string" },
-        "savedAt": { "type": "string", "format": "date-time" },
-        "reminderSet": { "type": "boolean" }
+        "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "save", "reorder", "add_to_trolley"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "default": "GS1" }
       },
-      "required": ["shopperId", "gtin", "savedAt"]
-    },
-    "AIConversation": {
-      "title": "AI Conversation",
-      "description": "Transcript and analysis of an AI assistant interaction.",
-      "type": "object",
-      "properties": {
-        "conversationId": { "type": "string" },
-        "shopperId": { "type": "string" },
-        "gtin": { "type": "string" },
-        "transcript": { "type": "array", "items": { "type": "object" } },
-        "sentiment": { "type": "number" },
-        "resolution": { "type": "string" }
-      },
-      "required": ["conversationId", "gtin"]
+      "required": ["gtin", "type", "timestamp"]
     },
     "Basket": {
       "title": "Virtual Smart Trolley",
-      "description": "A persistent digital basket for in-store shoppers using GS1 standards.",
+      "description": "GTIN-based digital trolley.",
       "type": "object",
       "properties": {
         "basketId": { "type": "string" },
         "shopperId": { "type": "string" },
-        "retailerId": { "type": "string" },
         "items": { 
           "type": "array", 
           "items": { 
@@ -119,23 +95,7 @@
           } 
         },
         "total": { "type": "number" },
-        "status": { "type": "string", "enum": ["active", "synced", "paid"] },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Transaction": {
-      "title": "Retail Transaction",
-      "description": "A completed sale log for POS reporting using GS1-compliant items.",
-      "type": "object",
-      "properties": {
-        "transactionId": { "type": "string" },
-        "shopperId": { "type": "string" },
-        "retailerId": { "type": "string" },
-        "amount": { "type": "number" },
-        "paymentMethod": { "type": "string" },
-        "basketId": { "type": "string" },
-        "items": { "type": "array", "items": { "type": "object" } },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "status": { "type": "string", "enum": ["active", "synced", "paid"] }
       }
     }
   },
@@ -147,33 +107,25 @@
       "schema": "#/backend/entities/PlatformUser",
       "description": "Management users and staff."
     },
+    "/products/{gtin}": {
+      "schema": "#/backend/entities/Product",
+      "description": "GS1 Products keyed by GTIN."
+    },
     "/shoppers/{shopperId}": {
       "schema": "#/backend/entities/ShopperProfile",
-      "description": "Customer persistent profiles."
+      "description": "Customer profiles."
     },
     "/sessions/{sessionId}": {
       "schema": "#/backend/entities/ShoppingSession",
-      "description": "Active and past shopper sessions."
+      "description": "Active sessions."
     },
     "/product_interactions/{id}": {
       "schema": "#/backend/entities/ProductInteraction",
-      "description": "Individual GS1-compliant interaction log."
-    },
-    "/saved_products/{id}": {
-      "schema": "#/backend/entities/SavedProduct",
-      "description": "Cross-user saved items via GTIN."
-    },
-    "/ai_conversations/{id}": {
-      "schema": "#/backend/entities/AIConversation",
-      "description": "Detailed chat transcripts linked to GTIN."
+      "description": "Granular interaction logs."
     },
     "/baskets/{id}": {
       "schema": "#/backend/entities/Basket",
-      "description": "Digital trolleys with GS1 item IDs."
-    },
-    "/transactions/{id}": {
-      "schema": "#/backend/entities/Transaction",
-      "description": "Completed sales records."
+      "description": "Digital trolleys using GTINs."
     }
   }
 }

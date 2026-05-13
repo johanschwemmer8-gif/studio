@@ -4,6 +4,7 @@ import placeholderImages from '@/app/lib/placeholder-images.json';
 export type Product = {
   gtin: string; // GS1 Global Trade Item Number
   name: string;
+  brand: string;
   description: string;
   category: string;
   price: number;
@@ -13,12 +14,15 @@ export type Product = {
     height: number;
   };
   'data-ai-hint': string;
+  batchNumber?: string;
+  serialNumber?: string;
 };
 
 export const products: Product[] = [
   {
     gtin: '06001234567891', // Standard GS1 GTIN-14
     name: 'Eco-Friendly Water Bottle',
+    brand: 'HydroCool',
     description:
       'Stay hydrated on the go with our reusable and eco-friendly water bottle. Made from durable stainless steel, it keeps your drinks cold for 24 hours or hot for 12.',
     category: 'Lifestyle',
@@ -29,6 +33,7 @@ export const products: Product[] = [
   {
     gtin: '06009876543210', // Standard GS1 GTIN-14
     name: 'Wireless Charging Pad',
+    brand: 'LifeTech',
     description: 'A sleek and fast wireless charging pad for all your compatible devices. Say goodbye to tangled cables.',
     category: 'Electronics',
     price: 45.0,
@@ -41,7 +46,7 @@ export const findProductByGtin = (gtin: string) => {
   return products.find((p) => p.gtin === gtin);
 };
 
-// Legacy support for internal ID routing (mapping to GTIN)
+// Legacy support: Internal IDs now map to GTINs for continuity
 export const findProductById = (id: string | number) => {
     if (id === '1') return products[0];
     if (id === '2') return products[1];

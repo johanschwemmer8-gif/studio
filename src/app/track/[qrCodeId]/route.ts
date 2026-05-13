@@ -1,11 +1,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { admin } from '@/lib/firebase-admin';
+import { parseGS1 } from '@/lib/gs1-parser';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
+/**
+ * resolveGS1()
+ * The primary entry point for all platform scans.
+ * Resolves identity via GTIN and handles infrastructure logging.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { qrCodeId: string } }
@@ -13,92 +19,61 @@ export async function GET(
   const { qrCodeId } = params;
   const db = admin.firestore();
 
-  if (!qrCodeId) {
-    return NextResponse.redirect(new URL('/error?code=400', request.url));
+  // Parse Identity
+  const identity = parseGS1(qrCodeId);
+  if (!identity) {
+    return NextResponse.redirect(new URL('/error?code=invalid_gs1', request.url));
   }
-  
-  const qrRef = db.collection('qrcodes').doc(qrCodeId);
+
+  const { gtin, batchNumber, serialNumber } = identity;
 
   try {
-    const qrData = await db.runTransaction(async (transaction) => {
-        const qrDoc = await transaction.get(qrRef);
+    // 1. Fetch Product via GTIN (Primary Key)
+    const productRef = db.collection('products').doc(gtin);
+    const productDoc = await productRef.get();
 
-        if (!qrDoc.exists) {
-            // Also check external QR codes as a fallback
-            const externalQrRef = db.collection('externalQRCodes').doc(qrCodeId);
-            const externalQrDoc = await transaction.get(externalQrRef);
-            if (!externalQrDoc.exists) {
-                return null; // Not found
-            }
-            
-            const externalData = externalQrDoc.data()!;
-             transaction.update(externalQrRef, {
-                scanCount: admin.firestore.FieldValue.increment(1)
-            });
-
-            const scanEventRef = db.collection('scanEvents').doc();
-            transaction.set(scanEventRef, {
-                qrCodeId,
-                retailerId: externalData.retailerId,
-                campaignId: externalData.campaignId,
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                userAgent: request.headers.get('user-agent') || '',
-                ip: request.ip || '',
-                referrer: request.headers.get('referer') || '',
-            });
-            
-            return { redirectUrl: externalData.originalUrl };
-        }
-        
-        const data = qrDoc.data()!;
-        
-        if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
-            return { redirectUrl: '/error?code=expired' };
-        }
-        
-        transaction.update(qrRef, {
-            scanCount: admin.firestore.FieldValue.increment(1)
-        });
-        
-        const scanEventRef = db.collection('scanEvents').doc();
-        transaction.set(scanEventRef, {
-            qrCodeId: data.qrCodeId,
-            retailerId: data.retailerId,
-            campaignId: data.campaignId,
-            requestId: data.requestId,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            userAgent: request.headers.get('user-agent') || '',
-            ip: request.ip || '',
-            referrer: request.headers.get('referer') || '',
-        });
-
-        // Fetch the campaign request to check for scan destination
-        if (data.requestId) {
-            const requestRef = db.collection('bulkQrRequests').doc(data.requestId);
-            const requestDoc = await transaction.get(requestRef); // Read inside transaction
-            if (requestDoc.exists) {
-                const requestData = requestDoc.data()!;
-                const scanDestination = requestData.options?.scanDestination;
-                const landingPageUrl = requestData.options?.landingPageUrl;
-
-                if (scanDestination === 'url' && landingPageUrl) {
-                    return { redirectUrl: landingPageUrl }; // Redirect to custom URL
-                }
-            }
-        }
-        
-        // Default behavior: redirect to the interaction screen.
-        return { redirectUrl: `/scan/${qrCodeId}` };
+    // 2. Initialize Session & Log Behavioural Event
+    const sessionId = `sess_${Date.now()}`;
+    const interactionId = `scan_${Date.now()}`;
+    
+    const batch = db.batch();
+    
+    // Log Session
+    batch.set(db.collection('sessions').doc(sessionId), {
+        sessionId,
+        startTime: admin.firestore.FieldValue.serverTimestamp(),
+        entryGtin: gtin,
+        batchNumber,
+        serialNumber,
+        source: "GS1"
     });
 
-    if (qrData === null) {
-        return NextResponse.redirect(new URL('/error?code=404', request.url));
-    }
+    // Log Interaction
+    batch.set(db.collection('product_interactions').doc(interactionId), {
+        interactionId,
+        sessionId,
+        gtin,
+        batchNumber,
+        serialNumber,
+        type: 'scan',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        userAgent: request.headers.get('user-agent') || '',
+        ip: request.ip || '',
+        source: "GS1"
+    });
 
-    return NextResponse.redirect(new URL(qrData.redirectUrl, request.url), 302);
+    await batch.commit();
+
+    // 3. Redirect to Product Experience Layer
+    // Standard Route: /p/{gtin}
+    let destination = `/p/${gtin}?session=${sessionId}`;
+    if (batchNumber) destination += `&batch=${batchNumber}`;
+    if (serialNumber) destination += `&serial=${serialNumber}`;
+
+    return NextResponse.redirect(new URL(destination, request.url), 302);
 
   } catch (error) {
-    console.error(`Transaction failed for qrCodeId ${qrCodeId}:`, error);
+    console.error(`GS1 Resolution Failed for ${gtin}:`, error);
     return NextResponse.redirect(new URL('/error?code=500', request.url));
   }
 }

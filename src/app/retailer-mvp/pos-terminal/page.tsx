@@ -40,6 +40,7 @@ export default function PosTerminalSimulation() {
 
     useEffect(() => {
         if (!db) return;
+        // Listen for baskets synced to this terminal
         const q = query(collection(db, 'baskets'), where('terminalId', '==', terminalId), where('status', '==', 'synced'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
@@ -58,6 +59,7 @@ export default function PosTerminalSimulation() {
         if (!syncedBasket || !db) return;
         setIsProcessing(true);
         try {
+            // Log transaction using GTINs
             await addDoc(collection(db, 'transactions'), {
                 transactionId: `gs1_txn_${Date.now()}`,
                 shopperId: syncedBasket.shopperId,
@@ -67,7 +69,10 @@ export default function PosTerminalSimulation() {
                 items: syncedBasket.items,
                 timestamp: serverTimestamp()
             });
+            
+            // Mark basket as paid
             await updateDoc(doc(db, 'baskets', syncedBasket.id), { status: 'paid', updatedAt: serverTimestamp() });
+            
             toast({ title: "Sale Completed", description: "Transaction archived via GTIN logging." });
             setSyncedBasket(null);
         } catch (error) {
@@ -108,27 +113,45 @@ export default function PosTerminalSimulation() {
                             {!syncedBasket ? (
                                 <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-6">
                                     <div className="h-20 w-20 rounded-full bg-slate-800 flex items-center justify-center"><ShoppingCart className="h-10 w-10 text-slate-500" /></div>
-                                    <h2 className="text-2xl font-bold">Awaiting GS1 Identity...</h2>
+                                    <h2 className="text-2xl font-bold opacity-40">Awaiting GS1 Identity...</h2>
+                                    <div className="text-xs text-slate-500 max-w-xs mx-auto">
+                                        Scan the terminal QR code on your mobile device to sync your digital trolley.
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="flex-1 flex flex-col">
-                                    <div className="p-6 bg-blue-600 flex items-center justify-between">
-                                        <div className="flex items-center gap-3"><div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center"><Smartphone className="h-6 w-6" /></div><div><p className="text-xs font-black uppercase opacity-80">GTIN Data Received</p><p className="font-bold text-lg">Shopper: {syncedBasket.shopperId.substring(0, 8)}</p></div></div>
-                                        <div className="text-right"><p className="text-xs font-black uppercase opacity-80">Total</p><p className="text-3xl font-black">R{syncedBasket.total.toFixed(2)}</p></div>
+                                <div className="flex-1 flex flex-col animate-in fade-in duration-500">
+                                    <div className="p-6 bg-blue-600 flex items-center justify-between shadow-lg">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center"><Smartphone className="h-6 w-6" /></div>
+                                            <div>
+                                                <p className="text-xs font-black uppercase opacity-80">GTIN Data Received</p>
+                                                <p className="font-bold text-lg">Shopper: {syncedBasket.shopperId.substring(0, 8)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs font-black uppercase opacity-80">Total</p>
+                                            <p className="text-3xl font-black">R{syncedBasket.total.toFixed(2)}</p>
+                                        </div>
                                     </div>
                                     
                                     <div className="p-6 flex-1 overflow-y-auto">
                                         <table className="w-full text-sm">
-                                            <thead><tr className="text-slate-400 uppercase text-[10px] font-black tracking-widest text-left"><th className="pb-4">Standard Identifiers</th><th className="pb-4 text-center">Qty</th><th className="pb-4 text-right">Price</th></tr></thead>
+                                            <thead>
+                                                <tr className="text-slate-400 uppercase text-[10px] font-black tracking-widest text-left border-b border-white/10">
+                                                    <th className="pb-4">Standard Identifiers</th>
+                                                    <th className="pb-4 text-center">Qty</th>
+                                                    <th className="pb-4 text-right">Price</th>
+                                                </tr>
+                                            </thead>
                                             <tbody className="divide-y divide-white/5">
                                                 {syncedBasket.items.map((item, i) => (
-                                                    <tr key={i}>
+                                                    <tr key={i} className="hover:bg-white/5 transition-colors">
                                                         <td className="py-4">
                                                             <p className="font-bold">{item.name}</p>
                                                             <div className="flex items-center gap-1.5 opacity-50"><Barcode className="h-3 w-3" /><span className="text-[9px] font-mono">GTIN: {item.gtin}</span></div>
                                                         </td>
                                                         <td className="py-4 text-center font-mono">{item.quantity}</td>
-                                                        <td className="py-4 text-right font-mono font-black">R{item.price.toFixed(2)}</td>
+                                                        <td className="py-4 text-right font-mono font-black text-blue-400">R{item.price.toFixed(2)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -136,8 +159,8 @@ export default function PosTerminalSimulation() {
                                     </div>
 
                                     <CardFooter className="p-6 border-t border-white/10 bg-slate-800/30 flex gap-4">
-                                        <Button variant="ghost" onClick={() => setSyncedBasket(null)} className="h-14 px-8 text-slate-300 font-bold"><RotateCcw /> Reset</Button>
-                                        <Button onClick={handleCompleteSale} disabled={isProcessing} className="flex-1 h-14 bg-green-600 text-white font-black text-xl gap-3">
+                                        <Button variant="ghost" onClick={() => setSyncedBasket(null)} className="h-14 px-8 text-slate-300 font-bold hover:bg-white/10"><RotateCcw className="h-5 w-5 mr-2"/> Reset</Button>
+                                        <Button onClick={handleCompleteSale} disabled={isProcessing} className="flex-1 h-14 bg-green-600 hover:bg-green-500 text-white font-black text-xl gap-3 shadow-2xl">
                                             {isProcessing ? <Loader2 className="animate-spin" /> : <Banknote />} Complete Final Sale
                                         </Button>
                                     </CardFooter>
@@ -149,11 +172,38 @@ export default function PosTerminalSimulation() {
 
                 <div className="space-y-6">
                     <Card className="border-primary/20 bg-muted/30">
-                        <CardHeader className="text-center"><CardTitle className="text-lg">Terminal Digital Link</CardTitle><CardDescription>Standardized GS1 identification.</CardDescription></CardHeader>
-                        <CardContent className="flex justify-center p-8 bg-white m-4 rounded-xl shadow-inner">
-                            <Image src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://id.interact.io/414/register_001`} alt="GS1 GLN Code" width={250} height={250} />
+                        <CardHeader className="text-center">
+                            <CardTitle className="text-lg">Terminal Digital Link</CardTitle>
+                            <CardDescription>Scan this to sync your mobile trolley.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex justify-center p-8 bg-white m-4 rounded-xl shadow-inner border">
+                            <div className="relative">
+                                <Image src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=register_001`} alt="GS1 GLN Code" width={250} height={250} />
+                                <div className="absolute inset-0 border-4 border-slate-900/10 pointer-events-none rounded-sm"></div>
+                            </div>
                         </CardContent>
-                        <CardFooter className="bg-primary/5 p-4 text-center"><p className="text-[10px] font-black uppercase text-primary/60 w-full">GLN: 6001234567890</p></CardFooter>
+                        <CardFooter className="bg-primary/5 p-4 text-center">
+                            <div className="w-full space-y-1">
+                                <p className="text-[10px] font-black uppercase text-primary/60 tracking-widest">Global Location Number (GLN)</p>
+                                <p className="font-mono font-bold text-sm">6001234567890</p>
+                            </div>
+                        </CardFooter>
+                    </Card>
+                    
+                    <Card className="border-primary/10">
+                        <CardHeader>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest opacity-50">Transaction Integrity</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center gap-3 text-xs">
+                                <ShieldCheck className="text-green-500 h-5 w-5" />
+                                <span>End-to-end GTIN verification active.</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs">
+                                <ShieldCheck className="text-green-500 h-5 w-5" />
+                                <span>Real-time inventory synchronization.</span>
+                            </div>
+                        </CardContent>
                     </Card>
                 </div>
             </div>

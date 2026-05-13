@@ -24,6 +24,12 @@ const EngagementSchema = z.object({
     profileConversionRate: z.number().describe('Percentage of unique scanners who created a profile.'),
     engagementDuration: z.number().describe('Average time spent on product page in seconds.'),
     scanRate: z.number().describe('Engagement rate based on total scans vs. unique visitors.'),
+    authMethodBreakdown: z.object({
+        google: z.number().describe('Percentage of identified shoppers using Google.'),
+        apple: z.number().describe('Percentage of identified shoppers using Apple.'),
+        phone: z.number().describe('Percentage of identified shoppers using Mobile OTP.'),
+        email: z.number().describe('Percentage of identified shoppers using Email.'),
+    }).describe('Breakdown of preferred identity entry points.'),
 });
 
 const ConversionSchema = z.object({
@@ -71,6 +77,12 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
         profileConversionRate: (identifiedShoppers / uniqueScans) * 100,
         engagementDuration: 32,
         scanRate: 5.4,
+        authMethodBreakdown: {
+            phone: 45,   // Mobile OTP is most popular in-store
+            google: 32,
+            apple: 15,
+            email: 8,
+        }
     };
 
     const avgBasketSizeNonAoe = 185.50;
@@ -93,8 +105,8 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     // MOCK AI ANALYSIS TO AVOID RATE LIMITING ERRORS DURING DEVELOPMENT/SCREENSHOTS
     const analysisOutput = {
         overallPerformance: "The platform is demonstrating a strong positive impact on customer behavior. A significant 36.8% of guest scanners are converting to identified 'Smart Profiles', creating a persistent retail memory. The 12.5% uplift in basket size for engaged users proves the financial value of AI-driven buying guidance.",
-        conclusions: "- The Identity Layer is successfully capturing first-party data (email/phone) from over a third of scanners.\n- AI Guidance is directly correlated with higher transaction values.\n- Average engagement duration of 32 seconds indicates high quality of interaction.",
-        recommendations: "- Target the 'Profile-Ready' segment with specific email follow-ups for products they saved but didn't buy.\n- Increase the prominence of the 'Save to Profile' button to push conversion past 40%.\n- A/B test personalized offers exclusively for Identified Shoppers to increase redemption frequency."
+        conclusions: `- The Identity Layer is successfully capturing first-party data (email/phone) from over a third of scanners.\n- Mobile OTP (45%) is the dominant identity entry point, proving frictionless phone authentication is key for in-store users.\n- AI Guidance is directly correlated with higher transaction values.`,
+        recommendations: "- Target the 'Profile-Ready' segment with specific email follow-ups for products they saved but didn't buy.\n- Further simplify the OTP flow to push phone-based identification past 50%.\n- A/B test personalized offers exclusively for Identified Shoppers to increase redemption frequency."
     };
     
     // --- Step 3: Return the combined result ---

@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, UserCheck, ShieldCheck } from 'lucide-react';
+import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, UserCheck, ShieldCheck, Fingerprint, Phone, Mail, Chrome, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -200,6 +200,28 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Identity Entry Points</CardTitle>
+                  <Fingerprint className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                   <div className="space-y-2">
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> Mobile OTP</span>
+                            <span className="font-bold">{engagement.authMethodBreakdown.phone}%</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="flex items-center gap-1"><Chrome className="h-3 w-3" /> Google</span>
+                            <span className="font-bold">{engagement.authMethodBreakdown.google}%</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="flex items-center gap-1"><Smartphone className="h-3 w-3" /> Apple</span>
+                            <span className="font-bold">{engagement.authMethodBreakdown.apple}%</span>
+                        </div>
+                   </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Basket Uplift</CardTitle>
                   <ArrowUp className="h-4 w-4 text-green-500" />
                 </CardHeader>
@@ -207,18 +229,6 @@ export default function DashboardPage() {
                   <div className="text-3xl font-bold">+{conversion.basketUpliftPercentage.toFixed(1)}%</div>
                   <p className="text-xs text-muted-foreground">
                     Spend increase for shoppers using AI guidance.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Unique Scans</CardTitle>
-                  <User className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{engagement.uniqueScans.toLocaleString()}</div>
-                   <p className="text-xs text-muted-foreground">
-                    Total individual scanners this period.
                   </p>
                 </CardContent>
               </Card>

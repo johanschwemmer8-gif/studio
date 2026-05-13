@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag, Sparkles, AlertTriangle, UserCheck, ShieldCheck } from 'lucide-react';
+import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag, Sparkles, AlertTriangle, UserCheck, ShieldCheck, Fingerprint, Phone, Chrome, Smartphone, Mail } from 'lucide-react';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
@@ -186,18 +186,30 @@ export default function RoiPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Scans
-            </CardTitle>
-            <QrCode className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Identity Entry Points</CardTitle>
+            <Fingerprint className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {metricsData?.engagement.totalScans.toLocaleString() || <Skeleton className="h-8 w-20" />}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              All interactions this period.
-            </p>
+             {metricsData ? (
+                <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-1 text-muted-foreground"><Phone className="h-3 w-3" /> Mobile OTP</span>
+                        <span className="font-bold">{metricsData.engagement.authMethodBreakdown.phone}%</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-1 text-muted-foreground"><Chrome className="h-3 w-3" /> Google</span>
+                        <span className="font-bold">{metricsData.engagement.authMethodBreakdown.google}%</span>
+                    </div>
+                     <div className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-1 text-muted-foreground"><Smartphone className="h-3 w-3" /> Apple</span>
+                        <span className="font-bold">{metricsData.engagement.authMethodBreakdown.apple}%</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-1 text-muted-foreground"><Mail className="h-3 w-3" /> Email</span>
+                        <span className="font-bold">{metricsData.engagement.authMethodBreakdown.email}%</span>
+                    </div>
+                </div>
+             ) : <Skeleton className="h-16 w-full" />}
           </CardContent>
         </Card>
          <Card>

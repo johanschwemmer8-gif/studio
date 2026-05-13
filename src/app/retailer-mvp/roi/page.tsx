@@ -11,7 +11,8 @@ import {
 import { 
   QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, 
   Tag, Sparkles, AlertTriangle, UserCheck, ShieldCheck, 
-  Fingerprint, Phone, Chrome, Smartphone, Mail, Download
+  Fingerprint, Phone, Chrome, Smartphone, Mail, Download,
+  Loader2
 } from 'lucide-react';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';

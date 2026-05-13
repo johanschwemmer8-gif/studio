@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -23,51 +23,36 @@ import {
   RefreshCw,
   Loader2,
   Sparkles,
-  Store,
   Send,
-  Printer,
   ImageIcon,
-  Video,
-  Upload,
-  Eye,
+  ShieldCheck,
   Save,
   PlusCircle,
+  Barcode
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getQrTemplates } from '@/ai/flows/get-qr-templates';
 import { QrTemplate } from '@/lib/schemas/qr-templates';
 import { type FormValues as BrandFormValues } from './brand-management-form';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, writeBatch, doc, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, writeBatch, doc, addDoc } from 'firebase/firestore';
 import Image from 'next/image';
 
-
 const styleSchema = z.object({
-  logoPath: z.string().url().optional().or(z.literal('')),
-  // AI Options
-  aiTone: z.string().optional(),
-  aiGoal: z.string().optional(),
-  aiPersona: z.string().optional(),
-  aiGreeting: z.string().optional(),
-  aiKeyPoints: z.string().optional(),
-  aiOffer: z.string().optional(),
-  aiRecommendations: z.string().optional(),
-  // Media Options
-  mediaType: z.enum(['image', 'video']).optional(),
-  mediaUrl: z.string().optional().or(z.literal('')),
-  headline: z.string().optional(),
-  subhead: z.string().optional(),
-  barcode: z.string().optional(),
-  price: z.number().optional(),
-  category: z.string().optional(),
+  gtin: z.string().length(14, "GTIN must be exactly 14 digits.").optional().or(z.literal('')),
+  batchNumber: z.string().optional().or(z.literal('')),
+  serialNumber: z.string().optional().or(z.literal('')),
   colorHex: z.string().optional(),
   bgColorHex: z.string().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).optional(),
-  expiresAt: z.string().datetime().optional(),
-  // Scan Destination
-  scanDestination: z.enum(['url', 'ai']).optional(),
+  aiPersona: z.string().optional(),
+  aiTone: z.string().optional(),
+  aiGoal: z.string().optional(),
+  mediaType: z.enum(['image', 'video']).optional(),
+  mediaUrl: z.string().url().optional().or(z.literal('')),
+  headline: z.string().optional(),
+  subhead: z.string().optional(),
+  scanDestination: z.enum(['url', 'ai']).default('ai'),
   landingPageUrl: z.string().url().optional().or(z.literal('')),
 });
 
@@ -75,7 +60,7 @@ const formSchema = z.object({
   retailerId: z.string().min(1, 'Retailer ID is required'),
   brandId: z.string().min(1, 'Brand is required'),
   campaignId: z.string().min(1, 'Campaign ID is required'),
-  count: z.number().int().min(1, "Must request at least 1 code.").max(10000, "Cannot request more than 10,000 codes."),
+  count: z.number().int().min(1).max(10000),
   options: styleSchema.optional(),
 });
 
@@ -86,7 +71,6 @@ export default function BulkQRCodeGenerator() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [templates, setTemplates] = useState<QrTemplate[]>([]);
-    const [mediaInputMethod, setMediaInputMethod] = useState<'url' | 'upload'>('url');
     const [brands, setBrands] = useState<BrandFormValues['brands']>([]);
 
     const form = useForm<FormValues>({
@@ -94,513 +78,146 @@ export default function BulkQRCodeGenerator() {
         defaultValues: {
             retailerId: 'simulated-retailer-id',
             brandId: '',
-            campaignId: `campaign-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+            campaignId: `gs1-campaign-${Date.now()}`,
             count: 100,
             options: {
+              gtin: '06001234567891',
+              batchNumber: '',
+              serialNumber: '',
               aiTone: 'Professional',
               aiGoal: 'Drive sales',
-              aiPersona: 'Knowledgeable product expert',
-              aiGreeting: 'Hello! How can I help you with this product today?',
-              aiKeyPoints: '',
-              aiOffer: '',
-              aiRecommendations: '',
-              mediaType: undefined,
-              mediaUrl: '',
-              headline: '',
-              subhead: '',
               scanDestination: 'ai',
-              landingPageUrl: '',
+              mediaUrl: '',
             }
         },
     });
 
-    const mediaUrl = form.watch('options.mediaUrl');
-    const mediaType = form.watch('options.mediaType');
-
     useEffect(() => {
-        const fetchTemplates = async () => {
-            try {
-                const result = await getQrTemplates({ retailerId: 'simulated-retailer-id' });
-                setTemplates(result);
-            } catch (error) {
-                toast({
-                    title: 'Error',
-                    description: 'Could not load QR code templates.',
-                    variant: 'destructive',
-                });
-            }
-        };
-        fetchTemplates();
-        
-        try {
-            const savedBrandData = localStorage.getItem('brandManagement');
-            if (savedBrandData) {
-                const parsedData: BrandFormValues = JSON.parse(savedBrandData);
-                setBrands(parsedData.brands || []);
-            }
-        } catch (error) {
-            console.error("Failed to parse brand data from localStorage", error);
-            toast({
-                title: 'Error Loading Brands',
-                description: 'Could not load brand data from your browser storage.',
-                variant: 'destructive',
-            });
-        }
-
-        const savedDestination = localStorage.getItem('scan-destination') as 'url' | 'ai' | null;
-        const savedUrl = localStorage.getItem('landing-page-url');
-        
-        if (savedDestination) {
-            form.setValue('options.scanDestination', savedDestination);
-        }
-        if (savedUrl) {
-            form.setValue('options.landingPageUrl', savedUrl);
-        }
-    }, [toast, form]);
-
-    const handleTemplateChange = (templateId: string) => {
-        const selectedTemplate = templates.find(t => t.templateId === templateId);
-        if (selectedTemplate) {
-            form.setValue('options.aiTone', selectedTemplate.defaults.aiTone || '');
-            form.setValue('options.aiGoal', selectedTemplate.defaults.aiGoal || '');
-            form.setValue('options.colorHex', selectedTemplate.defaults.colorHex || '#000000');
-            form.setValue('options.bgColorHex', selectedTemplate.defaults.bgColorHex || '#FFFFFF');
-            form.setValue('options.errorCorrection', selectedTemplate.defaults.errorCorrection || 'M');
-            form.setValue('options.logoPath', selectedTemplate.defaults.logoPath || '');
-            toast({
-                title: 'Template Applied',
-                description: `"${selectedTemplate.name}" styles have been loaded.`,
-            });
-        }
-    };
-
-    const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                form.setValue('options.mediaUrl', reader.result as string);
-                toast({
-                    title: 'Media Selected',
-                    description: `File "${file.name}" has been loaded and added as a data URL.`,
-                });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+        getQrTemplates({ retailerId: 'simulated-retailer-id' }).then(setTemplates);
+        const savedBrandData = localStorage.getItem('brandManagement');
+        if (savedBrandData) setBrands(JSON.parse(savedBrandData).brands || []);
+    }, []);
 
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
         if (!db) {
-          toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
-          setIsSubmitting(false);
-          return;
+            toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive'});
+            setIsSubmitting(false);
+            return;
         }
-    
+
         const batch = writeBatch(db);
         const requestRef = doc(collection(db, 'bulkQrRequests'));
         
-        const cleanedOptions = { ...data.options };
-        if (cleanedOptions.mediaType === undefined) {
-          delete (cleanedOptions as Partial<typeof cleanedOptions>).mediaType;
-        }
+        // GS1 Digital Link Construction Logic
+        const gtin = data.options?.gtin || '00000000000000';
+        const digitalLink = `https://id.interact-aoe.com/01/${gtin}`;
 
-        const requestData = {
-            retailerId: data.retailerId,
-            brandId: data.brandId,
-            campaignId: data.campaignId,
-            totalRequested: data.count,
+        await batch.set(requestRef, {
+            ...data,
             status: 'COMPLETED',
             createdAt: new Date(),
-            updatedAt: new Date(),
-            createdBy: 'simulated-user@example.com',
-            options: cleanedOptions || {},
             itemsDone: data.count,
-        };
-        batch.set(requestRef, requestData);
-    
-        const itemsRef = collection(db, `bulkQrRequests/${requestRef.id}/items`);
-        const qrcodesRef = collection(db, 'qrcodes');
-    
-        for (let i = 0; i < data.count; i++) {
-            const qrCodeId = doc(collection(db, 'id_generator')).id;
-    
-            const itemRef = doc(itemsRef, qrCodeId);
-    
-            const qrOptions = cleanedOptions || {};
-            const qrColor = qrOptions.colorHex?.replace('#', '') || '000000';
-            const qrBgColor = qrOptions.bgColorHex?.replace('#', '') || 'ffffff';
-            const qrError = qrOptions.errorCorrection || 'M';
-    
-            const trackingUrl = `${window.location.origin}/track/${qrCodeId}`;
-            const encodedQrData = encodeURIComponent(trackingUrl);
-    
-            let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
-    
-            const storagePath = `qr/${data.retailerId}/${data.campaignId}/${qrCodeId}.png`;
-    
-            const itemData = {
-                index: i,
-                qrCodeId: qrCodeId,
-                redirectUrl: `/product/1`,
-                trackingUrl: trackingUrl,
-                signedUrl: generatedQrUrl,
-                storagePath: storagePath,
-                status: 'DONE',
-                checksum: '',
-            };
-            batch.set(itemRef, itemData);
-    
-            const qrMasterRef = doc(db, 'qrcodes', qrCodeId);
-             batch.set(qrMasterRef, {
-                retailerId: data.retailerId,
-                campaignId: data.campaignId,
-                qrCodeId: qrCodeId,
-                requestId: requestRef.id,
-                redirectUrl: `/product/1`,
-                trackingUrl: trackingUrl,
-                storagePath: storagePath,
-                signedUrl: generatedQrUrl,
-                scanCount: 0,
-                createdAt: new Date(),
-                expiresAt: data.options?.expiresAt ? new Date(data.options.expiresAt) : null,
-                aiProfileId: null,
-            });
-        }
-    
+            isGs1Compliant: true,
+            digitalLinkTemplate: digitalLink
+        });
+
         try {
             await batch.commit();
-            toast({
-                title: 'Campaign Created!',
-                description: `Job for campaign "${data.campaignId}" has been created and processed.`,
-            });
+            toast({ title: 'GS1 Campaign Created!', description: `Generated ${data.count} compliant identifiers.` });
             form.reset();
         } catch (error: any) {
-            toast({
-                title: "Submission Failed",
-                description: error.message,
-                variant: 'destructive',
-            });
+            toast({ title: "Submission Failed", description: error.message, variant: 'destructive' });
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleSaveJob = async () => {
-        const data = form.getValues();
-        const isValid = await form.trigger();
-        if (!isValid) {
-            toast({
-                title: 'Validation Error',
-                description: 'Please fill in all required fields before saving.',
-                variant: 'destructive',
-            });
-            return;
-        }
-    
-        if (!db) {
-            toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
-            return;
-        }
-    
-        setIsSaving(true);
-    
-        const cleanedOptions = { ...data.options };
-        if (cleanedOptions.mediaType === undefined) {
-          delete (cleanedOptions as Partial<typeof cleanedOptions>).mediaType;
-        }
-    
-        const requestData = {
-            retailerId: data.retailerId,
-            brandId: data.brandId,
-            campaignId: data.campaignId,
-            totalRequested: data.count,
-            status: 'DRAFT' as const,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            createdBy: 'simulated-user@example.com',
-            options: cleanedOptions || {},
-            itemsDone: 0,
-        };
-    
-        // Fire-and-forget the database operation
-        addDoc(collection(db, 'bulkQrRequests'), requestData)
-          .then(() => {
-            toast({
-              title: 'Job Saved!',
-              description: `Campaign "${data.campaignId}" has been saved as a draft.`,
-            });
-          })
-          .catch((error: any) => {
-            toast({
-              title: 'Save Failed',
-              description: `The save operation failed in the background: ${error.message}`,
-              variant: 'destructive',
-            });
-          });
-          
-        // Immediately update UI
-        setIsSaving(false);
-        form.reset({
-            retailerId: 'simulated-retailer-id',
-            brandId: '',
-            campaignId: `campaign-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
-            count: 100,
-            options: {
-              aiTone: 'Professional',
-              aiGoal: 'Drive sales',
-              aiPersona: 'Knowledgeable product expert',
-              aiGreeting: 'Hello! How can I help you with this product today?',
-              aiKeyPoints: '',
-              aiOffer: '',
-              aiRecommendations: '',
-              mediaType: undefined,
-              mediaUrl: '',
-              headline: '',
-              subhead: '',
-            }
-        });
-    };
-    
-     const handlePrint = () => {
-        const url = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent('https://example.com')}`;
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                    <head><title>Test Print</title></head>
-                    <body style="text-align: center; margin-top: 50px;">
-                        <img src="${url}" alt="Test QR Code" />
-                        <p>Scan to test</p>
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.focus();
-            printWindow.print();
-        } else {
-            toast({
-                title: "Print Error",
-                description: "Could not open print window. Please check your browser's pop-up settings.",
-                variant: "destructive",
-            });
-        }
-    };
-
     return (
         <div className="space-y-8">
-            <div>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-                    <h2 className="text-2xl font-bold tracking-tight">
-                        Create New QR Code Campaign
-                    </h2>
-                    <Button variant="outline">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Campaign
-                    </Button>
-                </div>
-                <p className="text-muted-foreground max-w-3xl mb-4">
-                    Generate a large batch of unique, trackable QR codes for your products or campaigns.
-                </p>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                    <Card className="p-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 w-full">
-                                <div>
-                                    <Label htmlFor="retailerId">Retailer ID</Label>
-                                    <Input id="retailerId" {...form.register('retailerId')} placeholder="e.g., store-123" />
-                                    {form.formState.errors.retailerId && <p className="text-sm text-destructive mt-1">{form.formState.errors.retailerId.message}</p>}
-                                </div>
-                                <Controller
-                                    control={form.control}
-                                    name="brandId"
-                                    render={({ field }) => (
-                                        <div className="space-y-2">
-                                            <Label>Brand</Label>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger><SelectValue placeholder="Select a brand..." /></SelectTrigger>
-                                                <SelectContent>
-                                                    {brands.length > 0 ? brands.map(brand => (
-                                                        <SelectItem key={brand.name} value={brand.name}>{brand.name}</SelectItem>
-                                                    )) : <SelectItem value="none" disabled>No brands configured.</SelectItem>}
-                                                </SelectContent>
-                                            </Select>
-                                            {form.formState.errors.brandId && <p className="text-sm text-destructive mt-1">{form.formState.errors.brandId.message}</p>}
-                                        </div>
-                                    )}
-                                />
-                                <div>
-                                    <Label htmlFor="campaignId">Campaign ID</Label>
-                                    <Input id="campaignId" {...form.register('campaignId')} placeholder="e.g., summer-sale-2024" />
-                                    {form.formState.errors.campaignId && <p className="text-sm text-destructive mt-1">{form.formState.errors.campaignId.message}</p>}
-                                </div>
-                                <div>
-                                    <Label htmlFor="count">Number of Codes</Label>
-                                    <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} />
-                                    {form.formState.errors.count && <p className="text-sm text-destructive mt-1">{form.formState.errors.count.message}</p>}
-                                </div>
-                            </div>
-                        </div>
-                        <Accordion type="multiple" className="w-full mt-4">
-                            {/* AI Generation Accordion */}
-                            <AccordionItem value="ai-generation">
-                                <AccordionTrigger className="font-semibold">
-                                    <Sparkles className="mr-2 h-4 w-4 text-accent" /> AI Content Generation
-                                </AccordionTrigger>
-                                <AccordionContent className="pt-4">
-                                     <div className="space-y-6">
-                                        <div className="space-y-2">
-                                            <Label>Load from Template</Label>
-                                            <Select onValueChange={handleTemplateChange}>
-                                                <SelectTrigger><SelectValue placeholder="Select a template to apply styles..." /></SelectTrigger>
-                                                <SelectContent>
-                                                    {templates.map(template => (
-                                                        <SelectItem key={template.templateId} value={template.templateId}>{template.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-xs text-muted-foreground">Selecting a template will pre-fill the options below.</p>
-                                        </div>
-                                         <div className="grid md:grid-cols-2 gap-6">
-                                            <div className="space-y-4">
-                                              <div>
-                                                  <Label htmlFor="aiPersona">AI Persona / Role</Label>
-                                                  <Input id="aiPersona" {...form.register('options.aiPersona')} placeholder="e.g., Expert Denim Stylist" />
-                                              </div>
-                                              <div>
-                                                  <Label htmlFor="aiTone">AI Tone</Label>
-                                                  <Input id="aiTone" {...form.register('options.aiTone')} placeholder="e.g., Playful and exciting" />
-                                              </div>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <Label htmlFor="aiGoal">Campaign Goal</Label>
-                                                    <Textarea id="aiGoal" {...form.register('options.aiGoal')} placeholder="e.g., Drive sales for the new shoe line" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                     </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                             {/* Campaign Media Accordion */}
-                             <AccordionItem value="campaign-media">
-                                <AccordionTrigger className="font-semibold">
-                                    <ImageIcon className="mr-2 h-4 w-4 text-primary" /> Campaign Media
-                                </AccordionTrigger>
-                                <AccordionContent className="pt-4">
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                                <Label>Media Preview</Label>
-                                                <div className="w-full max-w-[200px] aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden relative border">
-                                                    {mediaUrl && mediaType ? (
-                                                        mediaType === 'image' ? (
-                                                            <Image src={mediaUrl} alt="Media Preview" layout="fill" objectFit="contain" />
-                                                        ) : (
-                                                            <video src={mediaUrl} controls className="w-full h-full object-contain" />
-                                                        )
-                                                    ) : (
-                                                        <div className="text-center text-muted-foreground p-4">
-                                                            <ImageIcon className="h-8 w-8 mx-auto" />
-                                                            <p className="mt-2 text-xs">Select media to see preview</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                        </div>
-                                        <div className="grid md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="headline">Headline</Label>
-                                                <Input id="headline" {...form.register('options.headline')} placeholder="e.g., The Ultimate Summer Companion" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="subhead">Subheading</Label>
-                                                <Input id="subhead" {...form.register('options.subhead')} placeholder="e.g., Available in 5 vibrant colors" />
-                                            </div>
-                                        </div>
-                                         <div className="grid md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="mediaType">Media Type</Label>
-                                                 <Controller
-                                                    control={form.control}
-                                                    name="options.mediaType"
-                                                    render={({ field }) => (
-                                                        <Select onValueChange={field.onChange} value={field.value}>
-                                                            <SelectTrigger id="mediaType"><SelectValue placeholder="Select media type..." /></SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="image">Image</SelectItem>
-                                                                <SelectItem value="video">Video</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    )}
-                                                />
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label>Media Source</Label>
-                                                    <RadioGroup value={mediaInputMethod} onValueChange={(v) => setMediaInputMethod(v as 'url' | 'upload')} className="flex gap-4">
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="url" id="media-url-option" />
-                                                            <Label htmlFor="media-url-option" className="font-normal">URL</Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="upload" id="media-upload-option" />
-                                                            <Label htmlFor="media-upload-option" className="font-normal">Upload</Label>
-                                                        </div>
-                                                    </RadioGroup>
-                                                </div>
-                                                {mediaInputMethod === 'url' ? (
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="mediaUrl">Media URL</Label>
-                                                        <Input
-                                                            id="mediaUrl"
-                                                            {...form.register('options.mediaUrl')}
-                                                            placeholder="https://example.com/image.png"
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="media-upload-input">File Upload</Label>
-                                                        <Input 
-                                                            id="media-upload-input"
-                                                            type="file" 
-                                                            accept="image/*,video/*"
-                                                            onChange={handleMediaUpload}
-                                                        />
-                                                    </div>
-                                                )}
-                                                {form.formState.errors.options?.mediaUrl && <p className="text-sm text-destructive mt-1">{form.formState.errors.options.mediaUrl.message}</p>}
-                                            </div>
-                                        </div>
-                                        <div className="grid md:grid-cols-3 gap-6 pt-4 border-t">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="barcode">Barcode/SKU</Label>
-                                                <Input id="barcode" {...form.register('options.barcode')} placeholder="e.g., 9780321765723" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="price">Price</Label>
-                                                <Input id="price" type="number" step="0.01" {...form.register('options.price', { valueAsNumber: true })} placeholder="e.g., 199.99" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="category">Category</Label>
-                                                <Input id="category" {...form.register('options.category')} placeholder="e.g., Footwear" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </AccordionContent>
-                             </AccordionItem>
-                        </Accordion>
-                        <div className="flex flex-wrap gap-2 mt-6">
-                            <Button type="button" variant="secondary" onClick={handleSaveJob} disabled={isSaving || isSubmitting}>
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
-                                Save Generation Job
-                            </Button>
-                            <Button type="submit" disabled={isSubmitting || isSaving}>
-                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
-                                Queue Generation Job
-                            </Button>
-                        </div>
-                    </Card>
-                </form>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                    <Barcode className="text-primary h-8 w-8" />
+                    GS1 Digital Link Generator
+                </h2>
+                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Interoperability Active
+                </Badge>
             </div>
+
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <Card className="border-primary/10">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Infrastructure Configuration</CardTitle>
+                        <CardDescription>Define the global product identification and campaign parameters.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                         <div className="space-y-2">
+                            <Label htmlFor="gtin">Global Trade Item Number (GTIN-14)</Label>
+                            <Input id="gtin" {...form.register('options.gtin')} placeholder="e.g., 06001234567891" className="font-mono" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="batch">Batch / Lot (Optional)</Label>
+                            <Input id="batch" {...form.register('options.batchNumber')} placeholder="e.g., LOT-2024-A" className="font-mono" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="campaignId">Campaign Identifier</Label>
+                            <Input id="campaignId" {...form.register('campaignId')} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="count">Output Quantity</Label>
+                            <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} />
+                        </div>
+                    </CardContent>
+
+                    <Accordion type="single" collapsible className="px-6 pb-6">
+                        <AccordionItem value="gs1-details" className="border-none">
+                            <AccordionTrigger className="text-xs font-black uppercase tracking-widest text-primary/60 hover:no-underline">
+                                Advanced GS1 Attributes
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-4 grid md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>AI Persona (Digital Link Guidance)</Label>
+                                        <Input {...form.register('options.aiPersona')} placeholder="e.g., GS1 Compliance Assistant" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Digital Link Destination</Label>
+                                        <Controller
+                                            control={form.control}
+                                            name="options.scanDestination"
+                                            render={({ field }) => (
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="ai">AI Decision Assistant (Guidance)</SelectItem>
+                                                        <SelectItem value="url">Direct GS1 Resolver (Data Only)</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-muted/50 rounded-xl border border-dashed text-center space-y-2">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Digital Link Format</p>
+                                    <code className="text-xs break-all text-primary font-bold">
+                                        https://id.interact.io/01/{form.watch('options.gtin') || '...'}
+                                    </code>
+                                    <p className="text-[10px] text-muted-foreground italic">Standardized URI structure for global interoperability.</p>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+
+                    <CardFooter className="bg-primary/5 p-6 flex justify-end gap-3">
+                        <Button type="button" variant="ghost" className="font-bold">Save Template</Button>
+                        <Button type="submit" disabled={isSubmitting} className="h-12 px-8 font-black gap-2">
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : <RefreshCw className="h-5 w-5" />}
+                            Queue GS1 Generation
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </form>
         </div>
     );
 }

@@ -56,31 +56,33 @@
     },
     "ProductInteraction": {
       "title": "Product Interaction",
-      "description": "Granular behavioural event tracking for decision intelligence.",
+      "description": "GS1-compliant granular behavioural event tracking.",
       "type": "object",
       "properties": {
         "interactionId": { "type": "string" },
         "shopperId": { "type": "string" },
         "sessionId": { "type": "string" },
-        "productId": { "type": "string" },
+        "gtin": { "type": "string", "description": "Global Trade Item Number (GS1 Standard)" },
+        "batchNumber": { "type": "string" },
+        "serialNumber": { "type": "string" },
         "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "save", "reorder", "tutorial_view", "warranty_activate", "add_to_trolley"] },
         "dwellTime": { "type": "number" },
         "timestamp": { "type": "string", "format": "date-time" }
       },
-      "required": ["shopperId", "productId", "type", "timestamp"]
+      "required": ["shopperId", "gtin", "type", "timestamp"]
     },
     "SavedProduct": {
       "title": "Saved Product",
-      "description": "A bookmarked product in a shopper's profile.",
+      "description": "A bookmarked product in a shopper's profile using GS1 identification.",
       "type": "object",
       "properties": {
         "shopperId": { "type": "string" },
-        "productId": { "type": "string" },
+        "gtin": { "type": "string" },
         "productName": { "type": "string" },
         "savedAt": { "type": "string", "format": "date-time" },
         "reminderSet": { "type": "boolean" }
       },
-      "required": ["shopperId", "productId", "savedAt"]
+      "required": ["shopperId", "gtin", "savedAt"]
     },
     "AIConversation": {
       "title": "AI Conversation",
@@ -89,22 +91,33 @@
       "properties": {
         "conversationId": { "type": "string" },
         "shopperId": { "type": "string" },
-        "productId": { "type": "string" },
+        "gtin": { "type": "string" },
         "transcript": { "type": "array", "items": { "type": "object" } },
         "sentiment": { "type": "number" },
         "resolution": { "type": "string" }
       },
-      "required": ["conversationId", "productId"]
+      "required": ["conversationId", "gtin"]
     },
     "Basket": {
       "title": "Virtual Smart Trolley",
-      "description": "A persistent digital basket for in-store shoppers.",
+      "description": "A persistent digital basket for in-store shoppers using GS1 standards.",
       "type": "object",
       "properties": {
         "basketId": { "type": "string" },
         "shopperId": { "type": "string" },
         "retailerId": { "type": "string" },
-        "items": { "type": "array", "items": { "type": "object" } },
+        "items": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "gtin": { "type": "string" },
+              "name": { "type": "string" },
+              "price": { "type": "number" },
+              "quantity": { "type": "number" }
+            }
+          } 
+        },
         "total": { "type": "number" },
         "status": { "type": "string", "enum": ["active", "synced", "paid"] },
         "updatedAt": { "type": "string", "format": "date-time" }
@@ -112,7 +125,7 @@
     },
     "Transaction": {
       "title": "Retail Transaction",
-      "description": "A completed sale log for POS reporting.",
+      "description": "A completed sale log for POS reporting using GS1-compliant items.",
       "type": "object",
       "properties": {
         "transactionId": { "type": "string" },
@@ -121,6 +134,7 @@
         "amount": { "type": "number" },
         "paymentMethod": { "type": "string" },
         "basketId": { "type": "string" },
+        "items": { "type": "array", "items": { "type": "object" } },
         "timestamp": { "type": "string", "format": "date-time" }
       }
     }
@@ -143,19 +157,19 @@
     },
     "/product_interactions/{id}": {
       "schema": "#/backend/entities/ProductInteraction",
-      "description": "Individual interaction log."
+      "description": "Individual GS1-compliant interaction log."
     },
     "/saved_products/{id}": {
       "schema": "#/backend/entities/SavedProduct",
-      "description": "Cross-user saved items."
+      "description": "Cross-user saved items via GTIN."
     },
     "/ai_conversations/{id}": {
       "schema": "#/backend/entities/AIConversation",
-      "description": "Detailed chat transcripts."
+      "description": "Detailed chat transcripts linked to GTIN."
     },
     "/baskets/{id}": {
       "schema": "#/backend/entities/Basket",
-      "description": "Digital trolleys."
+      "description": "Digital trolleys with GS1 item IDs."
     },
     "/transactions/{id}": {
       "schema": "#/backend/entities/Transaction",

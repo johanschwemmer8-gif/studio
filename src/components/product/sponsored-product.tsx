@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, limit, doc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, doc, setDoc, serverTimestamp, increment, updateDoc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -36,8 +35,6 @@ export default function SponsoredProduct() {
             }
 
             try {
-                // In a production app, we would match based on 'user.preferences.categories'
-                // Here we fetch an active campaign from the media network
                 const campaignsRef = collection(db, 'adCampaigns');
                 const q = query(campaignsRef, where('status', '==', 'active'), limit(1));
                 const querySnapshot = await getDocs(q);
@@ -88,7 +85,6 @@ export default function SponsoredProduct() {
             'metrics.clicks': increment(1)
         });
 
-        // In a real app, this would redirect to the supplier's external site or a special promo page
         window.open('https://interact-aoe.com', '_blank');
     };
 
@@ -97,7 +93,6 @@ export default function SponsoredProduct() {
     }
 
     if (!ad) {
-        // Fallback to a mock ad if no live campaigns exist in DB
         return (
             <div className="mt-12">
                  <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -148,6 +143,3 @@ export default function SponsoredProduct() {
         </div>
     );
 }
-
-// Stub for updateDoc to ensure compile-safe component if imports missing
-import { updateDoc } from 'firebase/firestore';

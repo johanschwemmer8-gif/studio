@@ -16,7 +16,7 @@ import {
   ArrowUp, Clock, UserCheck, ShieldCheck, Fingerprint, 
   Phone, Mail, Chrome, Smartphone, Download, Search, 
   MessageSquare, BrainCircuit, Activity, MousePointerClick, 
-  BarChart3, LayoutDashboard, Calendar
+  BarChart3, LayoutDashboard, Calendar, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
@@ -34,6 +34,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [selectedStore, setSelectedStore] = useState<string | null>(null);

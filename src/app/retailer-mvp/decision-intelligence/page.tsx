@@ -24,43 +24,43 @@ export default function DecisionIntelligencePage() {
     const { toast } = useToast();
 
     useEffect(() => {
+        // Fetch decision intelligence
         analyzeDecisionIntelligence().then(res => {
-            setData(result);
+            setData(res);
             setLoading(false);
         }).catch(err => {
             console.error(err);
+            
+            // Fallback mock data for development
+            const fallbackResult: DecisionIntelligenceOutput = {
+                intentGaps: [
+                    { productId: '1', productName: 'Eco-Friendly Water Bottle', engagementScore: 88, conversionRate: 12, gapIndicator: 'Price Sensitivity' },
+                    { productId: '2', productName: 'Wireless Charging Pad', engagementScore: 94, conversionRate: 8, gapIndicator: 'Missing Information' },
+                    { productId: '3', productName: 'Smart Notebook', engagementScore: 45, conversionRate: 32, gapIndicator: 'Low Availability' },
+                ],
+                hesitationMetrics: {
+                    avgDwellBeforeDecision: 42,
+                    hesitationIndex: 18.5,
+                    topHesitationCategories: ['Electronics', 'Premium Footwear', 'Cosmetics'],
+                },
+                aiInteractionInsights: {
+                    topShopperQuestions: [
+                        { topic: 'Battery Life', frequency: 154, sentiment: 0.6 },
+                        { topic: 'Warranty Details', frequency: 112, sentiment: 0.8 },
+                        { topic: 'Comparison with Competitors', frequency: 89, sentiment: 0.4 },
+                        { topic: 'In-store Availability', frequency: 76, sentiment: 0.7 },
+                    ],
+                    aiResolutionRate: 64.2,
+                },
+                categoryEngagement: [
+                    { category: 'Lifestyle', uniqueScanners: 1240, repeatEngagementRate: 24.5 },
+                    { category: 'Electronics', uniqueScanners: 980, repeatEngagementRate: 31.2 },
+                    { category: 'Accessories', uniqueScanners: 750, repeatEngagementRate: 18.9 },
+                ]
+            };
+            setData(fallbackResult);
             setLoading(false);
         });
-        
-        // Use realistic dummy data if flow fails or for instant dev preview
-        const result: DecisionIntelligenceOutput = {
-            intentGaps: [
-                { productId: '1', productName: 'Eco-Friendly Water Bottle', engagementScore: 88, conversionRate: 12, gapIndicator: 'Price Sensitivity' },
-                { productId: '2', productName: 'Wireless Charging Pad', engagementScore: 94, conversionRate: 8, gapIndicator: 'Missing Information' },
-                { productId: '3', productName: 'Smart Notebook', engagementScore: 45, conversionRate: 32, gapIndicator: 'Low Availability' },
-            ],
-            hesitationMetrics: {
-                avgDwellBeforeDecision: 42,
-                hesitationIndex: 18.5,
-                topHesitationCategories: ['Electronics', 'Premium Footwear', 'Cosmetics'],
-            },
-            aiInteractionInsights: {
-                topShopperQuestions: [
-                    { topic: 'Battery Life', frequency: 154, sentiment: 0.6 },
-                    { topic: 'Warranty Details', frequency: 112, sentiment: 0.8 },
-                    { topic: 'Comparison with Competitors', frequency: 89, sentiment: 0.4 },
-                    { topic: 'In-store Availability', frequency: 76, sentiment: 0.7 },
-                ],
-                aiResolutionRate: 64.2,
-            },
-            categoryEngagement: [
-                { category: 'Lifestyle', uniqueScanners: 1240, repeatEngagementRate: 24.5 },
-                { category: 'Electronics', uniqueScanners: 980, repeatEngagementRate: 31.2 },
-                { category: 'Accessories', uniqueScanners: 750, repeatEngagementRate: 18.9 },
-            ]
-        };
-        setData(result);
-        setLoading(false);
     }, []);
 
     const handleExport = () => {

@@ -14,6 +14,7 @@ import {
   Fingerprint, Phone, Chrome, Smartphone, Mail, Download,
   Loader2, ArrowUp, DollarSign, Activity, BarChart3, Target
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';

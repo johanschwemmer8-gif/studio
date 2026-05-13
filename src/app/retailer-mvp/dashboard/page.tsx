@@ -14,7 +14,7 @@ import {
 import { 
   UserCheck, TrendingUp, Sparkles, AlertTriangle, 
   ArrowUp, MessageSquare, ShoppingCart, Loader2, Lightbulb, DollarSign,
-  Search, Calendar, Download
+  Search, Calendar, Download, Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';

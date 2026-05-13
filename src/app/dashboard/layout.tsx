@@ -16,7 +16,7 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone, DollarSign, Activity, Lightbulb } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone, DollarSign, Activity, Lightbulb, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
@@ -29,7 +29,6 @@ function SidebarLogo() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
     useEffect(() => {
-        // This effect runs only on the client side
         const savedLogo = localStorage.getItem('interact-aoe-logo');
         if (savedLogo) {
             setLogoUrl(savedLogo);
@@ -167,6 +166,11 @@ export default function DashboardLayout({
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="GS1 Conformance Pack">
+                            <Link href="/dashboard/gs1-conformance"><ShieldCheck /><span>GS1 Conformance</span></Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="AOE Infrastructure Security">
                             <Link href="/dashboard/aoe-security"><Shield /><span>Infrastructure Security</span></Link>
                         </SidebarMenuButton>
@@ -200,7 +204,7 @@ export default function DashboardLayout({
                           <Lightbulb />
                           <span>Intelligence Sandbox</span>
                         </Link>
-                      </SidebarMenuButton>
+                      </SidebarMenuItem>
                     </SidebarMenuItem>
                 </SidebarGroupContent>
             </SidebarGroup>

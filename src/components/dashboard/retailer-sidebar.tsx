@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -18,7 +17,7 @@ import {
   BarChart, Beaker, Blocks, Home, Network, QrCode, Server, 
   TrendingUp, UserCog, BookOpen, BarChart2, CreditCard, 
   MonitorSmartphone, Settings, BrainCircuit, Palette, Video, 
-  Shield, MessageSquare, Lightbulb, Fingerprint, ShoppingCart
+  Shield, MessageSquare, Lightbulb, Fingerprint, ShoppingCart, ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
@@ -49,7 +48,7 @@ export default function RetailerSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="ROI & Financial Impact">
                     <Link href="/retailer-mvp/roi"><TrendingUp /><span>ROI & Impact</span></Link>
-                  </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Behavioural Map">
@@ -90,6 +89,11 @@ export default function RetailerSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Display Infrastructure">
                     <Link href="/retailer-mvp/in-store-display"><MonitorSmartphone /><span>Display Infrastructure</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="GS1 Conformance Pack">
+                    <Link href="/retailer-mvp/gs1-conformance"><ShieldCheck /><span>GS1 Conformance</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarGroupContent>

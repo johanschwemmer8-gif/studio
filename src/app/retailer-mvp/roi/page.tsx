@@ -12,7 +12,7 @@ import {
   QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, 
   Tag, Sparkles, AlertTriangle, UserCheck, ShieldCheck, 
   Fingerprint, Phone, Chrome, Smartphone, Mail, Download,
-  Loader2
+  Loader2, ArrowUp
 } from 'lucide-react';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
@@ -171,45 +171,90 @@ export default function RoiPage() {
 
       <Separator />
 
+      {/* SECTION 1: CORE ENGAGEMENT (Restored for Investor Readiness) */}
       <div>
-          <h2 className="text-2xl font-bold tracking-tight mb-2">
-            Identity Layer Adoption
+          <h2 className="text-xl font-bold tracking-tight mb-2">
+            Core Engagement Metrics
           </h2>
-          <p className="text-muted-foreground max-w-3xl">
-            Success metrics for the transition from anonymous guest scans to persistent smart shopper profiles.
+          <p className="text-muted-foreground max-w-3xl text-sm">
+            Primary indicators of platform adoption and customer reach across the physical store portfolio.
           </p>
       </div>
 
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Scans</CardTitle>
+            <QrCode className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metricsData?.engagement.totalScans.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
+            <p className="text-xs text-muted-foreground">All platform entry points.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Unique Scans</CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metricsData?.engagement.uniqueScans.toLocaleString() || <Skeleton className="h-8 w-20" />}</div>
+            <p className="text-xs text-muted-foreground">Total individual behavioural nodes.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.scanRate.toFixed(2)}%` : <Skeleton className="h-8 w-20" />}</div>
+            <p className="text-xs text-muted-foreground">Infrastructure adoption velocity.</p>
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Engagement Duration</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.engagementDuration}s` : <Skeleton className="h-8 w-12" />}</div>
+            <p className="text-xs text-muted-foreground">Depth of decision-window interaction.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator />
+
+      {/* SECTION 2: IDENTITY LAYER */}
+      <div>
+          <h2 className="text-xl font-bold tracking-tight mb-2">
+            Identity Layer Adoption
+          </h2>
+          <p className="text-muted-foreground max-w-3xl text-sm">
+            Transition success from anonymous scans to persistent, identified smart shopper profiles.
+          </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Ecosystem Shoppers
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Ecosystem Shoppers</CardTitle>
             <UserCheck className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metricsData?.engagement.identifiedShoppers.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
-            <p className="text-xs text-muted-foreground">
-              Total persistent profiles in the intelligence layer.
-            </p>
+            <p className="text-xs text-muted-foreground">Identified persistent profiles.</p>
           </CardContent>
         </Card>
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Identity Conversion
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Identity Conversion</CardTitle>
             <ShieldCheck className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {metricsData ? `${metricsData.engagement.profileConversionRate.toFixed(1)}%` : <Skeleton className="h-8 w-20" />}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Rate of persistent identity capture.
-            </p>
+            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.profileConversionRate.toFixed(1)}%` : <Skeleton className="h-8 w-20" />}</div>
+            <p className="text-xs text-muted-foreground">Efficiency of the Identity Layer.</p>
           </CardContent>
         </Card>
         <Card>
@@ -220,38 +265,20 @@ export default function RoiPage() {
           <CardContent>
              {metricsData ? (
                 <div className="space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
+                    <div className="flex justify-between items-center text-[10px]">
                         <span className="flex items-center gap-1 text-muted-foreground"><Phone className="h-3 w-3" /> Mobile OTP</span>
                         <span className="font-bold">{metricsData.engagement.authMethodBreakdown.phone}%</span>
                     </div>
-                    <div className="flex justify-between items-center text-xs">
+                    <div className="flex justify-between items-center text-[10px]">
                         <span className="flex items-center gap-1 text-muted-foreground"><Chrome className="h-3 w-3" /> Google</span>
                         <span className="font-bold">{metricsData.engagement.authMethodBreakdown.google}%</span>
                     </div>
-                     <div className="flex justify-between items-center text-xs">
+                     <div className="flex justify-between items-center text-[10px]">
                         <span className="flex items-center gap-1 text-muted-foreground"><Smartphone className="h-3 w-3" /> Apple</span>
                         <span className="font-bold">{metricsData.engagement.authMethodBreakdown.apple}%</span>
                     </div>
-                    <div className="flex justify-between items-center text-xs">
-                        <span className="flex items-center gap-1 text-muted-foreground"><Mail className="h-3 w-3" /> Email</span>
-                        <span className="font-bold">{metricsData.engagement.authMethodBreakdown.email}%</span>
-                    </div>
                 </div>
              ) : <Skeleton className="h-16 w-full" />}
-          </CardContent>
-        </Card>
-         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-             Behavioural Dwell Time
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.engagementDuration}s` : <Skeleton className="h-8 w-12" />}</div>
-            <p className="text-xs text-muted-foreground">
-              Avg consideration period per infrastructure point.
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -262,12 +289,13 @@ export default function RoiPage() {
 
       <Separator />
 
+      {/* SECTION 3: ECONOMIC & CONVERSION (Restored for Investor Readiness) */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
+        <h2 className="text-xl font-bold tracking-tight mb-2">
           Economic & Conversion Ecosystem
         </h2>
-        <p className="text-muted-foreground max-w-3xl">
-         Validating how decision intelligence directly influences transaction velocity and volume.
+        <p className="text-muted-foreground max-w-3xl text-sm">
+         Proving the direct financial uplift generated by Intelligence Guidance on every transaction.
         </p>
       </div>
 
@@ -286,8 +314,8 @@ export default function RoiPage() {
            <div className="space-y-8">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Intelligence Guidance Uplift</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
+                        <CardTitle className="text-sm font-medium">Basket Uplift Analysis</CardTitle>
+                        <Percent className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex justify-between items-baseline">
@@ -328,7 +356,7 @@ export default function RoiPage() {
                     <CardContent>
                         <div className="text-4xl font-bold">{metricsData ? metricsData.conversion.aoeTransactions.toLocaleString() : <Skeleton className="h-10 w-20" />}</div>
                         <p className="text-xs text-muted-foreground">
-                            Total volume influenced by the Persistent Intelligence Layer.
+                            Total volume influenced by the Intelligence Layer.
                         </p>
                     </CardContent>
                 </Card>

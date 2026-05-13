@@ -1,638 +1,171 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
-import { ArrowLeft, PlusCircle, BarChart, DollarSign, Eye, Users, Calendar, Loader2, TrendingUp, Percent, CheckCircle, Search, X } from 'lucide-react';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp, where, getDocs, limit } from 'firebase/firestore';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { DollarSign, Eye, MousePointerClick, TrendingUp, Sparkles, Building2, BarChart3, PlusCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
-
-type Campaign = {
-    id: string;
-    campaignName: string;
-    status: 'Running' | 'Paused' | 'Completed' | 'Draft';
-    budget: number;
-    impressions: number;
-    clicks: number;
-    startDate: Timestamp;
-    endDate?: Timestamp;
-    conversions: number;
-    totalRevenue: number;
-    sponsoredProducts: string[];
-};
-
-type AggregateMetrics = {
-    totalRoas: number;
-    totalClicks: number;
-    totalImpressions: number;
-    totalConversions: number;
-    overallCtr: number;
-    overallConversionRate: number;
-    topProducts: any[];
-};
-
-const analyticsChartData = [
-    { name: 'Week 1', impressions: 4000, clicks: 240 },
-    { name: 'Week 2', impressions: 3000, clicks: 139 },
-    { name: 'Week 3', impressions: 2000, clicks: 980 },
-    { name: 'Week 4', impressions: 2780, clicks: 390 },
-    { name: 'Week 5', impressions: 1890, clicks: 480 },
-    { name: 'Week 6', impressions: 2390, clicks: 380 },
+const mockCampaigns = [
+    { id: 'cam_1', brand: 'HydroCool', status: 'active', impressions: 12430, clicks: 842, ctr: '6.7%', revenue: 2450.00 },
+    { id: 'cam_2', brand: 'EcoWrap', status: 'active', impressions: 8210, clicks: 310, ctr: '3.8%', revenue: 1120.00 },
+    { id: 'cam_3', brand: 'LifeTech', status: 'paused', impressions: 4500, clicks: 120, ctr: '2.6%', revenue: 450.00 },
 ];
 
-function formatNumber(num: number, options?: Intl.NumberFormatOptions) {
-    return new Intl.NumberFormat('en-US', options).format(num);
-}
+const revenueData = [
+    { name: 'Mon', revenue: 450 },
+    { name: 'Tue', revenue: 520 },
+    { name: 'Wed', revenue: 380 },
+    { name: 'Thu', revenue: 610 },
+    { name: 'Fri', revenue: 740 },
+    { name: 'Sat', revenue: 890 },
+    { name: 'Sun', revenue: 920 },
+];
 
-function AnalyticsDashboard({ metrics, campaigns, loading }: { metrics: AggregateMetrics; campaigns: Campaign[]; loading: boolean }) {
-
-    if (loading) {
-        return (
-            <div className="space-y-6">
-                 <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-bold">Analytics Overview</h2>
-                    <Skeleton className="h-10 w-64" />
-                </div>
-                <Skeleton className="h-36 w-full" />
-                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
-                </div>
-                <Skeleton className="h-96 w-full" />
-                <Skeleton className="h-80 w-full" />
-            </div>
-        )
-    }
-
-    const topProductsData = campaigns.flatMap((c, i) => ([
-        { id: `prod_${i}_1`, name: `Product A from ${c.campaignName}`, clicks: Math.floor(c.clicks / 2), conversions: Math.floor(c.conversions / 2), revenue: c.totalRevenue / 2 },
-        { id: `prod_${i}_2`, name: `Product B from ${c.campaignName}`, clicks: Math.floor(c.clicks / 2), conversions: Math.floor(c.conversions / 2), revenue: c.totalRevenue / 2 },
-    ])).sort((a,b) => b.revenue - a.revenue).slice(0, 3);
-
-
+export default function RetailMediaNetworkPage() {
     return (
-        <div className="space-y-6">
-             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Analytics Overview</h2>
-                <div className="w-64">
-                    <Select>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a Campaign" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Campaigns</SelectItem>
-                            {campaigns.map(c => <SelectItem key={c.id} value={c.id}>{c.campaignName}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+        <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight mb-2">Retail Media Network</h2>
+                    <p className="text-muted-foreground max-w-3xl">
+                        Monetise your Persistent Intelligence by offering sponsored placements to supplier brands.
+                    </p>
                 </div>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" /> New Ad Campaign
+                </Button>
             </div>
 
-            <Card className="bg-primary text-primary-foreground">
-                <CardHeader>
-                    <CardTitle>Total Return on Ad Spend (ROAS)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-5xl font-bold">{metrics.totalRoas.toFixed(2)}x</p>
-                    <p className="text-sm opacity-80">For every R1 spent, you earned R{metrics.totalRoas.toFixed(2)} back.</p>
-                </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <MetricCard title="Total Clicks" value={formatNumber(metrics.totalClicks)} icon={Users} />
-                <MetricCard title="Total Impressions" value={formatNumber(metrics.totalImpressions)} icon={Eye} />
-                <MetricCard title="Click-Through Rate (CTR)" value={`${metrics.overallCtr.toFixed(2)}%`} icon={TrendingUp} />
-                <MetricCard title="Total Conversions" value={formatNumber(metrics.totalConversions)} icon={CheckCircle} />
-                <MetricCard title="Conversion Rate" value={`${metrics.overallConversionRate.toFixed(2)}%`} icon={Percent} />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="bg-primary text-primary-foreground">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Media Revenue</CardTitle>
+                        <DollarSign className="h-4 w-4 opacity-70" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">R4,020.00</div>
+                        <p className="text-xs opacity-70 mt-1">+12.5% from last week</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Impressions</CardTitle>
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">25,140</div>
+                        <p className="text-xs text-muted-foreground mt-1">High-intent profile views</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Average CTR</CardTitle>
+                        <MousePointerClick className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">5.1%</div>
+                        <p className="text-xs text-muted-foreground mt-1">Intelligence-matched clicks</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Platform Yield</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">R0.16</div>
+                        <p className="text-xs text-muted-foreground mt-1">Average revenue per scan</p>
+                    </CardContent>
+                </Card>
             </div>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>Clicks & Impressions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <ResponsiveContainer width="100%" height={300}>
-                        <RechartsBarChart data={analyticsChartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                            <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                            <Tooltip />
-                            <Legend />
-                            <RechartsBar yAxisId="left" dataKey="impressions" fill="#8884d8" name="Impressions" />
-                            <RechartsBar yAxisId="right" dataKey="clicks" fill="#82ca9d" name="Clicks" />
-                        </RechartsBarChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
+
+            <div className="grid gap-8 lg:grid-cols-3">
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Daily Media Revenue</CardTitle>
+                        <CardDescription>Earnings from sponsored placements matched to Smart Profiles.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <ChartContainer config={{ revenue: { label: 'Revenue (R)', color: 'hsl(var(--primary))' }}} className="h-[300px] w-full">
+                            <BarChart data={revenueData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `R${val}`} />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-accent" />
+                            Intelligence Matching
+                        </CardTitle>
+                        <CardDescription>How ads are matched to shoppers.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="p-4 bg-muted/50 rounded-lg border">
+                            <p className="text-sm font-bold mb-1 flex items-center gap-2">
+                                <Building2 className="h-4 w-4" /> Supplier Affinity
+                            </p>
+                            <p className="text-xs text-muted-foreground">Supplier brands matched based on shopper's 'Saved Products' history.</p>
+                        </div>
+                        <div className="p-4 bg-muted/50 rounded-lg border">
+                            <p className="text-sm font-bold mb-1 flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4" /> Category Intent
+                            </p>
+                            <p className="text-xs text-muted-foreground">Placement triggered by real-time product category interaction.</p>
+                        </div>
+                         <div className="pt-4 text-center">
+                            <p className="text-xs font-semibold text-primary">Intelligence match accuracy: 94.2%</p>
+                         </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Top Performing Sponsored Products</CardTitle>
+                    <CardTitle>Active Supplier Campaigns</CardTitle>
+                    <CardDescription>Monitor the performance and billing status of active media partners.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Product</TableHead>
-                                <TableHead>Clicks</TableHead>
-                                <TableHead>Conversions</TableHead>
-                                <TableHead className="text-right">Revenue Generated</TableHead>
+                                <TableHead>Supplier Brand</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Impressions</TableHead>
+                                <TableHead className="text-right">CTR</TableHead>
+                                <TableHead className="text-right">Earnings</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {topProductsData.length > 0 ? topProductsData.map(product => (
-                                <TableRow key={product.id}>
-                                    <TableCell className="font-medium">{product.name}</TableCell>
-                                    <TableCell>{product.clicks}</TableCell>
-                                    <TableCell>{product.conversions}</TableCell>
-                                    <TableCell className="text-right">R{product.revenue.toLocaleString()}</TableCell>
+                            {mockCampaigns.map((cam) => (
+                                <TableRow key={cam.id}>
+                                    <TableCell className="font-bold">{cam.brand}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={cam.status === 'active' ? 'default' : 'outline'} className={cam.status === 'active' ? 'bg-green-500/10 text-green-700 border-green-500/20' : ''}>
+                                            {cam.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">{cam.impressions.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right">{cam.ctr}</TableCell>
+                                    <TableCell className="text-right font-bold text-primary">R{cam.revenue.toFixed(2)}</TableCell>
                                 </TableRow>
-                            )) : (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No product data available.</TableCell>
-                                </TableRow>
-                            )}
+                            ))}
                         </TableBody>
                     </Table>
                 </CardContent>
             </Card>
         </div>
     );
-}
-
-function MetricCard({ title, value, icon: Icon }: { title: string; value: string | number; icon: React.ElementType }) {
-    return (
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center justify-between">
-                    {title} <Icon className="h-4 w-4 text-muted-foreground" />
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-2xl font-bold">{value}</p>
-            </CardContent>
-        </Card>
-    );
-}
-
-type Product = {
-  id: string;
-  name: string;
-  sku: string;
-};
-
-const mockCampaigns: Campaign[] = [
-    {
-      id: 'campaign_1',
-      campaignName: 'Summer Sizzlers',
-      status: 'Running',
-      budget: 5000,
-      impressions: 125430,
-      clicks: 8780,
-      startDate: Timestamp.fromDate(new Date('2024-07-01')),
-      conversions: 439,
-      totalRevenue: 43800,
-      sponsoredProducts: ['SKU-TSHIRT-SUM', 'SKU-SHORTS-SUM'],
-    },
-    {
-      id: 'campaign_2',
-      campaignName: 'Winter Warmers',
-      status: 'Completed',
-      budget: 3500,
-      impressions: 98210,
-      clicks: 5401,
-      startDate: Timestamp.fromDate(new Date('2024-05-01')),
-      endDate: Timestamp.fromDate(new Date('2024-06-30')),
-      conversions: 216,
-      totalRevenue: 31500,
-      sponsoredProducts: ['SKU-JACKET-WIN', 'SKU-BEANIE-WIN'],
-    },
-     {
-      id: 'campaign_3',
-      campaignName: 'Back to School',
-      status: 'Paused',
-      budget: 2000,
-      impressions: 45000,
-      clicks: 1200,
-      startDate: Timestamp.fromDate(new Date('2024-08-01')),
-      conversions: 50,
-      totalRevenue: 5500,
-      sponsoredProducts: ['SKU-BAG-SCH', 'SKU-PENCIL-SCH'],
-    },
-];
-
-export default function RetailMediaNetworkPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
-  const [campaigns, setCampaigns] = useState<Campaign[]>(mockCampaigns);
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [metrics, setMetrics] = useState<AggregateMetrics>({
-      totalRoas: 6.8,
-      totalClicks: 15381,
-      totalImpressions: 268640,
-      totalConversions: 705,
-      overallCtr: 5.73,
-      overallConversionRate: 4.58,
-      topProducts: []
-  });
-  const { toast } = useToast();
-
-  // State for product selection
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
-
-  // Debounce search term
-    useEffect(() => {
-        if (!searchTerm.trim() || !db) {
-            setSearchResults([]);
-            return;
-        }
-
-        setIsSearching(true);
-        const debounceTimer = setTimeout(async () => {
-            const productsRef = collection(db, 'products');
-            // A simple "starts-with" search query
-            const q = query(productsRef, 
-                where('name', '>=', searchTerm), 
-                where('name', '<=', searchTerm + '\uf8ff'),
-                limit(10)
-            );
-            
-            try {
-                const querySnapshot = await getDocs(q);
-                const productsData = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                } as Product));
-
-                // Exclude already selected products
-                const availableProducts = productsData.filter(p => !selectedProducts.some(sp => sp.id === p.id));
-                setSearchResults(availableProducts);
-            } catch (error) {
-                console.error("Error searching products:", error);
-                toast({ title: "Search Error", description: "Could not fetch products.", variant: "destructive" });
-            } finally {
-                setIsSearching(false);
-            }
-        }, 300);
-
-        return () => clearTimeout(debounceTimer);
-    }, [searchTerm, selectedProducts, toast]);
-
-
-  const addProduct = (product: Product) => {
-    setSelectedProducts(prev => [...prev, product]);
-    setSearchTerm('');
-    setSearchResults([]);
-  };
-
-  const removeProduct = (productId: string) => {
-    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
-  };
-
-  const handleCreateCampaign = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!db) {
-        toast({ title: 'Error', description: 'Firebase is not connected.', variant: 'destructive' });
-        return;
-    }
-    const formData = new FormData(event.currentTarget);
-    const data = Object.fromEntries(formData.entries());
-
-    const newCampaign = {
-      campaignName: data['campaign-name'],
-      budget: Number(data['budget']),
-      status: 'Draft',
-      startDate: serverTimestamp(),
-      impressions: 0,
-      clicks: 0,
-      conversions: 0,
-      totalRevenue: 0,
-      sponsoredProducts: selectedProducts.map(p => p.sku),
-    };
-
-    try {
-      await addDoc(collection(db, 'adCampaigns'), newCampaign);
-      toast({
-        title: 'Success!',
-        description: 'New campaign has been created in Draft status.',
-      });
-      setIsModalOpen(false);
-      setSelectedProducts([]); // Reset for next time
-    } catch (error) {
-      console.error("Error adding document: ", error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create campaign.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleViewDetails = (campaign: Campaign) => {
-    setSelectedCampaign(campaign);
-    setShowDetails(true);
-  };
-
-  const handleBackToDashboard = () => {
-    setSelectedCampaign(null);
-    setShowDetails(false);
-  };
-
-  const getStatusBadge = (status: Campaign['status']) => {
-    switch (status) {
-        case 'Running': return <Badge className="bg-green-500/20 text-green-700 hover:bg-green-500/20">{status}</Badge>;
-        case 'Paused': return <Badge className="bg-yellow-500/20 text-yellow-700 hover:bg-yellow-500/20">{status}</Badge>;
-        case 'Completed': return <Badge variant="secondary">{status}</Badge>;
-        case 'Draft': return <Badge variant="outline">{status}</Badge>;
-    }
-  }
-
-  const calculateCTR = (clicks: number, impressions: number) => {
-      if (impressions === 0) return '0.00%';
-      return `${((clicks / impressions) * 100).toFixed(2)}%`;
-  }
-
-  return (
-    <div className="space-y-8">
-      <div>
-          <h1 className="text-3xl font-bold text-foreground">Retail Media Network</h1>
-          <p className="text-muted-foreground mt-2">Manage your ad campaigns and analyze their performance.</p>
-      </div>
-      
-      <Tabs defaultValue="campaigns" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
-        <TabsContent value="campaigns">
-             {/* Main Dashboard View */}
-              <div className={cn(showDetails && 'hidden')}>
-                <div className="flex justify-end items-start mb-6">
-                  <Dialog open={isModalOpen} onOpenChange={(isOpen) => {
-                      setIsModalOpen(isOpen);
-                      if (!isOpen) {
-                          setSelectedProducts([]);
-                          setSearchTerm('');
-                          setSearchResults([]);
-                      }
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create New Campaign
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                          <DialogTitle>Create New Ad Campaign</DialogTitle>
-                          <DialogDescription>Define a new campaign to run on your retail media network.</DialogDescription>
-                      </DialogHeader>
-                      <form id="create-campaign-form" onSubmit={handleCreateCampaign} className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                          <div>
-                              <Label htmlFor="campaign-name">Campaign Name</Label>
-                              <Input id="campaign-name" name="campaign-name" required />
-                          </div>
-                          <div className="grid md:grid-cols-2 gap-4">
-                              <div>
-                                  <Label htmlFor="budget">Budget (R)</Label>
-                                  <Input id="budget" name="budget" type="number" required />
-                              </div>
-                              <div>
-                                <Label htmlFor="campaign-duration">Campaign Duration</Label>
-                                <Input id="campaign-duration" name="campaign-duration" type="text" placeholder="e.g., Start Date - End Date"/>
-                              </div>
-                          </div>
-                          <div>
-                              <Label htmlFor="target-audience">Target Audience</Label>
-                              <Textarea id="target-audience" name="target-audience" rows={3} placeholder="Describe the target audience (e.g., location, demographics, interests)." />
-                          </div>
-                          <div id="product-selection-container">
-                                <Label>Sponsored Products</Label>
-                                <div className="mt-2 border rounded-md p-4 space-y-4">
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input 
-                                            id="product-search-input" 
-                                            placeholder="Search by product name..." 
-                                            className="pl-10"
-                                            value={searchTerm}
-                                            onChange={e => setSearchTerm(e.target.value)}
-                                        />
-                                    </div>
-                                    
-                                    {(isSearching || searchResults.length > 0) && (
-                                        <Card id="product-search-results" className="shadow-none">
-                                            <ScrollArea className="h-48">
-                                                <CardContent className="p-2">
-                                                    {isSearching ? <div className="text-center p-4"><Loader2 className="animate-spin mx-auto"/></div>
-                                                    : searchResults.length > 0 ? searchResults.map(product => (
-                                                        <div key={product.id} className="flex items-center justify-between p-2 hover:bg-muted rounded-md">
-                                                            <div>
-                                                                <p className="text-sm font-medium">{product.name}</p>
-                                                                <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
-                                                            </div>
-                                                            <Button type="button" size="sm" onClick={() => addProduct(product)}>Add</Button>
-                                                        </div>
-                                                    )) : null }
-                                                    {!isSearching && searchResults.length === 0 && searchTerm && <p className="text-center text-sm text-muted-foreground py-4">No products found.</p>}
-                                                </CardContent>
-                                            </ScrollArea>
-                                        </Card>
-                                    )}
-
-                                    {selectedProducts.length > 0 && (
-                                        <div>
-                                            <h4 className="text-sm font-semibold mb-2">Selected Products</h4>
-                                            <div className="space-y-2">
-                                                {selectedProducts.map(product => (
-                                                    <div key={product.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                                                         <div>
-                                                            <p className="text-sm font-medium">{product.name}</p>
-                                                            <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
-                                                        </div>
-                                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeProduct(product.id)}>
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                          </div>
-                      </form>
-                      <DialogFooter>
-                          <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                          <Button type="submit" form="create-campaign-form">
-                              Create Campaign
-                          </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Ad Campaigns</CardTitle>
-                        <CardDescription>An overview of all your ongoing and past campaigns.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Campaign Name</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Budget</TableHead>
-                                    <TableHead>Impressions</TableHead>
-                                    <TableHead>Clicks</TableHead>
-                                    <TableHead>CTR</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading ? (
-                                     <TableRow><TableCell colSpan={7} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
-                                ) : !db ? (
-                                    <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">Please configure Firebase to view campaigns.</TableCell></TableRow>
-                                ) : campaigns.length === 0 ? (
-                                    <TableRow><TableCell colSpan={7} className="h-24 text-center">No campaigns found.</TableCell></TableRow>
-                                ) : (
-                                    campaigns.map(campaign => (
-                                        <TableRow key={campaign.id}>
-                                            <TableCell className="font-medium">{campaign.campaignName}</TableCell>
-                                            <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                                            <TableCell>R{campaign.budget.toLocaleString()}</TableCell>
-                                            <TableCell>{campaign.impressions.toLocaleString()}</TableCell>
-                                            <TableCell>{campaign.clicks.toLocaleString()}</TableCell>
-                                            <TableCell>{calculateCTR(campaign.clicks, campaign.impressions)}</TableCell>
-                                            <TableCell>
-                                                <Button variant="link" className="p-0 h-auto" onClick={() => handleViewDetails(campaign)}>View Details</Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-              </div>
-
-              {/* Experiment Details View */}
-              <div className={cn(!showDetails && 'hidden', 'space-y-6')}>
-                <Button variant="ghost" onClick={handleBackToDashboard} className="mb-4 -ml-4">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-                </Button>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-3xl">{selectedCampaign?.campaignName}</CardTitle>
-                        <CardDescription>
-                            Live performance metrics for this campaign.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {selectedCampaign?.sponsoredProducts && selectedCampaign.sponsoredProducts.length > 0 && (
-                            <div>
-                                <h4 className="font-semibold mb-2">Sponsored Products</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedCampaign.sponsoredProducts.map(sku => <Badge key={sku} variant="secondary">{sku}</Badge>)}
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Budget</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">R{selectedCampaign?.budget.toLocaleString()}</p>
-                            <p className="text-xs text-muted-foreground">Total allocated budget</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Impressions</CardTitle>
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{selectedCampaign?.impressions.toLocaleString()}</p>
-                             <p className="text-xs text-muted-foreground">Total times the ad was shown</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Clicks</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{selectedCampaign?.clicks.toLocaleString()}</p>
-                             <p className="text-xs text-muted-foreground">Total clicks on the ad</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Click-Through Rate</CardTitle>
-                            <BarChart className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold">{calculateCTR(selectedCampaign?.clicks || 0, selectedCampaign?.impressions || 0)}</p>
-                             <p className="text-xs text-muted-foreground">Ratio of clicks to impressions</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Performance Over Time</CardTitle>
-                        <CardDescription>Feature coming soon: A chart visualizing live data on impressions, clicks, conversions, and ROI.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-64 flex items-center justify-center bg-muted/50 rounded-md">
-                        <p className="text-muted-foreground">Chart will be displayed here.</p>
-                    </CardContent>
-                </Card>
-              </div>
-        </TabsContent>
-        <TabsContent value="analytics">
-            <AnalyticsDashboard metrics={metrics} campaigns={campaigns} loading={loading} />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
 }

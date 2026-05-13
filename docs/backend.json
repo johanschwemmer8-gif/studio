@@ -29,7 +29,7 @@
         "shopperId": { "type": "string" },
         "productId": { "type": "string" },
         "retailerId": { "type": "string" },
-        "eventType": { "type": "string", "enum": ["scan", "chat_query", "save", "comparison_view", "review_read"] },
+        "eventType": { "type": "string", "enum": ["scan", "chat_query", "save", "comparison_view", "review_read", "ad_click", "ad_impression"] },
         "metadata": { "type": "object" },
         "timestamp": { "type": "string", "format": "date-time" }
       },
@@ -47,6 +47,28 @@
         "savedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["productId", "savedAt"]
+    },
+    "AdCampaign": {
+      "title": "Retail Media Ad Campaign",
+      "description": "A supplier-funded campaign for sponsored placements.",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string" },
+        "supplierBrand": { "type": "string" },
+        "budget": { "type": "number" },
+        "cpm": { "type": "number" },
+        "targetCategories": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["active", "paused", "completed"] },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "impressions": { "type": "number" },
+            "clicks": { "type": "number" },
+            "conversions": { "type": "number" }
+          }
+        }
+      },
+      "required": ["campaignId", "supplierBrand", "status"]
     }
   },
   "auth": {
@@ -64,6 +86,10 @@
     "/shoppers/{shopperId}/savedProducts/{productId}": {
       "schema": "#/backend/entities/SavedProduct",
       "description": "The shopper's persistent wish-list/basket across sessions."
+    },
+    "/adCampaigns/{campaignId}": {
+      "schema": "#/backend/entities/AdCampaign",
+      "description": "Media network ad campaigns."
     }
   }
 }

@@ -44,7 +44,7 @@ export default function RoiPage() {
         setMetricsData(result);
       } catch (e) {
         console.error(e);
-        setError("We couldn't load the initial dashboard metrics. Please try again later.");
+        setError("Could not load Intelligence ROI metrics. Please check connectivity.");
       }
     };
     fetchInitialData();
@@ -57,15 +57,15 @@ export default function RoiPage() {
       if (metricsData) {
         setAnalysis(metricsData);
       } else {
-        setError("Metrics data is not available to analyze.");
+        setError("Intelligence data stream is not available for analysis.");
       }
     });
   };
 
   const handleExport = (format: string) => {
     toast({
-        title: `Exporting ROI Data (${format})...`,
-        description: "Your comprehensive ROI performance data is being prepared.",
+        title: `Generating Executive ROI Report (${format})...`,
+        description: "Your detailed Decision Intelligence ROI analysis is being prepared.",
     });
   };
   
@@ -98,27 +98,27 @@ export default function RoiPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight mb-2">
-            AI-Powered Intelligence Analysis
+            Intelligence ROI & Economic Impact
           </h2>
           <p className="text-muted-foreground max-w-3xl">
-            Analyze the impact of persistent shopper identity and AI buying guidance on business results.
+            Proving the financial value of the Persistent Intelligence Layer and its influence on behavioural conversion.
           </p>
         </div>
         <div className="flex gap-3">
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="gap-2">
-                        <Download className="h-4 w-4" /> Export ROI
+                        <Download className="h-4 w-4" /> Export Economic Report
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Download PDF Report</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Download CSV Data</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Download Executive PDF</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Raw Economic Data (CSV)</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing || !metricsData} className="gap-2">
                 <Sparkles className="h-4 w-4" />
-                Analyze Intelligence
+                Analyze Economic Impact
             </Button>
         </div>
       </div>
@@ -126,17 +126,12 @@ export default function RoiPage() {
       {isAnalyzing && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
-            <CardDescription>Our AI is analyzing your core engagement and conversion metrics...</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> Generative ROI Audit</CardTitle>
+            <CardDescription>Synthesizing impact metrics from across the infrastructure...</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
-              <div className="pt-4 space-y-2">
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-              </div>
           </CardContent>
         </Card>
       )}
@@ -144,31 +139,30 @@ export default function RoiPage() {
       {error && (
           <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
+              <AlertTitle>Audit Friction</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
           </Alert>
       )}
 
       {analysis && (
-        <Card className="bg-accent/10 border-accent">
+        <Card className="bg-accent/10 border-accent shadow-md">
             <CardHeader>
-                 <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent"/> AI-Powered Analysis</CardTitle>
-                 <CardDescription>An AI-generated analysis of your core engagement and conversion metrics.</CardDescription>
+                 <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-widest"><Sparkles className="text-accent h-4 w-4"/> AI Intelligence Conclusion</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
-                    <h3 className="font-semibold mb-2">Intelligence Performance</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.overallPerformance}</p>
+                    <h3 className="font-bold text-xs text-muted-foreground uppercase mb-2">Ecosystem Performance</h3>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{analysis.overallPerformance}</p>
                 </div>
                 <Separator />
                 <div>
-                    <h3 className="font-semibold mb-2">Conclusions</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.conclusions}</p>
+                    <h3 className="font-bold text-xs text-muted-foreground uppercase mb-2">Behavioural Conclusions</h3>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{analysis.conclusions}</p>
                 </div>
                 <Separator />
                  <div>
-                    <h3 className="font-semibold mb-2">Actionable Recommendations</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.recommendations}</p>
+                    <h3 className="font-bold text-xs text-muted-foreground uppercase mb-2">Strategic Action Plan</h3>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{analysis.recommendations}</p>
                 </div>
             </CardContent>
         </Card>
@@ -178,10 +172,10 @@ export default function RoiPage() {
 
       <div>
           <h2 className="text-2xl font-bold tracking-tight mb-2">
-            Identity & Engagement
+            Identity Layer Adoption
           </h2>
           <p className="text-muted-foreground max-w-3xl">
-            Tracking the transition from anonymous guest scans to identified persistent profiles.
+            Success metrics for the transition from anonymous guest scans to persistent smart shopper profiles.
           </p>
       </div>
 
@@ -190,21 +184,21 @@ export default function RoiPage() {
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Identified Shoppers
+              Ecosystem Shoppers
             </CardTitle>
             <UserCheck className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metricsData?.engagement.identifiedShoppers.toLocaleString() || <Skeleton className="h-8 w-24" />}</div>
             <p className="text-xs text-muted-foreground">
-              Guest scanners who created a Smart Profile.
+              Total persistent profiles in the intelligence layer.
             </p>
           </CardContent>
         </Card>
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Profile Conversion
+              Identity Conversion
             </CardTitle>
             <ShieldCheck className="h-4 w-4 text-primary" />
           </CardHeader>
@@ -213,7 +207,7 @@ export default function RoiPage() {
               {metricsData ? `${metricsData.engagement.profileConversionRate.toFixed(1)}%` : <Skeleton className="h-8 w-20" />}
             </div>
             <p className="text-xs text-muted-foreground">
-              Rate of identity capture from guest scans.
+              Rate of persistent identity capture.
             </p>
           </CardContent>
         </Card>
@@ -248,14 +242,14 @@ export default function RoiPage() {
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-             Engagement Duration
+             Behavioural Dwell Time
             </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.engagementDuration}s` : <Skeleton className="h-8 w-12" />}</div>
             <p className="text-xs text-muted-foreground">
-              Average time spent on product page.
+              Avg consideration period per infrastructure point.
             </p>
           </CardContent>
         </Card>
@@ -269,10 +263,10 @@ export default function RoiPage() {
 
       <div>
         <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Performance & Conversion Impact
+          Economic & Conversion Ecosystem
         </h2>
         <p className="text-muted-foreground max-w-3xl">
-         Demonstrating how AI guidance and persistent memory drive financial outcomes.
+         Validating how decision intelligence directly influences transaction velocity and volume.
         </p>
       </div>
 
@@ -285,62 +279,55 @@ export default function RoiPage() {
                         <Skeleton className="h-6 w-3/4"/>
                         <Skeleton className="h-4 w-1/2"/>
                     </CardHeader>
-                    <CardContent className="flex justify-center">
-                        <div className="space-y-6">
-                            <Skeleton className="h-16 w-80" />
-                            <Skeleton className="h-16 w-80" />
-                            <Skeleton className="h-16 w-80" />
-                            <Skeleton className="h-16 w-80" />
-                        </div>
-                    </CardContent>
+                    <CardContent className="flex justify-center py-10"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground"/></CardContent>
                 </Card>
             )}
            <div className="space-y-8">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">AI Guidance Basket Uplift</CardTitle>
+                        <CardTitle className="text-sm font-medium">Intelligence Guidance Uplift</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex justify-between items-baseline">
-                            <span className="text-muted-foreground text-sm">With AI Guidance</span>
+                            <span className="text-muted-foreground text-sm">Guided Transactions</span>
                             {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
                         </div>
                          <div className="flex justify-between items-baseline">
-                            <span className="text-muted-foreground text-sm">Without AI</span>
+                            <span className="text-muted-foreground text-sm">Unguided Baseline</span>
                             {metricsData ? <span className="text-lg font-bold">R{metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}</span> : <Skeleton className="h-6 w-20" />}
                         </div>
                         <div className="flex justify-between items-baseline pt-2 border-t">
-                            <span className="text-green-600 font-semibold text-sm">Direct Uplift</span>
+                            <span className="text-green-600 font-bold text-sm">Economic Delta</span>
                             {metricsData ? <span className="text-lg font-bold text-green-600">+{metricsData.conversion.basketUpliftPercentage.toFixed(1)}%</span> : <Skeleton className="h-6 w-16" />}
                         </div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Offer Redemption</CardTitle>
+                        <CardTitle className="text-sm font-medium">Network Offer Velocity</CardTitle>
                         <Tag className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent className="space-y-4">
                          <div className="text-3xl font-bold">{metricsData ? `${metricsData.conversion.offerRedemptionRate.toFixed(1)}%` : <Skeleton className="h-8 w-20" />}</div >
                         <p className="text-xs text-muted-foreground">
-                            Percentage of personalized offers redeemed.
+                            Redemption velocity of intelligence-matched offers.
                         </p>
                         <div className="pt-4">
-                            <p className="text-sm text-muted-foreground">Total Redeemed Value</p>
+                            <p className="text-sm text-muted-foreground font-bold">Monetised Delta Value</p>
                              <div className="text-2xl font-bold">{metricsData ? `R${metricsData.conversion.totalRedeemedValue.toLocaleString()}` : <Skeleton className="h-8 w-24" />}</div>
                         </div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">AI-Influenced Transactions</CardTitle>
+                        <CardTitle className="text-sm font-medium">Intelligence-Attributed Sales</CardTitle>
                         <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-4xl font-bold">{metricsData ? metricsData.conversion.aoeTransactions.toLocaleString() : <Skeleton className="h-10 w-20" />}</div>
                         <p className="text-xs text-muted-foreground">
-                            Sales where shopper engaged with AI guidance before checkout.
+                            Total volume influenced by the Persistent Intelligence Layer.
                         </p>
                     </CardContent>
                 </Card>
@@ -349,7 +336,11 @@ export default function RoiPage() {
 
       <Separator />
 
-      <TimeBasedPerformanceChart data={timeBasedPerformanceData} />
+      <TimeBasedPerformanceChart 
+        data={timeBasedPerformanceData} 
+        title="Infrastructure Performance Trend"
+        description="Month-over-month adoption and economic influence."
+      />
     </div>
   );
 }

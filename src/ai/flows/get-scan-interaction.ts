@@ -2,9 +2,8 @@
 'use client';
 /**
  * @fileOverview Continuity Engine Interaction Flow.
- * Recognizes returning shoppers and constructs personalized greetings based on session memory.
- *
- * - getScanInteraction - Fetches data and personalized greetings for the scan screen.
+ * Acts as the relationship infrastructure for returning shoppers.
+ * Constructs personalized lifecycle greetings based on persistent behavioral memory.
  */
 
 import { ai } from '@/ai/genkit';
@@ -33,34 +32,30 @@ const InteractionPromptInputSchema = z.object({
 });
 
 const InteractionPromptOutputSchema = z.object({
-    messages: z.array(z.string()).max(3, "Maximum of 3 messages").describe('An array of 1-3 short, engaging messages to show the customer.'),
+    messages: z.array(z.string()).max(3, "Maximum of 3 messages").describe('Personalized continuity messages.'),
 });
 
 const prompt = ai.definePrompt({
     name: 'getScanInteractionPrompt',
     input: { schema: InteractionPromptInputSchema },
     output: { schema: InteractionPromptOutputSchema },
-    prompt: `You are a world-class AI shopping assistant for {{retailerName}}.
-    A customer has just scanned a QR code from the "{{campaignName}}" campaign.
+    prompt: `You are the world-class Continuity Assistant for {{retailerName}} Decision Intelligence.
+    A shopper has just scanned a product from "{{campaignName}}".
 
     {{#if shopperName}}
-    This is a returning customer named {{shopperName}}. 
-    {{#if pastInterests}}
-    They have previously explored these categories: {{join pastInterests ", "}}.
-    {{/if}}
-    Acknowledge them by name and briefly reference their continuity with the brand. 
-    Example: "Welcome back {{shopperName}}. Good to see you again! Last time you were looking at {{pastInterests.[0]}} products."
+    SHOPPER RECOGNIZED: {{shopperName}}.
+    CONTINUITY LOG: They have previously explored these categories: {{join pastInterests ", "}}.
+    Acknowledge them by name and reinforce their persistent relationship with the brand.
+    Example: "Welcome back {{shopperName}}. We've updated your guidance based on your interest in {{pastInterests.[0]}}."
     {{else}}
-    This is a guest shopper. Provide a standard, high-energy welcome.
+    GUEST SHOPPER: Provide a high-energy welcome to the Decision Intelligence platform. Focus on the value of personalized guidance.
     {{/if}}
 
-    Your personality should be: {{personality}}.
-    Your goal is to: {{intent}}.
-    {{#if constraints}}You must follow these constraints: {{constraints}}.{{/if}}
+    Your personality: {{personality}}.
+    Operating Objective: Maintain lifecycle continuity and provide buying guidance.
+    {{#if constraints}}Constraints: {{constraints}}.{{/if}}
 
-    Generate 1-3 short, engaging, and friendly messages to greet the customer.
-    Keep the messages very brief and conversational.
-    `,
+    Generate 1-3 short, engaging messages. Be brief and conversational.`,
 });
 
 
@@ -79,13 +74,13 @@ const getScanInteractionFlow = ai.defineFlow(
 
     const qrDoc = await db.collection('qrcodes').doc(qrId).get();
     if (!qrDoc.exists) {
-      throw new Error(`QR code with ID ${qrId} not found.`);
+      throw new Error(`Infrastructure mismatch: QR ${qrId} not found.`);
     }
     const qrData = qrDoc.data()!;
 
     const fallbackResponse = {
         messages: [],
-        destinationUrl: '/product/1',
+        destinationUrl: `/product/${qrData.productId || '1'}`,
         retailerLogoUrl: '',
         mediaType: undefined,
         mediaUrl: undefined,
@@ -111,19 +106,20 @@ const getScanInteractionFlow = ai.defineFlow(
             const sData = shopperDoc.data()!;
             shopperName = sData.displayName;
             
-            // Get last 3 unique categories from history
-            const interactions = await db.collection('shoppers').doc(shopperUid).collection('interactions').orderBy('timestamp', 'desc').limit(10).get();
+            const interactions = await db.collection('product_interactions')
+                .where('shopperId', '==', shopperUid)
+                .orderBy('timestamp', 'desc')
+                .limit(10)
+                .get();
+            
             const categories = new Set<string>();
             for(const doc of interactions.docs) {
-                // In real app, look up product category here. 
-                // Using metadata for mock simplicity.
                 if(doc.data().metadata?.category) categories.add(doc.data().metadata.category);
             }
             pastInterests = Array.from(categories).slice(0, 3);
         }
     }
 
-    // Default Profile if none linked to QR
     const aiProfileId = qrData.aiProfileId || 'default-assistant';
 
     try {
@@ -133,8 +129,8 @@ const getScanInteractionFlow = ai.defineFlow(
         ]);
         
         const aiProfile = aiProfileDoc.exists ? aiProfileDoc.data()! : {
-            personality: 'Friendly & Professional',
-            intent: 'Provide product information and Buying Guidance.',
+            personality: 'Expert & Helpful',
+            intent: 'Provide persistent buying guidance and lifecycle management.',
         };
         const retailerName = retailerDoc.exists ? retailerDoc.data()!.name : 'our store';
         const retailerLogoUrl = retailerDoc.exists ? retailerDoc.data()!.logoUrl : undefined;
@@ -149,13 +145,9 @@ const getScanInteractionFlow = ai.defineFlow(
             pastInterests,
         });
 
-        if (!output?.messages || output.messages.length === 0) {
-          return { ...fallbackResponse, retailerLogoUrl, ...mediaOptions };
-        }
-
         return {
-          messages: output.messages,
-          destinationUrl: '/product/1',
+          messages: output?.messages || [],
+          destinationUrl: `/product/${qrData.productId || '1'}`,
           retailerLogoUrl,
           mediaType: mediaOptions.mediaType,
           mediaUrl: mediaOptions.mediaUrl,
@@ -164,7 +156,7 @@ const getScanInteractionFlow = ai.defineFlow(
         };
 
     } catch (error) {
-        console.error(`Error during scan interaction for qrId ${qrId}:`, error);
+        console.error(`Continuity Engine Error (qrId ${qrId}):`, error);
         return { ...fallbackResponse, ...mediaOptions };
     }
   }

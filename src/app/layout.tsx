@@ -1,3 +1,4 @@
+'use client';
 
 import type { Metadata } from 'next';
 import './globals.css';
@@ -7,11 +8,6 @@ import { AuthProvider } from '@/context/auth-context';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'iNteract AOE - In-Store Retail Intelligence',
-  description: 'Transforming in-store retail into a personalized digital experience with AI-powered analytics and engagement.',
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -19,6 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <head>
+        <title>iNteract AOE - Persistent Retail Intelligence Infrastructure</title>
+        <meta name="description" content="AI-powered in-store decision intelligence platform and behavioural analytics ecosystem for physical retail." />
+      </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <AuthProvider>
             {children}

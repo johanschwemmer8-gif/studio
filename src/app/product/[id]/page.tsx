@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, Star, ArrowRightLeft, BookOpen, Utensils, Tag, Info, ShieldCheck, PlayCircle, Settings, ShieldAlert, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Sparkles, Star, ShieldCheck, PlayCircle, Settings, ShieldAlert, RotateCcw, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import ProductChatbot from '@/components/product/product-chatbot';
@@ -32,18 +32,21 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { optionalModules } = theme;
 
   const logContinuityEvent = async (type: string) => {
-    if (!user || !db) return;
+    if (!db) return;
     try {
-        const eventRef = doc(db, 'shoppers', user.uid, 'interactions', `${type}_${Date.now()}`);
-        await setDoc(eventRef, {
-            shopperId: user.uid,
+        const interactionRef = doc(db, 'product_interactions', `${type}_${Date.now()}`);
+        setDoc(interactionRef, {
+            shopperId: user?.uid || 'guest',
             productId: product.id,
             retailerId: 'simulated-retailer-id',
-            eventType: type,
+            type: type,
             timestamp: serverTimestamp(),
             metadata: { productName: product.name, category: product.category }
         });
-        toast({ title: "Continuity Synced", description: `Your ${type.replace('_', ' ')} has been saved to your profile.` });
+        
+        if (user) {
+            toast({ title: "Continuity Synced", description: `Your ${type.replace('_', ' ')} event was saved to your profile.` });
+        }
     } catch (e) {
         console.error(e);
     }
@@ -131,7 +134,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                                 <Info className="h-5 w-5 text-primary" />
                               </div>
-                              Personalized Buying Guidance
+                              Decision Intelligence Guidance
                             </div>
                             {user && <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20">Continuity Active</Badge>}
                         </CardTitle>
@@ -139,25 +142,25 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     <CardContent className="space-y-6 text-muted-foreground">
                         <div className="p-4 bg-muted/30 rounded-xl border italic text-sm">
                           {user ? 
-                            `Welcome back, ${user.displayName}. We've updated your guidance based on your interest in ${product.category} products.` : 
-                            "Connect your Smart Profile to unlock continuity features like reorder reminders and setup guides."}
+                            `Welcome back, ${user.displayName}. Leveraging your lifecycle memory to provide specialized guidance.` : 
+                            "Connect your Smart Profile to unlock persistent lifecycle features like reorder reminders."}
                         </div>
                         <ul className="grid sm:grid-cols-2 gap-4">
                             <li className="flex gap-3">
                               <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Best For:</strong> Daily intensive use, environmentally conscious shoppers.</p>
+                              <p><strong className="text-foreground">Lifecycle Phase:</strong> Exploration. Our AI recommends this for daily intensive use.</p>
                             </li>
                             <li className="flex gap-3">
                               <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Maintenance:</strong> Top-rack dishwasher safe, but hand-wash recommended for logo longevity.</p>
+                              <p><strong className="text-foreground">Continuity Factor:</strong> Shoppers who buy this typically reorder refills every 45 days.</p>
                             </li>
                             <li className="flex gap-3">
                               <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Refill Cycle:</strong> Shoppers typically reorder every 30-45 days.</p>
+                              <p><strong className="text-foreground">Decision Support:</strong> Top-rated for durability in your preferred Lifestyle category.</p>
                             </li>
                             <li className="flex gap-3">
                               <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Cross-Store Memory:</strong> Saved comparisons are available at all iNteract partner locations.</p>
+                              <p><strong className="text-foreground">Sync Status:</strong> Viewable across all iNteract infrastructure stores.</p>
                             </li>
                         </ul>
                     </CardContent>
@@ -165,24 +168,24 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             </TabsContent>
             <TabsContent value="lifecycle" className="mt-8">
                  <Card className="border-primary/10 shadow-lg">
-                    <CardHeader><CardTitle>Product Continuity Services</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Persistent Continuity Services</CardTitle></CardHeader>
                     <CardContent className="p-8 grid sm:grid-cols-3 gap-6">
                         <div className="p-4 bg-muted rounded-xl text-center space-y-2">
                             <RotateCcw className="h-8 w-8 mx-auto text-primary" />
                             <h4 className="font-bold">Subscription</h4>
-                            <p className="text-xs text-muted-foreground">Automate your refills every 30 days.</p>
+                            <p className="text-xs text-muted-foreground">Automate refills every 30-45 days.</p>
                             <Button size="sm" variant="outline" className="w-full">Enable</Button>
                         </div>
                          <div className="p-4 bg-muted rounded-xl text-center space-y-2">
                             <PlayCircle className="h-8 w-8 mx-auto text-primary" />
-                            <h4 className="font-bold">Tutorials</h4>
-                            <p className="text-xs text-muted-foreground">Master your product with step-by-step videos.</p>
+                            <h4 className="font-bold">Lifecycle Tutorials</h4>
+                            <p className="text-xs text-muted-foreground">Expert guides for setup and maintenance.</p>
                             <Button size="sm" variant="outline" className="w-full">Watch</Button>
                         </div>
                          <div className="p-4 bg-muted rounded-xl text-center space-y-2">
                             <ShieldAlert className="h-8 w-8 mx-auto text-primary" />
                             <h4 className="font-bold">Warranty</h4>
-                            <p className="text-xs text-muted-foreground">Instant digital activation for 24 months.</p>
+                            <p className="text-xs text-muted-foreground">Persistent digital activation for 24 months.</p>
                             <Button size="sm" variant="outline" className="w-full">Activate</Button>
                         </div>
                     </CardContent>

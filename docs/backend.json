@@ -17,7 +17,7 @@
     },
     "ShopperProfile": {
       "title": "Shopper Profile",
-      "description": "Persistent identity for a retail customer.",
+      "description": "Persistent identity for a retail customer. The core of the retail memory layer.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
@@ -56,14 +56,14 @@
     },
     "ProductInteraction": {
       "title": "Product Interaction",
-      "description": "Detailed tracking of a shopper's interaction with a product.",
+      "description": "Granular behavioural event tracking for decision intelligence.",
       "type": "object",
       "properties": {
         "interactionId": { "type": "string" },
         "shopperId": { "type": "string" },
         "sessionId": { "type": "string" },
         "productId": { "type": "string" },
-        "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "ad_click"] },
+        "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "save", "reorder", "tutorial_view", "warranty_activate"] },
         "dwellTime": { "type": "number" },
         "timestamp": { "type": "string", "format": "date-time" }
       },
@@ -111,7 +111,7 @@
     },
     "RetailMediaAd": {
       "title": "Retail Media Ad",
-      "description": "Sponsored placement from a supplier.",
+      "description": "Sponsored placement from a supplier based on shopper intent.",
       "type": "object",
       "properties": {
         "adId": { "type": "string" },

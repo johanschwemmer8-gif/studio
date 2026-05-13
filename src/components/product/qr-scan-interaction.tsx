@@ -7,8 +7,7 @@ import { getScanInteraction, type GetScanInteractionOutput } from '@/ai/flows';
 import { Button } from '../ui/button';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { AlertTriangle, Sparkles, Loader2 } from 'lucide-react';
-import { Skeleton } from '../ui/skeleton';
+import { AlertTriangle, Sparkles, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
@@ -55,14 +54,12 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
       setGlobalContent({ headline: savedHeadline, subhead: savedSubheading });
       
       try {
-        // Pass user UID for continuity greeting
         const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
         
         const hasCampaignContent = result.mediaUrl || result.headline || result.subhead;
         const hasGlobalContent = savedHeadline || savedSubheading;
         const hasMessages = result.messages && result.messages.length > 0;
 
-        // Auto-redirect if no interaction content is defined
         if (!hasCampaignContent && !hasGlobalContent && !hasMessages) {
            window.location.href = result.destinationUrl;
            return;
@@ -70,7 +67,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
 
         setData(result);
       } catch (e: any) {
-        setError(e.message || 'An unexpected error occurred.');
+        setError(e.message || 'Decision Intelligence timeout.');
         console.error(e);
       } finally {
         setLoading(false);
@@ -89,7 +86,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         } else {
           clearInterval(interval);
         }
-      }, 1200); 
+      }, 1000); 
       return () => clearInterval(interval);
     }
   }, [data]);
@@ -124,11 +121,10 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Friction Detected</AlertTitle>
               <AlertDescription>
-                Could not load interaction. Please try scanning again. <br />
-                <span className="text-xs font-mono mt-4 block p-2 bg-destructive/10 rounded">{error}</span>
+                Could not load Intelligence Engine. Please try again.
               </AlertDescription>
             </Alert>
-            <Button variant="ghost" className="mt-4" onClick={() => window.location.reload()}>Retry Scan</Button>
+            <Button variant="ghost" className="mt-4" onClick={() => window.location.reload()}>Retry Interaction</Button>
         </div>
     );
   }
@@ -140,26 +136,32 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
   return (
     <div className="flex flex-col min-h-screen bg-background p-6">
       <div className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-end pb-12">
-        {/* Media and Headline Section */}
+        <div className="mb-6 flex justify-center">
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3">
+                <ShieldCheck className="h-3.5 w-3.5" /> Continuity Engine Active
+            </Badge>
+        </div>
+
+        {/* Media Section */}
         {(data?.mediaUrl || displayHeadline || displaySubhead) && (
             <div className="mb-8 text-center animate-in fade-in zoom-in-95 duration-700">
                 {data?.mediaType === 'video' ? (
-                    <video src={data.mediaUrl} controls autoPlay muted loop className="w-full rounded-2xl shadow-2xl aspect-video object-cover ring-1 ring-primary/5" />
+                    <video src={data.mediaUrl} controls autoPlay muted loop className="w-full rounded-2xl shadow-2xl aspect-video object-cover" />
                 ) : data?.mediaUrl ? (
-                    <Image src={data.mediaUrl} alt={data.headline || 'Campaign Media'} width={400} height={225} className="w-full rounded-2xl shadow-2xl object-cover aspect-video ring-1 ring-primary/5" />
+                    <Image src={data.mediaUrl} alt={data.headline || 'Brand Content'} width={400} height={225} className="w-full rounded-2xl shadow-2xl object-cover aspect-video" />
                 ) : null}
-                {displayHeadline && <h1 className="text-2xl font-black mt-6 tracking-tight">{displayHeadline}</h1>}
-                {displaySubhead && <p className="text-muted-foreground mt-2 px-4 leading-snug">{displaySubhead}</p>}
+                {displayHeadline && <h1 className="text-2xl font-black mt-6 tracking-tight leading-tight">{displayHeadline}</h1>}
+                {displaySubhead && <p className="text-muted-foreground mt-2 px-4 leading-relaxed text-sm">{displaySubhead}</p>}
             </div>
         )}
         
-        {/* Continuity Chat Section */}
+        {/* Continuity Interaction */}
         {data?.messages && data.messages.length > 0 && (
              <div className="space-y-4">
                 {displayedMessages.map((msg, index) => (
                     <div key={index} className="flex items-end space-x-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
-                            <AvatarImage src={data?.retailerLogoUrl} alt="Retailer Logo" />
+                            <AvatarImage src={data?.retailerLogoUrl} alt="Intelligence Assistant" />
                             <AvatarFallback className="bg-primary text-white"><Sparkles className="h-4 w-4 text-accent"/></AvatarFallback>
                         </Avatar>
                         <MessageBubble text={msg} isTyping={false} />
@@ -168,7 +170,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                 {!showContinueButton && (
                         <div className="flex items-end space-x-3">
                             <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
-                                <AvatarImage src={data?.retailerLogoUrl} alt="Retailer Logo" />
+                                <AvatarImage src={data?.retailerLogoUrl} alt="Assistant" />
                                 <AvatarFallback className="bg-primary text-white"><Sparkles className="h-4 w-4 text-accent"/></AvatarFallback>
                             </Avatar>
                             <MessageBubble text="" isTyping={true} />
@@ -176,9 +178,9 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                 )}
             </div>
         )}
-
       </div>
-      <div className="w-full max-w-sm mx-auto pt-8 border-t border-primary/5">
+
+      <div className="w-full max-w-sm mx-auto pt-8">
         <Button
           onClick={handleContinue}
           size="lg"
@@ -187,7 +189,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
             showContinueButton ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
           )}
         >
-          {user ? `Continue for ${user.displayName}` : 'Continue to Product'}
+          {user ? `Welcome back, ${user.displayName}` : 'View Intelligent Guidance'}
         </Button>
       </div>
     </div>

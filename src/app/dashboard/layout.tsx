@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -17,7 +16,7 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone, DollarSign, Activity } from 'lucide-react';
+import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone, DollarSign, Activity, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
@@ -116,21 +115,21 @@ export default function DashboardLayout({
         <SidebarContent>
           <SidebarMenu className="px-2">
             <SidebarGroup>
-              <SidebarGroupLabel>Platform Administration</SidebarGroupLabel>
+              <SidebarGroupLabel>Platform Governance</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="User Admin">
-                    <Link href="/create-admin"><UserCog /><span>User Admin</span></Link>
+                  <SidebarMenuButton asChild tooltip="Platform Access Control">
+                    <Link href="/create-admin"><UserCog /><span>Access Control</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Core Integration">
-                    <Link href="/dashboard/core-integration"><DatabaseZap /><span>Core Integration</span></Link>
+                  <SidebarMenuButton asChild tooltip="Infrastructure Layer">
+                    <Link href="/dashboard/core-integration"><DatabaseZap /><span>Infrastructure Layer</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Admin / Retailer Management">
-                        <Link href="/dashboard/admin"><Cog /><span>Admin / Retailer Mgt</span></Link>
+                    <SidebarMenuButton asChild tooltip="Global Retailer Management">
+                        <Link href="/dashboard/admin"><Cog /><span>Retailer Management</span></Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarGroupContent>
@@ -139,20 +138,20 @@ export default function DashboardLayout({
             <SidebarSeparator />
 
              <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Executive ROI">
+                  <SidebarMenuButton asChild tooltip="Global Economic ROI">
                     <Link href="/dashboard/executive-roi"><DollarSign /><span>Executive ROI</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Real-time Feed">
-                    <Link href="/dashboard/platform-security"><Activity /><span>Real-time Feed</span></Link>
+                <SidebarMenuButton asChild tooltip="Infrastructure Health">
+                    <Link href="/dashboard/platform-security"><Activity /><span>Infrastructure Health</span></Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Retailer's Dashboard Management">
+              <SidebarMenuButton asChild tooltip="Ecosystem Deployment">
                 <Link href="/dashboard/retailers-dashboards">
                   <Rocket />
-                  <span>Retailer Dashboards</span>
+                  <span>Ecosystem Deployment</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -160,21 +159,21 @@ export default function DashboardLayout({
             <SidebarSeparator />
 
             <SidebarGroup>
-                <SidebarGroupLabel>Security</SidebarGroupLabel>
+                <SidebarGroupLabel>Security & Ethics</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="AI Policy & Compliance">
-                            <Link href="/dashboard/ai-policy"><Shield /><span>AI Policy</span></Link>
+                        <SidebarMenuButton asChild tooltip="AI Ethics & Governance">
+                            <Link href="/dashboard/ai-policy"><Shield /><span>AI Ethics</span></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="AOE Security">
-                            <Link href="/dashboard/aoe-security"><Shield /><span>AOE Security</span></Link>
+                        <SidebarMenuButton asChild tooltip="AOE Infrastructure Security">
+                            <Link href="/dashboard/aoe-security"><Shield /><span>Infrastructure Security</span></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="External Security & Integrations">
-                            <Link href="/dashboard/external-security-integrations"><Globe /><span>External Security</span></Link>
+                        <SidebarMenuButton asChild tooltip="External API Gateways">
+                            <Link href="/dashboard/external-security-integrations"><Globe /><span>API Gateways</span></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarGroupContent>
@@ -183,23 +182,23 @@ export default function DashboardLayout({
             <SidebarSeparator />
             
              <SidebarGroup>
-                <SidebarGroupLabel>Development & Testing</SidebarGroupLabel>
+                <SidebarGroupLabel>R&D and Validation</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="System Integration & Testing">
-                            <Link href="/dashboard/system-integration"><FlaskConical /><span>System Integration</span></Link>
+                        <SidebarMenuButton asChild tooltip="System Integration Sandbox">
+                            <Link href="/dashboard/system-integration"><FlaskConical /><span>Integration Sandbox</span></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Documentation & Training Modules">
-                            <Link href="/dashboard/documentation"><BookOpen /><span>Documentation</span></Link>
+                        <SidebarMenuButton asChild tooltip="Infrastructure Training Hub">
+                            <Link href="/dashboard/documentation"><BookOpen /><span>Training Hub</span></Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
-                      <SidebarMenuButton asChild tooltip="Test MVP">
+                      <SidebarMenuButton asChild tooltip="Decision Intelligence Sandbox">
                         <Link href="/retailer-mvp/dashboard">
-                          <FlaskConical />
-                          <span>Test MVP</span>
+                          <Lightbulb />
+                          <span>Intelligence Sandbox</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -223,7 +222,7 @@ export default function DashboardLayout({
         <header className="flex items-center justify-between p-4 border-b bg-card h-16 sticky top-0 z-40">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <h1 className="text-xl font-semibold">iNteract Admin Panel</h1>
+            <h1 className="text-xl font-bold tracking-tight">iNteract Decision Intelligence Hub</h1>
           </div>
           <div className="flex flex-1 items-center justify-end">
             <SearchBar />
@@ -232,7 +231,7 @@ export default function DashboardLayout({
         <main className="p-4 sm:p-6 lg:p-8 flex-1">{children}</main>
         <footer className="p-4 text-center text-xs text-muted-foreground border-t">
             <div className="flex items-center justify-center gap-2">
-                <span>Powered by iNteract AOE. Made in South Africa.</span>
+                <span>© iNteract AOE. Persistent Retail Intelligence Infrastructure.</span>
             </div>
         </footer>
       </SidebarInset>

@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, Star, ArrowRightLeft, BookOpen, Utensils, Tag, Info, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Sparkles, Star, ArrowRightLeft, BookOpen, Utensils, Tag, Info, ShieldCheck, PlayCircle, Settings, ShieldAlert, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import ProductChatbot from '@/components/product/product-chatbot';
@@ -16,16 +16,38 @@ import SponsoredProduct from '@/components/product/sponsored-product';
 import ShopperProfileCta from '@/components/shopper/shopper-profile-cta';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const product = findProductById(params.id);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   if (!product) {
     notFound();
   }
 
   const { optionalModules } = theme;
+
+  const logContinuityEvent = async (type: string) => {
+    if (!user || !db) return;
+    try {
+        const eventRef = doc(db, 'shoppers', user.uid, 'interactions', `${type}_${Date.now()}`);
+        await setDoc(eventRef, {
+            shopperId: user.uid,
+            productId: product.id,
+            retailerId: 'simulated-retailer-id',
+            eventType: type,
+            timestamp: serverTimestamp(),
+            metadata: { productName: product.name, category: product.category }
+        });
+        toast({ title: "Continuity Synced", description: `Your ${type.replace('_', ' ')} has been saved to your profile.` });
+    } catch (e) {
+        console.error(e);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,7 +60,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 </Link>
             </Button>
             <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3">
-                <ShieldCheck className="h-3.5 w-3.5" /> Persistent Intelligence Active
+                <ShieldCheck className="h-3.5 w-3.5" /> Continuity Engine Active
             </Badge>
         </div>
 
@@ -76,17 +98,17 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <ShopperProfileCta product={product} />
 
             <div className="grid grid-cols-2 gap-3 mt-2">
-                <Button variant="outline" className="justify-start gap-3 h-12">
-                    <ArrowRightLeft className="h-4 w-4 text-muted-foreground" /> Compare
+                <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => logContinuityEvent('reorder')}>
+                    <RotateCcw className="h-4 w-4 text-muted-foreground" /> 1-Tap Reorder
                 </Button>
-                <Button variant="outline" className="justify-start gap-3 h-12">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" /> Reviews
-                </Button>
-                 <Button variant="outline" className="justify-start gap-3 h-12">
-                    <Utensils className="h-4 w-4 text-muted-foreground" /> Recipes
+                <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => logContinuityEvent('tutorial_view')}>
+                    <PlayCircle className="h-4 w-4 text-muted-foreground" /> Tutorial
                 </Button>
                  <Button variant="outline" className="justify-start gap-3 h-12">
-                    <Tag className="h-4 w-4 text-muted-foreground" /> Promotions
+                    <Settings className="h-4 w-4 text-muted-foreground" /> Setup Guide
+                </Button>
+                 <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => logContinuityEvent('warranty_activate')}>
+                    <ShieldAlert className="h-4 w-4 text-muted-foreground" /> Warranty
                 </Button>
             </div>
 
@@ -97,7 +119,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         <Tabs defaultValue="guidance" className="w-full mt-12">
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-max h-auto p-1 bg-muted/50 rounded-xl">
                 <TabsTrigger value="guidance" className="rounded-lg py-2.5">Buying Guidance</TabsTrigger>
-                <TabsTrigger value="details" className="rounded-lg py-2.5">Specifications</TabsTrigger>
+                <TabsTrigger value="lifecycle" className="rounded-lg py-2.5">Continuity</TabsTrigger>
                 <TabsTrigger value="reviews" className="rounded-lg py-2.5">Reviews</TabsTrigger>
                 <TabsTrigger value="recipes" className="rounded-lg py-2.5">Usage</TabsTrigger>
             </TabsList>
@@ -111,14 +133,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                               </div>
                               Personalized Buying Guidance
                             </div>
-                            {user && <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20">Profile Connected</Badge>}
+                            {user && <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20">Continuity Active</Badge>}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6 text-muted-foreground">
                         <div className="p-4 bg-muted/30 rounded-xl border italic text-sm">
                           {user ? 
-                            "Our Intelligence Layer has analyzed your profile. This guidance is optimized based on your interest in stainless steel and lifestyle accessories." : 
-                            "Connect your Smart Profile to unlock AI guidance tailored to your specific preferences and past purchases."}
+                            `Welcome back, ${user.displayName}. We've updated your guidance based on your interest in ${product.category} products.` : 
+                            "Connect your Smart Profile to unlock continuity features like reorder reminders and setup guides."}
                         </div>
                         <ul className="grid sm:grid-cols-2 gap-4">
                             <li className="flex gap-3">
@@ -131,7 +153,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                             </li>
                             <li className="flex gap-3">
                               <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Value Rank:</strong> Top 10% in the {product.category} category based on durability tests.</p>
+                              <p><strong className="text-foreground">Refill Cycle:</strong> Shoppers typically reorder every 30-45 days.</p>
                             </li>
                             <li className="flex gap-3">
                               <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
@@ -141,12 +163,28 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     </CardContent>
                 </Card>
             </TabsContent>
-            <TabsContent value="details" className="mt-8">
+            <TabsContent value="lifecycle" className="mt-8">
                  <Card className="border-primary/10 shadow-lg">
-                    <CardContent className="p-8 space-y-6">
-                        <div className="grid grid-cols-2 text-base border-b pb-4"><span className="text-muted-foreground">Material</span><span className="font-semibold">Stainless Steel</span></div>
-                        <div className="grid grid-cols-2 text-base border-b pb-4"><span className="text-muted-foreground">Weight</span><span className="font-semibold">350g</span></div>
-                        <div className="grid grid-cols-2 text-base border-b pb-4"><span className="text-muted-foreground">Dimensions</span><span className="font-semibold">25cm x 7cm</span></div>
+                    <CardHeader><CardTitle>Product Continuity Services</CardTitle></CardHeader>
+                    <CardContent className="p-8 grid sm:grid-cols-3 gap-6">
+                        <div className="p-4 bg-muted rounded-xl text-center space-y-2">
+                            <RotateCcw className="h-8 w-8 mx-auto text-primary" />
+                            <h4 className="font-bold">Subscription</h4>
+                            <p className="text-xs text-muted-foreground">Automate your refills every 30 days.</p>
+                            <Button size="sm" variant="outline" className="w-full">Enable</Button>
+                        </div>
+                         <div className="p-4 bg-muted rounded-xl text-center space-y-2">
+                            <PlayCircle className="h-8 w-8 mx-auto text-primary" />
+                            <h4 className="font-bold">Tutorials</h4>
+                            <p className="text-xs text-muted-foreground">Master your product with step-by-step videos.</p>
+                            <Button size="sm" variant="outline" className="w-full">Watch</Button>
+                        </div>
+                         <div className="p-4 bg-muted rounded-xl text-center space-y-2">
+                            <ShieldAlert className="h-8 w-8 mx-auto text-primary" />
+                            <h4 className="font-bold">Warranty</h4>
+                            <p className="text-xs text-muted-foreground">Instant digital activation for 24 months.</p>
+                            <Button size="sm" variant="outline" className="w-full">Activate</Button>
+                        </div>
                     </CardContent>
                 </Card>
             </TabsContent>

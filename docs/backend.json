@@ -29,7 +29,7 @@
         "shopperId": { "type": "string" },
         "productId": { "type": "string" },
         "retailerId": { "type": "string" },
-        "eventType": { "type": "string", "enum": ["scan", "chat_query", "save", "comparison_view", "review_read", "ad_click", "ad_impression", "abandonment", "repeat_scan"] },
+        "eventType": { "type": "string", "enum": ["scan", "chat_query", "save", "comparison_view", "review_read", "ad_click", "ad_impression", "abandonment", "repeat_scan", "reorder", "tutorial_view", "warranty_activate"] },
         "metadata": { 
           "type": "object",
           "properties": {
@@ -51,7 +51,9 @@
         "retailerId": { "type": "string" },
         "productName": { "type": "string" },
         "price": { "type": "number" },
-        "savedAt": { "type": "string", "format": "date-time" }
+        "savedAt": { "type": "string", "format": "date-time" },
+        "isPurchased": { "type": "boolean" },
+        "refillCycleDays": { "type": "number" }
       },
       "required": ["productId", "savedAt"]
     },

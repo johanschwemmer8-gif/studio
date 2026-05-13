@@ -1,10 +1,10 @@
 
-'use server';
+'use client';
 /**
- * @fileOverview Fetches QR code data, constructs a prompt using an AI profile,
- *               and returns AI-generated engagement messages for the scan interaction screen.
+ * @fileOverview Continuity Engine Interaction Flow.
+ * Recognizes returning shoppers and constructs personalized greetings based on session memory.
  *
- * - getScanInteraction - Fetches data for the scan interaction screen.
+ * - getScanInteraction - Fetches data and personalized greetings for the scan screen.
  */
 
 import { ai } from '@/ai/genkit';
@@ -28,6 +28,8 @@ const InteractionPromptInputSchema = z.object({
     personality: z.string(),
     intent: z.string(),
     constraints: z.string().optional(),
+    shopperName: z.string().optional(),
+    pastInterests: z.array(z.string()).optional(),
 });
 
 const InteractionPromptOutputSchema = z.object({
@@ -41,12 +43,23 @@ const prompt = ai.definePrompt({
     prompt: `You are a world-class AI shopping assistant for {{retailerName}}.
     A customer has just scanned a QR code from the "{{campaignName}}" campaign.
 
+    {{#if shopperName}}
+    This is a returning customer named {{shopperName}}. 
+    {{#if pastInterests}}
+    They have previously explored these categories: {{join pastInterests ", "}}.
+    {{/if}}
+    Acknowledge them by name and briefly reference their continuity with the brand. 
+    Example: "Welcome back {{shopperName}}. Good to see you again! Last time you were looking at {{pastInterests.[0]}} products."
+    {{else}}
+    This is a guest shopper. Provide a standard, high-energy welcome.
+    {{/if}}
+
     Your personality should be: {{personality}}.
     Your goal is to: {{intent}}.
     {{#if constraints}}You must follow these constraints: {{constraints}}.{{/if}}
 
-    Generate 1-3 short, engaging, and friendly messages to greet the customer and get them excited about the product or offer.
-    Keep the messages very brief and conversational, suitable for a quick mobile interaction.
+    Generate 1-3 short, engaging, and friendly messages to greet the customer.
+    Keep the messages very brief and conversational.
     `,
 });
 
@@ -61,7 +74,7 @@ const getScanInteractionFlow = ai.defineFlow(
     inputSchema: GetScanInteractionInputSchema,
     outputSchema: GetScanInteractionOutputSchema,
   },
-  async ({ qrId }) => {
+  async ({ qrId, shopperUid }) => {
     const db = admin.firestore();
 
     const qrDoc = await db.collection('qrcodes').doc(qrId).get();
@@ -70,8 +83,6 @@ const getScanInteractionFlow = ai.defineFlow(
     }
     const qrData = qrDoc.data()!;
 
-    // Base response with final redirect URL and empty media/messages
-    // MODIFIED: Always redirect to the internal product page for product ID 1.
     const fallbackResponse = {
         messages: [],
         destinationUrl: '/product/1',
@@ -82,7 +93,6 @@ const getScanInteractionFlow = ai.defineFlow(
         subhead: undefined,
     };
     
-    // Fetch campaign-level settings if requestId exists
     let mediaOptions: any = {};
     if (qrData.requestId) {
         const requestDoc = await db.collection('bulkQrRequests').doc(qrData.requestId).get();
@@ -91,52 +101,61 @@ const getScanInteractionFlow = ai.defineFlow(
         }
     }
     
-    // If no AI profile is attached, return immediately with media if available.
-    if (!qrData.aiProfileId) {
-      return { ...fallbackResponse, ...mediaOptions };
+    // --- Continuity Engine: Fetch Shopper Memory ---
+    let shopperName: string | undefined;
+    let pastInterests: string[] = [];
+    
+    if (shopperUid) {
+        const shopperDoc = await db.collection('shoppers').doc(shopperUid).get();
+        if (shopperDoc.exists) {
+            const sData = shopperDoc.data()!;
+            shopperName = sData.displayName;
+            
+            // Get last 3 unique categories from history
+            const interactions = await db.collection('shoppers').doc(shopperUid).collection('interactions').orderBy('timestamp', 'desc').limit(10).get();
+            const categories = new Set<string>();
+            for(const doc of interactions.docs) {
+                // In real app, look up product category here. 
+                // Using metadata for mock simplicity.
+                if(doc.data().metadata?.category) categories.add(doc.data().metadata.category);
+            }
+            pastInterests = Array.from(categories).slice(0, 3);
+        }
     }
+
+    // Default Profile if none linked to QR
+    const aiProfileId = qrData.aiProfileId || 'default-assistant';
 
     try {
         const [aiProfileDoc, retailerDoc] = await Promise.all([
-            db.collection('ai_profiles').doc(qrData.aiProfileId).get(),
+            db.collection('ai_profiles').doc(aiProfileId).get(),
             db.collection('tenants').doc(qrData.retailerId).get()
         ]);
         
-        if (!aiProfileDoc.exists) {
-          console.warn(`AI Profile with ID ${qrData.aiProfileId} not found. Skipping interaction.`);
-          return { ...fallbackResponse, ...mediaOptions };
-        }
-
-        const aiProfile = aiProfileDoc.data()!;
+        const aiProfile = aiProfileDoc.exists ? aiProfileDoc.data()! : {
+            personality: 'Friendly & Professional',
+            intent: 'Provide product information and Buying Guidance.',
+        };
         const retailerName = retailerDoc.exists ? retailerDoc.data()!.name : 'our store';
         const retailerLogoUrl = retailerDoc.exists ? retailerDoc.data()!.logoUrl : undefined;
 
         const { output } = await prompt({
             retailerName,
-            campaignName: qrData.campaignId,
+            campaignName: qrData.campaignId || 'Product Discovery',
             personality: aiProfile.personality,
             intent: Array.isArray(aiProfile.intent) ? aiProfile.intent.join(', ') : aiProfile.intent,
             constraints: aiProfile.constraints,
+            shopperName,
+            pastInterests,
         });
 
         if (!output?.messages || output.messages.length === 0) {
-          console.warn('AI generated no messages. Skipping interaction.');
           return { ...fallbackResponse, retailerLogoUrl, ...mediaOptions };
         }
 
-        await db.collection('qr_interactions').add({
-            qrId,
-            scanId: 'simulated-scan-id',
-            retailerId: qrData.retailerId,
-            aiProfileId: qrData.aiProfileId,
-            interactionShownAt: admin.firestore.FieldValue.serverTimestamp(),
-            messages: output.messages,
-            continuedClicked: false,
-        });
-
         return {
           messages: output.messages,
-          destinationUrl: '/product/1', // MODIFIED: Always redirect to the internal product page
+          destinationUrl: '/product/1',
           retailerLogoUrl,
           mediaType: mediaOptions.mediaType,
           mediaUrl: mediaOptions.mediaUrl,

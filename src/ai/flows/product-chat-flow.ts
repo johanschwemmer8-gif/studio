@@ -1,9 +1,10 @@
 
 'use server';
 /**
- * @fileOverview An enhanced conversational AI flow that leverages persistent shopper history.
+ * @fileOverview Continuity Engine Product Assistant.
+ * Provides Lifecycle Intelligence including reorders, refills, tutorials, and setup guides.
  *
- * - productChat - Handles chat with awareness of the shopper's saved products and past interactions.
+ * - productChat - Handles chat with awareness of product lifecycle and shopper memory.
  */
 
 import { ai } from '@/ai/genkit';
@@ -15,6 +16,7 @@ const ProductSchema = z.object({
   description: z.string().describe('The description of the product.'),
   category: z.string().describe('The category of the product.'),
   price: z.number().describe('The price of the product.'),
+  refillCycleDays: z.number().optional().describe('Days between typical refills/reorders.'),
 });
 
 const ChatMessageSchema = z.object({
@@ -37,27 +39,29 @@ export type ProductChatOutput = z.infer<typeof ProductChatOutputSchema>;
 export async function productChat(input: ProductChatInput): Promise<ProductChatOutput> {
   let shopperContext = "";
 
-  // 1. Fetch Behavioral Memory if shopper is identified
   if (input.shopperUid) {
     try {
-      const [savedSnapshot, interactionsSnapshot] = await Promise.all([
+      const [savedSnapshot, interactionsSnapshot, shopperDoc] = await Promise.all([
         db.collection('shoppers').doc(input.shopperUid).collection('savedProducts').limit(5).get(),
-        db.collection('shoppers').doc(input.shopperUid).collection('interactions').orderBy('timestamp', 'desc').limit(5).get()
+        db.collection('shoppers').doc(input.shopperUid).collection('interactions').orderBy('timestamp', 'desc').limit(5).get(),
+        db.collection('shoppers').doc(input.shopperUid).get()
       ]);
 
+      const shopperName = shopperDoc.data()?.displayName || "Shopper";
       const savedNames = savedSnapshot.docs.map(d => d.data().productName);
       const pastEvents = interactionsSnapshot.docs.map(d => d.data().eventType);
 
       if (savedNames.length > 0 || pastEvents.length > 0) {
         shopperContext = `
-        SHOPPER PERSISTENT HISTORY (Memory):
+        SHOPPER PERSISTENT HISTORY (Memory for ${shopperName}):
         - Recently Saved Items: ${savedNames.join(', ') || 'None'}
-        - Recent Actions: ${pastEvents.join(', ') || 'None'}
+        - Recent Interaction Types: ${pastEvents.join(', ') || 'None'}
         
-        USE THIS FOR BUYING GUIDANCE:
-        - If the current product matches their interests, highlight why.
-        - Compare this product to their saved items if relevant.
-        - Act as if you remember them; provide continuity.
+        CONTINUITY OBJECTIVES:
+        - Reorder/Refill: If they bought this before, remind them of their typical refill cycle (${input.product.refillCycleDays || '30'} days).
+        - Tutorials: Offer a "Setup Guide" or "Tutorial" if this is a first-time exploration.
+        - Recipe/Usage: Suggest a specific use-case or recipe based on their category interest.
+        - Warranty: If they just bought it, prompt to "Activate Warranty".
         `;
       }
     } catch (e) {
@@ -70,22 +74,22 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     content: [{ text: msg.content }],
   }));
 
-  const systemPrompt = `You are a highly intelligent, friendly in-store retail consultant for iNteract.
-    Your goal is to provide expert "Buying Guidance" and answer questions about the product.
+  const systemPrompt = `You are a highly intelligent Continuity Assistant for iNteract.
+    Your goal is to provide expert Lifecycle Guidance. You are not just selling; you are managing a relationship.
     
     CURRENT PRODUCT:
     - Name: ${input.product.name}
-    - Description: ${input.product.description}
     - Category: ${input.product.category}
     - Price: R${input.product.price.toFixed(2)}
 
     ${shopperContext}
 
     INSTRUCTIONS:
-    1. Be conversational and concise.
-    2. Provide "Buying Guidance" that helps the shopper make a confident decision.
-    3. Use their history (if provided above) to personalize your advice.
-    4. If they haven't saved this product yet, suggest they click the "Save to Profile" button to remember it.`;
+    1. Be conversational, concise, and helpful.
+    2. Proactively offer Continuity Features: Setup Guides, Tutorials, Recipes, and Warranty Activation.
+    3. If relevant, remind them when they might need a refill based on their typical cycle.
+    4. Use their history to provide "Personalized Follow-up Recommendations".
+    5. Always maintain session continuity—act as if this conversation is a seamless part of their overall shopping journey.`;
 
   const llmResponse = await ai.generate({
     model: 'googleai/gemini-2.5-flash',

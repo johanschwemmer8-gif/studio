@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 export const GetScanInteractionInputSchema = z.object({
   qrId: z.string(),
+  shopperUid: z.string().optional(),
 });
 export type GetScanInteractionInput = z.infer<typeof GetScanInteractionInputSchema>;
 

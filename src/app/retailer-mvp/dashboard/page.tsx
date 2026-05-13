@@ -74,7 +74,6 @@ export default function DashboardPage() {
             const result = await analyzeEngagementMetrics({});
             setAnalysis(result);
         } catch (e) {
-            console.error(e);
             setError("Decision Intelligence Engine is temporarily busy. Please try again.");
         }
     });

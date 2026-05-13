@@ -43,7 +43,6 @@ export default function RoiPage() {
         const result = await analyzeEngagementMetrics({});
         setMetricsData(result);
       } catch (e) {
-        console.error(e);
         setError("Could not load financial ROI metrics. Please check connectivity.");
       }
     };

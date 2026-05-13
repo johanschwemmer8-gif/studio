@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useTransition, useEffect } from 'react';
 import {
@@ -31,7 +30,6 @@ export default function RoiPage() {
         const result = await analyzeEngagementMetrics({});
         setMetricsData(result);
       } catch (e) {
-        console.error(e);
         setError("We couldn't load the initial dashboard metrics. Please try again later.");
       }
     };

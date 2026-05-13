@@ -53,7 +53,6 @@ export default function DashboardPage() {
             const result = await analyzeEngagementMetrics({});
             setAnalysis(result);
         } catch (e) {
-            console.error(e);
             setError("We couldn't generate the analysis at this time. Please try again later.");
         }
     });

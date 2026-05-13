@@ -1,126 +1,180 @@
 
 {
   "entities": {
-    "ShopperProfile": {
-      "title": "Shopper Profile",
-      "description": "A persistent identity for a retail customer across stores and sessions.",
+    "PlatformUser": {
+      "title": "Platform User",
+      "description": "Retailer staff or platform administrators.",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "The Firebase Auth UID." },
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "retailerAdmin", "storeManager", "analyst"] },
+        "retailerId": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "ShopperProfile": {
+      "title": "Shopper Profile",
+      "description": "Persistent identity for a retail customer.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "phone": { "type": "string" },
-        "displayName": { "type": "string" },
-        "preferences": {
-          "type": "object",
-          "properties": {
-            "categories": { "type": "array", "items": { "type": "string" } },
-            "budgetRange": { "type": "string" }
-          }
-        },
+        "preferences": { "$ref": "#/backend/entities/ShopperPreferences" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid"]
     },
-    "InteractionEvent": {
-      "title": "Interaction Event",
-      "description": "A specific behavioural data point captured during a shopping session.",
+    "ShopperPreferences": {
+      "title": "Shopper Preferences",
+      "description": "Personalized settings and categories for a shopper.",
       "type": "object",
       "properties": {
+        "categories": { "type": "array", "items": { "type": "string" } },
+        "budgetRange": { "type": "string" },
+        "aiPersonalityPref": { "type": "string" },
+        "marketingConsent": { "type": "boolean" }
+      }
+    },
+    "ShoppingSession": {
+      "title": "Shopping Session",
+      "description": "A single visit or interaction session initiated by a scan.",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
         "shopperId": { "type": "string" },
+        "storeId": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "entryQrId": { "type": "string" }
+      },
+      "required": ["sessionId", "startTime"]
+    },
+    "ProductInteraction": {
+      "title": "Product Interaction",
+      "description": "Detailed tracking of a shopper's interaction with a product.",
+      "type": "object",
+      "properties": {
+        "interactionId": { "type": "string" },
+        "shopperId": { "type": "string" },
+        "sessionId": { "type": "string" },
         "productId": { "type": "string" },
-        "retailerId": { "type": "string" },
-        "eventType": { "type": "string", "enum": ["scan", "chat_query", "save", "comparison_view", "review_read", "ad_click", "ad_impression", "abandonment", "repeat_scan", "reorder", "tutorial_view", "warranty_activate"] },
-        "metadata": { 
-          "type": "object",
-          "properties": {
-            "queryText": { "type": "string" },
-            "dwellTime": { "type": "number" },
-            "comparedProductId": { "type": "string" }
-          }
-        },
+        "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "ad_click"] },
+        "dwellTime": { "type": "number" },
         "timestamp": { "type": "string", "format": "date-time" }
       },
-      "required": ["shopperId", "productId", "eventType", "timestamp"]
+      "required": ["shopperId", "productId", "type", "timestamp"]
     },
     "SavedProduct": {
       "title": "Saved Product",
-      "description": "A product the user has added to their persistent shopping profile.",
+      "description": "A bookmarked product in a shopper's profile.",
       "type": "object",
       "properties": {
-        "productId": { "type": "string" },
-        "retailerId": { "type": "string" },
-        "productName": { "type": "string" },
-        "price": { "type": "number" },
-        "savedAt": { "type": "string", "format": "date-time" },
-        "isPurchased": { "type": "boolean" },
-        "refillCycleDays": { "type": "number" }
-      },
-      "required": ["productId", "savedAt"]
-    },
-    "AdCampaign": {
-      "title": "Retail Media Ad Campaign",
-      "description": "A supplier-funded campaign for sponsored placements.",
-      "type": "object",
-      "properties": {
-        "campaignId": { "type": "string" },
-        "supplierBrand": { "type": "string" },
-        "budget": { "type": "number" },
-        "status": { "type": "string", "enum": ["active", "paused", "completed"] },
-        "adCreative": {
-          "type": "object",
-          "properties": {
-            "title": { "type": "string" },
-            "description": { "type": "string" },
-            "imageUrl": { "type": "string" }
-          }
-        },
-        "metrics": {
-          "type": "object",
-          "properties": {
-            "impressions": { "type": "number" },
-            "clicks": { "type": "number" },
-            "conversions": { "type": "number" }
-          }
-        }
-      },
-      "required": ["campaignId", "supplierBrand", "status"]
-    },
-    "AdMetric": {
-      "title": "Ad Performance Metric",
-      "description": "An individual impression or click event for an ad campaign.",
-      "type": "object",
-      "properties": {
-        "campaignId": { "type": "string" },
         "shopperId": { "type": "string" },
-        "type": { "type": "string", "enum": ["impression", "click"] },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "savedAt": { "type": "string", "format": "date-time" },
+        "reminderSet": { "type": "boolean" }
       },
-      "required": ["campaignId", "type", "timestamp"]
+      "required": ["shopperId", "productId", "savedAt"]
+    },
+    "AIConversation": {
+      "title": "AI Conversation",
+      "description": "Transcript and analysis of an AI assistant interaction.",
+      "type": "object",
+      "properties": {
+        "conversationId": { "type": "string" },
+        "shopperId": { "type": "string" },
+        "productId": { "type": "string" },
+        "transcript": { "type": "array", "items": { "type": "object" } },
+        "sentiment": { "type": "number" },
+        "resolution": { "type": "string" }
+      },
+      "required": ["conversationId", "productId"]
+    },
+    "Campaign": {
+      "title": "QR Campaign",
+      "description": "A retailer-initiated QR engagement campaign.",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string" },
+        "retailerId": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "active", "completed"] },
+        "totalScans": { "type": "number" }
+      },
+      "required": ["campaignId", "retailerId", "status"]
+    },
+    "RetailMediaAd": {
+      "title": "Retail Media Ad",
+      "description": "Sponsored placement from a supplier.",
+      "type": "object",
+      "properties": {
+        "adId": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "budget": { "type": "number" },
+        "metrics": { "type": "object" }
+      },
+      "required": ["adId", "supplierId"]
+    },
+    "StoreAnalytics": {
+      "title": "Store Analytics",
+      "description": "Aggregated daily metrics for a specific store.",
+      "type": "object",
+      "properties": {
+        "storeId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "totalScans": { "type": "number" },
+        "conversionRate": { "type": "number" },
+        "topProduct": { "type": "string" }
+      },
+      "required": ["storeId", "date"]
     }
   },
   "auth": {
     "providers": ["google.com", "apple.com", "password", "phone"]
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "#/backend/entities/PlatformUser",
+      "description": "Management users and staff."
+    },
     "/shoppers/{shopperId}": {
       "schema": "#/backend/entities/ShopperProfile",
-      "description": "Root profile for a shopper."
+      "description": "Customer persistent profiles."
     },
-    "/shoppers/{shopperId}/interactions/{eventId}": {
-      "schema": "#/backend/entities/InteractionEvent",
-      "description": "Detailed behavioral history for personalization."
+    "/sessions/{sessionId}": {
+      "schema": "#/backend/entities/ShoppingSession",
+      "description": "Active and past shopper sessions."
     },
-    "/shoppers/{shopperId}/savedProducts/{productId}": {
+    "/product_interactions/{id}": {
+      "schema": "#/backend/entities/ProductInteraction",
+      "description": "Individual interaction log."
+    },
+    "/saved_products/{id}": {
       "schema": "#/backend/entities/SavedProduct",
-      "description": "The shopper's persistent wish-list/basket across sessions."
+      "description": "Cross-user saved items."
     },
-    "/adCampaigns/{campaignId}": {
-      "schema": "#/backend/entities/AdCampaign",
-      "description": "Media network ad campaigns."
+    "/ai_conversations/{id}": {
+      "schema": "#/backend/entities/AIConversation",
+      "description": "Detailed chat transcripts."
     },
-    "/adMetrics/{metricId}": {
-      "schema": "#/backend/entities/AdMetric",
-      "description": "Individual performance events for RMN billing."
+    "/campaigns/{id}": {
+      "schema": "#/backend/entities/Campaign",
+      "description": "Retailer QR campaigns."
+    },
+    "/retail_media/{id}": {
+      "schema": "#/backend/entities/RetailMediaAd",
+      "description": "Supplier sponsored placements."
+    },
+    "/store_analytics/{id}": {
+      "schema": "#/backend/entities/StoreAnalytics",
+      "description": "Aggregated performance data."
     }
   }
 }

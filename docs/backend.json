@@ -56,9 +56,15 @@
         "campaignId": { "type": "string" },
         "supplierBrand": { "type": "string" },
         "budget": { "type": "number" },
-        "cpm": { "type": "number" },
-        "targetCategories": { "type": "array", "items": { "type": "string" } },
         "status": { "type": "string", "enum": ["active", "paused", "completed"] },
+        "adCreative": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "imageUrl": { "type": "string" }
+          }
+        },
         "metrics": {
           "type": "object",
           "properties": {
@@ -69,6 +75,18 @@
         }
       },
       "required": ["campaignId", "supplierBrand", "status"]
+    },
+    "AdMetric": {
+      "title": "Ad Performance Metric",
+      "description": "An individual impression or click event for an ad campaign.",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string" },
+        "shopperId": { "type": "string" },
+        "type": { "type": "string", "enum": ["impression", "click"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["campaignId", "type", "timestamp"]
     }
   },
   "auth": {
@@ -90,6 +108,10 @@
     "/adCampaigns/{campaignId}": {
       "schema": "#/backend/entities/AdCampaign",
       "description": "Media network ad campaigns."
+    },
+    "/adMetrics/{metricId}": {
+      "schema": "#/backend/entities/AdMetric",
+      "description": "Individual performance events for RMN billing."
     }
   }
 }

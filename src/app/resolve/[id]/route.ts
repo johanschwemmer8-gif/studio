@@ -8,15 +8,24 @@ if (!admin.apps.length) {
 }
 
 /**
- * Identity Resolver Route
- * Responsibilities:
- * 1. Parse incoming GS1 identifier (Digital Link, AIDC, or GTIN)
- * 2. Validate GTIN-14 canonical format
- * 3. Initialize iNteract Intelligence Session
- * 4. Log initial scan event (session-anchored)
- * 5. Redirect to Experience Layer
+ * ARCHITECTURAL FIREWALL:
+ * This route is the strictly stateless gateway for GS1-aligned Identity Resolution.
  * 
- * NOTE: This route is part of the stateless GS1 Identity Layer.
+ * RESPONSIBILITIES:
+ * 1. Parse incoming GS1 identifier (Digital Link, AIDC, or GTIN).
+ * 2. Validate GTIN-14 canonical format.
+ * 3. Initialize a neutral iNteract Intelligence Session.
+ * 4. Log initial scan event (atomic behavioral node).
+ * 5. Redirect to the Experience Layer.
+ * 
+ * PROHIBITED EVOLUTIONS (NON-NEGOTIABLE):
+ * - DO NOT add user-specific personalization logic.
+ * - DO NOT add A/B testing or experimental variants.
+ * - DO NOT fetch AI recommendations or trigger interaction flows.
+ * - DO NOT perform any analytics aggregation.
+ * 
+ * Reason: Any deviation transforms this stateless bridge into a stateful 
+ * intelligence layer, violating the separation of Global Standards and Proprietary Logic.
  */
 export async function GET(
   request: NextRequest,
@@ -25,7 +34,7 @@ export async function GET(
   const { id } = params;
   const db = admin.firestore();
 
-  // 1. Resolve Identity via GS1-aligned parser
+  // 1. Stateless Identity Resolution
   const identity = parseGS1(id);
   if (!identity) {
     return NextResponse.redirect(new URL('/error?code=invalid_identity', request.url));
@@ -34,7 +43,7 @@ export async function GET(
   const { gtin, batchNumber, serialNumber } = identity;
 
   try {
-    // 2. Initialize iNteract Intelligence Session
+    // 2. Initialize iNteract Intelligence Session (Anchors all future behavior)
     const sessionId = `sess_${Date.now()}`;
     const eventId = `ev_${Date.now()}`;
     
@@ -51,8 +60,8 @@ export async function GET(
         ip: request.ip || ''
     });
 
-    // Log initial behavioural event (Scan)
-    // Anchored to sessionId, GTIN is a dimension.
+    // 3. Log Atomic Behavioral Event (Scan)
+    // Rule: GTIN is a dimension, not the primary key for the event stream.
     batch.set(db.collection('events').doc(eventId), {
         eventId,
         sessionId,
@@ -62,13 +71,13 @@ export async function GET(
         metadata: {
             batchNumber,
             serialNumber,
-            source: "GS1_RESOLVER"
+            source: "IDENTITY_RESOLVER"
         }
     });
 
     await batch.commit();
 
-    // 3. Redirect to Experience Layer (Product View)
+    // 4. Hand-off to Experience Layer (Product View)
     let destination = `/p/${gtin}?session=${sessionId}`;
     if (batchNumber) destination += `&batch=${batchNumber}`;
     if (serialNumber) destination += `&serial=${serialNumber}`;
@@ -76,7 +85,7 @@ export async function GET(
     return NextResponse.redirect(new URL(destination, request.url), 302);
 
   } catch (error) {
-    console.error(`Identity Resolution Friction for ${gtin}:`, error);
+    console.error(`Identity hand-off failure for ${gtin}:`, error);
     return NextResponse.redirect(new URL('/error?code=500', request.url));
   }
 }

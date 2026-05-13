@@ -16,7 +16,7 @@ import {
   ArrowUp, Clock, UserCheck, ShieldCheck, Fingerprint, 
   Phone, Mail, Chrome, Smartphone, Download, Search, 
   MessageSquare, BrainCircuit, Activity, MousePointerClick, 
-  BarChart3, LayoutDashboard, Calendar, Loader2, Lightbulb
+  BarChart3, LayoutDashboard, Calendar, Loader2, Lightbulb, DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
@@ -61,12 +61,10 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    // Fetch infrastructure engagement metrics
     analyzeEngagementMetrics({}).then(data => {
       setAnalyticsData(data);
     });
 
-    // Fetch decision intelligence
     analyzeDecisionIntelligence().then(data => {
       setIntelligenceData(data);
     });
@@ -94,14 +92,13 @@ export default function DashboardPage() {
   
   if(!analyticsData || !intelligenceData) {
     return (
-      <div className="space-y-8 animate-pulse">
-         <div className="h-12 w-full bg-muted rounded-lg" />
+      <div className="space-y-8 p-4">
+         <Skeleton className="h-12 w-full" />
          <Separator />
-         <div className="grid gap-4 md:grid-cols-3">
-             <div className="h-32 bg-muted rounded-lg" />
-             <div className="h-32 bg-muted rounded-lg" />
-             <div className="h-32 bg-muted rounded-lg" />
+         <div className="grid gap-4 md:grid-cols-4">
+             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32" />)}
          </div>
+         <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -137,7 +134,7 @@ export default function DashboardPage() {
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button className="h-10 gap-2">
-                        <Download className="h-4 w-4" /> Export Infrastructure Data
+                        <Download className="h-4 w-4" /> Export Economic Data
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -146,6 +143,53 @@ export default function DashboardPage() {
                 </DropdownMenuContent>
              </DropdownMenu>
           </div>
+      </div>
+
+      {/* ECONOMIC IMPACT HERO SUMMARY */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+           <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Revenue Influenced</CardTitle>
+              <DollarSign className="h-4 w-4 opacity-70" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-black">R{conversion.revenueInfluenced.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+              <p className="text-[10px] opacity-70 mt-1">Total engaged sales value.</p>
+            </CardContent>
+          </Card>
+          
+           <Card className="border-green-200 bg-green-50 shadow-sm border-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-[10px] font-black uppercase text-green-700 tracking-widest">Incremental Revenue</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-black text-green-800">R{conversion.incrementalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+              <p className="text-[10px] text-green-600 mt-1">New revenue from guidance uplift.</p>
+            </CardContent>
+          </Card>
+
+           <Card className="border-primary/10">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Sales Uplift</CardTitle>
+              <ArrowUp className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-black text-green-600">+{conversion.salesUpliftPercentage}%</div>
+              <p className="text-[10px] text-muted-foreground mt-1">Attributable growth velocity.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/10">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assisted Sales</CardTitle>
+              <MessageSquare className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-black">{conversion.assistedSales.toLocaleString()}</div>
+              <p className="text-[10px] text-muted-foreground mt-1">Direct AI-guided transactions.</p>
+            </CardContent>
+          </Card>
       </div>
 
       {/* Decision Intelligence Hero */}
@@ -157,16 +201,16 @@ export default function DashboardPage() {
                   <Lightbulb className="text-primary h-6 w-6" />
               </div>
               <div>
-                <CardTitle>Decision Intelligence Summary</CardTitle>
+                <CardTitle>Decision Intelligence Strategy</CardTitle>
                 <CardDescription>
                   Persistent Infrastructure Insights for <span className="font-semibold text-primary">{selectedStore || selectedRegion || 'Portfolio'}</span>
                 </CardDescription>
               </div>
             </div>
             {optionalModules.performanceAnalysis && (
-              <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing} variant="secondary" className="gap-2">
+              <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing} variant="secondary" className="gap-2 font-bold uppercase text-[10px] tracking-widest">
                   <Sparkles className="h-4 w-4 text-accent" />
-                  Analyze Intelligence
+                  Analyze ROI Ecosystem
               </Button>
             )}
           </div>
@@ -177,23 +221,22 @@ export default function DashboardPage() {
             {isAnalyzing && (
                 <div className="p-8 border rounded-xl border-accent/20 bg-accent/5 flex flex-col items-center gap-4 text-center">
                     <Loader2 className="h-12 w-12 animate-spin text-accent" />
-                    <p className="text-lg font-bold">Generative Intelligence Active...</p>
-                    <p className="text-sm text-muted-foreground">Scanning behavioural patterns to identify intent gaps.</p>
+                    <p className="text-lg font-bold">Generative ROI Audit Active...</p>
                 </div>
             )}
 
             {analysis && (
                 <Card className="bg-accent/10 border-accent shadow-lg animate-in fade-in zoom-in-95">
                     <CardHeader>
-                         <CardTitle className="flex items-center gap-2 font-black text-sm uppercase tracking-widest"><Sparkles className="text-accent h-4 w-4"/> Intelligence Strategy Layer</CardTitle>
+                         <CardTitle className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest"><Sparkles className="text-accent h-4 w-4"/> Intelligence Strategy Layer</CardTitle>
                     </CardHeader>
                     <CardContent className="grid md:grid-cols-2 gap-8">
                         <div>
-                            <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3">Infrastructure Conclusions</h3>
+                            <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Infrastructure Conclusions</h3>
                             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.conclusions}</p>
                         </div>
                          <div>
-                            <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3">ROI Action Ecosystem</h3>
+                            <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3">ROI Action Plan</h3>
                             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.recommendations}</p>
                         </div>
                     </CardContent>
@@ -210,19 +253,19 @@ export default function DashboardPage() {
                 <CardContent>
                   <div className="text-3xl font-black">{engagement.identifiedShoppers.toLocaleString()}</div>
                   <Badge variant="outline" className="mt-2 bg-primary/5 border-primary/20 text-[10px] py-0">
-                    {engagement.profileConversionRate.toFixed(1)}% Ecosystem Conversion
+                    {engagement.profileConversionRate.toFixed(1)}% Identity Efficiency
                   </Badge>
                 </CardContent>
               </Card>
 
               <Card className="border-primary/10 hover:border-primary/30 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Intelligence Uplift</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Basket Size Delta</CardTitle>
+                  <ArrowUp className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-black text-green-600">+{conversion.basketUpliftPercentage.toFixed(1)}%</div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Direct impact from Decision Guidance</p>
+                  <div className="text-3xl font-black text-green-600">+{conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">R{conversion.basketSizeIncreaseRand.toFixed(2)} extra per basket</p>
                 </CardContent>
               </Card>
 
@@ -233,18 +276,18 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-black">{intelligenceData.hesitationMetrics.hesitationIndex}%</div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">High friction behavioural categories</p>
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Repeat scans without conversion</p>
                 </CardContent>
               </Card>
 
                <Card className="border-primary/10 hover:border-primary/30 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Media Revenue Velocity</CardTitle>
-                  <Tag className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scan-to-Purchase</CardTitle>
+                  <ShoppingCart className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-black">{conversion.offerRedemptionRate.toFixed(1)}%</div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Network monetisation rate</p>
+                  <div className="text-3xl font-black">{conversion.scanToPurchaseConversion.toFixed(1)}%</div>
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Funnel conversion efficiency</p>
                 </CardContent>
               </Card>
             </div>
@@ -260,7 +303,7 @@ export default function DashboardPage() {
                     <CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5 text-primary" /> Product Intent Gaps</CardTitle>
                     <CardDescription>High engagement items with specific conversion barriers.</CardDescription>
                   </div>
-                  <Button variant="ghost" size="sm" asChild>
+                  <Button variant="ghost" size="sm" asChild className="font-bold text-[10px] uppercase">
                       <Link href="/retailer-mvp/decision-intelligence">Full Behaviour Map →</Link>
                   </Button>
               </CardHeader>
@@ -303,7 +346,7 @@ export default function DashboardPage() {
                   ))}
                   <Separator className="my-2" />
                   <div className="flex items-center justify-between text-[10px] p-2 bg-primary/5 rounded border border-primary/10">
-                      <span className="font-bold text-primary">Intelligence Resolution:</span>
+                      <span className="font-bold text-primary text-[9px] uppercase tracking-widest">Intelligence Resolution:</span>
                       <span className="font-black text-primary">{intelligenceData.aiInteractionInsights.aiResolutionRate}%</span>
                   </div>
               </CardContent>
@@ -325,7 +368,7 @@ export default function DashboardPage() {
         />
         <HourlyPerformanceChart
           metric="basketUplift"
-          title="Intelligence ROI"
+          title="Intelligence ROI Delta"
           description="Net basket value generated by AI guidance."
         />
       </div>

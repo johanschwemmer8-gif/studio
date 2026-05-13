@@ -7,10 +7,11 @@ import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Sparkles, Loader2, BookmarkCheck } from 'lucide-react';
+import { Heart, Sparkles, Loader2, BookmarkCheck, ShieldCheck } from 'lucide-react';
 import ShopperAuthDialog from './shopper-auth-dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/lib/data';
+import { cn } from '@/lib/utils';
 
 type ShopperProfileCtaProps = {
   product: Product;
@@ -41,7 +42,6 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
         savedAt: serverTimestamp(),
       });
       
-      // Log interaction
       const eventRef = doc(db, 'shoppers', user.uid, 'interactions', `save_${Date.now()}`);
       await setDoc(eventRef, {
         shopperId: user.uid,
@@ -70,15 +70,25 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
 
   return (
     <>
-      <Card className="border-accent/50 bg-accent/5 overflow-hidden">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-accent" />
+      <Card className={cn(
+        "border-2 transition-all duration-500 overflow-hidden",
+        isSaved ? "border-green-500/50 bg-green-50/50" : "border-accent/50 bg-accent/5"
+      )}>
+        <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "h-12 w-12 rounded-full flex items-center justify-center transition-colors duration-500",
+              isSaved ? "bg-green-100" : "bg-accent/20"
+            )}>
+              {isSaved ? <ShieldCheck className="h-6 w-6 text-green-600" /> : <Sparkles className="h-6 w-6 text-accent" />}
             </div>
             <div>
-              <p className="font-semibold text-sm">Persistent Shopping Memory</p>
-              <p className="text-xs text-muted-foreground">Save this product to your profile for comparisons and guidance.</p>
+              <p className="font-bold text-base">
+                {isSaved ? 'Identity Secure & Synced' : 'Persistent Shopping Memory'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isSaved ? 'This product is saved to your profile across all stores.' : 'Save your preferences and AI recommendations?'}
+              </p>
             </div>
           </div>
           
@@ -86,16 +96,20 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
             onClick={handleSaveToProfile} 
             disabled={isSaving || isSaved}
             variant={isSaved ? "secondary" : "default"}
-            className="w-full sm:w-auto"
+            size="lg"
+            className={cn(
+                "w-full sm:w-auto h-12 px-8 rounded-xl font-bold transition-all duration-300",
+                isSaved && "bg-green-100 text-green-700 hover:bg-green-100 border-none"
+            )}
           >
             {isSaving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : isSaved ? (
-              <BookmarkCheck className="mr-2 h-4 w-4" />
+              <BookmarkCheck className="mr-2 h-5 w-5" />
             ) : (
-              <Heart className="mr-2 h-4 w-4" />
+              <Heart className="mr-2 h-5 w-5 fill-current" />
             )}
-            {isSaved ? 'Saved to Profile' : 'Save to Smart Profile'}
+            {isSaved ? 'Saved to Profile' : 'Save Recommendations'}
           </Button>
         </CardContent>
       </Card>

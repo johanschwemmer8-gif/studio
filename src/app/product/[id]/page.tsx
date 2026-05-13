@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, Star, ShieldCheck, PlayCircle, Settings, ShieldAlert, RotateCcw, Info } from 'lucide-react';
+import { ArrowLeft, Sparkles, Star, ShieldCheck, PlayCircle, Settings, ShieldAlert, RotateCcw, Info, Share2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import ProductChatbot from '@/components/product/product-chatbot';
@@ -45,31 +45,33 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         });
         
         if (user) {
-            toast({ title: "Continuity Synced", description: `Your ${type.replace('_', ' ')} event was saved to your profile.` });
+            toast({ title: "Continuity Event Saved", description: `Your ${type.replace('_', ' ')} interaction is now part of your smart profile.` });
         }
     } catch (e) {
-        console.error(e);
+        console.error("Infrastructure friction:", e);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-            <Button asChild variant="ghost" className="-ml-4">
+    <div className="min-h-screen bg-background pb-20">
+      <div className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* Mobile-First Header */}
+        <div className="flex items-center justify-between mb-8">
+            <Button asChild variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-muted">
                 <Link href="/">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Scanner
+                    <ArrowLeft className="h-5 w-5" />
                 </Link>
             </Button>
-            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3">
-                <ShieldCheck className="h-3.5 w-3.5" /> Continuity Engine Active
-            </Badge>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10"><Heart className="h-5 w-5"/></Button>
+                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10"><Share2 className="h-5 w-5"/></Button>
+            </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12 mb-8">
-          <div>
-            <div className="aspect-square relative rounded-2xl overflow-hidden border shadow-2xl">
+        <div className="space-y-8">
+          {/* Main Visual Layer */}
+          <div className="relative group">
+            <div className="aspect-square relative rounded-3xl overflow-hidden border-4 border-card shadow-2xl transition-transform duration-500 group-hover:scale-[1.01]">
               <Image
                 src={product.image.src}
                 alt={product.name}
@@ -79,127 +81,147 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 data-ai-hint={product['data-ai-hint']}
                 priority
               />
+              <div className="absolute top-4 right-4">
+                  <Badge className="bg-white/90 text-primary hover:bg-white shadow-sm font-black rounded-xl px-3 py-1 text-xs">
+                      NEW ARRIVAL
+                  </Badge>
+              </div>
             </div>
           </div>
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="px-3 py-1 font-medium">{product.category}</Badge>
-                <div className="flex items-center text-yellow-500 bg-yellow-500/5 px-2 py-1 rounded-full border border-yellow-500/10">
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    <span className="text-xs font-bold ml-1 text-foreground">4.8</span>
+
+          {/* Identity & Discovery Layer */}
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+                <Badge variant="secondary" className="px-4 py-1.5 font-black uppercase tracking-widest text-[10px] rounded-lg border-primary/5">{product.category}</Badge>
+                <div className="flex items-center gap-1.5 text-yellow-500 bg-yellow-500/10 px-3 py-1.5 rounded-xl border border-yellow-500/20">
+                    <Star className="h-4 w-4 fill-current" />
+                    <span className="text-sm font-black text-foreground">4.8</span>
                 </div>
             </div>
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">{product.name}</h1>
-            <p className="text-4xl font-black text-primary">
-              R{product.price.toFixed(2)}
-            </p>
             
-            <p className="text-muted-foreground leading-relaxed text-lg">
+            <div className="space-y-2">
+                <h1 className="text-4xl font-black tracking-tighter leading-tight">{product.name}</h1>
+                <p className="text-5xl font-black text-primary tracking-tighter">
+                  R{product.price.toFixed(2)}
+                </p>
+            </div>
+            
+            <p className="text-muted-foreground leading-relaxed text-lg font-medium opacity-90">
                 {product.description}
             </p>
 
+            {/* Persistent Memory Module */}
             <ShopperProfileCta product={product} />
 
-            <div className="grid grid-cols-2 gap-3 mt-2">
-                <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => logContinuityEvent('reorder')}>
-                    <RotateCcw className="h-4 w-4 text-muted-foreground" /> 1-Tap Reorder
+            {/* Continuity Action Grid */}
+            <div className="grid grid-cols-2 gap-4">
+                <Button variant="outline" className="justify-center gap-3 h-14 rounded-2xl border-2 font-bold transition-all hover:bg-primary/5" onClick={() => logContinuityEvent('reorder')}>
+                    <RotateCcw className="h-5 w-5 text-primary" /> 1-Tap Reorder
                 </Button>
-                <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => logContinuityEvent('tutorial_view')}>
-                    <PlayCircle className="h-4 w-4 text-muted-foreground" /> Tutorial
+                <Button variant="outline" className="justify-center gap-3 h-14 rounded-2xl border-2 font-bold transition-all hover:bg-primary/5" onClick={() => logContinuityEvent('tutorial_view')}>
+                    <PlayCircle className="h-5 w-5 text-primary" /> Tutorials
                 </Button>
-                 <Button variant="outline" className="justify-start gap-3 h-12">
-                    <Settings className="h-4 w-4 text-muted-foreground" /> Setup Guide
+                 <Button variant="outline" className="justify-center gap-3 h-14 rounded-2xl border-2 font-bold transition-all hover:bg-primary/5">
+                    <Settings className="h-5 w-5 text-primary" /> Setup Guide
                 </Button>
-                 <Button variant="outline" className="justify-start gap-3 h-12" onClick={() => logContinuityEvent('warranty_activate')}>
-                    <ShieldAlert className="h-4 w-4 text-muted-foreground" /> Warranty
+                 <Button variant="outline" className="justify-center gap-3 h-14 rounded-2xl border-2 font-bold transition-all hover:bg-primary/5" onClick={() => logContinuityEvent('warranty_activate')}>
+                    <ShieldAlert className="h-5 w-5 text-primary" /> Warranty
                 </Button>
             </div>
 
+            {/* Decision Assistant Module */}
             {optionalModules.productChatbot && <ProductChatbot product={product} />}
           </div>
-        </div>
 
-        <Tabs defaultValue="guidance" className="w-full mt-12">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-max h-auto p-1 bg-muted/50 rounded-xl">
-                <TabsTrigger value="guidance" className="rounded-lg py-2.5">Buying Guidance</TabsTrigger>
-                <TabsTrigger value="lifecycle" className="rounded-lg py-2.5">Continuity</TabsTrigger>
-                <TabsTrigger value="reviews" className="rounded-lg py-2.5">Reviews</TabsTrigger>
-                <TabsTrigger value="recipes" className="rounded-lg py-2.5">Usage</TabsTrigger>
+          {/* Intelligence Tab Layer */}
+          <Tabs defaultValue="guidance" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto p-1.5 bg-muted/30 rounded-[2rem] border border-primary/5">
+                <TabsTrigger value="guidance" className="rounded-[1.5rem] py-3 text-xs font-black uppercase tracking-wider">Guidance</TabsTrigger>
+                <TabsTrigger value="lifecycle" className="rounded-[1.5rem] py-3 text-xs font-black uppercase tracking-wider">Continuity</TabsTrigger>
+                <TabsTrigger value="reviews" className="rounded-[1.5rem] py-3 text-xs font-black uppercase tracking-wider">Social</TabsTrigger>
+                <TabsTrigger value="specs" className="rounded-[1.5rem] py-3 text-xs font-black uppercase tracking-wider">Specs</TabsTrigger>
             </TabsList>
+            
             <TabsContent value="guidance" className="mt-8">
-                <Card className="border-primary/10 shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="text-xl flex items-center justify-between">
+                <Card className="border-none bg-primary/5 shadow-none rounded-[2rem]">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Info className="h-5 w-5 text-primary" />
+                              <div className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                                <Sparkles className="h-5 w-5 text-primary" />
                               </div>
-                              Decision Intelligence Guidance
+                              <span className="font-black">Decision Intelligence</span>
                             </div>
-                            {user && <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20">Continuity Active</Badge>}
+                            {user && <Badge className="bg-green-500/10 text-green-700 border-green-500/20 uppercase text-[9px] font-black tracking-widest px-2">Memory Synced</Badge>}
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6 text-muted-foreground">
-                        <div className="p-4 bg-muted/30 rounded-xl border italic text-sm">
+                    <CardContent className="space-y-6">
+                        <div className="p-5 bg-white/60 backdrop-blur-sm rounded-[1.5rem] italic text-sm font-medium leading-relaxed border border-primary/5">
                           {user ? 
-                            `Welcome back, ${user.displayName}. Leveraging your lifecycle memory to provide specialized guidance.` : 
-                            "Connect your Smart Profile to unlock persistent lifecycle features like reorder reminders."}
+                            `Welcome back, ${user.displayName}. Leveraging your lifecycle memory to provide specialized buying guidance.` : 
+                            "Connect your Smart Profile to unlock persistent lifecycle features like reorder reminders and warranty tracking."}
                         </div>
-                        <ul className="grid sm:grid-cols-2 gap-4">
-                            <li className="flex gap-3">
-                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Lifecycle Phase:</strong> Exploration. Our AI recommends this for daily intensive use.</p>
-                            </li>
-                            <li className="flex gap-3">
-                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Continuity Factor:</strong> Shoppers who buy this typically reorder refills every 45 days.</p>
-                            </li>
-                            <li className="flex gap-3">
-                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Decision Support:</strong> Top-rated for durability in your preferred Lifestyle category.</p>
-                            </li>
-                            <li className="flex gap-3">
-                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                              <p><strong className="text-foreground">Sync Status:</strong> Viewable across all iNteract infrastructure stores.</p>
-                            </li>
-                        </ul>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            <TabsContent value="lifecycle" className="mt-8">
-                 <Card className="border-primary/10 shadow-lg">
-                    <CardHeader><CardTitle>Persistent Continuity Services</CardTitle></CardHeader>
-                    <CardContent className="p-8 grid sm:grid-cols-3 gap-6">
-                        <div className="p-4 bg-muted rounded-xl text-center space-y-2">
-                            <RotateCcw className="h-8 w-8 mx-auto text-primary" />
-                            <h4 className="font-bold">Subscription</h4>
-                            <p className="text-xs text-muted-foreground">Automate refills every 30-45 days.</p>
-                            <Button size="sm" variant="outline" className="w-full">Enable</Button>
-                        </div>
-                         <div className="p-4 bg-muted rounded-xl text-center space-y-2">
-                            <PlayCircle className="h-8 w-8 mx-auto text-primary" />
-                            <h4 className="font-bold">Lifecycle Tutorials</h4>
-                            <p className="text-xs text-muted-foreground">Expert guides for setup and maintenance.</p>
-                            <Button size="sm" variant="outline" className="w-full">Watch</Button>
-                        </div>
-                         <div className="p-4 bg-muted rounded-xl text-center space-y-2">
-                            <ShieldAlert className="h-8 w-8 mx-auto text-primary" />
-                            <h4 className="font-bold">Warranty</h4>
-                            <p className="text-xs text-muted-foreground">Persistent digital activation for 24 months.</p>
-                            <Button size="sm" variant="outline" className="w-full">Activate</Button>
+                        <div className="grid gap-4">
+                            <div className="flex gap-4 items-start">
+                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 shadow-sm" />
+                              <p className="text-sm"><strong className="font-black">Lifecycle Phase:</strong> Exploration. Our AI indicates this fits your high-intensity usage pattern.</p>
+                            </div>
+                            <div className="flex gap-4 items-start">
+                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 shadow-sm" />
+                              <p className="text-sm"><strong className="font-black">Continuity Factor:</strong> Shoppers who buy this typically reorder refills every 45 days.</p>
+                            </div>
+                            <div className="flex gap-4 items-start">
+                              <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0 shadow-sm" />
+                              <p className="text-sm"><strong className="font-black">Ecosystem Status:</strong> Verified genuine product with persistent digital warranty available.</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
             </TabsContent>
-        </Tabs>
-        
-        {optionalModules.aiRecommendations && (
-            <div className="mt-20">
-                <AiRecommendations product={product} />
-            </div>
-        )}
 
-        {optionalModules.retailMediaNetwork && <SponsoredProduct />}
+            <TabsContent value="lifecycle" className="mt-8">
+                 <Card className="border-none bg-muted/20 rounded-[2rem]">
+                    <CardHeader><CardTitle className="font-black">Persistent Services</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="p-6 bg-white rounded-2xl text-center space-y-3 shadow-sm border border-primary/5">
+                            <div className="h-12 w-12 bg-primary/5 rounded-full flex items-center justify-center mx-auto">
+                                <RotateCcw className="h-6 w-6 text-primary" />
+                            </div>
+                            <h4 className="font-black text-sm">Subscription</h4>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Auto-Refill: 30 Days</p>
+                            <Button size="sm" className="w-full rounded-xl font-bold">Enable</Button>
+                        </div>
+                         <div className="p-6 bg-white rounded-2xl text-center space-y-3 shadow-sm border border-primary/5">
+                            <div className="h-12 w-12 bg-primary/5 rounded-full flex items-center justify-center mx-auto">
+                                <PlayCircle className="h-6 w-6 text-primary" />
+                            </div>
+                            <h4 className="font-black text-sm">Tutorials</h4>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">4 Guided Modules</p>
+                            <Button size="sm" variant="outline" className="w-full rounded-xl font-bold">Watch</Button>
+                        </div>
+                         <div className="p-6 bg-white rounded-2xl text-center space-y-3 shadow-sm border border-primary/5">
+                            <div className="h-12 w-12 bg-primary/5 rounded-full flex items-center justify-center mx-auto">
+                                <ShieldAlert className="h-6 w-6 text-primary" />
+                            </div>
+                            <h4 className="font-black text-sm">Warranty</h4>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">24 Month Cover</p>
+                            <Button size="sm" variant="outline" className="w-full rounded-xl font-bold">Activate</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+          </Tabs>
+          
+          {/* AI-Matched Recommendations */}
+          {optionalModules.aiRecommendations && (
+              <div className="mt-20">
+                  <AiRecommendations product={product} />
+              </div>
+          )}
+
+          {/* Media Monetisation Layer */}
+          {optionalModules.retailMediaNetwork && <SponsoredProduct />}
+        </div>
       </div>
     </div>
   );

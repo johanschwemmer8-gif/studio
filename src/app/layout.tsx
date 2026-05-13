@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Metadata } from 'next';
@@ -18,6 +19,7 @@ export default function RootLayout({
       <head>
         <title>iNteract AOE - Persistent Retail Intelligence Infrastructure</title>
         <meta name="description" content="AI-powered in-store decision intelligence platform and behavioural analytics ecosystem for physical retail." />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <AuthProvider>

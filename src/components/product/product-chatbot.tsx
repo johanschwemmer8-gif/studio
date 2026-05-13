@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageCircle, Send, Sparkles, QrCode, X, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Sparkles, QrCode, X, Loader2, Info } from 'lucide-react';
 import type { Product } from '@/lib/data';
 import { productChat, type ProductChatInput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
@@ -63,18 +63,36 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
         history: newMessages,
         shopperUid: user?.uid,
       };
-      const result = await productChat(chatInput);
-      setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
+      
+      try {
+          const result = await productChat(chatInput);
+          setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
 
-      // Log conversation for analysis
-      if (db) {
-          const conversationRef = doc(db, 'ai_conversations', `convo_${Date.now()}`);
-          setDoc(conversationRef, {
-              shopperId: user?.uid || 'guest',
-              productId: product.id,
-              transcript: [...newMessages, { role: 'model', content: result.message }],
-              timestamp: serverTimestamp(),
-          });
+          // --- Infrastructure Layer: Interaction Log ---
+          if (db) {
+              const conversationId = `convo_${Date.now()}`;
+              const conversationRef = doc(db, 'ai_conversations', conversationId);
+              setDoc(conversationRef, {
+                  conversationId,
+                  shopperId: user?.uid || 'guest',
+                  productId: product.id,
+                  transcript: [...newMessages, { role: 'model', content: result.message }],
+                  timestamp: serverTimestamp(),
+                  aiModel: 'gemini-2.5-flash'
+              }).catch(console.error);
+
+              const interactionRef = doc(db, 'product_interactions', `chat_${Date.now()}`);
+              setDoc(interactionRef, {
+                  shopperId: user?.uid || 'guest',
+                  productId: product.id,
+                  type: 'review_read', // Chat acts as a deep review
+                  timestamp: serverTimestamp(),
+                  metadata: { conversationId }
+              }).catch(console.error);
+          }
+      } catch (err) {
+          console.error("Assistant Logic Friction:", err);
+          setMessages((prev) => [...prev, { role: 'model', content: "I'm having trouble connecting to the Decision Intelligence layer. Please try again." }]);
       }
     });
   };
@@ -100,20 +118,20 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)} className="w-full mt-4 gap-2">
-        <MessageCircle className="h-4 w-4" /> 
-        {user ? 'Chat with your Assistant' : 'Ask a Question'}
+      <Button onClick={() => setIsOpen(true)} className="w-full mt-4 h-14 rounded-xl text-lg font-bold gap-3 shadow-lg hover:shadow-xl transition-all">
+        <MessageCircle className="h-5 w-5" /> 
+        {user ? 'Resume Buying Guidance' : 'Request Buying Guidance'}
       </Button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent className="flex flex-col">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
+        <SheetContent className="flex flex-col sm:max-w-md border-none rounded-l-[2rem] shadow-2xl">
+          <SheetHeader className="pb-4 border-b">
+            <SheetTitle className="flex items-center gap-3 text-2xl font-black">
               <BotIcon />
-              {isScanning ? 'Scan a Product' : 'Retail Intelligence Assistant'}
+              Decision Assistant
             </SheetTitle>
-            <SheetDescription>
-              {user ? 'Leveraging your shopping memory for expert advice.' : 'Get instant product guidance and details.'}
+            <SheetDescription className="text-sm font-medium">
+              {user ? `Analysing lifecycle for ${user.displayName}...` : 'AI-powered in-store buying consultant.'}
             </SheetDescription>
           </SheetHeader>
 
@@ -123,14 +141,14 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
             </div>
           ) : (
             <ScrollArea className="flex-1 pr-4 -mr-6" ref={scrollAreaRef}>
-                <div className="space-y-4 py-4">
+                <div className="space-y-6 py-6">
                 {messages.length === 0 && (
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-8 w-8 border-2 border-accent">
-                      <AvatarFallback className="bg-primary text-white"><Sparkles className="text-accent h-4 w-4" /></AvatarFallback>
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
+                      <AvatarFallback className="bg-primary text-white font-bold">iN</AvatarFallback>
                     </Avatar>
-                    <div className="rounded-lg px-3 py-2 bg-muted text-sm">
-                      Hi! I'm your iNteract assistant. {user ? `Welcome back, ${user.displayName}! ` : ''}How can I help you with the {product.name}?
+                    <div className="rounded-2xl px-4 py-3 bg-muted text-sm leading-relaxed border border-primary/5">
+                      Hello! I'm your iNteract Decision Consultant. {user ? `Welcome back! I've loaded your history with ${product.category} products. ` : ''}How can I assist your decision on the <strong>{product.name}</strong>?
                     </div>
                   </div>
                 )}
@@ -138,39 +156,35 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     <div
                     key={index}
                     className={cn(
-                        'flex items-start gap-3',
-                        message.role === 'user' ? 'justify-end' : ''
+                        'flex items-start gap-4',
+                        message.role === 'user' ? 'flex-row-reverse' : ''
                     )}
                     >
                     {message.role === 'model' && (
-                        <Avatar className="h-8 w-8 border-2 border-accent">
-                        <AvatarFallback className="bg-primary text-white">
-                            <Sparkles className="text-accent h-4 w-4" />
-                        </AvatarFallback>
+                        <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
+                        <AvatarFallback className="bg-primary text-white font-bold">iN</AvatarFallback>
                         </Avatar>
                     )}
                     <div
                         className={cn(
-                        'rounded-lg px-3 py-2 max-w-[80%]',
+                        'rounded-2xl px-4 py-3 max-w-[85%] border',
                         message.role === 'user'
-                            ? 'bg-primary text-primary-foreground shadow-md'
-                            : 'bg-muted'
+                            ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                            : 'bg-muted border-primary/5'
                         )}
                     >
-                        <p className="text-sm">{message.content}</p>
+                        <p className="text-sm leading-relaxed">{message.content}</p>
                     </div>
                     </div>
                 ))}
                 {isPending && (
-                    <div className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8 border-2 border-accent">
-                        <AvatarFallback className="bg-primary text-white">
-                            <Sparkles className="text-accent h-4 w-4" />
-                        </AvatarFallback>
+                    <div className="flex items-start gap-4">
+                        <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
+                        <AvatarFallback className="bg-primary text-white font-bold">iN</AvatarFallback>
                         </Avatar>
-                        <div className="rounded-lg px-3 py-2 bg-muted space-y-2">
-                            <Skeleton className="h-3 w-48" />
-                            <Skeleton className="h-3 w-32" />
+                        <div className="rounded-2xl px-4 py-3 bg-muted space-y-2 w-48 border border-primary/5">
+                            <Skeleton className="h-3 w-full" />
+                            <Skeleton className="h-3 w-3/4" />
                         </div>
                     </div>
                 )}
@@ -178,28 +192,31 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
             </ScrollArea>
           )}
 
-          <SheetFooter className="flex-col gap-2 pt-4 border-t">
+          <SheetFooter className="flex-col gap-3 pt-6 border-t bg-background">
             {isScanning ? (
-                <Button variant="outline" onClick={() => setIsScanning(false)}>
-                    <X className="mr-2 h-4 w-4" /> Cancel Scan
+                <Button variant="outline" onClick={() => setIsScanning(false)} className="w-full h-12 rounded-xl">
+                    <X className="mr-2 h-4 w-4" /> Stop Scanning
                 </Button>
             ) : (
                 <>
-                    <Button variant="ghost" size="sm" onClick={handleStartScan} className="text-xs text-muted-foreground">
-                    <QrCode className="mr-2 h-3 w-3" />
-                    Scan Another Item
-                    </Button>
-                    <form onSubmit={handleSendMessage} className="flex w-full gap-2">
-                    <Input
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask for advice..."
-                        disabled={isPending}
-                        className="bg-muted/50 border-none shadow-none"
-                    />
-                    <Button type="submit" disabled={isPending || !input.trim()} size="icon">
-                        {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
-                    </Button>
+                    <div className="flex justify-between items-center px-1">
+                        <Button variant="ghost" size="sm" onClick={handleStartScan} className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground h-auto p-0 hover:bg-transparent hover:text-primary">
+                            <QrCode className="mr-2 h-3.5 w-3.5" />
+                            Compare with another product
+                        </Button>
+                        <Badge variant="outline" className="text-[8px] bg-accent/10 border-accent/20 text-accent-foreground font-black px-1.5 py-0 h-4">PERSISTENT MEMORY</Badge>
+                    </div>
+                    <form onSubmit={handleSendMessage} className="flex w-full gap-2 pb-2">
+                        <Input
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Ask about lifecycle, specs, or comparison..."
+                            disabled={isPending}
+                            className="bg-muted/80 border-none shadow-none h-12 rounded-xl text-sm"
+                        />
+                        <Button type="submit" disabled={isPending || !input.trim()} size="icon" className="h-12 w-12 rounded-xl shrink-0 shadow-lg">
+                            {isPending ? <Loader2 className="h-5 w-5 animate-spin"/> : <Send className="h-5 w-5" />}
+                        </Button>
                     </form>
                 </>
             )}
@@ -212,8 +229,8 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
 
 function BotIcon() {
   return (
-    <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center">
-      <Sparkles className="h-3.5 w-3.5 text-accent-foreground" />
+    <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center shadow-inner">
+      <Sparkles className="h-5 w-5 text-accent-foreground" />
     </div>
   );
 }

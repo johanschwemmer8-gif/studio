@@ -7,10 +7,12 @@ import { getScanInteraction, type GetScanInteractionOutput } from '@/ai/flows';
 import { Button } from '../ui/button';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { AlertTriangle, Sparkles, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Sparkles, ShieldCheck, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const AI_CONTENT_HEADLINE_KEY = 'ai-content-headline';
 const AI_CONTENT_SUBHEADING_KEY = 'ai-content-subheading';
@@ -56,6 +58,29 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
       try {
         const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
         
+        // --- Infrastructure Layer: Initialize Session ---
+        if (db) {
+            const sessionId = `sess_${Date.now()}`;
+            const sessionRef = doc(db, 'sessions', sessionId);
+            setDoc(sessionRef, {
+                sessionId,
+                shopperId: user?.uid || 'guest',
+                startTime: serverTimestamp(),
+                entryQrId: qrId,
+                retailerId: 'simulated-retailer-id'
+            }).catch(console.error);
+
+            // Log raw behavioural scan event
+            const interactionRef = doc(db, 'product_interactions', `scan_${Date.now()}`);
+            setDoc(interactionRef, {
+                shopperId: user?.uid || 'guest',
+                sessionId,
+                type: 'scan',
+                timestamp: serverTimestamp(),
+                productId: result.destinationUrl.split('/').pop() || 'unknown'
+            }).catch(console.error);
+        }
+
         const hasCampaignContent = result.mediaUrl || result.headline || result.subhead;
         const hasGlobalContent = savedHeadline || savedSubheading;
         const hasMessages = result.messages && result.messages.length > 0;
@@ -99,16 +124,14 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
 
   if (loading) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6 text-center space-y-6">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className="space-y-2">
+                <h2 className="text-xl font-bold">Synchronizing Intelligence...</h2>
+                <p className="text-sm text-muted-foreground">Identifying persistent behavioural memory.</p>
+            </div>
             <div className="w-full max-w-sm mx-auto animate-pulse flex flex-col gap-6">
                 <div className="h-48 w-full bg-muted rounded-2xl" />
-                <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-full bg-muted shrink-0" />
-                    <div className="flex-1 space-y-3">
-                        <div className="h-4 bg-muted rounded w-3/4" />
-                        <div className="h-4 bg-muted rounded w-1/2" />
-                    </div>
-                </div>
             </div>
         </div>
     );
@@ -117,14 +140,14 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
   if (error) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
-            <Alert variant="destructive" className="max-w-sm rounded-2xl">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Friction Detected</AlertTitle>
-              <AlertDescription>
-                Could not load Intelligence Engine. Please try again.
+            <Alert variant="destructive" className="max-w-sm rounded-2xl shadow-lg border-none bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertTitle className="text-red-900 font-bold">Intelligence Friction</AlertTitle>
+              <AlertDescription className="text-red-800">
+                The Decision Intelligence layer is currently under high load. Redirecting you shortly...
               </AlertDescription>
             </Alert>
-            <Button variant="ghost" className="mt-4" onClick={() => window.location.reload()}>Retry Interaction</Button>
+            <Button variant="outline" className="mt-6 rounded-xl h-12" onClick={() => handleContinue()}>Skip to Product</Button>
         </div>
     );
   }
@@ -137,8 +160,8 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
     <div className="flex flex-col min-h-screen bg-background p-6">
       <div className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-end pb-12">
         <div className="mb-6 flex justify-center">
-            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3">
-                <ShieldCheck className="h-3.5 w-3.5" /> Continuity Engine Active
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
+                <ShieldCheck className="h-3.5 w-3.5" /> Persistent Intelligence Active
             </Badge>
         </div>
 
@@ -162,7 +185,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                     <div key={index} className="flex items-end space-x-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
                             <AvatarImage src={data?.retailerLogoUrl} alt="Intelligence Assistant" />
-                            <AvatarFallback className="bg-primary text-white"><Sparkles className="h-4 w-4 text-accent"/></AvatarFallback>
+                            <AvatarFallback className="bg-primary text-white font-black">iN</AvatarFallback>
                         </Avatar>
                         <MessageBubble text={msg} isTyping={false} />
                     </div>
@@ -171,7 +194,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                         <div className="flex items-end space-x-3">
                             <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
                                 <AvatarImage src={data?.retailerLogoUrl} alt="Assistant" />
-                                <AvatarFallback className="bg-primary text-white"><Sparkles className="h-4 w-4 text-accent"/></AvatarFallback>
+                                <AvatarFallback className="bg-primary text-white">iN</AvatarFallback>
                             </Avatar>
                             <MessageBubble text="" isTyping={true} />
                         </div>

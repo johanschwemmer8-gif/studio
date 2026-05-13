@@ -8,8 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
 import Link from 'next/link';
 import { 
-    ArrowLeft, Sparkles, Star, RotateCcw, 
-    PlayCircle, ShoppingCart, Loader2, Barcode, ShieldCheck, Info
+    ArrowLeft, Sparkles, Star, ShoppingCart, Loader2, Barcode, ShieldCheck, Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -22,17 +21,33 @@ import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function GS1ProductPage({ params }: { params: { gtin: string } }) {
+export default function ExperienceLayerPage({ params }: { params: { gtin: string } }) {
   const searchParams = useSearchParams();
   const product = findProductByGtin(params.gtin);
   const batch = searchParams.get('batch');
   const serial = searchParams.get('serial');
+  const sessionId = searchParams.get('session');
   
   const { user } = useAuth();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    if (db && sessionId && product) {
+        // Log View Event anchored to session
+        const eventId = `view_${Date.now()}`;
+        setDoc(doc(db, 'events', eventId), {
+            eventId,
+            sessionId,
+            gtin: product.gtin,
+            eventType: 'view',
+            timestamp: serverTimestamp(),
+            metadata: { source: "experience_layer" }
+        }).catch(console.error);
+    }
+  }, [sessionId, product]);
 
   if (!product) {
     notFound();
@@ -42,17 +57,16 @@ export default function GS1ProductPage({ params }: { params: { gtin: string } })
 
   const handleAddToTrolley = async () => {
       if (!user) {
-          toast({ title: "Identification Required", description: "Please identify yourself to use the Virtual Smart Trolley." });
+          toast({ title: "Identification Required", description: "Please identify yourself to build your digital trolley." });
           return;
       }
-      if (!db) return;
+      if (!db || !sessionId) return;
 
       setIsAdding(true);
       try {
           const basketId = `basket_${user.uid}`;
           const basketRef = doc(db, 'baskets', basketId);
-          const basketDoc = await getDoc(basketRef);
-
+          
           const item = {
               gtin: product.gtin,
               name: product.name,
@@ -61,6 +75,8 @@ export default function GS1ProductPage({ params }: { params: { gtin: string } })
               addedAt: new Date().toISOString(),
           };
 
+          // Update Basket (Transaction Layer)
+          const basketDoc = await getDoc(basketRef);
           if (!basketDoc.exists()) {
               await setDoc(basketRef, {
                   basketId,
@@ -78,7 +94,18 @@ export default function GS1ProductPage({ params }: { params: { gtin: string } })
               });
           }
 
-          toast({ title: "Added to Trolley", description: `"${product.name}" added via GS1 sync.` });
+          // Log Behavioural Event (Intelligence Layer)
+          const eventId = `cart_${Date.now()}`;
+          await setDoc(doc(db, 'events', eventId), {
+              eventId,
+              sessionId,
+              gtin: product.gtin,
+              eventType: 'add_to_cart',
+              timestamp: serverTimestamp(),
+              metadata: { basketId }
+          });
+
+          toast({ title: "Added to Trolley", description: `"${product.name}" added using global identifiers.` });
       } catch (e) {
           console.error(e);
       } finally {
@@ -93,7 +120,7 @@ export default function GS1ProductPage({ params }: { params: { gtin: string } })
             <Button asChild variant="ghost" size="icon" className="rounded-full h-10 w-10"><Link href="/"><ArrowLeft className="h-5 w-5" /></Link></Button>
              <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 font-bold uppercase tracking-widest text-[9px] px-2 py-1">
-                    <ShieldCheck className="h-3 w-3 mr-1" /> GS1 Verified
+                    <ShieldCheck className="h-3 w-3 mr-1" /> GS1 Aligned
                 </Badge>
                 <Button asChild variant="ghost" size="icon" className="rounded-full h-10 w-10 relative">
                     <Link href="/shopper/basket"><ShoppingCart className="h-5 w-5"/></Link>
@@ -128,8 +155,8 @@ export default function GS1ProductPage({ params }: { params: { gtin: string } })
 
             {(batch || serial) && (
                 <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-xl border border-primary/5">
-                    {batch && <div className="flex items-center gap-1.5"><Badge variant="outline" className="bg-white font-mono text-[9px]">AI 10: {batch}</Badge></div>}
-                    {serial && <div className="flex items-center gap-1.5"><Badge variant="outline" className="bg-white font-mono text-[9px]">AI 21: {serial}</Badge></div>}
+                    {batch && <div className="flex items-center gap-1.5"><Badge variant="outline" className="bg-white font-mono text-[9px]">AI 10 (Batch): {batch}</Badge></div>}
+                    {serial && <div className="flex items-center gap-1.5"><Badge variant="outline" className="bg-white font-mono text-[9px]">AI 21 (Serial): {serial}</Badge></div>}
                 </div>
             )}
             
@@ -150,7 +177,7 @@ export default function GS1ProductPage({ params }: { params: { gtin: string } })
           <Tabs defaultValue="guidance" className="w-full">
             <TabsList className="grid w-full grid-cols-3 h-auto p-1.5 bg-muted/30 rounded-[2rem] border border-primary/5">
                 <TabsTrigger value="guidance" className="rounded-[1.5rem] py-3 text-xs font-black uppercase tracking-wider">Guidance</TabsTrigger>
-                <TabsTrigger value="specs" className="rounded-[1.5rem] py-3 text-xs font-black uppercase tracking-wider">GS1 Specs</TabsTrigger>
+                <TabsTrigger value="identifiers" className="rounded-[1.5rem] py-3 text-xs font-black uppercase tracking-wider">Identifiers</TabsTrigger>
                 <TabsTrigger value="loyalty" className="rounded-[1.5rem] py-3 text-xs font-black uppercase tracking-wider">Loyalty</TabsTrigger>
             </TabsList>
             
@@ -159,27 +186,27 @@ export default function GS1ProductPage({ params }: { params: { gtin: string } })
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-3">
                             <div className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center shadow-sm"><Sparkles className="text-primary" /></div>
-                            <span className="font-black">Expert Decision Guidance</span>
+                            <span className="font-black">Experience Intelligence</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="p-5 bg-white/60 backdrop-blur-sm rounded-[1.5rem] italic text-sm font-medium border border-primary/5">
-                          Standardized identity confirmed. View instructions, recipes, and setup guides below.
+                          Canonical product identity verified. Initializing behavioural assistance layer for session {sessionId?.substring(0,8)}...
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <Button variant="outline" className="h-14 rounded-2xl font-bold gap-2"><PlayCircle className="h-5 w-5" /> Video Guide</Button>
-                            <Button variant="outline" className="h-14 rounded-2xl font-bold gap-2"><Info className="h-5 w-5" /> Setup Manual</Button>
+                            <Button variant="outline" className="h-14 rounded-2xl font-bold gap-2"><Info className="h-5 w-5" /> Video Guide</Button>
+                            <Button variant="outline" className="h-14 rounded-2xl font-bold gap-2"><Info className="h-5 w-5" /> Product Specs</Button>
                         </div>
                     </CardContent>
                 </Card>
             </TabsContent>
 
-            <TabsContent value="specs" className="mt-8">
+            <TabsContent value="identifiers" className="mt-8">
                  <Card className="border-none bg-muted/20 rounded-[2rem]">
-                    <CardHeader><CardTitle className="font-black">Global Identification Data</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="font-black">Global Data Standard</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex justify-between items-center py-3 border-b border-black/5">
-                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">GTIN-14 (Primary Key)</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">GTIN-14 (Canonical ID)</span>
                             <span className="font-mono font-bold text-sm">{product.gtin}</span>
                         </div>
                         <div className="flex justify-between items-center py-3 border-b border-black/5">
@@ -187,8 +214,8 @@ export default function GS1ProductPage({ params }: { params: { gtin: string } })
                             <span className="font-bold text-sm">{product.brand}</span>
                         </div>
                         <div className="flex justify-between items-center py-3">
-                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Category Code</span>
-                            <span className="font-mono text-sm">{product.category}</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Data Standard</span>
+                            <span className="font-bold text-xs">GS1-Aligned Architecture</span>
                         </div>
                     </CardContent>
                 </Card>

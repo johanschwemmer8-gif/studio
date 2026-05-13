@@ -16,19 +16,19 @@
       "required": ["uid", "email", "role"]
     },
     "Product": {
-      "title": "GS1 Compliant Product",
-      "description": "Product data keyed by GTIN.",
+      "title": "GS1-Aligned Product",
+      "description": "Product data keyed by GTIN (Global Trade Item Number).",
       "type": "object",
       "properties": {
-        "gtin": { "type": "string", "description": "14-digit Global Trade Item Number (Primary Key)" },
+        "gtin": { "type": "string", "description": "14-digit Global Trade Item Number (Canonical Identifier)" },
         "name": { "type": "string" },
         "brand": { "type": "string" },
         "description": { "type": "string" },
         "price": { "type": "number" },
         "category": { "type": "string" },
-        "batchNumber": { "type": "string", "description": "Optional GS1 AI 10" },
-        "serialNumber": { "type": "string", "description": "Optional GS1 AI 21" },
-        "gs1DigitalLink": { "type": "string" },
+        "batchNumber": { "type": "string", "description": "GS1 AI 10 support" },
+        "serialNumber": { "type": "string", "description": "GS1 AI 21 support" },
+        "gs1DigitalLink": { "type": "string", "description": "Canonical Digital Link URI" },
         "imageUrl": { "type": "string" },
         "retailerId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -50,34 +50,34 @@
       "required": ["uid"]
     },
     "ShoppingSession": {
-      "title": "Shopping Session",
-      "description": "A single visit initiated by a GS1 scan.",
+      "title": "iNteract Session",
+      "description": "A single behavioural window initiated by a GS1 resolution.",
       "type": "object",
       "properties": {
         "sessionId": { "type": "string" },
         "shopperId": { "type": "string" },
         "startTime": { "type": "string", "format": "date-time" },
-        "entryGtin": { "type": "string" }
+        "entryGtin": { "type": "string" },
+        "storeId": { "type": "string" }
       }
     },
-    "ProductInteraction": {
+    "BehaviouralEvent": {
       "title": "Behavioural Event",
-      "description": "GS1-compliant granular behavioural event.",
+      "description": "Granular interaction logged within a session context.",
       "type": "object",
       "properties": {
-        "interactionId": { "type": "string" },
-        "shopperId": { "type": "string" },
-        "sessionId": { "type": "string" },
-        "gtin": { "type": "string" },
-        "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "save", "reorder", "add_to_trolley"] },
+        "eventId": { "type": "string" },
+        "sessionId": { "type": "string", "description": "Primary session anchor" },
+        "eventType": { "type": "string", "enum": ["scan", "view", "add_to_cart", "checkout", "chat_interaction"] },
+        "gtin": { "type": "string", "description": "Product dimension" },
         "timestamp": { "type": "string", "format": "date-time" },
-        "source": { "type": "string", "default": "GS1" }
+        "metadata": { "type": "object" }
       },
-      "required": ["gtin", "type", "timestamp"]
+      "required": ["sessionId", "eventType", "timestamp"]
     },
     "Basket": {
-      "title": "Virtual Smart Trolley",
-      "description": "GTIN-based digital trolley.",
+      "title": "Transaction Layer Basket",
+      "description": "Digital trolley using GTIN-based dimensions.",
       "type": "object",
       "properties": {
         "basketId": { "type": "string" },
@@ -109,7 +109,7 @@
     },
     "/products/{gtin}": {
       "schema": "#/backend/entities/Product",
-      "description": "GS1 Products keyed by GTIN."
+      "description": "GS1-aligned products keyed by GTIN."
     },
     "/shoppers/{shopperId}": {
       "schema": "#/backend/entities/ShopperProfile",
@@ -117,15 +117,15 @@
     },
     "/sessions/{sessionId}": {
       "schema": "#/backend/entities/ShoppingSession",
-      "description": "Active sessions."
+      "description": "Intelligence Layer sessions."
     },
-    "/product_interactions/{id}": {
-      "schema": "#/backend/entities/ProductInteraction",
-      "description": "Granular interaction logs."
+    "/events/{eventId}": {
+      "schema": "#/backend/entities/BehaviouralEvent",
+      "description": "Session-anchored behavioural events."
     },
     "/baskets/{id}": {
       "schema": "#/backend/entities/Basket",
-      "description": "Digital trolleys using GTINs."
+      "description": "Transaction Layer trolleys."
     }
   }
 }

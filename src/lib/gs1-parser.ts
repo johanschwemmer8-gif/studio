@@ -1,6 +1,7 @@
+
 /**
- * @fileOverview GS1 Digital Link and AI Parser.
- * Normalizes various GS1 formats into a structured identity object.
+ * @fileOverview GS1-aligned parser for Digital Link and AIDC formats.
+ * Normalizes global identifiers into a canonical structure for the iNteract Identity Layer.
  */
 
 export type GS1Identity = {
@@ -11,11 +12,10 @@ export type GS1Identity = {
 };
 
 /**
- * Parses a raw GS1 string or URL into a structured identity.
- * Supports:
- * - GS1 Digital Link: https://domain.com/01/12345678901234/10/ABC/21/XYZ
- * - AIDC Encoded: (01)12345678901234(10)ABC(21)XYZ
- * - Pure GTIN: 01=12345678901234
+ * Parses raw GS1 strings into a normalized identity object.
+ * Supports GS1 Digital Link URIs, AIDC encoded strings, and raw GTINs.
+ * 
+ * NOTE: This is a stateless identity resolution function.
  */
 export function parseGS1(input: string): GS1Identity | null {
   if (!input) return null;
@@ -25,7 +25,7 @@ export function parseGS1(input: string): GS1Identity | null {
   let serialNumber = '';
   let isDigitalLink = false;
 
-  // Handle URL / Digital Link format
+  // Handle URL / GS1 Digital Link compatible format
   if (input.includes('/01/')) {
     isDigitalLink = true;
     const parts = input.split('/');
@@ -49,11 +49,7 @@ export function parseGS1(input: string): GS1Identity | null {
     const serialMatch = input.match(/\(21\)([A-Z0-9]+)/);
     serialNumber = serialMatch ? serialMatch[1] : '';
   }
-  // Handle Pure GTIN assignment
-  else if (input.includes('01=')) {
-    gtin = input.split('01=')[1]?.substring(0, 14);
-  }
-  // Fallback to raw numeric check
+  // Fallback to numeric-only GTIN-13/14
   else if (/^\d{13,14}$/.test(input)) {
     gtin = input.padStart(14, '0');
   }

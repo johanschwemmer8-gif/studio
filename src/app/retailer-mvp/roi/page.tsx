@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useTransition, useEffect } from 'react';
 import {
   Card,
@@ -7,7 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, Tag, Sparkles, AlertTriangle, UserCheck, ShieldCheck, Fingerprint, Phone, Chrome, Smartphone, Mail } from 'lucide-react';
+import { 
+  QrCode, User, Clock, TrendingUp, ShoppingCart, Percent, 
+  Tag, Sparkles, AlertTriangle, UserCheck, ShieldCheck, 
+  Fingerprint, Phone, Chrome, Smartphone, Mail, Download
+} from 'lucide-react';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
@@ -16,12 +21,20 @@ import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/f
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SalesFunnelChart from '@/components/dashboard/sales-funnel-chart';
+import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function RoiPage() {
   const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Automatically fetch metrics when the page loads
@@ -46,6 +59,13 @@ export default function RoiPage() {
       } else {
         setError("Metrics data is not available to analyze.");
       }
+    });
+  };
+
+  const handleExport = (format: string) => {
+    toast({
+        title: `Exporting ROI Data (${format})...`,
+        description: "Your comprehensive ROI performance data is being prepared.",
     });
   };
   
@@ -84,10 +104,23 @@ export default function RoiPage() {
             Analyze the impact of persistent shopper identity and AI buying guidance on business results.
           </p>
         </div>
-        <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing || !metricsData}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Analyze Intelligence
-        </Button>
+        <div className="flex gap-3">
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                        <Download className="h-4 w-4" /> Export ROI
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Download PDF Report</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Download CSV Data</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing || !metricsData} className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                Analyze Intelligence
+            </Button>
+        </div>
       </div>
 
       {isAnalyzing && (

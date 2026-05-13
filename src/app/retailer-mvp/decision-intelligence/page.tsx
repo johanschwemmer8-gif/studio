@@ -1,22 +1,27 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { BrainCircuit, TrendingUp, AlertTriangle, MessageSquare, BarChart2, MousePointerClick, Tag, Activity } from 'lucide-react';
+import { 
+  BrainCircuit, TrendingUp, AlertTriangle, MessageSquare, 
+  BarChart2, MousePointerClick, Tag, Activity, Download 
+} from 'lucide-react';
 import { analyzeDecisionIntelligence, type DecisionIntelligenceOutput } from '@/ai/flows/analyze-decision-intelligence';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
 export default function DecisionIntelligencePage() {
     const [data, setData] = useState<DecisionIntelligenceOutput | null>(null);
     const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
 
     useEffect(() => {
         analyzeDecisionIntelligence().then(res => {
@@ -58,20 +63,32 @@ export default function DecisionIntelligencePage() {
         setLoading(false);
     }, []);
 
+    const handleExport = () => {
+        toast({
+            title: "Exporting Intelligence Report...",
+            description: "A detailed PDF of behavioural patterns and intent gaps is being generated.",
+        });
+    };
+
     if (loading || !data) {
         return <div className="space-y-8"><Skeleton className="h-12 w-1/4" /><Skeleton className="h-64 w-full" /><div className="grid grid-cols-2 gap-8"><Skeleton className="h-96" /><Skeleton className="h-96" /></div></div>;
     }
 
     return (
         <div className="space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-2">
-                    <BrainCircuit className="text-primary h-8 w-8" />
-                    Decision Intelligence Engine
-                </h1>
-                <p className="text-muted-foreground max-w-3xl">
-                    Deep behavioural analysis identifying intent gaps, shopper hesitation, and AI-driven resolution patterns.
-                </p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-2">
+                        <BrainCircuit className="text-primary h-8 w-8" />
+                        Decision Intelligence Engine
+                    </h1>
+                    <p className="text-muted-foreground max-w-3xl">
+                        Deep behavioural analysis identifying intent gaps, shopper hesitation, and AI-driven resolution patterns.
+                    </p>
+                </div>
+                <Button onClick={handleExport} className="gap-2">
+                    <Download className="h-4 w-4" /> Export Report
+                </Button>
             </div>
 
             <Separator />

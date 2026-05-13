@@ -29,8 +29,15 @@
         "shopperId": { "type": "string" },
         "productId": { "type": "string" },
         "retailerId": { "type": "string" },
-        "eventType": { "type": "string", "enum": ["scan", "chat_query", "save", "comparison_view", "review_read", "ad_click", "ad_impression"] },
-        "metadata": { "type": "object" },
+        "eventType": { "type": "string", "enum": ["scan", "chat_query", "save", "comparison_view", "review_read", "ad_click", "ad_impression", "abandonment", "repeat_scan"] },
+        "metadata": { 
+          "type": "object",
+          "properties": {
+            "queryText": { "type": "string" },
+            "dwellTime": { "type": "number" },
+            "comparedProductId": { "type": "string" }
+          }
+        },
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["shopperId", "productId", "eventType", "timestamp"]

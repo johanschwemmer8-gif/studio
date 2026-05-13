@@ -5,6 +5,7 @@
 import { analyzeBehavioralInsights, type AnalyzeBehavioralInsightsInput, type AnalyzeBehavioralInsightsOutput } from './analyze-behavioral-insights';
 import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
 import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
+import { analyzeDecisionIntelligence, type DecisionIntelligenceOutput } from './analyze-decision-intelligence';
 import { assignDisplayConfig } from './assign-display-config';
 import { deleteBulkQrRequest, type DeleteBulkQrRequestInput, type DeleteBulkQrRequestOutput } from './delete-bulk-qr-request';
 import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './generate-bulk-qr-codes';
@@ -41,6 +42,7 @@ export {
     analyzeBehavioralInsights,
     analyzeCampaignPerformance,
     analyzeEngagementMetrics,
+    analyzeDecisionIntelligence,
     assignDisplayConfig,
     deleteBulkQrRequest,
     submitBulkQrRequest,
@@ -73,6 +75,7 @@ export type {
     AnalyzeBehavioralInsightsInput, AnalyzeBehavioralInsightsOutput,
     AnalyzeCampaignPerformanceInput, AnalyzeCampaignPerformanceOutput,
     AnalyzeEngagementMetricsOutput,
+    DecisionIntelligenceOutput,
     DeleteBulkQrRequestInput, DeleteBulkQrRequestOutput,
     SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput,
     GenerateCampaignAIInput, GenerateCampaignAIOutput,

@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import {
   Sidebar,
   SidebarProvider,
@@ -16,14 +17,28 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { Cog, FlaskConical, Rocket, DatabaseZap, UserCog, LogOut, Shield, BookOpen, QrCode, Globe, Store, Smartphone, DollarSign, Activity, Lightbulb, ShieldCheck } from 'lucide-react';
+import { 
+  Cog, 
+  FlaskConical, 
+  Rocket, 
+  Database, 
+  UserCog, 
+  LogOut, 
+  Shield, 
+  BookOpen, 
+  QrCode, 
+  Globe, 
+  DollarSign, 
+  Activity, 
+  Lightbulb, 
+  ShieldCheck,
+  Loader2
+} from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 
 function SidebarLogo() {
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -42,15 +57,14 @@ function SidebarLogo() {
 
         const handleCustomEvent = (e: Event) => {
             const detail = (e as CustomEvent).detail;
-            if (detail.key !== 'interact-aoe-logo') return;
-
-            const updatedLogo = localStorage.getItem('interact-aoe-logo');
-            setLogoUrl(updatedLogo);
+            if (detail && detail.key === 'interact-aoe-logo') {
+                const updatedLogo = localStorage.getItem('interact-aoe-logo');
+                setLogoUrl(updatedLogo);
+            }
         };
 
         window.addEventListener('storage', handleStorageChange);
         window.addEventListener('logoUpdated', handleCustomEvent);
-
 
         return () => {
             window.removeEventListener('storage', handleStorageChange);
@@ -58,30 +72,25 @@ function SidebarLogo() {
         };
     }, []);
 
-    const HolographicLogo = () => (
-        <div className="relative w-32 h-16 group flex items-center justify-center">
-            {logoUrl ? (
-                <Image 
-                    src={logoUrl} 
-                    alt="iNteract AOE Logo" 
-                    width={120} 
-                    height={40}
-                    className="h-auto w-auto transition-transform duration-300 group-hover:scale-105"
-                    style={{ filter: 'drop-shadow(0 0 5px hsl(var(--primary)/0.7))' }}
-                />
-            ) : (
-                <span className="text-xl font-bold tracking-wider text-foreground transition-transform duration-300 group-hover:scale-105" style={{ textShadow: '0 0 8px hsl(var(--primary)/0.6)'}}>iNteract</span>
-            )}
-        </div>
-    );
-
     return (
          <Link href="/dashboard" className="flex items-center justify-center p-2">
-            <HolographicLogo />
+            <div className="relative w-32 h-16 group flex items-center justify-center">
+                {logoUrl ? (
+                    <Image 
+                        src={logoUrl} 
+                        alt="iNteract AOE Logo" 
+                        width={120} 
+                        height={40}
+                        className="h-auto w-auto transition-transform duration-300 group-hover:scale-105"
+                        style={{ filter: 'drop-shadow(0 0 5px rgba(0,0,0,0.2))' }}
+                    />
+                ) : (
+                    <span className="text-xl font-bold tracking-wider text-foreground transition-transform duration-300 group-hover:scale-105">iNteract</span>
+                )}
+            </div>
         </Link>
     );
 }
-
 
 export default function DashboardLayout({
   children,
@@ -123,7 +132,7 @@ export default function DashboardLayout({
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Infrastructure Layer">
-                    <Link href="/dashboard/core-integration"><DatabaseZap /><span>Infrastructure Layer</span></Link>
+                    <Link href="/dashboard/core-integration"><Database /><span>Infrastructure Layer</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                  <SidebarMenuItem>

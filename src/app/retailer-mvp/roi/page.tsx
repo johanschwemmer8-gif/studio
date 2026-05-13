@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RoiPage() {
   const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
@@ -127,6 +128,14 @@ export default function RoiPage() {
         </Card>
       )}
 
+      {error && (
+          <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Friction Detected</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+          </Alert>
+      )}
+
       {analysis && (
         <Card className="bg-accent/10 border-accent shadow-md border-2">
             <CardHeader>
@@ -153,7 +162,9 @@ export default function RoiPage() {
               <DollarSign className="h-4 w-4 opacity-70" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black">R{metricsData?.conversion.revenueInfluenced.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '---'}</div>
+              <div className="text-3xl font-black">
+                {metricsData ? `R${metricsData.conversion.revenueInfluenced.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-primary-foreground/20" />}
+              </div>
               <p className="text-[10px] opacity-70 mt-2">Total sales value from session-anchored engagement.</p>
             </CardContent>
           </Card>
@@ -164,7 +175,9 @@ export default function RoiPage() {
               <ArrowUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-green-800">R{metricsData?.conversion.incrementalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '---'}</div>
+              <div className="text-3xl font-black text-green-800">
+                {metricsData ? `R${metricsData.conversion.incrementalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-green-200" />}
+              </div>
               <p className="text-[10px] text-green-600 mt-2">Net financial uplift derived from Intelligence guidance.</p>
             </CardContent>
           </Card>
@@ -175,7 +188,9 @@ export default function RoiPage() {
               <Percent className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-primary">+{metricsData?.conversion.salesUpliftPercentage.toFixed(1) || '---'}%</div>
+              <div className="text-3xl font-black text-primary">
+                {metricsData ? `+${metricsData.conversion.salesUpliftPercentage.toFixed(1)}%` : <Skeleton className="h-8 w-20 bg-muted" />}
+              </div>
               <p className="text-[10px] text-muted-foreground mt-2">Attributable growth in total platform performance.</p>
             </CardContent>
           </Card>
@@ -194,21 +209,21 @@ export default function RoiPage() {
                     <div className="flex justify-between items-end">
                         <div className="space-y-1">
                             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Intelligence Guided</p>
-                            <p className="text-4xl font-black">R{metricsData?.conversion.avgBasketSizeAoe.toFixed(2) || '---'}</p>
+                            <p className="text-4xl font-black">{metricsData ? `R${metricsData.conversion.avgBasketSizeAoe.toFixed(2)}` : <Skeleton className="h-10 w-32" />}</p>
                         </div>
                         <div className="text-right space-y-1">
                             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Unguided Baseline</p>
-                            <p className="text-2xl font-bold text-muted-foreground">R{metricsData?.conversion.avgBasketSizeNonAoe.toFixed(2) || '---'}</p>
+                            <p className="text-2xl font-bold text-muted-foreground">{metricsData ? `R${metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}` : <Skeleton className="h-8 w-24" />}</p>
                         </div>
                     </div>
                     <div className="p-4 bg-muted/50 rounded-xl border border-primary/5 flex items-center justify-between">
                         <div>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Economic Uplift (Rand)</p>
-                            <p className="text-xl font-black text-primary">R{metricsData?.conversion.basketSizeIncreaseRand.toFixed(2) || '---'}</p>
+                            <p className="text-xl font-black text-primary">{metricsData ? `R${metricsData.conversion.basketSizeIncreaseRand.toFixed(2)}` : <Skeleton className="h-6 w-20" />}</p>
                         </div>
                         <div className="text-right">
                              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Uplift (%)</p>
-                            <p className="text-xl font-black text-green-600">+{metricsData?.conversion.basketSizeIncreasePercent.toFixed(1) || '---'}%</p>
+                            <p className="text-xl font-black text-green-600">{metricsData ? `+${metricsData.conversion.basketSizeIncreasePercent.toFixed(1)}%` : <Skeleton className="h-6 w-16" />}</p>
                         </div>
                     </div>
                 </CardContent>
@@ -222,7 +237,7 @@ export default function RoiPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black">{metricsData?.conversion.assistedSales.toLocaleString() || '---'}</div>
+                        <div className="text-3xl font-black">{metricsData ? metricsData.conversion.assistedSales.toLocaleString() : <Skeleton className="h-8 w-16" />}</div>
                         <p className="text-[10px] text-muted-foreground mt-1">Direct AI-guided transaction volume.</p>
                     </CardContent>
                 </Card>
@@ -233,7 +248,7 @@ export default function RoiPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black">{metricsData?.conversion.scanToPurchaseConversion.toFixed(1) || '---'}%</div>
+                        <div className="text-3xl font-black">{metricsData ? `${metricsData.conversion.scanToPurchaseConversion.toFixed(1)}%` : <Skeleton className="h-8 w-16" />}</div>
                         <p className="text-[10px] text-muted-foreground mt-1">Infrastructure conversion efficiency.</p>
                     </CardContent>
                 </Card>
@@ -242,8 +257,10 @@ export default function RoiPage() {
                         <CardTitle className="text-[10px] font-black uppercase text-primary tracking-widest">Behavioural Conversion Rate</CardTitle>
                     </CardHeader>
                     <CardContent className="flex items-center justify-between">
-                        <div className="text-4xl font-black">{metricsData?.conversion.conversionRate.toFixed(1) || '---'}%</div>
-                        <Badge className="bg-primary text-white font-black text-[10px] tracking-wider uppercase">2.4x INDUSTRY AVG</Badge>
+                        <div className="text-4xl font-black">{metricsData ? `${metricsData.conversion.conversionRate.toFixed(1)}%` : <Skeleton className="h-10 w-20" />}</div>
+                        {metricsData ? (
+                            <Badge className="bg-primary text-white font-black text-[10px] tracking-wider uppercase">2.4x INDUSTRY AVG</Badge>
+                        ) : <Skeleton className="h-6 w-24" />}
                     </CardContent>
                 </Card>
            </div>
@@ -259,7 +276,7 @@ export default function RoiPage() {
             <UserCheck className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metricsData?.engagement.uniqueScans.toLocaleString() || '---'}</div>
+            <div className="text-2xl font-bold">{metricsData?.engagement.uniqueScans.toLocaleString() || <Skeleton className="h-8 w-16" />}</div>
             <p className="text-[9px] text-muted-foreground uppercase mt-1">Unique customer journeys initialized.</p>
           </CardContent>
         </Card>
@@ -269,7 +286,7 @@ export default function RoiPage() {
             <QrCode className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metricsData?.engagement.totalScans.toLocaleString() || '---'}</div>
+            <div className="text-2xl font-bold">{metricsData?.engagement.totalScans.toLocaleString() || <Skeleton className="h-8 w-16" />}</div>
             <p className="text-[9px] text-muted-foreground uppercase mt-1">Total GS1-aligned parser triggers.</p>
           </CardContent>
         </Card>
@@ -279,7 +296,7 @@ export default function RoiPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.scanRate.toFixed(2)}%` : '---'}</div>
+            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.scanRate.toFixed(2)}%` : <Skeleton className="h-8 w-16" />}</div>
             <p className="text-[9px] text-muted-foreground uppercase mt-1">Footfall-to-session conversion.</p>
           </CardContent>
         </Card>
@@ -289,14 +306,18 @@ export default function RoiPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.engagementDuration}s` : '---'}</div>
+            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.engagementDuration}s` : <Skeleton className="h-8 w-12" />}</div>
             <p className="text-[9px] text-muted-foreground uppercase mt-1">Avg. duration of the decision window.</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-            <SalesFunnelChart data={funnelData || { scans: 0, interactions: 0, conversions: 0, sales: 0 }} />
+            {funnelData ? (
+                <SalesFunnelChart data={funnelData} />
+            ) : (
+                <Card><CardContent className="flex justify-center py-10"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground"/></CardContent></Card>
+            )}
             <TopProductsTable data={topProductsData} />
       </div>
 

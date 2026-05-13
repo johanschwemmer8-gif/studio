@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -48,7 +49,7 @@ export default function RetailerSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="ROI & Financial Impact">
                     <Link href="/retailer-mvp/roi"><TrendingUp /><span>ROI & Impact</span></Link>
-                  </SidebarMenuItem>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Behavioural Map">
@@ -137,7 +138,9 @@ export default function RetailerSidebar({
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-            <LogoutButton />
+            <SidebarMenu>
+                <LogoutButton />
+            </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
   );

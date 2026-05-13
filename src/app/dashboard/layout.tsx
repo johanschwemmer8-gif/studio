@@ -121,10 +121,10 @@ export default function DashboardLayout({
             <SidebarLogo />
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu className="px-2">
-            <SidebarGroup>
-              <SidebarGroupLabel>Platform Governance</SidebarGroupLabel>
-              <SidebarGroupContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Platform Governance</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Platform Access Control">
                     <Link href="/create-admin"><UserCog /><span>Access Control</span></Link>
@@ -140,85 +140,94 @@ export default function DashboardLayout({
                         <Link href="/dashboard/admin"><Cog /><span>Retailer Management</span></Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-              </SidebarGroupContent>
-            </SidebarGroup>
-            
-            <SidebarSeparator />
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          
+          <SidebarSeparator />
 
-             <SidebarMenuItem>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Global Economic ROI">
                     <Link href="/dashboard/executive-roi"><DollarSign /><span>Executive ROI</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Infrastructure Health">
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Infrastructure Health">
                     <Link href="/dashboard/platform-security"><Activity /><span>Infrastructure Health</span></Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Ecosystem Deployment">
-                <Link href="/dashboard/retailers-dashboards">
-                  <Rocket />
-                  <span>Ecosystem Deployment</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarSeparator />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Ecosystem Deployment">
+                    <Link href="/dashboard/retailers-dashboards">
+                      <Rocket />
+                      <span>Ecosystem Deployment</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          
+          <SidebarSeparator />
 
-            <SidebarGroup>
-                <SidebarGroupLabel>Security & Ethics</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="AI Ethics & Governance">
-                            <Link href="/dashboard/ai-policy"><Shield /><span>AI Ethics</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="GS1 Conformance Pack">
-                            <Link href="/dashboard/gs1-conformance"><ShieldCheck /><span>GS1 Conformance</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="AOE Infrastructure Security">
-                            <Link href="/dashboard/aoe-security"><Shield /><span>Infrastructure Security</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="External API Gateways">
-                            <Link href="/dashboard/external-security-integrations"><Globe /><span>API Gateways</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarGroupContent>
-            </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Security & Ethics</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="AI Ethics & Governance">
+                    <Link href="/dashboard/ai-policy"><Shield /><span>AI Ethics</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="GS1 Conformance Pack">
+                    <Link href="/dashboard/gs1-conformance"><ShieldCheck /><span>GS1 Conformance</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="AOE Infrastructure Security">
+                    <Link href="/dashboard/aoe-security"><Shield /><span>Infrastructure Security</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="External API Gateways">
+                    <Link href="/dashboard/external-security-integrations"><Globe /><span>API Gateways</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-            <SidebarSeparator />
-            
-             <SidebarGroup>
-                <SidebarGroupLabel>R&D and Validation</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="System Integration Sandbox">
-                            <Link href="/dashboard/system-integration"><FlaskConical /><span>Integration Sandbox</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Infrastructure Training Hub">
-                            <Link href="/dashboard/documentation"><BookOpen /><span>Training Hub</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild tooltip="Decision Intelligence Sandbox">
-                        <Link href="/retailer-mvp/dashboard">
-                          <Lightbulb />
-                          <span>Intelligence Sandbox</span>
-                        </Link>
-                      </SidebarMenuItem>
-                    </SidebarMenuItem>
-                </SidebarGroupContent>
-            </SidebarGroup>
-
-          </SidebarMenu>
+          <SidebarSeparator />
+          
+          <SidebarGroup>
+            <SidebarGroupLabel>R&D and Validation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="System Integration Sandbox">
+                    <Link href="/dashboard/system-integration"><FlaskConical /><span>Integration Sandbox</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Infrastructure Training Hub">
+                    <Link href="/dashboard/documentation"><BookOpen /><span>Training Hub</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Decision Intelligence Sandbox">
+                    <Link href="/retailer-mvp/dashboard">
+                      <Lightbulb />
+                      <span>Intelligence Sandbox</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
             <SidebarMenu className="px-2">

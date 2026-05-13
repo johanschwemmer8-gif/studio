@@ -63,7 +63,7 @@
         "shopperId": { "type": "string" },
         "sessionId": { "type": "string" },
         "productId": { "type": "string" },
-        "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "save", "reorder", "tutorial_view", "warranty_activate"] },
+        "type": { "type": "string", "enum": ["scan", "comparison", "review_read", "save", "reorder", "tutorial_view", "warranty_activate", "add_to_trolley"] },
         "dwellTime": { "type": "number" },
         "timestamp": { "type": "string", "format": "date-time" }
       },
@@ -96,44 +96,33 @@
       },
       "required": ["conversationId", "productId"]
     },
-    "Campaign": {
-      "title": "QR Campaign",
-      "description": "A retailer-initiated QR engagement campaign.",
+    "Basket": {
+      "title": "Virtual Smart Trolley",
+      "description": "A persistent digital basket for in-store shoppers.",
       "type": "object",
       "properties": {
-        "campaignId": { "type": "string" },
+        "basketId": { "type": "string" },
+        "shopperId": { "type": "string" },
         "retailerId": { "type": "string" },
-        "name": { "type": "string" },
-        "status": { "type": "string", "enum": ["draft", "active", "completed"] },
-        "totalScans": { "type": "number" }
-      },
-      "required": ["campaignId", "retailerId", "status"]
+        "items": { "type": "array", "items": { "type": "object" } },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "synced", "paid"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     },
-    "RetailMediaAd": {
-      "title": "Retail Media Ad",
-      "description": "Sponsored placement from a supplier based on shopper intent.",
+    "Transaction": {
+      "title": "Retail Transaction",
+      "description": "A completed sale log for POS reporting.",
       "type": "object",
       "properties": {
-        "adId": { "type": "string" },
-        "supplierId": { "type": "string" },
-        "campaignId": { "type": "string" },
-        "budget": { "type": "number" },
-        "metrics": { "type": "object" }
-      },
-      "required": ["adId", "supplierId"]
-    },
-    "StoreAnalytics": {
-      "title": "Store Analytics",
-      "description": "Aggregated daily metrics for a specific store.",
-      "type": "object",
-      "properties": {
-        "storeId": { "type": "string" },
-        "date": { "type": "string", "format": "date" },
-        "totalScans": { "type": "number" },
-        "conversionRate": { "type": "number" },
-        "topProduct": { "type": "string" }
-      },
-      "required": ["storeId", "date"]
+        "transactionId": { "type": "string" },
+        "shopperId": { "type": "string" },
+        "retailerId": { "type": "string" },
+        "amount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "basketId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -164,17 +153,13 @@
       "schema": "#/backend/entities/AIConversation",
       "description": "Detailed chat transcripts."
     },
-    "/campaigns/{id}": {
-      "schema": "#/backend/entities/Campaign",
-      "description": "Retailer QR campaigns."
+    "/baskets/{id}": {
+      "schema": "#/backend/entities/Basket",
+      "description": "Digital trolleys."
     },
-    "/retail_media/{id}": {
-      "schema": "#/backend/entities/RetailMediaAd",
-      "description": "Supplier sponsored placements."
-    },
-    "/store_analytics/{id}": {
-      "schema": "#/backend/entities/StoreAnalytics",
-      "description": "Aggregated performance data."
+    "/transactions/{id}": {
+      "schema": "#/backend/entities/Transaction",
+      "description": "Completed sales records."
     }
   }
 }

@@ -1,6 +1,12 @@
 
 import placeholderImages from '@/app/lib/placeholder-images.json';
 
+/**
+ * ARCHITECTURAL RULE (IDENTITY LAYER):
+ * The Product type is the canonical representation of a GS1-aligned item.
+ * It MUST use GTIN-14 as the only unique identifier. 
+ * Arbitrary internal IDs are strictly forbidden.
+ */
 export type Product = {
   gtin: string; // GS1 Global Trade Item Number (Mandatory Primary Key)
   name: string;
@@ -47,8 +53,8 @@ export const findProductByGtin = (gtin: string) => {
 };
 
 /**
- * ARCHITECTURAL RULE: Internal IDs are strictly deprecated.
- * This wrapper is maintained for legacy routing but performs 
+ * COMPATIBILITY WRAPPER:
+ * Maintained for legacy URL resolution but performs 
  * exclusively GTIN-based lookups.
  */
 export const findProductById = (id: string | number) => {

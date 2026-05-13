@@ -24,8 +24,8 @@ if (!admin.apps.length) {
  * - DO NOT fetch AI recommendations or trigger interaction flows.
  * - DO NOT perform any analytics aggregation.
  * 
- * Reason: Any deviation transforms this stateless bridge into a stateful 
- * intelligence layer, violating the separation of Global Standards and Proprietary Logic.
+ * Any feature request involving 'Intelligence' must be implemented 
+ * in the Experience Layer (/p/{gtin}) or Intelligence Layer (Genkit flows).
  */
 export async function GET(
   request: NextRequest,
@@ -61,7 +61,7 @@ export async function GET(
     });
 
     // 3. Log Atomic Behavioral Event (Scan)
-    // Rule: GTIN is a dimension, not the primary key for the event stream.
+    // Dimension: GTIN. Anchor: Session.
     batch.set(db.collection('events').doc(eventId), {
         eventId,
         sessionId,

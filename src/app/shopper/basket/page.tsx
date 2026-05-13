@@ -18,8 +18,13 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import QrScannerCamera from '@/components/qr-scanner-camera';
 
+/**
+ * ARCHITECTURAL RULE (TRANSACTION LAYER):
+ * Basket items MUST be keyed by GTIN. 
+ * This ensures end-to-end identifier integrity from scan to POS.
+ */
 type BasketItem = {
-    gtin: string; // Enforce GS1 Global identifier
+    gtin: string; // Mandatory GS1 Global identifier
     name: string;
     price: number;
     quantity: number;
@@ -143,7 +148,7 @@ export default function VirtualSmartTrolleyPage() {
 
             setIsPaying(false);
             setIsPaid(true);
-            toast({ title: "Payment Successful", description: "Transaction finalized and archived." });
+            toast({ title: "Payment Successful", description: "Transaction finalized and archived via GTIN." });
         }, 2000);
     };
 
@@ -180,7 +185,7 @@ export default function VirtualSmartTrolleyPage() {
                 </div>
                 <div className="space-y-2">
                     <h1 className="text-3xl font-black tracking-tight">Transaction Complete</h1>
-                    <p className="text-muted-foreground font-medium">Digital receipt archived via GTIN logging.</p>
+                    <p className="text-muted-foreground font-medium">Digital receipt archived via GS1 identifiers.</p>
                 </div>
                 <Button asChild variant="outline" className="w-full max-w-xs h-14 rounded-2xl font-bold">
                     <Link href="/">Return to Shopping</Link>
@@ -283,7 +288,7 @@ export default function VirtualSmartTrolleyPage() {
                 <Card className="border-accent/20 bg-accent/5">
                     <CardContent className="p-4 flex items-center gap-4">
                         <Sparkles className="h-5 w-5 text-accent" />
-                        <p className="text-xs font-medium">Buying for a trip? Load your profile to get personalized travel deals.</p>
+                        <p className="text-xs font-medium">Building a persistent journey. Your trolley data is secured via GS1 standards.</p>
                     </CardContent>
                 </Card>
             </main>

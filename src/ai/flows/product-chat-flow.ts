@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview Continuity Engine Product Assistant.
+ * @fileOverview Intelligence Layer Product Assistant.
  * Provides Lifecycle Intelligence including reorders, refills, tutorials, and setup guides.
  *
  * - productChat - Handles chat with awareness of product lifecycle and shopper memory.
@@ -11,7 +11,13 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
 
+/**
+ * ARCHITECTURAL RULE:
+ * Every Intelligence Layer flow MUST identify products via GTIN.
+ * Legacy IDs are strictly forbidden as input.
+ */
 const ProductSchema = z.object({
+  gtin: z.string().length(14, "GTIN must be exactly 14 digits.").describe('The canonical GS1 product identifier.'),
   name: z.string().describe('The name of the product.'),
   description: z.string().describe('The description of the product.'),
   category: z.string().describe('The category of the product.'),
@@ -79,6 +85,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     
     CURRENT PRODUCT:
     - Name: ${input.product.name}
+    - GTIN: ${input.product.gtin}
     - Category: ${input.product.category}
     - Price: R${input.product.price.toFixed(2)}
 

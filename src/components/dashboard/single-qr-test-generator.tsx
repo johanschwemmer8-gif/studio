@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -11,6 +10,7 @@ import Image from 'next/image';
 import { QrCode, Loader2, Link2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 export default function SingleQrTestGenerator() {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);

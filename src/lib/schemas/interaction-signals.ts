@@ -19,6 +19,8 @@ export const InteractionSignalSchema = z.object({
   type: z.enum([
     'customer_intent',
     'product_preference',
+    'product_interest',
+    'product_rejection',
     'product_concern',
     'price_objection',
     'budget_signal',

@@ -103,6 +103,11 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     1. Use ONLY "VERIFIED PRODUCT FACTS" for product info.
     2. HALLUCINATION IS FORBIDDEN: Never invent specifications, warranties, or prices.
     3. MISSING DATA: If a fact is not in the context, state that info is unavailable.
+
+    STRICT JOURNEY INTEGRITY:
+    - REJECTION: If a shopper says "No" or objects to price/feature, log it as a rejection. DO NOT manufacture a reason if they didn't provide one.
+    - CAUSALITY: Do not assume that Ari caused a subsequent purchase or action.
+    - SILENCE: Do not interpret shopper silence as acceptance or rejection of a recommendation.
     
     ${factContextStr}
     ${shopperProfileContext}

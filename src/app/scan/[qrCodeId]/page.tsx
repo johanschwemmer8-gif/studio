@@ -1,4 +1,3 @@
-
 import QrScanInteraction from '@/components/product/qr-scan-interaction';
 import { Suspense } from 'react';
 
@@ -18,12 +17,17 @@ function InteractionLoading() {
     );
 }
 
-
-export default function ScanPage({ params }: { params: { qrCodeId: string } }) {
+/**
+ * SCAN INTERACTION GATEWAY
+ * Standard entry point for all iNteract QR scans.
+ * In Next.js 15, params is a promise and must be awaited.
+ */
+export default async function ScanPage({ params }: { params: Promise<{ qrCodeId: string }> }) {
+  const { qrCodeId } = await params;
   
   return (
     <Suspense fallback={<InteractionLoading />}>
-      <QrScanInteraction qrId={params.qrCodeId} />
+      <QrScanInteraction qrId={qrCodeId} />
     </Suspense>
   );
 }

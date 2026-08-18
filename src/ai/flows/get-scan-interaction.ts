@@ -1,5 +1,4 @@
-
-'use client';
+'use server';
 /**
  * @fileOverview Continuity Engine Interaction Flow.
  * Acts as the relationship infrastructure for returning shoppers.
@@ -45,7 +44,7 @@ const prompt = ai.definePrompt({
 
     {{#if shopperName}}
     SHOPPER RECOGNIZED: {{shopperName}}.
-    CONTINUITY LOG: They have previously explored these categories: {{join pastInterests ", "}}.
+    CONTINUITY LOG: They have previously explored these categories: {{#each pastInterests}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
     Acknowledge them by name and reinforce their persistent relationship with the brand.
     Example: "Welcome back {{shopperName}}. We've updated your guidance based on your interest in {{pastInterests.[0]}}."
     {{else}}
@@ -61,7 +60,16 @@ const prompt = ai.definePrompt({
 
 
 export async function getScanInteraction(input: GetScanInteractionInput): Promise<GetScanInteractionOutput> {
-  return getScanInteractionFlow(input);
+  try {
+    return await getScanInteractionFlow(input);
+  } catch (error) {
+    console.warn("Continuity Engine Friction: Simulation mode engaged for QR interaction.", error);
+    return {
+        messages: ["Hello! Ari here.", "Welcome back to the Decision Intelligence platform. I'm synchronizing your personalized guidance journey now."],
+        destinationUrl: "/product/1", // Safe fallback
+        retailerLogoUrl: '',
+    };
+  }
 }
 
 const getScanInteractionFlow = ai.defineFlow(

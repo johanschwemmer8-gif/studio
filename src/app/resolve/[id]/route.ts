@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { admin } from '@/lib/firebase-admin';
 import { parseGS1 } from '@/lib/gs1-parser';
@@ -10,28 +9,13 @@ if (!admin.apps.length) {
 /**
  * ARCHITECTURAL FIREWALL:
  * This route is the strictly stateless gateway for GS1-aligned Identity Resolution.
- * 
- * RESPONSIBILITIES:
- * 1. Parse incoming GS1 identifier (Digital Link, AIDC, or GTIN).
- * 2. Validate GTIN-14 canonical format.
- * 3. Initialize a neutral iNteract Intelligence Session.
- * 4. Log initial scan event (atomic behavioral node).
- * 5. Redirect to the Experience Layer.
- * 
- * PROHIBITED EVOLUTIONS (NON-NEGOTIABLE):
- * - DO NOT add user-specific personalization logic.
- * - DO NOT add A/B testing or experimental variants.
- * - DO NOT fetch AI recommendations or trigger interaction flows.
- * - DO NOT perform any analytics aggregation.
- * 
- * Any feature request involving 'Intelligence' must be implemented 
- * in the Experience Layer (/p/{gtin}) or Intelligence Layer (Genkit flows).
+ * In Next.js 15, route params are promises.
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const db = admin.firestore();
 
   // 1. Stateless Identity Resolution
@@ -52,6 +36,7 @@ export async function GET(
     // Create Session
     batch.set(db.collection('sessions').doc(sessionId), {
         sessionId,
+        shopperId: 'guest',
         startTime: admin.firestore.FieldValue.serverTimestamp(),
         entryGtin: gtin,
         batchNumber,

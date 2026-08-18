@@ -20,12 +20,13 @@ import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { BackButton } from '@/components/ui/back-button';
 
-export default function ExperienceLayerPage({ params }: { params: { gtin: string } }) {
+export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin: string }> }) {
+  const { gtin } = use(params);
   const searchParams = useSearchParams();
-  const product = findProductByGtin(params.gtin);
+  const product = findProductByGtin(gtin);
   const batch = searchParams.get('batch');
   const serial = searchParams.get('serial');
   const sessionId = searchParams.get('session');

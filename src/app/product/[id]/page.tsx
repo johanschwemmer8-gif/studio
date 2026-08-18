@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { findProductByGtin } from '@/lib/data';
 import { Loader2 } from 'lucide-react';
@@ -10,10 +9,12 @@ import { Loader2 } from 'lucide-react';
  * COMPATIBILITY BRIDGE:
  * This route resolves legacy IDs by treating them as GTINs.
  * Direct ID lookups are deprecated in favour of GTIN-only identification.
+ * In Next.js 15, params must be handled as a promise.
  */
-export default function LegacyProductRedirect({ params }: { params: { id: string } }) {
+export default function LegacyProductRedirect({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
-  const product = findProductByGtin(params.id);
+  const product = findProductByGtin(id);
 
   useEffect(() => {
     if (product) {

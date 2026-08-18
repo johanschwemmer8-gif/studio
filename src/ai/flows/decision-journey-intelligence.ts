@@ -11,7 +11,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { DecisionJourneyOutputSchema, type DecisionJourneyOutput } from '@/lib/schemas/decision-journey';
 import { subDays } from 'date-fns';
 
-const AGGREGATION_VERSION = '1.5.0';
+const AGGREGATION_VERSION = '1.5.1';
 
 const summaryPrompt = ai.definePrompt({
     name: 'journeySummaryPrompt',
@@ -167,6 +167,16 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                 }
             });
         });
+
+        // REJECTION AUDIT HARDENING: If session has a stated reason, remove it from 'Reason not stated'
+        const reasonNotStated = rejectionReasons['Reason not stated'];
+        if (reasonNotStated) {
+            Object.entries(rejectionReasons).forEach(([reason, sids]) => {
+                if (reason !== 'Reason not stated') {
+                    sids.forEach(sid => reasonNotStated.delete(sid));
+                }
+            });
+        }
 
         const totalUniqueSessions = sessionsExposed.size || 0;
         if (totalUniqueSessions === 0) {

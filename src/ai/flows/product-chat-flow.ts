@@ -2,10 +2,7 @@
 /**
  * @fileOverview Ari - Intelligence Layer Continuity Assistant.
  * DECISION-STATE INTEGRITY (v1.3.0)
- * SEEN ≠ INTERESTED ≠ CONSIDERED ≠ ACCEPTED.
- * Strictly distinguishes active evaluation from passive interaction.
- * Hardened to prevent manufacturing shopper intent or causal claims.
- * ARI EVIDENCE CONTRACT v1.0: Ari never manufactures evidence.
+ * RELIABILITY v1.4.0: Production validation and error fallbacks.
  */
 
 import { ai } from '@/ai/genkit';
@@ -43,23 +40,30 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
   let shopperProfileContext = "";
   let factContextStr = "NO VERIFIED PRODUCT DATA AVAILABLE.";
 
+  // 1. Fact Context Retrieval with safety fallback
   if (input.gtin) {
-      const factContext = await buildFactContext(input.gtin);
-      if (factContext.exists) {
-          factContextStr = `
-          VERIFIED PRODUCT FACTS (Authoritative Source: ${factContext.provenance.source}):
-          - GTIN: ${factContext.verifiedFacts.gtin}
-          - Name: ${factContext.verifiedFacts.name}
-          - Brand: ${factContext.verifiedFacts.brand}
-          - Category: ${factContext.verifiedFacts.category}
-          - Price: R${factContext.verifiedFacts.price?.toFixed(2)}
-          - Description: ${factContext.verifiedFacts.description}
-          `;
-      } else {
-          factContextStr = `ATTENTION: Product identity ${input.gtin} did not resolve to a canonical record. DO NOT invent product details.`;
+      try {
+          const factContext = await buildFactContext(input.gtin);
+          if (factContext.exists) {
+              factContextStr = `
+              VERIFIED PRODUCT FACTS (Authoritative Source: ${factContext.provenance.source}):
+              - GTIN: ${factContext.verifiedFacts.gtin}
+              - Name: ${factContext.verifiedFacts.name}
+              - Brand: ${factContext.verifiedFacts.brand}
+              - Category: ${factContext.verifiedFacts.category}
+              - Price: R${factContext.verifiedFacts.price?.toFixed(2)}
+              - Description: ${factContext.verifiedFacts.description}
+              `;
+          } else {
+              factContextStr = `ATTENTION: Product identity ${input.gtin} did not resolve to a canonical record. DO NOT invent product details.`;
+          }
+      } catch (e) {
+          console.warn("[Ari] Fact retrieval failure. Grounding degraded.");
+          factContextStr = "VERIFIED PRODUCT DATA UNAVAILABLE DUE TO SYSTEM LATENCY.";
       }
   }
 
+  // 2. Identity retrieval
   if (input.shopperUid && db) {
     try {
       const shopperDoc = await db.collection('shoppers').doc(input.shopperUid).get();
@@ -109,14 +113,33 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     - Intelligent, grounded, non-manipulative.
     - The shopper is always in control.`;
 
-  const { output } = await ai.generate({
-    model: 'googleai/gemini-2.5-flash',
-    messages: [
-      { role: 'system', content: [{ text: systemPrompt }] },
-      ...conversationHistory
-    ],
-    output: { schema: ProductChatOutputSchema }
-  });
+  try {
+      const { output } = await ai.generate({
+        model: 'googleai/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: [{ text: systemPrompt }] },
+          ...conversationHistory
+        ],
+        output: { schema: ProductChatOutputSchema }
+      });
 
-  return output!;
+      if (!output) throw new Error("AI returned empty response.");
+      
+      return output;
+  } catch (error: any) {
+      console.error("[Ari] Production Flow Failure:", error);
+      // Fail safely with a grounded, non-hallucinated response
+      return {
+          message: "I'm currently synchronizing with the network to provide the most accurate guidance. Please feel free to check the product details while I reconnect.",
+          signals: [],
+          shopperContext: {
+              requirements: [],
+              preferences: [],
+              dislikes: [],
+              consideredGtins: [],
+              seenGtins: [],
+              unresolvedQuestions: ["System connection pending"]
+          }
+      };
+  }
 }

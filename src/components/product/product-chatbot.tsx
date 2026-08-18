@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
@@ -54,7 +53,8 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    // PRODUCTION HARDENING: Prevent duplicate messages or empty submissions
+    if (!input.trim() || isPending) return;
 
     const userText = input.trim();
     const newMessages: ChatMessage[] = [...messages, { role: 'user', content: userText }];
@@ -84,7 +84,8 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   transcript: [...newMessages, { role: 'model', content: result.message }],
                   shopperContext: result.shopperContext,
                   timestamp: serverTimestamp(),
-                  aiModel: 'gemini-2.5-flash'
+                  aiModel: 'gemini-2.5-flash',
+                  extractionVersion: '1.4.0'
               }).catch(() => {});
 
               // 2. Log Recommendation Events (Separate from evidence)
@@ -105,6 +106,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
               
               if (hasConsent && result.signals && result.signals.length > 0) {
                   result.signals.forEach((signal) => {
+                      // Explicit hierarchy check: AI inference never becomes High confidence
                       if (signal.evidenceType === 'inferred' && signal.confidence === 'HIGH') {
                           signal.confidence = 'INFERRED';
                       }
@@ -118,8 +120,8 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                           timestamp: serverTimestamp(),
                           metadata: {
                               ...signal,
-                              sourceMessage: userText.substring(0, 500),
-                              extractionVersion: '1.2.0'
+                              sourceMessage: "[PII REDACTED]", // Production rule: Do not store raw message in signal node
+                              extractionVersion: '1.4.0'
                           }
                       }).catch(() => {});
                   });

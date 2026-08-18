@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -59,7 +58,11 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
       try {
         const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
         
-        // --- Infrastructure Layer: Initialize Session ---
+        if (!result) {
+            throw new Error("No response from Ari.");
+        }
+
+        // --- Infrastructure Layer: Initialize Session (Safe Mode) ---
         if (db && qrId) {
             try {
                 const sessionId = `sess_${Date.now()}`;
@@ -79,10 +82,10 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                     sessionId,
                     type: 'scan',
                     timestamp: serverTimestamp(),
-                    productId: result.destinationUrl.split('/').pop() || 'unknown'
+                    productId: result.destinationUrl?.split('/').pop() || 'unknown'
                 }).catch(() => {});
             } catch (e) {
-                console.warn("Client-side event logging failed, proceeding with UI.");
+                // Silent catch for background logging friction
             }
         }
 
@@ -91,14 +94,14 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         const hasMessages = result.messages && result.messages.length > 0;
 
         if (!hasCampaignContent && !hasGlobalContent && !hasMessages) {
-           router.replace(result.destinationUrl);
+           router.replace(result.destinationUrl || 'https://interact-aoe.com');
            return;
         }
 
         setData(result);
       } catch (e: any) {
-        console.error("Interaction Fetch Error:", e);
-        setError(e.message || 'Decision Intelligence connection error.');
+        // Safe error state - avoids throwing serializable errors across boundary
+        setError('Intelligence synchronization in progress.');
       } finally {
         setLoading(false);
       }
@@ -146,12 +149,12 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
             <Alert variant="destructive" className="max-w-sm rounded-2xl shadow-lg border-none bg-red-50 mb-6">
               <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertTitle className="text-red-900 font-bold">Ari Encountered Friction</AlertTitle>
+              <AlertTitle className="text-red-900 font-bold">Network Synchronization</AlertTitle>
               <AlertDescription className="text-red-800">
-                The Decision Intelligence layer is temporarily under high load. You can continue to the product or retry.
+                Ari is currently optimizing your decision guidance. You can proceed directly to the product details.
               </AlertDescription>
             </Alert>
-            <Button size="lg" className="w-full max-w-sm rounded-xl h-14 font-bold" onClick={() => handleContinue()}>Skip to Product</Button>
+            <Button size="lg" className="w-full max-w-sm rounded-xl h-14 font-bold" onClick={() => handleContinue()}>Continue to Product</Button>
         </div>
     );
   }

@@ -8,7 +8,8 @@ import {
   Activity, Download,
   ShieldCheck, HelpCircle, Sparkles,
   ArrowRight, ListChecks, History, 
-  Barcode, Search, Filter, Loader2
+  Barcode, Search, Filter, Loader2,
+  TrendingUp, ShoppingCart
 } from 'lucide-react';
 import { getDecisionJourneyIntelligence } from '@/ai/flows/decision-journey-intelligence';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,7 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const FunnelStage = ({ 
   label, 
@@ -234,6 +242,56 @@ export default function DecisionIntelligencePage() {
 
                         {/* Rejection & Movement Intelligence */}
                         <div className="lg:col-span-2 space-y-8">
+                            {/* Alternative Movement Audit (STEP 8.2) */}
+                            {selectedGtin !== 'all' && (
+                                <div className="space-y-4">
+                                    <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                        <TrendingUp className="h-5 w-5" />
+                                        Subsequent Product Movement
+                                    </h2>
+                                    <Card className="border-primary/10 overflow-hidden shadow-sm">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50">
+                                                <TableRow>
+                                                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Alternative GTIN</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Sessions</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">% Reach</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-right">Subsequent Purchases</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {data.altProductBreakdown.length === 0 ? (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic text-xs">
+                                                            No subsequent product movement recorded for this product.
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : (
+                                                    data.altProductBreakdown.map((alt) => (
+                                                        <TableRow key={alt.gtin}>
+                                                            <TableCell className="font-mono text-xs font-bold">{alt.gtin}</TableCell>
+                                                            <TableCell className="text-center font-bold">{alt.uniqueSessions}</TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Badge variant="secondary" className="text-[9px] font-black">{alt.rate}%</Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <div className="flex items-center justify-end gap-1.5 font-black text-primary">
+                                                                    <ShoppingCart className="h-3 w-3 opacity-50" />
+                                                                    {alt.purchaseCount}
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </Card>
+                                    <p className="text-[9px] italic text-muted-foreground px-2">
+                                        * Displays GTINs encountered in the same session chronologically AFTER the source product.
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="grid sm:grid-cols-2 gap-6">
                                 <div className="space-y-4">
                                     <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">

@@ -3,7 +3,7 @@ import { z } from 'genkit';
 /**
  * @fileOverview Decision Journey Intelligence Schemas.
  * Defines the structure for deterministic shopper journey analysis.
- * VERSION: 1.2.0 (Product Profile Hardened)
+ * VERSION: 1.3.0 (Alternative Movement Hardened)
  */
 
 export const JourneyStageSchema = z.object({
@@ -21,6 +21,13 @@ export const RejectionReasonSchema = z.object({
   share: z.number().describe('Percentage of total explicit rejections.'),
 });
 
+export const AltProductMovementSchema = z.object({
+  gtin: z.string(),
+  uniqueSessions: z.number().int(),
+  rate: z.number().describe('Percentage of source-product sessions.'),
+  purchaseCount: z.number().int().describe('Sessions where this alternative was eventually purchased.'),
+});
+
 export const DecisionJourneyOutputSchema = z.object({
   retailerId: z.string(),
   gtin: z.string().optional().describe('The target product identifier, if this is a product-specific profile.'),
@@ -31,6 +38,7 @@ export const DecisionJourneyOutputSchema = z.object({
   summary: z.string().describe('Factual executive summary grounded in metrics.'),
   funnel: z.array(JourneyStageSchema),
   rejectionBreakdown: z.array(RejectionReasonSchema),
+  altProductBreakdown: z.array(AltProductMovementSchema).describe('Factual aggregation of subsequent product encounters.'),
   stats: z.object({
     totalUniqueSessions: z.number().int(),
     alternativeProductMovements: z.number().int().describe('Sessions where the shopper engaged with another GTIN.'),
@@ -38,7 +46,7 @@ export const DecisionJourneyOutputSchema = z.object({
     leakagePoints: z.record(z.number()).describe('Counts of where journeys ended (e.g., "VIEW_ONLY")'),
   }),
   metadata: z.object({
-    aggregationVersion: z.string().default('1.2.0'),
+    aggregationVersion: z.string().default('1.3.0'),
     dataStatus: z.enum(['VERIFIED', 'SIMULATED']),
     evidenceStrength: z.enum(['LOW', 'MODERATE', 'HIGHER']),
     methodology: z.string()

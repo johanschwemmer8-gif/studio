@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageCircle, Send, Sparkles, QrCode, X, Loader2, Info } from 'lucide-react';
+import { MessageCircle, Send, Sparkles, QrCode, X, Loader2 } from 'lucide-react';
 import type { Product } from '@/lib/data';
 import { productChat, type ProductChatInput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
@@ -52,14 +52,10 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
     setInput('');
 
     startTransition(async () => {
+      // Grounding identified by GTIN
       const chatInput: ProductChatInput = {
-        product: {
-            name: product.name,
-            description: product.description,
-            category: product.category,
-            price: product.price,
-            gtin: product.gtin,
-        },
+        gtin: product.gtin,
+        url: typeof window !== 'undefined' ? window.location.href : '',
         history: newMessages,
         shopperUid: user?.uid,
       };
@@ -68,11 +64,10 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
           const result = await productChat(chatInput);
           setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
 
-          // --- Infrastructure Layer: Interaction Log (Enforced GTIN) ---
+          // Interaction Log
           if (db) {
               const conversationId = `convo_${Date.now()}`;
-              const conversationRef = doc(db, 'ai_conversations', conversationId);
-              setDoc(conversationRef, {
+              setDoc(doc(db, 'ai_conversations', conversationId), {
                   conversationId,
                   shopperId: user?.uid || 'guest',
                   gtin: product.gtin,
@@ -80,18 +75,9 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   timestamp: serverTimestamp(),
                   aiModel: 'gemini-2.5-flash'
               }).catch(() => {});
-
-              const interactionRef = doc(db, 'product_interactions', `chat_${Date.now()}`);
-              setDoc(interactionRef, {
-                  shopperId: user?.uid || 'guest',
-                  gtin: product.gtin,
-                  type: 'chat_interaction',
-                  timestamp: serverTimestamp(),
-                  metadata: { conversationId }
-              }).catch(() => {});
           }
       } catch (err) {
-          setMessages((prev) => [...prev, { role: 'model', content: "Friction in Ari's intelligence layer. Synchronizing..." }]);
+          setMessages((prev) => [...prev, { role: 'model', content: "I'm experiencing a momentary connection issue with the product database. Please feel free to ask another question." }]);
       }
     });
   };
@@ -130,7 +116,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
               Ari - Your Assistant
             </SheetTitle>
             <SheetDescription className="text-sm font-medium">
-              {user ? `Analysing history for ${user.displayName}...` : 'AI-powered in-store buying consultant.'}
+              {user ? `Analysing history for ${user.displayName}...` : 'AI-powered grounded in-store guidance.'}
             </SheetDescription>
           </SheetHeader>
 
@@ -143,11 +129,11 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                 <div className="space-y-6 py-6">
                 {messages.length === 0 && (
                   <div className="flex items-start gap-4">
-                    <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
-                      <AvatarFallback className="bg-primary text-white font-bold">AR</AvatarFallback>
-                    </Avatar>
+                    <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-sm border-2 border-accent">
+                      <span className="text-white font-black text-xs">AR</span>
+                    </div>
                     <div className="rounded-2xl px-4 py-3 bg-muted text-sm leading-relaxed border border-primary/5">
-                      Hello! I'm Ari. I've initialized your session for <strong>{product.name}</strong>. How can I assist your decision?
+                      Hello! I'm Ari. I've initialized a grounded session for <strong>{product.name}</strong>. I have the verified product specifications ready. How can I help?
                     </div>
                   </div>
                 )}
@@ -160,9 +146,9 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     )}
                     >
                     {message.role === 'model' && (
-                        <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
-                        <AvatarFallback className="bg-primary text-white font-bold">AR</AvatarFallback>
-                        </Avatar>
+                         <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-sm border-2 border-accent">
+                            <span className="text-white font-black text-xs">AR</span>
+                        </div>
                     )}
                     <div
                         className={cn(
@@ -178,9 +164,9 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                 ))}
                 {isPending && (
                     <div className="flex items-start gap-4">
-                        <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
-                        <AvatarFallback className="bg-primary text-white font-bold">AR</AvatarFallback>
-                        </Avatar>
+                         <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-sm border-2 border-accent">
+                            <span className="text-white font-black text-xs">AR</span>
+                        </div>
                         <div className="rounded-2xl px-4 py-3 bg-muted space-y-2 w-48 border border-primary/5">
                             <Skeleton className="h-3 w-full" />
                             <Skeleton className="h-3 w-3/4" />
@@ -201,15 +187,18 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     <div className="flex justify-between items-center px-1">
                         <Button variant="ghost" size="sm" onClick={handleStartScan} className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground h-auto p-0 hover:bg-transparent hover:text-primary">
                             <QrCode className="mr-2 h-3.5 w-3.5" />
-                            Compare Product
+                            Verify Other
                         </Button>
-                        <Badge variant="outline" className="text-[8px] bg-accent/10 border-accent/20 text-accent-foreground font-black px-1.5 py-0 h-4">BEHAVIOURAL MEMORY</Badge>
+                        <div className="flex items-center gap-1.5">
+                            <ShieldCheck className="h-3 w-3 text-green-500" />
+                            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-tighter">Strict Grounding Active</span>
+                        </div>
                     </div>
                     <form onSubmit={handleSendMessage} className="flex w-full gap-2 pb-2">
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask Ari about specs or comparison..."
+                            placeholder="Ask about verified specs..."
                             disabled={isPending}
                             className="bg-muted/80 border-none shadow-none h-12 rounded-xl text-sm"
                         />
@@ -228,7 +217,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
 
 function BotIcon() {
   return (
-    <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center shadow-inner">
+    <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center shadow-inner border border-accent-foreground/10">
       <Sparkles className="h-5 w-5 text-accent-foreground" />
     </div>
   );

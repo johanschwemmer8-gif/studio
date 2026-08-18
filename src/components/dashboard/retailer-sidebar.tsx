@@ -27,7 +27,9 @@ import {
   Settings, 
   BookOpen, 
   Target, 
-  LayoutDashboard
+  LayoutDashboard,
+  Building2,
+  Map
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
@@ -77,9 +79,14 @@ export default function RetailerSidebar({
 
           {/* Customer Experience Group */}
           <SidebarGroup>
-            <SidebarGroupLabel>Customer Experience</SidebarGroupLabel>
+            <SidebarGroupLabel>Store & Customer Setup</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Manage Brands, Regions & Stores">
+                    <Link href="/retailer-mvp/organization"><Building2 /><span>My Organization</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 {optionalModules.qrAiManagement && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Manage QR Code Points">
@@ -95,11 +102,6 @@ export default function RetailerSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Connect with Registers">
                     <Link href="/retailer-mvp/pos-terminal"><ShoppingCart /><span>Checkout Sync</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Live Inventory Status">
-                    <Link href="/retailer-mvp/real-time"><Zap /><span>Live Inventory</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>

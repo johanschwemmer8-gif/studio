@@ -32,7 +32,8 @@ import {
   PlayCircle,
   FlaskConical,
   Lock,
-  Globe
+  Globe,
+  Building2
 } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
@@ -142,6 +143,11 @@ export default function DashboardLayout({
                           <span>Retailer List</span>
                         </Link>
                     </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Manage Retail Hierarchy">
+                    <Link href="/retailer-mvp/organization"><Building2 /><span>Network Structure</span></Link>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>

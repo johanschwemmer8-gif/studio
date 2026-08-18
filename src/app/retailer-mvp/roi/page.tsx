@@ -87,10 +87,11 @@ export default function RoiPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black tracking-tight mb-2">
-            Ecosystem Patterns
+            Ecosystem Patterns (v1.5.0)
           </h2>
-          <p className="text-muted-foreground max-w-3xl">
-            Factual summaries of session-anchored activities and transactional co-occurrence.
+          <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
+            Factual summaries of session-anchored activities and transactional co-occurrence. 
+            All financial indicators are currently based on <span className="font-bold text-primary italic">simulated transaction data</span>.
           </p>
         </div>
         <div className="flex gap-3">
@@ -107,44 +108,53 @@ export default function RoiPage() {
             </DropdownMenu>
             <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing || !metricsData} className="gap-2 font-bold text-[10px] uppercase tracking-widest">
                 <Sparkles className="h-4 w-4 text-accent" />
-                Summarize Patterns
+                Summarize Observations
             </Button>
         </div>
       </div>
 
-      <Alert className="bg-primary/5 border-primary/20">
-        <ShieldCheck className="h-4 w-4 text-primary" />
-        <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Attribution Integrity Guard</AlertTitle>
-        <AlertDescription className="text-xs">
-          All financial summaries are based on <strong>verified session-level co-occurrence</strong>. No causal attribution is claimed.
-        </AlertDescription>
-      </Alert>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Alert className="bg-primary/5 border-primary/20">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Attribution Integrity Guard</AlertTitle>
+            <AlertDescription className="text-xs">
+            All financial summaries are based on <strong>verified session-level co-occurrence</strong>. No causal attribution is established.
+            </AlertDescription>
+        </Alert>
+        <Alert className="bg-yellow-50 border-yellow-200">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="text-[10px] font-black uppercase tracking-widest text-yellow-800">Launch Configuration Notice</AlertTitle>
+            <AlertDescription className="text-[10px] text-yellow-700">
+                This dashboard is using <strong>Simulated POS Data</strong>. Factual revenue uplift requires production ERP integration.
+            </AlertDescription>
+        </Alert>
+      </div>
 
       {/* CORE ECONOMIC PROOF SECTION */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Engaged Revenue</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Engaged Session Value</CardTitle>
               <DollarSign className="h-4 w-4 opacity-70" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black">
                 {metricsData ? `R${metricsData.conversion.revenueInfluenced.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-primary-foreground/20" />}
               </div>
-              <p className="text-[10px] opacity-70 mt-2">Total sales value associated with session-anchored engagement.</p>
+              <p className="text-[10px] opacity-70 mt-2 italic">Total sales value associated with engaged sessions.</p>
             </CardContent>
           </Card>
 
-          <Card className="border-green-200 bg-green-50 shadow-sm border-2">
+          <Card className="border-yellow-200 bg-yellow-50/30 shadow-sm border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-green-700 tracking-widest">Calculated Uplift</CardTitle>
-              <ArrowUp className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-[10px] font-black uppercase text-yellow-700 tracking-widest">Calculated Uplift (SIM)</CardTitle>
+              <ArrowUp className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-green-800">
-                {metricsData ? `R${metricsData.conversion.incrementalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-green-200" />}
+              <div className="text-3xl font-black text-yellow-800">
+                {metricsData ? `R${metricsData.conversion.incrementalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-yellow-200" />}
               </div>
-              <p className="text-[10px] text-green-600 mt-2">Growth metric (Simulation baseline).</p>
+              <p className="text-[10px] text-yellow-600 mt-2 italic">Growth delta based on simulation baseline.</p>
             </CardContent>
           </Card>
 
@@ -162,18 +172,20 @@ export default function RoiPage() {
           </Card>
       </div>
 
+      <Separator />
+
       {/* Factual Transaction Audit Table */}
-      <Card className="border-primary/10">
-        <CardHeader className="bg-muted/30">
+      <Card className="border-primary/10 shadow-lg overflow-hidden">
+        <CardHeader className="bg-muted/30 border-b">
             <div className="flex justify-between items-center">
                 <div>
                     <CardTitle className="text-lg font-black flex items-center gap-2">
                         <History className="h-5 w-5 text-primary" /> 
-                        Session Audit: Purchase Co-occurrence
+                        Session Audit: Transaction Co-occurrence
                     </CardTitle>
-                    <CardDescription>Factual log of transactions associated with Ari-active sessions.</CardDescription>
+                    <CardDescription>Launch Ready Audit Trace: Temporal relationship between Ari and Checkout.</CardDescription>
                 </div>
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[9px] font-black uppercase tracking-widest">
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[9px] font-black uppercase tracking-widest px-3 py-1">
                     {attributionReport?.dataStatus || 'PENDING'} SOURCE
                 </Badge>
             </div>
@@ -181,11 +193,11 @@ export default function RoiPage() {
         <CardContent className="pt-6">
             <Table>
                 <TableHeader>
-                    <TableRow>
+                    <TableRow className="hover:bg-transparent border-b-2">
                         <TableHead className="text-[10px] font-black uppercase tracking-widest">Session ID</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest">POS Txn ID</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest">Ari Involvement</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest">Observed Level</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Identity Status</TableHead>
                         <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Timestamp</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -193,20 +205,22 @@ export default function RoiPage() {
                     {isAttributing ? (
                          <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto h-6 w-6 text-muted-foreground" /></TableCell></TableRow>
                     ) : attributionReport?.records.length === 0 ? (
-                        <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No associations discovered.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No associations recorded in this window.</TableCell></TableRow>
                     ) : attributionReport?.records.map((record, i) => (
-                        <TableRow key={i}>
-                            <TableCell className="font-mono text-[10px] text-muted-foreground">{record.sessionId.substring(0, 12)}...</TableCell>
-                            <TableCell className="font-mono text-[10px]">{record.transactionId?.substring(0, 12) || 'N/A'}...</TableCell>
+                        <TableRow key={i} className="group transition-colors">
+                            <TableCell className="font-mono text-[10px] text-muted-foreground">{record.sessionId.substring(0, 16)}...</TableCell>
                             <TableCell>
                                 {record.ariInteraction ? (
                                     <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] font-bold uppercase">YES</Badge>
                                 ) : <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-50">NO</span>}
                             </TableCell>
                             <TableCell>
-                                <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">
+                                <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground group-hover:text-primary">
                                     {record.attributionLevel.replace(/_/g, ' ')}
                                 </span>
+                            </TableCell>
+                            <TableCell>
+                                <Badge variant="outline" className="text-[8px] font-black border-primary/5 uppercase">Anonymous Session</Badge>
                             </TableCell>
                             <TableCell className="text-right font-mono text-[10px] text-muted-foreground">
                                 {record.transactionTimestamp ? new Date(record.transactionTimestamp).toLocaleTimeString() : '---'}
@@ -215,9 +229,12 @@ export default function RoiPage() {
                     ))}
                 </TableBody>
             </Table>
-            <p className="text-[9px] italic text-muted-foreground mt-4 px-2">
-                * Associations are established by Session ID. "Observed Level" describes journey depth, not causal force.
-            </p>
+            <div className="bg-muted/50 p-4 mt-6 rounded-lg border border-primary/5">
+                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Audit Methodology Note</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                    * Associations are established strictly by matching Session IDs. "Observed Level" describes journey depth chronologically. No causal force is claimed for these transactions. Transaction data remains <span className="font-black text-primary">Simulated</span> for this launch configuration.
+                </p>
+            </div>
         </CardContent>
       </Card>
 
@@ -230,15 +247,15 @@ export default function RoiPage() {
                 <Card><CardContent className="flex justify-center py-10"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground"/></CardContent></Card>
             )}
             <div className="space-y-6">
-                <Card className="border-primary/10">
+                <Card className="border-primary/10 shadow-md">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-                            <BarChart3 className="h-3 w-3" /> Associated Purchases
+                            <BarChart3 className="h-3 w-3" /> Associated Checkouts
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-black">{attributionReport?.ariAssistedPurchases || 0}</div>
-                        <p className="text-[10px] text-muted-foreground mt-1">POS transactions in Ari-active sessions.</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Confirmed transactions within Ari-active sessions.</p>
                     </CardContent>
                 </Card>
                 <TopProductsTable data={[]} />
@@ -249,8 +266,8 @@ export default function RoiPage() {
 
       <TimeBasedPerformanceChart 
         data={[]} 
-        title="Infrastructure trend"
-        description="Factual adoption patterns."
+        title="Infrastructure Adoption Trend"
+        description="Chronologically verified adoption patterns over time."
       />
     </div>
   );

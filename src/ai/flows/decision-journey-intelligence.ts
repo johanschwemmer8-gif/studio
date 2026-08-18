@@ -1,11 +1,8 @@
 'use server';
 /**
  * @fileOverview iNteract Decision-Journey Aggregator.
- * CHRONOLOGICAL INTEGRITY (v1.4.0)
- * Logic: SCAN -> VIEW -> INTEREST -> CONSIDERATION -> PURCHASE.
- * Hardened Rejection & Barrier Intelligence implementation.
- * AUDIT v1.4.1: Strictly non-causal language enforcement.
- * RELIABILITY v1.5.0: Production safety limits and error handling.
+ * CHRONOLOGICAL INTEGRITY (v1.5.0)
+ * AUDIT v1.5.1: Launch Readiness & Reliability Hardening.
  */
 
 import { ai } from '@/ai/genkit';
@@ -13,6 +10,8 @@ import { z } from 'genkit';
 import { getDb } from '@/lib/firebase-admin';
 import { DecisionJourneyOutputSchema, type DecisionJourneyOutput } from '@/lib/schemas/decision-journey';
 import { subDays } from 'date-fns';
+
+const AGGREGATION_VERSION = '1.5.0';
 
 const summaryPrompt = ai.definePrompt({
     name: 'journeySummaryPrompt',
@@ -23,33 +22,32 @@ const summaryPrompt = ai.definePrompt({
     
     TASK: Write a 2-3 sentence summary describing the observed patterns.
     
-    STRICT INTEGRITY RULES:
-    1. NO CAUSAL CLAIMS: Do not use "because", "due to", "resulted in", or "caused".
-    2. NO MANUFACTURED NUMBERS: Use only provided metrics.
-    3. LANGUAGE: Use "subsequent purchase", "explicit rejection", "observed sequence", and "verified progression".
-    4. BARRIERS: Use "observed barrier" or "explicitly stated factor".
+    STRICT NON-CAUSAL RULES:
+    1. NEVER use: "because", "due to", "resulted in", "caused", "generated", "converted".
+    2. NEVER use: "lost sale", "abandoned", "failed".
+    3. LANGUAGE: Use "subsequent purchase", "explicit rejection", "observed sequence", "associated interaction", and "verified progression".
+    4. BARRIERS: Use "observed friction point" or "explicitly stated factor".
     
     DATA:
     {{#if metrics.gtin}}ANALYSING GTIN: {{metrics.gtin}}{{/if}}
     {{#each metrics.funnel}}
     - {{stage}}: {{uniqueSessions}} sessions ({{rate}}%)
     {{/each}}
-    - Top Barrier: {{#if metrics.barriers.[0]}}{{metrics.barriers.[0].barrier}} ({{metrics.barriers.[0].count}} sessions){{else}}None{{/if}}
-    - Rejections with Reason: {{metrics.stats.rejectionsWithReason}}
-    - Rejections without Reason: {{metrics.stats.rejectionsWithoutReason}}`
+    - Top Barrier: {{#if metrics.barriers.[0]}}{{metrics.barriers.[0].barrier}} ({{metrics.barriers.[0].count}} sessions){{else}}None recorded{{/if}}
+    - Rejections Stated: {{metrics.stats.rejectionsWithReason}}
+    - Rejections Unstated: {{metrics.stats.rejectionsWithoutReason}}`
 });
 
 export async function getDecisionJourneyIntelligence(retailerId: string, daysLookback: number = 30, targetGtin?: string): Promise<DecisionJourneyOutput> {
     const db = getDb();
     if (!db) throw new Error("Intelligence Infrastructure Unavailable.");
 
-    // SAFETY LIMIT: Prevent unbounded memory usage for large retailers
+    // PRODUCTION SAFETY: Fetch limit to prevent memory overflow
     const MAX_EVENTS = 5000;
     const startTime = subDays(new Date(), daysLookback);
     const endTime = new Date();
 
     try {
-        // 1. Fetch relevant events with production limit
         const eventSnapshot = await db.collection('events')
             .where('retailerId', '==', retailerId)
             .where('timestamp', '>=', startTime)
@@ -62,7 +60,6 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             timestamp: d.data().timestamp?.toDate().getTime() || 0
         }));
 
-        // 2. Fetch transactions with production limit
         const txnSnapshot = await db.collection('transactions')
             .where('retailerId', '==', retailerId)
             .where('timestamp', '>=', startTime)
@@ -74,7 +71,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             timestamp: d.data().timestamp?.toDate().getTime() || 0
         }));
 
-        // 3. Group by Session for Temporal Reconstruction
+        // 1. Chronological Reconstruction
         const sessionsMap: Record<string, any[]> = {};
         allEvents.forEach(e => {
             if (!e.sessionId) return;
@@ -87,7 +84,6 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             sessionsMap[t.sessionId].push({ ...t, type: 'txn' });
         });
 
-        // 4. Decision State Sets (Unique Session IDs)
         const sessionsExposed = new Set<string>();
         const sessionsInterested = new Set<string>();
         const sessionsConsidered = new Set<string>();
@@ -99,12 +95,8 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         const barrierCounts: Record<string, Set<string>> = {};
         const altMovementTargets: Record<string, { sessions: Set<string>, purchases: Set<string> }> = {};
         
-        let rejectionWithReasonCount = 0;
-        let rejectionWithoutReasonCount = 0;
-        let altMovementCount = 0;
         let recToPurchaseCount = 0;
 
-        // 5. Deterministic Temporal Walk
         Object.entries(sessionsMap).forEach(([sid, activity]) => {
             const timeline = activity.sort((a, b) => a.timestamp - b.timestamp);
             
@@ -113,19 +105,14 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             let lastRecommendationTimestamp = 0;
             let lastRecommendationGtin: string | null = null;
 
-            const sessionTouchesTarget = targetGtin 
-                ? activity.some(n => n.gtin === targetGtin)
-                : true;
-
+            const sessionTouchesTarget = targetGtin ? activity.some(n => n.gtin === targetGtin) : true;
             if (!sessionTouchesTarget) return;
 
             timeline.forEach(node => {
                 if (node.timestamp === 0) return;
-
                 const nodeMatchesTarget = !targetGtin || node.gtin === targetGtin;
 
                 if (node.type === 'event') {
-                    // EXPOSURE
                     if (node.eventType === 'scan' || node.eventType === 'view') {
                         if (nodeMatchesTarget) {
                             sessionsExposed.add(sid);
@@ -134,30 +121,22 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                         }
                     }
 
-                    // MOVEMENT TRACKING
                     if (targetGtin && hasValidExposure && node.gtin && node.gtin !== targetGtin && node.timestamp > firstTargetExposureTimestamp) {
-                        if (!altMovementTargets[node.gtin]) {
-                            altMovementTargets[node.gtin] = { sessions: new Set(), purchases: new Set() };
-                        }
+                        if (!altMovementTargets[node.gtin]) altMovementTargets[node.gtin] = { sessions: new Set(), purchases: new Set() };
                         altMovementTargets[node.gtin].sessions.add(sid);
                     }
 
-                    // RECOMMENDATION
                     if (node.eventType === 'recommendation_event' && nodeMatchesTarget) {
                         lastRecommendationTimestamp = node.timestamp;
                         lastRecommendationGtin = node.gtin;
                     }
 
-                    // SIGNALS (Hardened)
                     if (hasValidExposure && node.timestamp >= firstTargetExposureTimestamp) {
                         if (node.eventType === 'interaction_signal' && node.metadata?.evidenceType !== 'inferred') {
                             const sigType = node.metadata?.type;
-                            
-                            // 1. Interest & Consideration
                             if (sigType === 'product_interest' && nodeMatchesTarget) sessionsInterested.add(sid);
                             if (sigType === 'product_consideration' && nodeMatchesTarget) sessionsConsidered.add(sid);
                             
-                            // 2. Rejection Logic
                             if (sigType === 'product_rejection' && nodeMatchesTarget) {
                                 sessionsRejected.add(sid);
                                 const reason = node.metadata?.statedReason || 'Reason not stated';
@@ -165,15 +144,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                                 rejectionReasons[reason].add(sid);
                             }
 
-                            // 3. Barrier Logic
-                            const barrierMap: Record<string, string> = {
-                                'price_objection': 'Price',
-                                'budget_signal': 'Budget',
-                                'feature_requirement': 'Feature Mismatch',
-                                'availability_question': 'Availability',
-                                'product_concern': 'Suitability'
-                            };
-
+                            const barrierMap: Record<string, string> = { 'price_objection': 'Price', 'budget_signal': 'Budget', 'feature_requirement': 'Feature Mismatch', 'availability_question': 'Availability', 'product_concern': 'Suitability' };
                             if (barrierMap[sigType] && nodeMatchesTarget) {
                                 const bLabel = barrierMap[sigType];
                                 if (!barrierCounts[bLabel]) barrierCounts[bLabel] = new Set();
@@ -190,52 +161,30 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                                 recToPurchaseCount++;
                             }
                         } else if (targetGtin && node.gtin && node.gtin !== targetGtin) {
-                            if (altMovementTargets[node.gtin]) {
-                                altMovementTargets[node.gtin].purchases.add(sid);
-                            }
+                            if (altMovementTargets[node.gtin]) altMovementTargets[node.gtin].purchases.add(sid);
                         }
                     }
                 }
             });
-
-            const uniqueGtins = new Set(activity.map(n => n.gtin).filter(Boolean));
-            if (uniqueGtins.size > 1 && (targetGtin ? uniqueGtins.has(targetGtin) : true)) {
-                altMovementCount++;
-            }
         });
 
         const totalUniqueSessions = sessionsExposed.size || 0;
-        
         if (totalUniqueSessions === 0) {
             return {
-                retailerId,
-                gtin: targetGtin,
-                timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
-                summary: "Insufficient evidence for this period.",
-                funnel: [],
-                rejectionBreakdown: [],
-                barrierBreakdown: [],
+                retailerId, gtin: targetGtin, timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
+                summary: "Insufficient evidence for this period.", funnel: [], rejectionBreakdown: [], barrierBreakdown: [],
                 stats: { totalUniqueSessions: 0, alternativeProductMovements: 0, recommendationToPurchaseCount: 0, leakagePoints: {}, rejectionsWithReason: 0, rejectionsWithoutReason: 0 },
                 altProductBreakdown: [],
-                metadata: { aggregationVersion: '1.5.0', dataStatus: 'SIMULATED', evidenceStrength: 'LOW', methodology: 'Empty dataset.' }
+                metadata: { aggregationVersion: AGGREGATION_VERSION, dataStatus: 'SIMULATED', evidenceStrength: 'LOW', methodology: 'Empty dataset walk.' }
             };
         }
 
-        // Calculate Rejection Reason Stats
         const sortedRejections = Object.entries(rejectionReasons).map(([reason, sessions]) => ({
-            reason,
-            count: sessions.size,
-            share: Math.round((sessions.size / (sessionsRejected.size || 1)) * 100)
+            reason, count: sessions.size, share: Math.round((sessions.size / (sessionsRejected.size || 1)) * 100)
         })).sort((a, b) => b.count - a.count);
 
-        rejectionWithReasonCount = sortedRejections.filter(r => r.reason !== 'Reason not stated').reduce((a, b) => a + b.count, 0);
-        rejectionWithoutReasonCount = rejectionReasons['Reason not stated']?.size || 0;
-
-        // Calculate Barrier Stats
         const barrierBreakdown = Object.entries(barrierCounts).map(([barrier, sessions]) => ({
-            barrier,
-            count: sessions.size,
-            share: Math.round((sessions.size / totalUniqueSessions) * 100)
+            barrier, count: sessions.size, share: Math.round((sessions.size / totalUniqueSessions) * 100)
         })).sort((a, b) => b.count - a.count);
 
         const funnel = [
@@ -247,45 +196,26 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             { stage: 'PURCHASE' as const, uniqueSessions: sessionsPurchased.size, numerator: sessionsPurchased.size, denominator: totalUniqueSessions, rate: Math.round((sessionsPurchased.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
         ];
 
-        const altProductBreakdown = Object.entries(altMovementTargets).map(([gtin, data]) => ({
-            gtin,
-            uniqueSessions: data.sessions.size,
-            rate: Math.round((data.sessions.size / totalUniqueSessions) * 100),
-            purchaseCount: data.purchases.size
-        })).sort((a, b) => b.uniqueSessions - a.uniqueSessions);
-
-        const { output } = await summaryPrompt({ metrics: { gtin: targetGtin, funnel, barriers: barrierBreakdown, stats: { rejectionsWithReason: rejectionWithReasonCount, rejectionsWithoutReason: rejectionWithoutReasonCount } } });
+        const { output } = await summaryPrompt({ metrics: { gtin: targetGtin, funnel, barriers: barrierBreakdown, stats: { rejectionsWithReason: sortedRejections.filter(r => r.reason !== 'Reason not stated').reduce((a, b) => a + b.count, 0), rejectionsWithoutReason: rejectionReasons['Reason not stated']?.size || 0 } } });
 
         return {
-            retailerId,
-            gtin: targetGtin,
-            timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
-            summary: output?.summary || "Factual observation complete.",
-            funnel,
-            rejectionBreakdown: sortedRejections,
-            barrierBreakdown,
-            altProductBreakdown,
+            retailerId, gtin: targetGtin, timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
+            summary: output?.summary || "Factual observation complete.", funnel, rejectionBreakdown: sortedRejections, barrierBreakdown,
+            altProductBreakdown: Object.entries(altMovementTargets).map(([gtin, data]) => ({ gtin, uniqueSessions: data.sessions.size, rate: Math.round((data.sessions.size / totalUniqueSessions) * 100), purchaseCount: data.purchases.size })),
             stats: {
-                totalUniqueSessions,
-                alternativeProductMovements: altMovementCount,
-                recommendationToPurchaseCount: recToPurchaseCount,
-                rejectionsWithReason: rejectionWithReasonCount,
-                rejectionsWithoutReason: rejectionWithoutReasonCount,
-                leakagePoints: {
-                    'EXPOSURE_ONLY': totalUniqueSessions - sessionsInterested.size,
-                    'INTEREST_ONLY': sessionsInterested.size - sessionsConsidered.size,
-                    'CONSIDERATION_ONLY': sessionsConsidered.size - (sessionsBasket.size + sessionsRejected.size),
-                }
+                totalUniqueSessions, alternativeProductMovements: Object.keys(altMovementTargets).length, recommendationToPurchaseCount: recToPurchaseCount,
+                rejectionsWithReason: sortedRejections.filter(r => r.reason !== 'Reason not stated').reduce((a, b) => a + b.count, 0),
+                rejectionsWithoutReason: rejectionReasons['Reason not stated']?.size || 0,
+                leakagePoints: { 'EXPOSURE_ONLY': totalUniqueSessions - sessionsInterested.size, 'INTEREST_ONLY': sessionsInterested.size - sessionsConsidered.size, 'CONSIDERATION_ONLY': sessionsConsidered.size - (sessionsBasket.size + sessionsRejected.size) }
             },
             metadata: {
-                aggregationVersion: '1.5.0',
-                dataStatus: 'SIMULATED', 
+                aggregationVersion: AGGREGATION_VERSION, dataStatus: 'SIMULATED', 
                 evidenceStrength: totalUniqueSessions >= 30 ? 'HIGHER' : totalUniqueSessions >= 10 ? 'MODERATE' : 'LOW',
-                methodology: 'Deterministic chronological walk with production safety limits.'
+                methodology: 'Launch Ready: Deterministic chronological walk with scale limiting.'
             }
         };
     } catch (error: any) {
-        console.error("[DecisionJourneyAggregator] Reliability Failure:", error);
-        throw new Error("Failed to process intelligence stream. Scaling limits reached.");
+        console.error("[DecisionJourneyAggregator] Launch Fault:", error);
+        throw new Error("Intelligence stream temporary unavailable. System hardening active.");
     }
 }

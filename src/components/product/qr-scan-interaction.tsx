@@ -12,6 +12,7 @@ import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Badge } from '../ui/badge';
 
 const AI_CONTENT_HEADLINE_KEY = 'ai-content-headline';
 const AI_CONTENT_SUBHEADING_KEY = 'ai-content-subheading';
@@ -67,7 +68,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                 startTime: serverTimestamp(),
                 entryQrId: qrId,
                 retailerId: 'simulated-retailer-id'
-            }).catch(console.error);
+            }).catch(() => {});
 
             // Log raw behavioural scan event
             const interactionRef = doc(db, 'product_interactions', `scan_${Date.now()}`);
@@ -77,7 +78,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                 type: 'scan',
                 timestamp: serverTimestamp(),
                 productId: result.destinationUrl.split('/').pop() || 'unknown'
-            }).catch(console.error);
+            }).catch(() => {});
         }
 
         const hasCampaignContent = result.mediaUrl || result.headline || result.subhead;
@@ -92,7 +93,6 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         setData(result);
       } catch (e: any) {
         setError(e.message || 'Decision Intelligence timeout.');
-        console.error(e);
       } finally {
         setLoading(false);
       }

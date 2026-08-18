@@ -79,7 +79,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   transcript: [...newMessages, { role: 'model', content: result.message }],
                   timestamp: serverTimestamp(),
                   aiModel: 'gemini-2.5-flash'
-              }).catch(console.error);
+              }).catch(() => {});
 
               const interactionRef = doc(db, 'product_interactions', `chat_${Date.now()}`);
               setDoc(interactionRef, {
@@ -88,10 +88,9 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   type: 'chat_interaction',
                   timestamp: serverTimestamp(),
                   metadata: { conversationId }
-              }).catch(console.error);
+              }).catch(() => {});
           }
       } catch (err) {
-          console.error("Assistant Logic Friction:", err);
           setMessages((prev) => [...prev, { role: 'model', content: "Friction in Ari's intelligence layer. Synchronizing..." }]);
       }
     });

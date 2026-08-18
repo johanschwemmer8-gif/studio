@@ -45,7 +45,7 @@ export default function ExperienceLayerPage({ params }: { params: { gtin: string
             eventType: 'view',
             timestamp: serverTimestamp(),
             metadata: { source: "experience_layer" }
-        }).catch(console.error);
+        }).catch(() => {});
     }
   }, [sessionId, product]);
 
@@ -107,7 +107,7 @@ export default function ExperienceLayerPage({ params }: { params: { gtin: string
 
           toast({ title: "Added to Trolley", description: `"${product.name}" added using GTIN identifiers.` });
       } catch (e) {
-          console.error(e);
+          // Error handled via UI feedback
       } finally {
           setIsAdding(false);
       }

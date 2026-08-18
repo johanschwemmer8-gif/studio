@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -18,17 +17,9 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Building2, MapPin, Clock, AlertCircle, Download, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Building2, MapPin, Clock, AlertCircle, Download } from 'lucide-react';
 import { scanFailuresLog } from '@/lib/data';
-
-type ScanFailureLog = {
-  id: string;
-  store: string;
-  location: string;
-  error: string;
-  timestamp: string;
-};
+import { BackButton } from '@/components/ui/back-button';
 
 export default function ScanFailuresPage() {
     
@@ -41,12 +32,7 @@ export default function ScanFailuresPage() {
     return (
         <div className="space-y-8">
             <div>
-                <Button asChild variant="ghost" className="mb-4 -ml-4">
-                    <Link href="/dashboard/system-integration">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to System Integration
-                    </Link>
-                </Button>
+                <BackButton fallback="/dashboard/system-integration" label="Back to Sandbox" />
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">Scan Failure Log</h2>
@@ -108,4 +94,3 @@ export default function ScanFailuresPage() {
         </div>
     );
 }
-

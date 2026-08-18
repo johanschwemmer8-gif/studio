@@ -1,22 +1,21 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc, increment, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { 
     ShoppingCart, Trash2, Plus, Minus, QrCode, CreditCard, 
-    ArrowLeft, Loader2, Sparkles, ShieldCheck, CheckCircle2, Barcode
+    Loader2, Sparkles, ShieldCheck, CheckCircle2, Barcode
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import QrScannerCamera from '@/components/qr-scanner-camera';
+import { BackButton } from '@/components/ui/back-button';
 
 /**
  * ARCHITECTURAL RULE (TRANSACTION LAYER):
@@ -198,7 +197,7 @@ export default function VirtualSmartTrolleyPage() {
         return (
             <div className="min-h-screen flex flex-col bg-background">
                 <header className="p-4 border-b flex items-center gap-4">
-                    <Button asChild variant="ghost" size="icon" className="rounded-full"><Link href="/"><ArrowLeft /></Link></Button>
+                    <BackButton fallback="/" label="Back to Shopping" className="mb-0" />
                     <h1 className="text-xl font-black">My Trolley</h1>
                 </header>
                 <main className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6">
@@ -221,7 +220,7 @@ export default function VirtualSmartTrolleyPage() {
         <div className="min-h-screen flex flex-col bg-muted/30">
             <header className="p-4 bg-background border-b flex items-center justify-between sticky top-0 z-40">
                 <div className="flex items-center gap-4">
-                    <Button asChild variant="ghost" size="icon" className="rounded-full"><Link href="/"><ArrowLeft /></Link></Button>
+                    <BackButton fallback="/" label="Back" className="mb-0" />
                     <h1 className="text-xl font-black tracking-tight">Virtual Trolley</h1>
                 </div>
                 <Badge className="bg-primary/5 text-primary border-primary/10 font-bold uppercase tracking-widest text-[9px] px-2">

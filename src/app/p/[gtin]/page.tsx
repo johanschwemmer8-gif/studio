@@ -1,4 +1,3 @@
-
 'use client';
 
 import { findProductByGtin } from '@/lib/data';
@@ -8,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
 import Link from 'next/link';
 import { 
-    ArrowLeft, Sparkles, Star, ShoppingCart, Loader2, Barcode, ShieldCheck, Info
+    Sparkles, Star, ShoppingCart, Loader2, Barcode, ShieldCheck, Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -22,6 +21,7 @@ import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function ExperienceLayerPage({ params }: { params: { gtin: string } }) {
   const searchParams = useSearchParams();
@@ -117,7 +117,7 @@ export default function ExperienceLayerPage({ params }: { params: { gtin: string
     <div className="min-h-screen bg-background pb-32">
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex items-center justify-between mb-8">
-            <Button asChild variant="ghost" size="icon" className="rounded-full h-10 w-10"><Link href="/"><ArrowLeft className="h-5 w-5" /></Link></Button>
+            <BackButton fallback="/" label="Back to Scan" />
              <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 font-bold uppercase tracking-widest text-[9px] px-2 py-1">
                     <ShieldCheck className="h-3 w-3 mr-1" /> GS1 Aligned

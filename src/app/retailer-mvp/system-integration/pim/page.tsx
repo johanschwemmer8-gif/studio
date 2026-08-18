@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -13,8 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, TestTube2 } from 'lucide-react';
-import Link from 'next/link';
+import { Save, TestTube2 } from 'lucide-react';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function PimConfigurationPage() {
   const { toast } = useToast();
@@ -37,12 +36,7 @@ export default function PimConfigurationPage() {
   return (
     <div className="space-y-8">
        <div>
-        <Button asChild variant="ghost" className="-ml-4 mb-4">
-            <Link href="/retailer-mvp/system-integration">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to System & Integration
-            </Link>
-        </Button>
+        <BackButton fallback="/retailer-mvp/system-integration" label="Back to Core Integration" />
         <h2 className="text-2xl font-bold tracking-tight mb-2">
           PIM / E-commerce Integration
         </h2>

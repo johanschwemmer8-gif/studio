@@ -12,9 +12,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Building2, User, ShieldCheck } from 'lucide-react';
+import { Building2, User, ShieldCheck } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { BackButton } from '@/components/ui/back-button';
 
 function slugify(text: string) {
     if (!text) return '';
@@ -49,10 +49,7 @@ export default function RetailerViewPage() {
       <div className="text-center">
         <h2 className="text-2xl font-bold mb-4">Retailer Not Found</h2>
         <p className="text-muted-foreground mb-4">The requested retailer could not be found.</p>
-        <Button onClick={() => router.push('/dashboard/admin')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Admin Panel
-        </Button>
+        <BackButton fallback="/dashboard/admin" label="Back to Admin Panel" />
       </div>
     );
   }
@@ -60,10 +57,7 @@ export default function RetailerViewPage() {
   return (
     <div className="space-y-8">
         <div>
-            <Button onClick={() => router.push('/dashboard/admin')} variant="ghost" className='mb-4 -ml-4'>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Admin Panel
-            </Button>
+            <BackButton fallback="/dashboard/admin" label="Back to Admin Panel" />
             <h2 className="text-3xl font-bold tracking-tight">{retailer.name}</h2>
             <p className="text-muted-foreground">
                 Manage settings and view data for this specific retailer.
@@ -88,7 +82,6 @@ export default function RetailerViewPage() {
                     <p className="text-muted-foreground text-sm">Control which users have access to this retailer's dashboard.</p>
                     <Button className="mt-4 w-full">Manage Users</Button>
                 </CardContent>
-            </Card>
              <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><ShieldCheck className="text-primary"/> Security Settings</CardTitle>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +39,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { BackButton } from '@/components/ui/back-button';
 
 const experimentSchema = z.object({
   name: z.string().min(3, { message: "Experiment name must be at least 3 characters." }),
@@ -299,9 +299,7 @@ export default function ABTestingPage() {
 
       {/* Experiment Details View */}
       <div className={cn(!showDetails && 'hidden')}>
-        <Button variant="ghost" onClick={handleBackToDashboard} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-        </Button>
+        <BackButton fallback="/retailer-mvp/ab-testing" onClick={handleBackToDashboard} label="Back to Overview" />
         
         <h1 className="text-3xl font-bold text-foreground mb-4">{selectedExperiment?.name}</h1>
         <p className="text-muted-foreground mb-6">{selectedExperiment?.description}</p>
@@ -340,7 +338,6 @@ export default function ABTestingPage() {
                             : 0}%
                     </p>
                 </CardContent>
-            </Card>
         </div>
         
         <Card className="bg-muted">

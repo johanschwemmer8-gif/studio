@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,9 +10,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Server, BrainCircuit, Database, Gauge, Users, AlertTriangle, LineChart as LineChartIcon, Play, Square } from 'lucide-react';
-import Link from 'next/link';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Server, BrainCircuit, Database, Gauge, LineChart as LineChartIcon, Play, Square } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import {
   Table,
@@ -23,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { BackButton } from '@/components/ui/back-button';
 
 const initialData = [
   { time: '0s', users: 0, rps: 0, errors: 0 },
@@ -67,12 +66,7 @@ export default function PerformanceDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <Button asChild variant="ghost" className="-ml-4 mb-4">
-          <Link href="/dashboard/system-integration">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to System Integration
-          </Link>
-        </Button>
+        <BackButton fallback="/dashboard/system-integration" label="Back to Sandbox" />
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h2 className="text-2xl font-bold tracking-tight mb-2">

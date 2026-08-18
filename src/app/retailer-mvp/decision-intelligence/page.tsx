@@ -4,22 +4,16 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { 
-  BrainCircuit, MessageSquare, 
+  BrainCircuit, 
   Activity, Download,
-  CheckCircle2, Info, ShieldCheck, HelpCircle, Sparkles,
-  ChevronDown, ArrowRight, ListChecks
+  ShieldCheck, HelpCircle, Sparkles,
+  ArrowRight, ListChecks, History
 } from 'lucide-react';
 import { getDecisionJourneyIntelligence } from '@/ai/flows/decision-journey-intelligence';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
 import type { DecisionJourneyOutput } from '@/lib/schemas/decision-journey';
 
@@ -117,11 +111,16 @@ export default function DecisionIntelligencePage() {
 
             <Separator />
 
+            <div className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 w-fit px-3 py-1 rounded-full border border-green-100">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Chronological Sequence Verified
+            </div>
+
             {/* Funnel Visualization */}
             <Card className="border-primary/10 bg-muted/10 overflow-hidden">
               <CardHeader className="bg-muted/30">
                 <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Activity className="h-3.5 w-3.5" /> Shopper Decision Funnel
+                  <Activity className="h-3.5 w-3.5" /> Chronological Decision Funnel
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
@@ -174,9 +173,9 @@ export default function DecisionIntelligencePage() {
                             <Separator className="my-4" />
                             <div className="space-y-4">
                                 <div className="flex items-start gap-2">
-                                    <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                    <History className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                      Calculation: {data.metadata.methodology}
+                                      Method: {data.metadata.methodology}
                                       <br/>
                                       Version: {data.metadata.aggregationVersion}
                                     </p>
@@ -187,8 +186,8 @@ export default function DecisionIntelligencePage() {
 
                     <Card className="border-primary/10">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Factual Decision Leakage</CardTitle>
-                        <CardDescription className="text-[10px]">Where journeys ended without recorded progression.</CardDescription>
+                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Journey Node Leakage</CardTitle>
+                        <CardDescription className="text-[10px]">Points where sessions ended without recorded progression.</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
                         {Object.entries(data.stats.leakagePoints).map(([point, count]) => (

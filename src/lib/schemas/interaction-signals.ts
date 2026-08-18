@@ -4,7 +4,7 @@ import { z } from 'genkit';
 /**
  * @fileOverview Controlled Taxonomy for Structured Interaction Signals & Shopper Context.
  * Defines the evidence layer for customer-expressed information and working session memory.
- * VERSION: 1.2.0 (Multi-turn Reasoning)
+ * VERSION: 1.3.0 (Decision-State Integrity)
  */
 
 export const EvidenceTypeSchema = z.enum(['explicit', 'derived', 'inferred']).describe(
@@ -19,8 +19,9 @@ export const InteractionSignalSchema = z.object({
   type: z.enum([
     'customer_intent',
     'product_preference',
-    'product_interest',
-    'product_rejection',
+    'product_interest',     // Passive/general liking
+    'product_consideration', // Active evaluation/suitability check
+    'product_rejection',     // Explicit "no"
     'product_concern',
     'price_objection',
     'budget_signal',
@@ -53,7 +54,8 @@ export const ShopperContextSchema = z.object({
     currency: z.string().default('ZAR'),
     isFlexible: z.boolean().default(false)
   }).optional(),
-  consideredGtins: z.array(z.string()).describe('GTINs discussed or viewed during the session.'),
+  consideredGtins: z.array(z.string()).describe('GTINs actively evaluated (comparison/suitability check).'),
+  seenGtins: z.array(z.string()).describe('GTINs presented to the user.'),
   unresolvedQuestions: z.array(z.string()).describe('Questions the shopper asked that require further follow-up.')
 });
 

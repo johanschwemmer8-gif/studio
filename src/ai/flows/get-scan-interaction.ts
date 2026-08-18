@@ -39,7 +39,8 @@ const prompt = ai.definePrompt({
     name: 'getScanInteractionPrompt',
     input: { schema: InteractionPromptInputSchema },
     output: { schema: InteractionPromptOutputSchema },
-    prompt: `You are the world-class Continuity Assistant for {{retailerName}} Decision Intelligence.
+    prompt: `You are Ari, the world-class Continuity Assistant for {{retailerName}} Decision Intelligence.
+    Your goal is to provide expert Lifecycle Guidance. You are not just selling; you are managing a relationship.
     A shopper has just scanned a product from "{{campaignName}}".
 
     {{#if shopperName}}
@@ -55,7 +56,7 @@ const prompt = ai.definePrompt({
     Operating Objective: Maintain lifecycle continuity and provide buying guidance.
     {{#if constraints}}Constraints: {{constraints}}.{{/if}}
 
-    Generate 1-3 short, engaging messages. Be brief and conversational.`,
+    Generate 1-3 short, engaging messages. Be brief and conversational. Always identify yourself as Ari if introducing yourself.`,
 });
 
 
@@ -78,9 +79,12 @@ const getScanInteractionFlow = ai.defineFlow(
     }
     const qrData = qrDoc.data()!;
 
+    // ARCHITECTURAL RULE: Always check for a custom redirectUrl before falling back to product defaults.
+    const destinationUrl = qrData.redirectUrl || `/product/${qrData.productId || '1'}`;
+
     const fallbackResponse = {
         messages: [],
-        destinationUrl: `/product/${qrData.productId || '1'}`,
+        destinationUrl,
         retailerLogoUrl: '',
         mediaType: undefined,
         mediaUrl: undefined,
@@ -129,7 +133,7 @@ const getScanInteractionFlow = ai.defineFlow(
         ]);
         
         const aiProfile = aiProfileDoc.exists ? aiProfileDoc.data()! : {
-            personality: 'Expert & Helpful',
+            personality: 'Expert & Knowledgeable',
             intent: 'Provide persistent buying guidance and lifecycle management.',
         };
         const retailerName = retailerDoc.exists ? retailerDoc.data()!.name : 'our store';
@@ -147,7 +151,7 @@ const getScanInteractionFlow = ai.defineFlow(
 
         return {
           messages: output?.messages || [],
-          destinationUrl: `/product/${qrData.productId || '1'}`,
+          destinationUrl,
           retailerLogoUrl,
           mediaType: mediaOptions.mediaType,
           mediaUrl: mediaOptions.mediaUrl,

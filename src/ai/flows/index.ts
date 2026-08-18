@@ -37,6 +37,7 @@ import { getScanAnalytics, type ScanAnalyticsInput, type ScanAnalyticsOutput } f
 import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledProductSyncOutput } from './scheduled-product-sync';
 import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from './sync-products';
 import { aggregateIntelligence } from './aggregate-intelligence';
+import { attributeTransactions } from './attribute-transactions';
 
 export {
     analyzeBehavioralInsights,
@@ -70,6 +71,7 @@ export {
     scheduledProductSync,
     syncProducts,
     aggregateIntelligence,
+    attributeTransactions,
 };
 
 export type {

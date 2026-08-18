@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -11,14 +12,14 @@ import {
 import { 
   UserCheck, Clock, TrendingUp, ShoppingCart, Percent, 
   Sparkles, AlertTriangle, ArrowUp, DollarSign, Target, BarChart3,
-  Download, Loader2, User, QrCode
+  Download, Loader2, User, QrCode, ShieldCheck, ListChecks, History
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
 import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 import { Button } from '@/components/ui/button';
-import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows';
+import { analyzeEngagementMetrics, attributeTransactions, type AnalyzeEngagementMetricsOutput, type AttributionReport } from '@/ai/flows';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SalesFunnelChart from '@/components/dashboard/sales-funnel-chart';
 import { useToast } from '@/hooks/use-toast';
@@ -29,11 +30,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function RoiPage() {
   const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
+  const [attributionReport, setAttributionReport] = useState<AttributionReport | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
+  const [isAttributing, startAttribution] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -42,6 +46,11 @@ export default function RoiPage() {
       try {
         const result = await analyzeEngagementMetrics({});
         setMetricsData(result);
+        
+        startAttribution(async () => {
+            const attr = await attributeTransactions('simulated-retailer-id');
+            setAttributionReport(attr);
+        });
       } catch (e) {
         setError("Could not load financial ROI metrics. Please check connectivity.");
       }
@@ -74,20 +83,6 @@ export default function RoiPage() {
     sales: metricsData.conversion.aoeTransactions,
   } : null;
 
-  const topProductsData = [
-    { id: '1', name: 'Eco-Friendly Water Bottle', scans: 1254, category: 'Lifestyle', trend: [30, 40, 35, 50, 45, 60] },
-    { id: '2', name: 'Wireless Charging Pad', scans: 980, category: 'Electronics', trend: [20, 25, 22, 30, 28, 35] },
-  ];
-  
-  const timeBasedPerformanceData = [
-    { time: 'Mar', engagement: 4.5, conversion: 2.1 },
-    { time: 'Apr', engagement: 4.8, conversion: 2.5 },
-    { time: 'May', engagement: 5.1, conversion: 2.8 },
-    { time: 'Jun', engagement: 5.3, conversion: 3.1 },
-    { time: 'Jul', engagement: 5.8, conversion: 3.4 },
-    { time: 'Aug', engagement: 6.2, conversion: 3.8 },
-  ];
-
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -118,40 +113,13 @@ export default function RoiPage() {
         </div>
       </div>
 
-      {isAnalyzing && (
-        <Card className="border-accent bg-accent/5">
-          <CardHeader className="py-6 flex justify-center items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-accent" />
-            <p className="font-black text-[10px] uppercase tracking-[0.2em] text-accent">Synthesizing session-first behavioural data...</p>
-          </CardHeader>
-        </Card>
-      )}
-
-      {error && (
-          <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Friction Detected</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-          </Alert>
-      )}
-
-      {analysis && (
-        <Card className="bg-accent/10 border-accent shadow-md border-2">
-            <CardHeader>
-                 <CardTitle className="flex items-center gap-2 text-[10px] uppercase font-black tracking-[0.2em] text-accent"><Sparkles className="h-4 w-4"/> iNteract Intelligence Conclusion</CardTitle>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-8">
-                <div>
-                    <h3 className="font-bold text-[9px] text-muted-foreground uppercase tracking-widest mb-2">Strategic ROI Performance</h3>
-                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.overallPerformance}</p>
-                </div>
-                 <div>
-                    <h3 className="font-bold text-[9px] text-muted-foreground uppercase tracking-widest mb-2">Actionable Economic Plan</h3>
-                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.recommendations}</p>
-                </div>
-            </CardContent>
-        </Card>
-      )}
+      <Alert className="bg-primary/5 border-primary/20">
+        <ShieldCheck className="h-4 w-4 text-primary" />
+        <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Attribution Integrity Guard</AlertTitle>
+        <AlertDescription className="text-xs">
+          All financial associations are currently based on <strong>verified session-level co-occurrence</strong>. No causal attribution is claimed.
+        </AlertDescription>
+      </Alert>
 
       {/* CORE ECONOMIC PROOF SECTION */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -195,121 +163,66 @@ export default function RoiPage() {
           </Card>
       </div>
 
-      <Separator />
-
-      {/* DETAILED CONVERSION & BASKET SECTION */}
-      <div className="grid gap-6 lg:grid-cols-2">
-           <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg font-black tracking-tight">Basket Size Delta</CardTitle>
-                    <CardDescription>Value variance between unguided and intelligence-guided sessions.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6 pt-2">
-                    <div className="flex justify-between items-end">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Intelligence Guided</p>
-                            <div className="text-4xl font-black">{metricsData ? `R${metricsData.conversion.avgBasketSizeAoe.toFixed(2)}` : <Skeleton className="h-10 w-32" />}</div>
-                        </div>
-                        <div className="text-right space-y-1">
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Unguided Baseline</p>
-                            <div className="text-2xl font-bold text-muted-foreground">{metricsData ? `R${metricsData.conversion.avgBasketSizeNonAoe.toFixed(2)}` : <Skeleton className="h-8 w-24" />}</div>
-                        </div>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-xl border border-primary/5 flex items-center justify-between">
-                        <div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Economic Uplift (Rand)</p>
-                            <div className="text-xl font-black text-primary">{metricsData ? `R${metricsData.conversion.basketSizeIncreaseRand.toFixed(2)}` : <Skeleton className="h-6 w-20" />}</div>
-                        </div>
-                        <div className="text-right">
-                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Uplift (%)</p>
-                            <div className="text-xl font-black text-green-600">{metricsData ? `+${metricsData.conversion.basketSizeIncreasePercent.toFixed(1)}%` : <Skeleton className="h-6 w-16" />}</div>
-                        </div>
-                    </div>
-                </CardContent>
-           </Card>
-
-           <div className="grid gap-4 sm:grid-cols-2">
-                <Card className="border-primary/10">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-                            <BarChart3 className="h-3 w-3" /> Assisted Sales
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black">{metricsData ? metricsData.conversion.assistedSales.toLocaleString() : <Skeleton className="h-8 w-16" />}</div>
-                        <p className="text-[10px] text-muted-foreground mt-1">Direct AI-guided transaction volume.</p>
-                    </CardContent>
-                </Card>
-                <Card className="border-primary/10">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-                            <Target className="h-3 w-3" /> Scan-to-Purchase
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-black">{metricsData ? `${metricsData.conversion.scanToPurchaseConversion.toFixed(1)}%` : <Skeleton className="h-8 w-16" />}</div>
-                        <p className="text-[10px] text-muted-foreground mt-1">Infrastructure conversion efficiency.</p>
-                    </CardContent>
-                </Card>
-                <Card className="sm:col-span-2 border-primary/20">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-primary tracking-widest">Behavioural Conversion Rate</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-between">
-                        <div className="text-4xl font-black">{metricsData ? `${metricsData.conversion.conversionRate.toFixed(1)}%` : <Skeleton className="h-10 w-20" />}</div>
-                        {metricsData ? (
-                            <Badge className="bg-primary text-white font-black text-[10px] tracking-wider uppercase">2.4x INDUSTRY AVG</Badge>
-                        ) : <Skeleton className="h-6 w-24" />}
-                    </CardContent>
-                </Card>
-           </div>
-      </div>
+      {/* Factual Transaction Audit Table */}
+      <Card className="border-primary/10">
+        <CardHeader className="bg-muted/30">
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle className="text-lg font-black flex items-center gap-2">
+                        <History className="h-5 w-5 text-primary" /> 
+                        Transactional Journey Audit
+                    </CardTitle>
+                    <CardDescription>Factual co-occurrence log of verified transactions and Ari interactions.</CardDescription>
+                </div>
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[9px] font-black uppercase tracking-widest">
+                    {attributionReport?.dataStatus || 'PENDING'} SOURCE
+                </Badge>
+            </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Session ID</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">POS Txn ID</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Ari Involvement</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Attribution Level</TableHead>
+                        <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Timestamp</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isAttributing ? (
+                         <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto h-6 w-6 text-muted-foreground" /></TableCell></TableRow>
+                    ) : attributionReport?.records.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No matching journeys discovered.</TableCell></TableRow>
+                    ) : attributionReport?.records.map((record, i) => (
+                        <TableRow key={i}>
+                            <TableCell className="font-mono text-[10px] text-muted-foreground">{record.sessionId.substring(0, 12)}...</TableCell>
+                            <TableCell className="font-mono text-[10px]">{record.transactionId?.substring(0, 12) || 'N/A'}...</TableCell>
+                            <TableCell>
+                                {record.ariInteraction ? (
+                                    <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] font-bold uppercase">YES</Badge>
+                                ) : <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-50">NO</span>}
+                            </TableCell>
+                            <TableCell>
+                                <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">
+                                    {record.attributionLevel.replace(/_/g, ' ')}
+                                </span>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-[10px] text-muted-foreground">
+                                {record.transactionTimestamp ? new Date(record.transactionTimestamp).toLocaleTimeString() : '---'}
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+            <p className="text-[9px] italic text-muted-foreground mt-4 px-2">
+                * This log joins transactions and Ari interactions strictly by Session ID. "Attribution Level" describes the observed journey depth, not causal force.
+            </p>
+        </CardContent>
+      </Card>
 
       <Separator />
-
-      {/* RETAINER METRICS: INFRASTRUCTURE ADOPTION */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-muted/30 border-none shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">True Reach (Sessions)</CardTitle>
-            <UserCheck className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metricsData?.engagement.uniqueScans.toLocaleString() || <Skeleton className="h-8 w-16" />}</div>
-            <p className="text-[9px] text-muted-foreground uppercase mt-1">Unique customer journeys initialized.</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-muted/30 border-none shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Raw Resolve Events</CardTitle>
-            <QrCode className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metricsData?.engagement.totalScans.toLocaleString() || <Skeleton className="h-8 w-16" />}</div>
-            <p className="text-[9px] text-muted-foreground uppercase mt-1">Total GS1-aligned parser triggers.</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-muted/30 border-none shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Engagement Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.scanRate.toFixed(2)}%` : <Skeleton className="h-8 w-16" />}</div>
-            <p className="text-[9px] text-muted-foreground uppercase mt-1">Footfall-to-session conversion.</p>
-          </CardContent>
-        </Card>
-         <Card className="bg-muted/30 border-none shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Interaction Dwell</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metricsData ? `${metricsData.engagement.engagementDuration}s` : <Skeleton className="h-8 w-12" />}</div>
-            <p className="text-[9px] text-muted-foreground uppercase mt-1">Avg. duration of the decision window.</p>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
             {funnelData ? (
@@ -317,13 +230,26 @@ export default function RoiPage() {
             ) : (
                 <Card><CardContent className="flex justify-center py-10"><Loader2 className="h-10 w-10 animate-spin text-muted-foreground"/></CardContent></Card>
             )}
-            <TopProductsTable data={topProductsData} />
+            <div className="space-y-6">
+                <Card className="border-primary/10">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                            <BarChart3 className="h-3 w-3" /> Ari-Assisted Purchases
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black">{attributionReport?.ariAssistedPurchases || 0}</div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Confirmed POS transactions in Ari-active sessions.</p>
+                    </CardContent>
+                </Card>
+                <TopProductsTable data={[]} />
+            </div>
       </div>
 
       <Separator />
 
       <TimeBasedPerformanceChart 
-        data={timeBasedPerformanceData} 
+        data={[]} 
         title="Infrastructure Performance Trend"
         description="Month-over-month adoption of GS1-aligned compatible architecture."
       />

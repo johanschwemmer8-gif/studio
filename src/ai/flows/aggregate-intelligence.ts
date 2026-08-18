@@ -2,7 +2,9 @@
 'use server';
 /**
  * @fileOverview iNteract Retailer Intelligence Aggregator.
- * Deterministically calculates metrics from /events and generates grounded insights.
+ * DETERMINISTIC FIRST: Calculates metrics from /events and /sessions.
+ * INFERENCE GUARD: Explicitly excludes 'inferred' signals from factual counts.
+ * AUDIT VERSION: 1.1.0
  */
 
 import { ai } from '@/ai/genkit';
@@ -32,24 +34,25 @@ const aggregatorPrompt = ai.definePrompt({
         }))
     })},
     prompt: `You are the iNteract Intelligence Analyst. 
-    You have been provided with DETERMINISTIC METRICS calculated from verified customer interaction signals.
+    You have been provided with DETERMINISTIC METRICS calculated from verified interaction signals.
     
-    YOUR TASK: Translate these numbers into human-readable insights.
+    YOUR TASK: Translate these numbers into professional, human-readable insights for a retailer dashboard.
     
-    STRICT RULES:
+    STRICT INTEGRITY RULES:
     1. NO MANUFACTURING: Use ONLY the numbers provided. Do not invent trends or percentages.
-    2. NO CAUSAL CLAIMS: Do not say "X caused Y". Say "X co-occurs with Y" or "X is observed in Y% of cases".
-    3. TYPES: 
-       - OBSERVATION: Describe the pattern (e.g., "Frequent interest in durability").
-       - INTERPRETATION: What it might mean (e.g., "Durability appears to be a value driver").
-       - HYPOTHESIS: A business guess (e.g., "Highlighting warranty may improve conversion").
+    2. NO CAUSAL CLAIMS: Do not use words like "because", "due to", or "caused". Use "co-occurs with", "is observed in", or "presents as".
+    3. PHRASING CONSTRAINTS: 
+       - OBSERVATION: Describe the pattern clearly (e.g., "Price objections appear in 15% of sessions").
+       - INTERPRETATION: Explain what this likely means for the store (e.g., "This suggests price may be a barrier for some shoppers").
+       - HYPOTHESIS: Propose a testable theory (e.g., "Testing a loyalty discount may influence this pattern").
+    4. ACCURACY: If a signal occurs in 18% of sessions, you must state exactly 18%.
     
     METRICS DATA:
     {{#each metrics}}
-    - Signal: {{type}} | Rate: {{rate}}% | Sample: {{uniqueSessions}} unique sessions
+    - Signal: {{type}} | Rate: {{rate}}% | Sample: {{uniqueSessions}} unique sessions out of {{denominator}} total
     {{/each}}
     
-    Format the output as a structured analysis.`
+    Format the output as a structured analysis for each signal type.`
 });
 
 const aggregateIntelligenceFlow = ai.defineFlow(
@@ -63,75 +66,103 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     if (!db) throw new Error("Infrastructure Layer Unavailable.");
 
     const startTime = subDays(new Date(), daysLookback);
+    const endTime = new Date();
     
-    // 1. Fetch relevant signals (Deterministic Stage)
-    let query = db.collection('events')
+    // 1. Fetch Total Sessions (The Denominator)
+    // Rule: Denominator must be all unique shopping sessions in the period.
+    let sessionQuery = db.collection('sessions')
+        .where('retailerId', '==', retailerId)
+        .where('startTime', '>=', startTime);
+    
+    if (gtin) sessionQuery = sessionQuery.where('entryGtin', '==', gtin);
+    
+    const sessionSnapshot = await sessionQuery.get();
+    const totalUniqueSessions = sessionSnapshot.size || 1; // Prevent division by zero
+
+    // 2. Fetch Relevant Interaction Signals (The Numerator)
+    let signalQuery = db.collection('events')
         .where('retailerId', '==', retailerId)
         .where('eventType', '==', 'interaction_signal')
         .where('timestamp', '>=', startTime);
 
-    if (gtin) query = query.where('gtin', '==', gtin);
+    if (gtin) signalQuery = signalQuery.where('gtin', '==', gtin);
 
-    const snapshot = await query.get();
-    const events = snapshot.docs.map(d => d.data());
+    const signalSnapshot = await signalQuery.get();
+    const allSignals = signalSnapshot.docs.map(d => d.data());
 
-    // 2. Filter: No Inferred Data allowed in factual aggregation
-    const validEvents = events.filter(e => e.metadata?.evidenceType !== 'inferred');
+    // 3. HARDENED FILTER: Exclude 'inferred' signals from factual aggregation
+    const validatedSignals = allSignals.filter(e => e.metadata?.evidenceType !== 'inferred');
     
-    // 3. Aggregate by Unique Session
-    const allSessions = new Set(events.map(e => e.sessionId));
-    const totalUniqueSessions = allSessions.size;
-
+    // 4. Aggregate by Unique Session to prevent duplicate message bias
     const signalGroups: Record<string, Set<string>> = {};
-    validEvents.forEach(e => {
+    validatedSignals.forEach(e => {
         const type = e.metadata?.type;
         if (!type) return;
         if (!signalGroups[type]) signalGroups[type] = new Set();
         signalGroups[type].add(e.sessionId);
     });
 
-    // 4. Calculate Deterministic Metrics
+    // 5. Calculate Deterministic Metrics
     const calculatedMetrics = Object.entries(signalGroups).map(([type, sessions]) => ({
         type,
         uniqueSessions: sessions.size,
-        rate: Math.round((sessions.size / (totalUniqueSessions || 1)) * 100),
-        totalSignals: validEvents.filter(e => e.metadata?.type === type).length
+        denominator: totalUniqueSessions,
+        rate: Math.round((sessions.size / totalUniqueSessions) * 100),
+        totalRawSignals: validatedSignals.filter(e => e.metadata?.type === type).length
     }));
 
-    // 5. Generate Grounded Phrasing (LLM Translation Stage)
-    // Only pass calculated metrics, not raw conversations.
+    // 6. Zero Evidence Guard
+    if (calculatedMetrics.length === 0) {
+        return {
+            summary: "Insufficient evidence collected during this period to generate qualified intelligence.",
+            insights: [],
+            stats: {
+                totalUniqueSessions,
+                totalSignalsProcessed: validatedSignals.length
+            }
+        };
+    }
+
+    // 7. Grounded LLM Translation
     const { output } = await aggregatorPrompt({ metrics: calculatedMetrics });
 
-    // 6. Map to Intelligence Objects (Evidence Assessment)
+    // 8. Map to Qualified Intelligence Objects
     const insights: IntelligenceInsight[] = calculatedMetrics.map(m => {
         const aiText = output?.insights.find(i => i.type === m.type);
         
+        // Define Evidence Strength based on sample size
         let strength: 'LOW EVIDENCE' | 'MODERATE EVIDENCE' | 'HIGHER EVIDENCE' = 'LOW EVIDENCE';
-        if (m.uniqueSessions >= 30) strength = 'HIGHER EVIDENCE';
-        else if (m.uniqueSessions >= 10) strength = 'MODERATE EVIDENCE';
+        let insightType: 'FACT' | 'OBSERVATION' | 'INTERPRETATION' | 'HYPOTHESIS' = 'HYPOTHESIS';
+
+        if (m.uniqueSessions >= 30) {
+            strength = 'HIGHER EVIDENCE';
+            insightType = 'FACT';
+        } else if (m.uniqueSessions >= 10) {
+            strength = 'MODERATE EVIDENCE';
+            insightType = 'OBSERVATION';
+        }
 
         return {
             insightId: `ins_${m.type}_${Date.now()}`,
-            category: 'Customer Behavioral Pattern',
+            category: 'Shopper Behavioral Pattern',
             type: m.type,
-            insightType: m.uniqueSessions < 10 ? 'HYPOTHESIS' : 'FACT',
-            statement: m.uniqueSessions < 10 
-                ? "Insufficient sample size for qualified insight."
-                : `${m.rate}% of shopping sessions (${m.uniqueSessions}) included a ${m.type.replace(/_/g, ' ')}.`,
+            insightType,
+            statement: aiText?.observation || `${m.rate}% of sessions included an explicit ${m.type.replace(/_/g, ' ')}.`,
             metric: {
                 numerator: m.uniqueSessions,
                 denominator: totalUniqueSessions,
                 rate: m.rate,
-                label: 'Unique Session Frequency'
+                label: 'Session Frequency'
             },
             evidenceStrength: strength,
             methodology: {
                 uniqueSessionCount: m.uniqueSessions,
-                totalSignalCount: m.totalSignals,
+                totalSignalCount: m.totalRawSignals,
                 evidenceTypesIncluded: ['explicit', 'derived'],
+                aggregationVersion: '1.1.0',
                 timeWindow: {
                     start: startTime.toISOString(),
-                    end: new Date().toISOString()
+                    end: endTime.toISOString()
                 }
             },
             generatedAt: new Date().toISOString()
@@ -139,11 +170,11 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     });
 
     return {
-        summary: output?.summary || "Factual aggregation complete.",
+        summary: output?.summary || "Evidence-based aggregation complete.",
         insights: insights.filter(i => i.methodology.uniqueSessionCount > 0),
         stats: {
             totalUniqueSessions,
-            totalSignalsProcessed: validEvents.length
+            totalSignalsProcessed: validatedSignals.length
         }
     };
   }

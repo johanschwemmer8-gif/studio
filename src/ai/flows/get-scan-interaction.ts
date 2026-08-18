@@ -58,22 +58,14 @@ const prompt = ai.definePrompt({
 export async function getScanInteraction(input: GetScanInteractionInput): Promise<GetScanInteractionOutput> {
   const fallbackResponse: GetScanInteractionOutput = {
     messages: ["Hello! Ari here.", "Welcome to the iNteract platform. I'm synchronizing your personalized guidance journey now."],
-    destinationUrl: "https://interact-aoe.com", 
+    destinationUrl: "https://interactaoe.co.za", 
     retailerLogoUrl: '',
   };
 
   try {
-    // If it's a test QR, we can provide a faster response if we have context
-    if (input.qrId?.startsWith('test_')) {
-        console.log(`[Ari] Processing test scan: ${input.qrId}`);
-    }
-
     return await getScanInteractionFlow(input);
   } catch (error: any) {
-    // Robust error handling to prevent "Server Error" overlays on mobile
-    console.warn("Continuity Engine Simulation: Providing fallback interaction due to infrastructure friction.");
-    
-    // Attempt to extract destination URL from QR ID if possible as a last resort
+    console.warn("Continuity Engine Simulation: Providing fallback interaction.");
     return fallbackResponse;
   }
 }
@@ -87,7 +79,7 @@ const getScanInteractionFlow = ai.defineFlow(
   async ({ qrId, shopperUid }) => {
     const db = getDb();
     
-    let destinationUrl = "https://interact-aoe.com";
+    let destinationUrl = "https://interactaoe.co.za";
     let qrData: any = {};
     let mediaOptions: any = {};
     let shopperName: string | undefined;
@@ -108,6 +100,7 @@ const getScanInteractionFlow = ai.defineFlow(
         const qrDoc = await db.collection('qrcodes').doc(qrId).get();
         if (qrDoc.exists) {
             qrData = qrDoc.data()!;
+            // Ensure we use the redirectUrl from the test QR record
             destinationUrl = qrData.redirectUrl || `/p/${qrData.gtin || '06001234567891'}`;
             
             if (qrData.requestId) {

@@ -18,21 +18,21 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { 
-  Cog, 
-  FlaskConical, 
   Rocket, 
   Database, 
-  UserCog, 
   LogOut, 
   Shield, 
   BookOpen, 
-  QrCode, 
-  Globe, 
   DollarSign, 
   Activity, 
-  Lightbulb, 
-  ShieldCheck,
-  Loader2
+  Loader2,
+  Users,
+  Settings,
+  FileCheck,
+  PlayCircle,
+  FlaskConical,
+  Lock,
+  Globe
 } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
@@ -122,22 +122,25 @@ export default function DashboardLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Platform Governance</SidebarGroupLabel>
+            <SidebarGroupLabel>Core Operations</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Platform Access Control">
-                    <Link href="/create-admin"><UserCog /><span>Access Control</span></Link>
+                  <SidebarMenuButton asChild tooltip="User Management">
+                    <Link href="/create-admin"><Users /><span>User Access</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Infrastructure Layer">
-                    <Link href="/dashboard/core-integration"><Database /><span>Infrastructure Layer</span></Link>
+                  <SidebarMenuButton asChild tooltip="System Connections">
+                    <Link href="/dashboard/core-integration"><Settings /><span>System Connections</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Global Retailer Management">
-                        <Link href="/dashboard/admin"><Cog /><span>Retailer Management</span></Link>
+                    <SidebarMenuButton asChild tooltip="Retailer List">
+                        <Link href="/dashboard/admin">
+                          <Database className="h-4 w-4" />
+                          <span>Retailer List</span>
+                        </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -147,23 +150,24 @@ export default function DashboardLayout({
           <SidebarSeparator />
 
           <SidebarGroup>
+            <SidebarGroupLabel>Business Performance</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Global Economic ROI">
-                    <Link href="/dashboard/executive-roi"><DollarSign /><span>Executive ROI</span></Link>
+                  <SidebarMenuButton asChild tooltip="Global ROI Dashboard">
+                    <Link href="/dashboard/executive-roi"><DollarSign /><span>Global ROI</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Infrastructure Health">
-                    <Link href="/dashboard/platform-security"><Activity /><span>Infrastructure Health</span></Link>
+                  <SidebarMenuButton asChild tooltip="Platform Health">
+                    <Link href="/dashboard/platform-security"><Activity /><span>Platform Health</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Ecosystem Deployment">
                     <Link href="/dashboard/retailers-dashboards">
                       <Rocket />
-                      <span>Ecosystem Deployment</span>
+                      <span>Push Updates</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -174,27 +178,27 @@ export default function DashboardLayout({
           <SidebarSeparator />
 
           <SidebarGroup>
-            <SidebarGroupLabel>Security & Ethics</SidebarGroupLabel>
+            <SidebarGroupLabel>Compliance & Security</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="AI Ethics & Governance">
-                    <Link href="/dashboard/ai-policy"><Shield /><span>AI Ethics</span></Link>
+                  <SidebarMenuButton asChild tooltip="AI Governance Rules">
+                    <Link href="/dashboard/ai-policy"><Shield /><span>AI Rules</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="GS1 Conformance Pack">
-                    <Link href="/dashboard/gs1-conformance"><ShieldCheck /><span>GS1 Conformance</span></Link>
+                  <SidebarMenuButton asChild tooltip="GS1 Product Standards">
+                    <Link href="/dashboard/gs1-conformance"><FileCheck /><span>GS1 Standards</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="AOE Infrastructure Security">
-                    <Link href="/dashboard/aoe-security"><Shield /><span>Infrastructure Security</span></Link>
+                  <SidebarMenuButton asChild tooltip="Data Security">
+                    <Link href="/dashboard/aoe-security"><Lock /><span>Data Security</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="External API Gateways">
-                    <Link href="/dashboard/external-security-integrations"><Globe /><span>API Gateways</span></Link>
+                  <SidebarMenuButton asChild tooltip="API Key Management">
+                    <Link href="/dashboard/external-security-integrations"><Globe /><span>API Access</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -204,24 +208,24 @@ export default function DashboardLayout({
           <SidebarSeparator />
           
           <SidebarGroup>
-            <SidebarGroupLabel>R&D and Validation</SidebarGroupLabel>
+            <SidebarGroupLabel>Resources & Lab</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="System Integration Sandbox">
-                    <Link href="/dashboard/system-integration"><FlaskConical /><span>Integration Sandbox</span></Link>
+                  <SidebarMenuButton asChild tooltip="Integration Testing">
+                    <Link href="/dashboard/system-integration"><FlaskConical /><span>Test Environment</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Infrastructure Training Hub">
-                    <Link href="/dashboard/documentation"><BookOpen /><span>Training Hub</span></Link>
+                  <SidebarMenuButton asChild tooltip="Documentation Center">
+                    <Link href="/dashboard/documentation"><BookOpen /><span>Help Center</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                  <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Decision Intelligence Sandbox">
+                  <SidebarMenuButton asChild tooltip="MVP Simulator">
                     <Link href="/retailer-mvp/dashboard">
-                      <Lightbulb />
-                      <span>Intelligence Sandbox</span>
+                      <PlayCircle />
+                      <span>MVP Simulator</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

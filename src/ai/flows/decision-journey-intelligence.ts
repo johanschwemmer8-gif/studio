@@ -209,6 +209,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             rejectionBreakdown: [],
             barrierBreakdown: [],
             stats: { totalUniqueSessions: 0, alternativeProductMovements: 0, recommendationToPurchaseCount: 0, leakagePoints: {}, rejectionsWithReason: 0, rejectionsWithoutReason: 0 },
+            altProductBreakdown: [],
             metadata: { aggregationVersion: '1.4.0', dataStatus: 'SIMULATED', evidenceStrength: 'LOW', methodology: 'Empty dataset.' }
         };
     }

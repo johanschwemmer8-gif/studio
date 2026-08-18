@@ -45,6 +45,7 @@ export const DecisionJourneyOutputSchema = z.object({
   funnel: z.array(JourneyStageSchema),
   rejectionBreakdown: z.array(RejectionReasonSchema),
   barrierBreakdown: z.array(BarrierSignalSchema).describe('Factual breakdown of explicit purchase barriers (Price, Size, etc).'),
+  altProductBreakdown: z.array(AltProductMovementSchema),
   stats: z.object({
     totalUniqueSessions: z.number().int(),
     alternativeProductMovements: z.number().int().describe('Sessions where the shopper engaged with another GTIN.'),

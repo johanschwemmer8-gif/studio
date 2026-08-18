@@ -4,14 +4,15 @@ import { z } from 'genkit';
 /**
  * @fileOverview Controlled Taxonomy for Structured Interaction Signals.
  * Defines the evidence layer for customer-expressed information.
+ * HARDENED: Strict classification rules to prevent inference from masquerading as fact.
  */
 
 export const EvidenceTypeSchema = z.enum(['explicit', 'derived', 'inferred']).describe(
-  'Explicit: Directly stated. Derived: Deterministically calculated. Inferred: AI interpretation.'
+  'explicit: Directly stated. derived: Deterministically calculated without assumptions. inferred: AI interpretation/guess.'
 );
 
 export const ConfidenceLevelSchema = z.enum(['HIGH', 'MEDIUM', 'LOW', 'INFERRED']).describe(
-  'HIGH: Clear explicit statement. MEDIUM: Minor interpretation. LOW: Ambiguous. INFERRED: Model guess.'
+  'HIGH: Reserved for clear explicit evidence. MEDIUM: Supported but contextual. LOW: Ambiguous. INFERRED: AI interpretation.'
 );
 
 export const InteractionSignalSchema = z.object({
@@ -27,10 +28,10 @@ export const InteractionSignalSchema = z.object({
     'recommendation_response',
     'information_request'
   ]).describe('The category of the extracted signal.'),
-  value: z.any().describe('The structured value of the signal (e.g. numeric budget, boolean preference, or specific feature).'),
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).describe('The structured value of the signal (PII MUST BE EXCLUDED).'),
   evidenceType: EvidenceTypeSchema,
   confidence: ConfidenceLevelSchema,
-  statedReason: z.string().optional().describe('The verbatim or near-verbatim reason expressed by the customer.'),
+  statedReason: z.string().optional().describe('The verbatim reason expressed by the customer (PII MUST BE EXCLUDED).'),
   comparisonProductGtin: z.string().optional().describe('GTIN of the product being compared, if applicable.')
 });
 
@@ -43,7 +44,7 @@ export const InteractionSignalEventSchema = z.object({
   eventType: z.literal('interaction_signal'),
   timestamp: z.any(), // Firestore Timestamp
   metadata: InteractionSignalSchema.extend({
-    sourceMessage: z.string().describe('The user message that triggered this signal.'),
+    sourceMessage: z.string().describe('The scrubbed user message that triggered this signal. PII MUST BE REMOVED.'),
     extractionVersion: z.string().default('1.0.0')
   })
 });

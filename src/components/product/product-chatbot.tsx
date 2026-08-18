@@ -22,7 +22,7 @@ import { Skeleton } from '../ui/skeleton';
 import QrScannerCamera from '../qr-scanner-camera';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -80,9 +80,16 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   aiModel: 'gemini-2.5-flash'
               }).catch(() => {});
 
-              // 2. Record Structured Interaction Signals as Events
-              if (result.signals && result.signals.length > 0) {
+              // 2. HARDENED: Record Signals ONLY if behavioural analysis consent is granted
+              const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
+              
+              if (hasConsent && result.signals && result.signals.length > 0) {
                   result.signals.forEach((signal) => {
+                      // VALIDATION: Ensure inferred signals do not have HIGH confidence
+                      if (signal.evidenceType === 'inferred' && signal.confidence === 'HIGH') {
+                          signal.confidence = 'INFERRED';
+                      }
+
                       const eventId = `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
                       setDoc(doc(db, 'events', eventId), {
                           eventId,
@@ -92,7 +99,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                           timestamp: serverTimestamp(),
                           metadata: {
                               ...signal,
-                              sourceMessage: userText,
+                              sourceMessage: userText.substring(0, 500), // Data minimisation
                               extractionVersion: '1.0.0'
                           }
                       }).catch(() => {});

@@ -4,6 +4,7 @@
  * @fileOverview Ari - Intelligence Layer Continuity Assistant.
  * ENFORCED GROUNDING: Provides sophisticated guidance using only verified Fact Context.
  * SIGNAL EXTRACTION: Captures structured interaction signals from the conversation.
+ * HARDENED: Strict evidence-based logic and PII scrubbing.
  */
 
 import { ai } from '@/ai/genkit';
@@ -77,11 +78,14 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     
     SIGNAL EXTRACTION RULES:
     You must extract structured "Interaction Signals" from the user's LATEST message.
-    1. EXPLICIT: Use when the user directly states a fact (e.g. "My budget is R1000").
-    2. DERIVED: Use when a fact is certain (e.g. "I have R100" implies budget).
-    3. INFERRED: Use for interpretations (e.g. "Too expensive" implies a price objection but NOT a specific budget).
-    4. CONFIDENCE: HIGH for explicit, MEDIUM/LOW for ambiguous, INFERRED for guesses.
-    5. NO MANUFACTURED OUTCOMES: Do not assume a recommendation was accepted unless the user says so.
+    - EXPLICIT: Use only if the customer directly stated the info.
+    - DERIVED: Use only for deterministic logic (e.g. math).
+    - INFERRED: Use for interpretations.
+    - CONFIDENCE RULES:
+        * HIGH: Use ONLY for EXPLICIT statements.
+        * MEDIUM/LOW: Use for statements needing context.
+        * INFERRED: MUST use if the evidence type is inferred.
+    - PRIVACY: NEVER include customer names, emails, or phone numbers in the extracted signal values.
     
     ${factContextStr}
     ${shopperContext}

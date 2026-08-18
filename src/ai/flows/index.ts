@@ -1,4 +1,3 @@
-
 'use server';
 
 // This file exports all the Genkit flows for easy access from the client.
@@ -38,6 +37,7 @@ import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledPro
 import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from './sync-products';
 import { aggregateIntelligence } from './aggregate-intelligence';
 import { attributeTransactions } from './attribute-transactions';
+import { getDecisionJourneyIntelligence } from './decision-journey-intelligence';
 
 export {
     analyzeBehavioralInsights,
@@ -72,6 +72,7 @@ export {
     syncProducts,
     aggregateIntelligence,
     attributeTransactions,
+    getDecisionJourneyIntelligence,
 };
 
 export type {

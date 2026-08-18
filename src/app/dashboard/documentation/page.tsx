@@ -166,9 +166,9 @@ export default function AdminHelpCenterPage() {
                                 <AccordionItem value="logic-1">
                                     <AccordionTrigger className="font-bold">Silence ≠ Acceptance</AccordionTrigger>
                                     <AccordionContent className="space-y-4 pt-2">
-                                        <p className="text-sm text-muted-foreground">
-                                            iNteract architecture strictly forbids inferring acceptance from silence. If Ari recommends a product and the shopper provides no feedback, the state remains <Badge variant="outline" className="text-[10px]">UNRESOLVED</Badge>.
-                                        </p>
+                                        <div className="text-sm text-muted-foreground">
+                                            iNteract architecture strictly forbids inferring acceptance from silence. If Ari recommends a product and the shopper provides no feedback, the state remains <Badge variant="outline" className="text-[10px] inline-flex">UNRESOLVED</Badge>.
+                                        </div>
                                         <div className="bg-red-50 border border-red-100 p-3 rounded-lg text-red-700 text-xs font-medium">
                                             Blocker: "Dwell time" or "Silence" must never increment the Recommendation Acceptance rate.
                                         </div>
@@ -179,8 +179,8 @@ export default function AdminHelpCenterPage() {
                                     <AccordionContent className="space-y-4 pt-2">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="p-3 border rounded-lg bg-background">
-                                                <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Scenario A</p>
-                                                <p className="text-xs font-bold italic">"No, too expensive."</p>
+                                                <div className="text-[10px] font-black uppercase text-muted-foreground mb-1">Scenario A</div>
+                                                <div className="text-xs font-bold italic">"No, too expensive."</div>
                                                 <Separator className="my-2" />
                                                 <div className="flex gap-2">
                                                     <Badge className="bg-green-500 text-[9px]">REJECTION: YES</Badge>
@@ -188,8 +188,8 @@ export default function AdminHelpCenterPage() {
                                                 </div>
                                             </div>
                                             <div className="p-3 border rounded-lg bg-background">
-                                                <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Scenario B</p>
-                                                <p className="text-xs font-bold italic">"No."</p>
+                                                <div className="text-[10px] font-black uppercase text-muted-foreground mb-1">Scenario B</div>
+                                                <div className="text-xs font-bold italic">"No."</div>
                                                 <Separator className="my-2" />
                                                 <div className="flex gap-2">
                                                     <Badge className="bg-green-500 text-[9px]">REJECTION: YES</Badge>

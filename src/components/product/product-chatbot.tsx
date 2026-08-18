@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -13,8 +14,7 @@ import {
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageCircle, Send, Sparkles, QrCode, X, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Sparkles, QrCode, X, Loader2, ShieldCheck } from 'lucide-react';
 import type { Product } from '@/lib/data';
 import { productChat, type ProductChatInput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ import { Skeleton } from '../ui/skeleton';
 import QrScannerCamera from '../qr-scanner-camera';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -35,6 +35,9 @@ type ProductChatbotProps = {
 
 export default function ProductChatbot({ product }: ProductChatbotProps) {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session');
+  
   const [isOpen, setIsOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -47,12 +50,12 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const newMessages: ChatMessage[] = [...messages, { role: 'user', content: input }];
+    const userText = input.trim();
+    const newMessages: ChatMessage[] = [...messages, { role: 'user', content: userText }];
     setMessages(newMessages);
     setInput('');
 
     startTransition(async () => {
-      // Grounding identified by GTIN
       const chatInput: ProductChatInput = {
         gtin: product.gtin,
         url: typeof window !== 'undefined' ? window.location.href : '',
@@ -64,20 +67,40 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
           const result = await productChat(chatInput);
           setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
 
-          // Interaction Log
-          if (db) {
+          if (db && sessionId) {
+              // 1. Log Conversation History
               const conversationId = `convo_${Date.now()}`;
               setDoc(doc(db, 'ai_conversations', conversationId), {
                   conversationId,
+                  sessionId,
                   shopperId: user?.uid || 'guest',
                   gtin: product.gtin,
                   transcript: [...newMessages, { role: 'model', content: result.message }],
                   timestamp: serverTimestamp(),
                   aiModel: 'gemini-2.5-flash'
               }).catch(() => {});
+
+              // 2. Record Structured Interaction Signals as Events
+              if (result.signals && result.signals.length > 0) {
+                  result.signals.forEach((signal) => {
+                      const eventId = `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+                      setDoc(doc(db, 'events', eventId), {
+                          eventId,
+                          sessionId,
+                          gtin: product.gtin,
+                          eventType: 'interaction_signal',
+                          timestamp: serverTimestamp(),
+                          metadata: {
+                              ...signal,
+                              sourceMessage: userText,
+                              extractionVersion: '1.0.0'
+                          }
+                      }).catch(() => {});
+                  });
+              }
           }
       } catch (err) {
-          setMessages((prev) => [...prev, { role: 'model', content: "I'm experiencing a momentary connection issue with the product database. Please feel free to ask another question." }]);
+          setMessages((prev) => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to ask another question." }]);
       }
     });
   };
@@ -133,7 +156,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                       <span className="text-white font-black text-xs">AR</span>
                     </div>
                     <div className="rounded-2xl px-4 py-3 bg-muted text-sm leading-relaxed border border-primary/5">
-                      Hello! I'm Ari. I've initialized a grounded session for <strong>{product.name}</strong>. I have the verified product specifications ready. How can I help?
+                      Hello! I'm Ari. I've initialized a grounded session for <strong>{product.name}</strong>. How can I help?
                     </div>
                   </div>
                 )}
@@ -191,14 +214,14 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                         </Button>
                         <div className="flex items-center gap-1.5">
                             <ShieldCheck className="h-3 w-3 text-green-500" />
-                            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-tighter">Strict Grounding Active</span>
+                            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-tighter">Signal Extraction Active</span>
                         </div>
                     </div>
                     <form onSubmit={handleSendMessage} className="flex w-full gap-2 pb-2">
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask about verified specs..."
+                            placeholder="Ask about price, features..."
                             disabled={isPending}
                             className="bg-muted/80 border-none shadow-none h-12 rounded-xl text-sm"
                         />

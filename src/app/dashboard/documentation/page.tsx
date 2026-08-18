@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -20,13 +19,13 @@ import {
   Database,
   Lock,
   Workflow,
-  Sparkles
+  Sparkles,
+  ListChecks
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const DocHeader = ({ title, version, status }: { title: string, version: string, status: string }) => (
@@ -376,4 +375,3 @@ export default function AdminHelpCenterPage() {
         </div>
     );
 }
-    

@@ -4,6 +4,7 @@
  * CHRONOLOGICAL INTEGRITY (v1.4.0)
  * Logic: SCAN -> VIEW -> INTEREST -> CONSIDERATION -> PURCHASE.
  * Hardened Rejection & Barrier Intelligence implementation.
+ * AUDIT v1.4.1: Strictly non-causal language enforcement.
  */
 
 import { ai } from '@/ai/genkit';
@@ -19,13 +20,13 @@ const summaryPrompt = ai.definePrompt({
     prompt: `You are the iNteract Decision Analyst. 
     You have been provided with CHRONOLOGICALLY VERIFIED JOURNEY METRICS and REJECTION DATA.
     
-    TASK: Write a 2-3 sentence executive summary describing the shopper decision patterns and identified barriers.
+    TASK: Write a 2-3 sentence summary describing the observed patterns.
     
     STRICT INTEGRITY RULES:
-    1. NO CAUSAL CLAIMS: Do not use "because", "due to", or "resulted in".
+    1. NO CAUSAL CLAIMS: Do not use "because", "due to", "resulted in", or "caused".
     2. NO MANUFACTURED NUMBERS: Use only provided metrics.
-    3. LANGUAGE: Use "subsequent purchase", "explicit rejection", and "verified progression".
-    4. BARRIERS: Use "observed barrier" or "explicitly stated reason".
+    3. LANGUAGE: Use "subsequent purchase", "explicit rejection", "observed sequence", and "verified progression".
+    4. BARRIERS: Use "observed barrier" or "explicitly stated factor".
     
     DATA:
     {{#if metrics.gtin}}ANALYSING GTIN: {{metrics.gtin}}{{/if}}
@@ -253,7 +254,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         retailerId,
         gtin: targetGtin,
         timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
-        summary: output?.summary || "Factual rejection and barrier analysis complete.",
+        summary: output?.summary || "Factual observation complete.",
         funnel,
         rejectionBreakdown: sortedRejections,
         barrierBreakdown,
@@ -271,10 +272,10 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             }
         },
         metadata: {
-            aggregationVersion: '1.4.0',
+            aggregationVersion: '1.4.1',
             dataStatus: 'SIMULATED', 
             evidenceStrength: totalUniqueSessions >= 30 ? 'HIGHER' : totalUniqueSessions >= 10 ? 'MODERATE' : 'LOW',
-            methodology: 'Deterministic per-GTIN chronological state machine with explicit barrier extraction.'
+            methodology: 'Deterministic chronological walk with non-causal constraints.'
         }
     };
 }

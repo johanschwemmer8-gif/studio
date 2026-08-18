@@ -130,12 +130,12 @@ export default function DashboardPage() {
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button className="h-10 gap-2 font-bold text-[10px] uppercase tracking-widest">
-                        <Download className="h-4 w-4" /> Export Economic Data
+                        <Download className="h-4 w-4" /> Export Report
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Download Intelligence Summary (PDF)</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Raw Behavioural Ecosystem (CSV)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Download Summary (PDF)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Raw Events (CSV)</DropdownMenuItem>
                 </DropdownMenuContent>
              </DropdownMenu>
           </div>
@@ -145,45 +145,45 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
            <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Revenue Influenced</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Associated Revenue</CardTitle>
               <DollarSign className="h-4 w-4 opacity-70" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-black">R{conversion.revenueInfluenced.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-[10px] opacity-70 mt-1">Total engaged sales value.</p>
+              <p className="text-[10px] opacity-70 mt-1">Total revenue in engaged sessions.</p>
             </CardContent>
           </Card>
           
            <Card className="border-green-200 bg-green-50 shadow-sm border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-green-700 tracking-widest">Incremental Revenue</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase text-green-700 tracking-widest">Calculated Uplift</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-black text-green-800">R{conversion.incrementalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-[10px] text-green-600 mt-1">New revenue from guidance uplift.</p>
+              <p className="text-[10px] text-green-600 mt-1">Growth metric (Simulation).</p>
             </CardContent>
           </Card>
 
            <Card className="border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Sales Uplift</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Growth Velocity</CardTitle>
               <ArrowUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-black text-green-600">+{conversion.salesUpliftPercentage}%</div>
-              <p className="text-[10px] text-muted-foreground mt-1">Attributable growth velocity.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Observed performance trend.</p>
             </CardContent>
           </Card>
 
           <Card className="border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assisted Sales</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assisted Journeys</CardTitle>
               <MessageSquare className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-black">{conversion.assistedSales.toLocaleString()}</div>
-              <p className="text-[10px] text-muted-foreground mt-1">Direct AI-guided transactions.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Sessions with Ari interaction.</p>
             </CardContent>
           </Card>
       </div>
@@ -197,16 +197,16 @@ export default function DashboardPage() {
                   <Lightbulb className="h-6 w-6" />
               </div>
               <div>
-                <CardTitle className="font-black text-xl">Decision Intelligence Strategy</CardTitle>
+                <CardTitle className="font-black text-xl">Decision Intelligence Patterns</CardTitle>
                 <CardDescription>
-                  Persistent Infrastructure Insights for <span className="font-semibold text-primary">{selectedStore || selectedRegion || 'Portfolio'}</span>
+                  Factual observations for <span className="font-semibold text-primary">{selectedStore || selectedRegion || 'Portfolio'}</span>
                 </CardDescription>
               </div>
             </div>
             {optionalModules.performanceAnalysis && (
               <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing} variant="secondary" className="gap-2 font-bold uppercase text-[10px] tracking-widest">
                   <Sparkles className="h-4 w-4 text-accent" />
-                  Analyze ROI Ecosystem
+                  Summarize Patterns
               </Button>
             )}
           </div>
@@ -217,22 +217,22 @@ export default function DashboardPage() {
             {isAnalyzing && (
                 <div className="p-8 border rounded-xl border-accent/20 bg-accent/5 flex flex-col items-center gap-4 text-center">
                     <Loader2 className="h-12 w-12 animate-spin text-accent" />
-                    <p className="text-lg font-bold">Generative ROI Audit Active...</p>
+                    <p className="text-lg font-bold">Summarizing Observations...</p>
                 </div>
             )}
 
             {analysis && (
                 <Card className="bg-accent/10 border-accent shadow-lg animate-in fade-in zoom-in-95">
                     <CardHeader>
-                         <CardTitle className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest text-accent"><Sparkles className="h-4 w-4"/> iNteract Intelligence Layer</CardTitle>
+                         <CardTitle className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest text-accent"><Sparkles className="h-4 w-4"/> iNteract Observations</CardTitle>
                     </CardHeader>
                     <CardContent className="grid md:grid-cols-2 gap-8">
                         <div>
-                            <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Infrastructure Conclusions</h3>
+                            <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Factual Summaries</h3>
                             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.conclusions}</p>
                         </div>
                          <div>
-                            <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3">ROI Action Plan</h3>
+                            <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3">Identified Indicators</h3>
                             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.recommendations}</p>
                         </div>
                     </CardContent>
@@ -243,13 +243,13 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                <Card className="border-primary/10 hover:border-primary/30 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">True Reach (Sessions)</CardTitle>
+                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Identified Sessions</CardTitle>
                   <UserCheck className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-black">{engagement.identifiedShoppers.toLocaleString()}</div>
                   <Badge variant="outline" className="mt-2 bg-primary/5 border-primary/20 text-[10px] py-0 font-bold">
-                    {engagement.profileConversionRate.toFixed(1)}% ID Efficiency
+                    {engagement.profileConversionRate.toFixed(1)}% Profile Yield
                   </Badge>
                 </CardContent>
               </Card>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-black text-green-600">+{conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">R{conversion.basketSizeIncreaseRand.toFixed(2)} extra per basket</p>
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">R{conversion.basketSizeIncreaseRand.toFixed(2)} extra per engaged basket</p>
                 </CardContent>
               </Card>
 
@@ -272,18 +272,18 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-black">{intelligenceData.hesitationMetrics.hesitationIndex}%</div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Repeat engagement without conversion</p>
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Observed repeat engagement</p>
                 </CardContent>
               </Card>
 
                <Card className="border-primary/10 hover:border-primary/30 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scan-to-Purchase</CardTitle>
+                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Journeys with Purchase</CardTitle>
                   <ShoppingCart className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-black">{conversion.scanToPurchaseConversion.toFixed(1)}%</div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Funnel resolution efficiency</p>
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Sessions ending in transaction</p>
                 </CardContent>
               </Card>
             </div>

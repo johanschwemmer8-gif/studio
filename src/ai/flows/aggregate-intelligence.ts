@@ -1,10 +1,9 @@
-
 'use server';
 /**
  * @fileOverview iNteract Retailer Intelligence Aggregator.
  * DETERMINISTIC FIRST: Calculates metrics from /events and /sessions.
  * INFERENCE GUARD: Explicitly excludes 'inferred' signals from factual counts.
- * AUDIT VERSION: 1.1.0
+ * AUDIT VERSION: 1.1.1
  */
 
 import { ai } from '@/ai/genkit';
@@ -36,16 +35,12 @@ const aggregatorPrompt = ai.definePrompt({
     prompt: `You are the iNteract Intelligence Analyst. 
     You have been provided with DETERMINISTIC METRICS calculated from verified interaction signals.
     
-    YOUR TASK: Translate these numbers into professional, human-readable insights for a retailer dashboard.
+    YOUR TASK: Provide a factual summary of these patterns for a retailer dashboard.
     
     STRICT INTEGRITY RULES:
-    1. NO MANUFACTURING: Use ONLY the numbers provided. Do not invent trends or percentages.
-    2. NO CAUSAL CLAIMS: Do not use words like "because", "due to", or "caused". Use "co-occurs with", "is observed in", or "presents as".
-    3. PHRASING CONSTRAINTS: 
-       - OBSERVATION: Describe the pattern clearly (e.g., "Price objections appear in 15% of sessions").
-       - INTERPRETATION: Explain what this likely means for the store (e.g., "This suggests price may be a barrier for some shoppers").
-       - HYPOTHESIS: Propose a testable theory (e.g., "Testing a loyalty discount may influence this pattern").
-    4. ACCURACY: If a signal occurs in 18% of sessions, you must state exactly 18%.
+    1. NO MANUFACTURING: Use ONLY the numbers provided. Do not invent trends.
+    2. NO CAUSAL CLAIMS: Do not use "because", "due to", or "caused". Use "co-occurs with", "is observed in", or "presents as".
+    3. ACCURACY: If a signal occurs in 18% of sessions, you must state exactly 18%.
     
     METRICS DATA:
     {{#each metrics}}
@@ -69,7 +64,6 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     const endTime = new Date();
     
     // 1. Fetch Total Sessions (The Denominator)
-    // Rule: Denominator must be all unique shopping sessions in the period.
     let sessionQuery = db.collection('sessions')
         .where('retailerId', '==', retailerId)
         .where('startTime', '>=', startTime);
@@ -77,7 +71,7 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     if (gtin) sessionQuery = sessionQuery.where('entryGtin', '==', gtin);
     
     const sessionSnapshot = await sessionQuery.get();
-    const totalUniqueSessions = sessionSnapshot.size || 1; // Prevent division by zero
+    const totalUniqueSessions = sessionSnapshot.size || 1; 
 
     // 2. Fetch Relevant Interaction Signals (The Numerator)
     let signalQuery = db.collection('events')
@@ -114,7 +108,7 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     // 6. Zero Evidence Guard
     if (calculatedMetrics.length === 0) {
         return {
-            summary: "Insufficient evidence collected during this period to generate qualified intelligence.",
+            summary: "Insufficient evidence collected.",
             insights: [],
             stats: {
                 totalUniqueSessions,
@@ -130,7 +124,6 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     const insights: IntelligenceInsight[] = calculatedMetrics.map(m => {
         const aiText = output?.insights.find(i => i.type === m.type);
         
-        // Define Evidence Strength based on sample size
         let strength: 'LOW EVIDENCE' | 'MODERATE EVIDENCE' | 'HIGHER EVIDENCE' = 'LOW EVIDENCE';
         let insightType: 'FACT' | 'OBSERVATION' | 'INTERPRETATION' | 'HYPOTHESIS' = 'HYPOTHESIS';
 
@@ -159,7 +152,7 @@ const aggregateIntelligenceFlow = ai.defineFlow(
                 uniqueSessionCount: m.uniqueSessions,
                 totalSignalCount: m.totalRawSignals,
                 evidenceTypesIncluded: ['explicit', 'derived'],
-                aggregationVersion: '1.1.0',
+                aggregationVersion: '1.1.1',
                 timeWindow: {
                     start: startTime.toISOString(),
                     end: endTime.toISOString()
@@ -170,7 +163,7 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     });
 
     return {
-        summary: output?.summary || "Evidence-based aggregation complete.",
+        summary: output?.summary || "Factual aggregation complete.",
         insights: insights.filter(i => i.methodology.uniqueSessionCount > 0),
         stats: {
             totalUniqueSessions,

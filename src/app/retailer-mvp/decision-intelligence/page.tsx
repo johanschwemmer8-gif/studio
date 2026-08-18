@@ -5,63 +5,48 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { 
   BrainCircuit, TrendingUp, AlertTriangle, MessageSquare, 
-  BarChart2, MousePointerClick, Tag, Activity, Download 
+  BarChart2, MousePointerClick, Tag, Activity, Download,
+  CheckCircle2, Info, ShieldCheck, HelpCircle
 } from 'lucide-react';
-import { analyzeDecisionIntelligence, type DecisionIntelligenceOutput } from '@/ai/flows/analyze-decision-intelligence';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { aggregateIntelligence } from '@/ai/flows/aggregate-intelligence';
+import { type AggregateIntelligenceOutputSchema } from '@/lib/schemas/intelligence-aggregator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from '@/lib/utils';
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+type AggregatedData = {
+    summary: string;
+    insights: any[];
+    stats: {
+        totalUniqueSessions: number;
+        totalSignalsProcessed: number;
+    }
+};
 
 export default function DecisionIntelligencePage() {
-    const [data, setData] = useState<DecisionIntelligenceOutput | null>(null);
+    const [data, setData] = useState<AggregatedData | null>(null);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
 
     useEffect(() => {
-        // Fetch decision intelligence
-        analyzeDecisionIntelligence().then(res => {
-            setData(res);
-            setLoading(false);
-        }).catch(err => {
-            console.error(err);
-            
-            // Fallback mock data for development
-            const fallbackResult: DecisionIntelligenceOutput = {
-                intentGaps: [
-                    { productId: '1', productName: 'Eco-Friendly Water Bottle', engagementScore: 88, conversionRate: 12, gapIndicator: 'Price Sensitivity' },
-                    { productId: '2', productName: 'Wireless Charging Pad', engagementScore: 94, conversionRate: 8, gapIndicator: 'Missing Information' },
-                    { productId: '3', productName: 'Smart Notebook', engagementScore: 45, conversionRate: 32, gapIndicator: 'Low Availability' },
-                ],
-                hesitationMetrics: {
-                    avgDwellBeforeDecision: 42,
-                    hesitationIndex: 18.5,
-                    topHesitationCategories: ['Electronics', 'Premium Footwear', 'Cosmetics'],
-                },
-                aiInteractionInsights: {
-                    topShopperQuestions: [
-                        { topic: 'Battery Life', frequency: 154, sentiment: 0.6 },
-                        { topic: 'Warranty Details', frequency: 112, sentiment: 0.8 },
-                        { topic: 'Comparison with Competitors', frequency: 89, sentiment: 0.4 },
-                        { topic: 'In-store Availability', frequency: 76, sentiment: 0.7 },
-                    ],
-                    aiResolutionRate: 64.2,
-                },
-                categoryEngagement: [
-                    { category: 'Lifestyle', uniqueScanners: 1240, repeatEngagementRate: 24.5 },
-                    { category: 'Electronics', uniqueScanners: 980, repeatEngagementRate: 31.2 },
-                    { category: 'Accessories', uniqueScanners: 750, repeatEngagementRate: 18.9 },
-                ]
-            };
-            setData(fallbackResult);
-            setLoading(false);
-        });
-    }, []);
+        aggregateIntelligence({ retailerId: 'simulated-retailer-id' })
+            .then(res => {
+                setData(res);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                toast({ title: "Friction in Intelligence stream", description: "Aggregator delayed. Retrying connection...", variant: "destructive" });
+            });
+    }, [toast]);
 
     const handleExport = () => {
         toast({
@@ -71,171 +56,171 @@ export default function DecisionIntelligencePage() {
     };
 
     if (loading || !data) {
-        return <div className="space-y-8"><Skeleton className="h-12 w-1/4" /><Skeleton className="h-64 w-full" /><div className="grid grid-cols-2 gap-8"><Skeleton className="h-96" /><Skeleton className="h-96" /></div></div>;
+        return (
+            <div className="space-y-8 p-4">
+                <Skeleton className="h-12 w-1/4" />
+                <Skeleton className="h-64 w-full" />
+                <div className="grid grid-cols-2 gap-8">
+                    <Skeleton className="h-96" />
+                    <Skeleton className="h-96" />
+                </div>
+            </div>
+        );
     }
 
     return (
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-2">
+                    <h1 className="text-3xl font-black tracking-tight mb-2 flex items-center gap-2">
                         <BrainCircuit className="text-primary h-8 w-8" />
-                        Decision Intelligence Engine
+                        Qualified Decision Intelligence
                     </h1>
                     <p className="text-muted-foreground max-w-3xl">
-                        Deep behavioural analysis identifying intent gaps, shopper hesitation, and AI-driven resolution patterns.
+                        Aggregated interaction signals from Ari sessions. Only validated customer evidence is used.
                     </p>
                 </div>
-                <Button onClick={handleExport} className="gap-2">
-                    <Download className="h-4 w-4" /> Export Report
+                <Button onClick={handleExport} className="gap-2 font-bold uppercase text-[10px] tracking-widest">
+                    <Download className="h-4 w-4" /> Export Economic Report
                 </Button>
             </div>
 
             <Separator />
 
+            {/* Evidence Dashboard Metrics */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
+                <Card className="bg-primary text-primary-foreground">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Shopper Hesitation Index</CardTitle>
-                        <Activity className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-[10px] font-black uppercase tracking-widest opacity-70">True Reach (Sessions)</CardTitle>
+                        <Activity className="h-4 w-4 opacity-70" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{data.hesitationMetrics.hesitationIndex}%</div>
-                        <p className="text-xs text-muted-foreground">Repeat scans without conversion</p>
+                        <div className="text-2xl font-black">{data.stats.totalUniqueSessions}</div>
+                        <p className="text-[10px] opacity-70 mt-1">Deduplicated behavioural nodes.</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Avg. Dwell Before Decision</CardTitle>
-                        <MousePointerClick className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Evidence Density</CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{data.hesitationMetrics.avgDwellBeforeDecision}s</div>
-                        <p className="text-xs text-muted-foreground">High dwell suggests complex consideration</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">AI Assistance Success</CardTitle>
-                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{data.aiInteractionInsights.aiResolutionRate}%</div>
-                        <p className="text-xs text-muted-foreground">Chats resulting in product save</p>
+                        <div className="text-2xl font-black">{data.stats.totalSignalsProcessed}</div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Validated customer expressions.</p>
                     </CardContent>
                 </Card>
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Intent-Conversion Gap</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Inference Guard</CardTitle>
+                        <ShieldCheck className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">High</div>
-                        <p className="text-xs text-muted-foreground">Attention vs Action variance</p>
+                        <div className="text-2xl font-black">Strict</div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Inferred signals excluded from facts.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data Standard</CardTitle>
+                        <Info className="h-4 w-4 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-black">GTIN-14</div>
+                        <p className="text-[10px] text-muted-foreground mt-1">GS1-aligned mapping active.</p>
                     </CardContent>
                 </Card>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Intent-Gap Analysis</CardTitle>
-                        <CardDescription>Products with high interest but low conversion rates.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Product</TableHead>
-                                    <TableHead className="text-center">Engagement</TableHead>
-                                    <TableHead className="text-center">Conv. %</TableHead>
-                                    <TableHead>Primary Barrier</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {data.intentGaps.map((gap) => (
-                                    <TableRow key={gap.productId}>
-                                        <TableCell className="font-medium">{gap.productName}</TableCell>
-                                        <TableCell className="text-center">
-                                            <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                                                <div className="bg-primary h-full" style={{ width: `${gap.engagementScore}%` }} />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center font-bold text-destructive">{gap.conversionRate}%</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="border-yellow-500/50 text-yellow-600">{gap.gapIndicator}</Badge>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Top Shopper Questions (AI Intelligence)</CardTitle>
-                        <CardDescription>What are shoppers actually asking your AI assistant?</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={{ frequency: { label: 'Frequency', color: 'hsl(var(--primary))' }}} className="h-[300px] w-full">
-                            <BarChart data={data.aiInteractionInsights.topShopperQuestions} layout="vertical" margin={{ left: 40 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="topic" type="category" axisLine={false} tickLine={false} fontSize={12} width={120} />
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="frequency" fill="var(--color-frequency)" radius={[0, 4, 4, 0]} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-            </div>
-
+            {/* Qualified Insights Feed */}
             <div className="grid gap-8 lg:grid-cols-3">
-                 <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle>Hesitation by Category</CardTitle>
-                        <CardDescription>Where do shoppers hesitate most?</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie 
-                                    data={data.categoryEngagement} 
-                                    dataKey="repeatEngagementRate" 
-                                    nameKey="category" 
-                                    innerRadius={60} 
-                                    outerRadius={80} 
-                                    paddingAngle={5}
-                                >
-                                    {data.categoryEngagement.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                <div className="lg:col-span-2 space-y-6">
+                    <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5" />
+                        Qualified Retailer Insights
+                    </h2>
+                    
+                    {data.insights.length === 0 ? (
+                        <Card className="border-dashed flex items-center justify-center p-12 text-center">
+                            <div className="space-y-2">
+                                <HelpCircle className="h-10 w-10 mx-auto text-muted-foreground/30" />
+                                <p className="text-sm font-bold text-muted-foreground">Insufficient evidence nodes collected.</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Awaiting further shopping sessions.</p>
+                            </div>
+                        </Card>
+                    ) : (
+                        <div className="space-y-4">
+                            {data.insights.map((insight: any) => (
+                                <Card key={insight.insightId} className="border-primary/10 overflow-hidden">
+                                    <div className={cn(
+                                        "h-1.5 w-full",
+                                        insight.evidenceStrength === 'HIGHER EVIDENCE' ? "bg-green-500" : 
+                                        insight.evidenceStrength === 'MODERATE EVIDENCE' ? "bg-yellow-500" : "bg-slate-300"
+                                    )} />
+                                    <CardHeader className="pb-2">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <Badge variant="outline" className="text-[10px] uppercase font-black mb-2">{insight.insightType}</Badge>
+                                                <CardTitle className="text-lg font-black tracking-tight">{insight.statement}</CardTitle>
+                                            </div>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Badge className={cn(
+                                                            "text-[9px] font-black uppercase tracking-tighter cursor-help",
+                                                            insight.evidenceStrength === 'HIGHER EVIDENCE' ? "bg-green-100 text-green-700" : "bg-muted"
+                                                        )}>
+                                                            {insight.evidenceStrength}
+                                                        </Badge>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs p-3">
+                                                        <p className="font-bold text-xs uppercase mb-1">Evidence Methodology</p>
+                                                        <p className="text-[10px] leading-relaxed">
+                                                            Based on {insight.methodology.uniqueSessionCount} unique sessions containing explicit signals. 
+                                                            Confidence thresholds: &lt; 10 (Hypothesis), 10-29 (Moderate), 30+ (Higher).
+                                                        </p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="p-3 bg-muted/50 rounded-lg border border-black/5 flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Signal Category</p>
+                                                <p className="text-xs font-bold capitalize">{insight.type.replace(/_/g, ' ')}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Rate</p>
+                                                <p className="text-xl font-black text-primary">{insight.metric.rate}%</p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Category Engagement Heatmap</CardTitle>
-                        <CardDescription>Unique vs Repeat scanner density across categories.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <ChartContainer config={{ scanners: { label: 'Unique Scanners', color: 'hsl(var(--chart-1))' }}} className="h-[300px] w-full">
-                            <BarChart data={data.categoryEngagement}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="category" />
-                                <YAxis />
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="uniqueScanners" fill="var(--color-scanners)" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
+                <div className="space-y-6">
+                    <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-accent" />
+                        Executive Summary
+                    </h2>
+                    <Card className="bg-accent/5 border-accent/20">
+                        <CardContent className="pt-6">
+                            <p className="text-sm font-medium leading-relaxed italic text-foreground">
+                                "{data.summary}"
+                            </p>
+                            <Separator className="my-4" />
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-2">
+                                    <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-muted-foreground">This analysis is grounded in session-anchored events and verified customer expressions.</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

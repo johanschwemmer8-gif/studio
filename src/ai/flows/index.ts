@@ -36,7 +36,7 @@ import { saveRetailerApiKey, type SaveRetailerApiKeyInput, type SaveRetailerApiK
 import { getScanAnalytics, type ScanAnalyticsInput, type ScanAnalyticsOutput } from './scan-analytics';
 import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledProductSyncOutput } from './scheduled-product-sync';
 import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from './sync-products';
-
+import { aggregateIntelligence } from './aggregate-intelligence';
 
 export {
     analyzeBehavioralInsights,
@@ -69,6 +69,7 @@ export {
     getScanAnalytics,
     scheduledProductSync,
     syncProducts,
+    aggregateIntelligence,
 };
 
 export type {

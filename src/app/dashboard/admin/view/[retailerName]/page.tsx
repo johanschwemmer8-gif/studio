@@ -82,6 +82,7 @@ export default function RetailerViewPage() {
                     <p className="text-muted-foreground text-sm">Control which users have access to this retailer's dashboard.</p>
                     <Button className="mt-4 w-full">Manage Users</Button>
                 </CardContent>
+            </Card>
              <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><ShieldCheck className="text-primary"/> Security Settings</CardTitle>

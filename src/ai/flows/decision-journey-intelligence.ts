@@ -20,7 +20,7 @@ const summaryPrompt = ai.definePrompt({
     prompt: `You are the iNteract Decision Analyst. 
     You have been provided with CHRONOLOGICALLY VERIFIED JOURNEY METRICS.
     
-    TASK: Write a 2-3 sentence executive summary.
+    TASK: Write a 2-3 sentence executive summary describing the shopper decision patterns.
     
     STRICT INTEGRITY RULES:
     1. NO CAUSAL CLAIMS: Do not use "because", "due to", or "resulted in".
@@ -29,6 +29,7 @@ const summaryPrompt = ai.definePrompt({
     4. CHRONOLOGY: Only mention transitions that were timestamp-verified.
     
     DATA:
+    {{#if metrics.gtin}}ANALYSING GTIN: {{metrics.gtin}}{{/if}}
     {{#each metrics.funnel}}
     - {{stage}}: {{uniqueSessions}} sessions ({{rate}}%)
     {{/each}}
@@ -36,7 +37,7 @@ const summaryPrompt = ai.definePrompt({
     - Top Rejection Reason: {{metrics.rejectionBreakdown.[0].reason}}`
 });
 
-export async function getDecisionJourneyIntelligence(retailerId: string, daysLookback: number = 30): Promise<DecisionJourneyOutput> {
+export async function getDecisionJourneyIntelligence(retailerId: string, daysLookback: number = 30, targetGtin?: string): Promise<DecisionJourneyOutput> {
     const db = getDb();
     if (!db) throw new Error("Intelligence Infrastructure Unavailable.");
 
@@ -89,28 +90,48 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
 
     const rejectionReasons: Record<string, number> = {};
     let altMovementCount = 0;
+    let recToPurchaseCount = 0;
 
     // 5. Deterministic Temporal Walk
     Object.entries(sessionsMap).forEach(([sid, activity]) => {
         // Sort by timestamp
         const timeline = activity.sort((a, b) => a.timestamp - b.timestamp);
         
-        let firstExposureGtin: string | null = null;
         let hasValidExposure = false;
         let lastExposureTimestamp = 0;
         let activeGtins = new Set<string>();
+        let lastRecommendationTimestamp = 0;
+        let lastRecommendationGtin: string | null = null;
+
+        // If targetGtin is specified, we ONLY care about sessions that touched this GTIN
+        const sessionTouchesTarget = targetGtin 
+            ? activity.some(n => n.gtin === targetGtin)
+            : true;
+
+        if (!sessionTouchesTarget) return;
 
         timeline.forEach(node => {
             if (node.timestamp === 0) return; // Skip unresolved timestamps
 
+            // GTIN Boundary: If targetGtin is active, only count metrics for THAT product
+            // Except for exposure, which defines the session's reach
+            const nodeMatchesTarget = !targetGtin || node.gtin === targetGtin;
+
             if (node.type === 'event') {
                 // EXPOSURE (SCAN or VIEW)
                 if (node.eventType === 'scan' || node.eventType === 'view') {
-                    sessionsExposed.add(sid);
-                    hasValidExposure = true;
-                    lastExposureTimestamp = node.timestamp;
-                    if (!firstExposureGtin) firstExposureGtin = node.gtin;
+                    if (nodeMatchesTarget) {
+                        sessionsExposed.add(sid);
+                        hasValidExposure = true;
+                        lastExposureTimestamp = node.timestamp;
+                    }
                     if (node.gtin) activeGtins.add(node.gtin);
+                }
+
+                // RECOMMENDATION (AI Action)
+                if (node.eventType === 'recommendation_event' && nodeMatchesTarget) {
+                    lastRecommendationTimestamp = node.timestamp;
+                    lastRecommendationGtin = node.gtin;
                 }
 
                 // SIGNALS (INTEREST, CONSIDERATION, REJECTION)
@@ -118,42 +139,69 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                 if (hasValidExposure && node.timestamp >= lastExposureTimestamp) {
                     if (node.eventType === 'interaction_signal' && node.metadata?.evidenceType !== 'inferred') {
                         const sigType = node.metadata?.type;
-                        if (sigType === 'product_interest') sessionsInterested.add(sid);
-                        if (sigType === 'product_consideration') sessionsConsidered.add(sid);
-                        if (sigType === 'product_rejection') {
+                        if (sigType === 'product_interest' && nodeMatchesTarget) sessionsInterested.add(sid);
+                        if (sigType === 'product_consideration' && nodeMatchesTarget) sessionsConsidered.add(sid);
+                        if (sigType === 'product_rejection' && nodeMatchesTarget) {
                             sessionsRejected.add(sid);
-                            const reason = node.metadata?.statedReason || 'Reason not captured';
+                            const reason = node.metadata?.statedReason || 'Reason not stated';
                             rejectionReasons[reason] = (rejectionReasons[reason] || 0) + 1;
                         }
                     }
 
-                    if (node.eventType === 'add_to_cart') {
+                    if (node.eventType === 'add_to_cart' && nodeMatchesTarget) {
                         sessionsBasket.add(sid);
                     }
                 }
             } else if (node.type === 'txn') {
                 // PURCHASE
                 // Rule: Must follow Exposure
-                if (hasValidExposure && node.timestamp >= lastExposureTimestamp) {
+                if (hasValidExposure && node.timestamp >= lastExposureTimestamp && nodeMatchesTarget) {
                     sessionsPurchased.add(sid);
+                    
+                    // Attribution Check: Recommendation -> Purchase
+                    if (lastRecommendationTimestamp > 0 && node.timestamp > lastRecommendationTimestamp) {
+                        if (node.gtin === lastRecommendationGtin) {
+                            recToPurchaseCount++;
+                        }
+                    }
                 }
             }
         });
 
         // Track Alt-Movement: More than one GTIN in session
-        if (activeGtins.size > 1) altMovementCount++;
+        if (activeGtins.size > 1) {
+            // For a product profile, alt movement means they looked at something OTHER than the target
+            if (targetGtin) {
+                if (activeGtins.has(targetGtin) && activeGtins.size > 1) altMovementCount++;
+            } else {
+                altMovementCount++;
+            }
+        }
     });
 
-    const totalUniqueSessions = sessionsExposed.size || 1;
+    const totalUniqueSessions = sessionsExposed.size || 0;
+    
+    if (totalUniqueSessions === 0) {
+        return {
+            retailerId,
+            gtin: targetGtin,
+            timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
+            summary: "Insufficient evidence for this product/period.",
+            funnel: [],
+            rejectionBreakdown: [],
+            stats: { totalUniqueSessions: 0, alternativeProductMovements: 0, recommendationToPurchaseCount: 0, leakagePoints: {} },
+            metadata: { aggregationVersion: '1.2.0', dataStatus: 'SIMULATED', evidenceStrength: 'LOW', methodology: 'Empty dataset.' }
+        };
+    }
 
     // 6. Calculate Metrics (Percentage of Exposure)
     const funnel = [
-        { stage: 'EXPOSURE' as const, uniqueSessions: sessionsExposed.size, rate: 100, denominatorName: 'Total Unique Exposed Sessions' },
-        { stage: 'INTEREST' as const, uniqueSessions: sessionsInterested.size, rate: Math.round((sessionsInterested.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
-        { stage: 'CONSIDERATION' as const, uniqueSessions: sessionsConsidered.size, rate: Math.round((sessionsConsidered.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
-        { stage: 'REJECTION' as const, uniqueSessions: sessionsRejected.size, rate: Math.round((sessionsRejected.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
-        { stage: 'BASKET' as const, uniqueSessions: sessionsBasket.size, rate: Math.round((sessionsBasket.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
-        { stage: 'PURCHASE' as const, uniqueSessions: sessionsPurchased.size, rate: Math.round((sessionsPurchased.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
+        { stage: 'EXPOSURE' as const, uniqueSessions: sessionsExposed.size, numerator: sessionsExposed.size, denominator: totalUniqueSessions, rate: 100, denominatorName: 'Total Unique Exposed Sessions' },
+        { stage: 'INTEREST' as const, uniqueSessions: sessionsInterested.size, numerator: sessionsInterested.size, denominator: totalUniqueSessions, rate: Math.round((sessionsInterested.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
+        { stage: 'CONSIDERATION' as const, uniqueSessions: sessionsConsidered.size, numerator: sessionsConsidered.size, denominator: totalUniqueSessions, rate: Math.round((sessionsConsidered.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
+        { stage: 'REJECTION' as const, uniqueSessions: sessionsRejected.size, numerator: sessionsRejected.size, denominator: totalUniqueSessions, rate: Math.round((sessionsRejected.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
+        { stage: 'BASKET' as const, uniqueSessions: sessionsBasket.size, numerator: sessionsBasket.size, denominator: totalUniqueSessions, rate: Math.round((sessionsBasket.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
+        { stage: 'PURCHASE' as const, uniqueSessions: sessionsPurchased.size, numerator: sessionsPurchased.size, denominator: totalUniqueSessions, rate: Math.round((sessionsPurchased.size / totalUniqueSessions) * 100), denominatorName: 'Total Unique Exposed Sessions' },
     ];
 
     // 7. Evidence Strength
@@ -170,11 +218,12 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         .sort((a, b) => b.count - a.count);
 
     // 8. LLM Summary
-    const metricsForAi = { funnel, rejectionBreakdown: sortedRejections, stats: { alternativeProductMovements: altMovementCount } };
+    const metricsForAi = { gtin: targetGtin, funnel, rejectionBreakdown: sortedRejections, stats: { alternativeProductMovements: altMovementCount } };
     const { output } = await summaryPrompt({ metrics: metricsForAi });
 
     return {
         retailerId,
+        gtin: targetGtin,
         timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
         summary: output?.summary || "Factual decision journey analysis complete.",
         funnel,
@@ -182,6 +231,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         stats: {
             totalUniqueSessions,
             alternativeProductMovements: altMovementCount,
+            recommendationToPurchaseCount: recToPurchaseCount,
             leakagePoints: {
                 'EXPOSURE_ONLY': totalUniqueSessions - sessionsInterested.size,
                 'INTEREST_ONLY': sessionsInterested.size - sessionsConsidered.size,
@@ -192,7 +242,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             aggregationVersion: '1.2.0',
             dataStatus: 'SIMULATED', 
             evidenceStrength: strength,
-            methodology: 'Strict chronological session state machine reconstruction.'
+            methodology: 'Strict chronological product-isolated state machine reconstruction.'
         }
     };
 }

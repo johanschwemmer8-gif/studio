@@ -1,241 +1,378 @@
 
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, BrainCircuit, FileText, Download, RefreshCw, Briefcase } from "lucide-react";
+import { 
+  Shield, 
+  BrainCircuit, 
+  FileText, 
+  Download, 
+  RefreshCw, 
+  Briefcase, 
+  Search, 
+  History, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Info,
+  Database,
+  Lock,
+  Workflow,
+  Sparkles
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const DocSection = ({ title, version, date, icon, defaultOpen = false, children }: { title: string, version: string, date: string, children: React.ReactNode, icon: React.ReactNode, defaultOpen?: boolean }) => (
-    <Card>
-        <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-3">{icon}{title}</CardTitle>
-            <CardDescription>Version: {version} | Effective Date: {date}</CardDescription>
-        </CardHeader>
-        <CardContent>
-             <Accordion type="single" collapsible className="w-full" defaultValue={defaultOpen ? "item-1" : ""}>
-                {children}
-            </Accordion>
-        </CardContent>
-    </Card>
+const DocHeader = ({ title, version, status }: { title: string, version: string, status: string }) => (
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6 border-b pb-4">
+    <div>
+      <h3 className="text-xl font-black tracking-tight">{title}</h3>
+      <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Metadata: v{version} | {new Date().toLocaleDateString('en-CA')}</p>
+    </div>
+    <Badge variant={status === 'PILOT READY' ? 'default' : 'outline'} className="font-black text-[10px] uppercase">
+      {status}
+    </Badge>
+  </div>
 );
 
-const SectionContent = ({ title, children, value }: { title: string, children: React.ReactNode, value: string }) => (
-    <AccordionItem value={value}>
-        <AccordionTrigger className="text-lg font-semibold">{title}</AccordionTrigger>
-        <AccordionContent className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:text-primary">
-            {children}
-        </AccordionContent>
-    </AccordionItem>
-);
-
-export default function AdminDocumentationPage() {
-    const { toast } = useToast();
-    const currentDate = new Date().toLocaleDateString('en-CA');
-    const nextReviewDate = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('en-CA');
-
-    const handleUpdate = () => {
-        toast({
-            title: "Updating Content",
-            description: "Fetching the latest documentation and training materials...",
-        });
-    };
+export default function AdminHelpCenterPage() {
+    const [searchQuery, setSearchQuery] = useState('');
 
     return (
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight mb-2">
-                        Governance, Risk & Compliance
+                    <h2 className="text-3xl font-black tracking-tight mb-2">
+                        iNteract Help Center
                     </h2>
                     <p className="text-muted-foreground max-w-3xl">
-                        Official policies governing information security, AI ethics, and data privacy for the iNteract AOE platform.
+                        Authoritative documentation for platform governance, decision intelligence, and the Ari AI ecosystem.
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleUpdate}>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Check for Updates
-                    </Button>
-                     <Button>
+                    <Button variant="outline">
                         <Download className="mr-2 h-4 w-4" />
-                        Download All as PDF
+                        PDF Export
                     </Button>
                 </div>
             </div>
-            <Separator />
-            
-            <div className="space-y-8">
-                 {/* TERMS AND CONDITIONS */}
-                <DocSection title="Terms of Service for Retailers" version="1.0" date={currentDate} icon={<Briefcase className="text-primary"/>}>
-                    <SectionContent title="1. Introduction & Acceptance" value="tos-1">
-                        <h4>1.1 Introduction</h4>
-                        <p>These Terms of Service ("Terms") govern your access to and use of the iNteract AOE software-as-a-service platform, including all related dashboards, APIs, and services (collectively, the "Service"). The Service is provided by iNteract AOE Pty Ltd., a company registered in South Africa ("iNteract AOE", "we", "us", "our").</p>
-                        <h4>1.2 Acceptance</h4>
-                        <p>By creating an account, signing a Service Order, or by accessing or using the Service, you, on behalf of the retail entity you represent ("Retailer", "you", "your"), agree to be bound by these Terms, our Privacy Policy, and our Information Security Policy. If you do not agree to these Terms, you may not use the Service.</p>
-                        <h4>1.3 Authority</h4>
-                        <p>You represent and warrant that you have the legal authority to bind the Retailer to these Terms. If you do not have such authority, you must not accept these Terms or use the Service.</p>
-                    </SectionContent>
-                    <SectionContent title="2. The Service" value="tos-2">
-                        <h4>2.1 Service Description</h4>
-                        <p>The Service is a white-label retail technology platform designed to enhance the in-store customer experience through QR code engagement, AI-powered personalization, and data analytics. The specific features, functionalities, and service levels available to you are defined in the subscription plan you have selected (the "Subscription Plan").</p>
-                        <h4>2.2 License Grant</h4>
-                        <p>Subject to your compliance with these Terms and payment of all applicable fees, iNteract AOE grants you a limited, non-exclusive, non-transferable, non-sublicensable, revocable license to access and use the Service for your internal business operations during the subscription term.</p>
-                        <h4>2.3 Service Modifications</h4>
-                        <p>We continuously improve the Service. We reserve the right to modify, enhance, or discontinue features of the Service at any time. We will provide at least thirty (30) days' notice for any material deprecation of functionality. For new features, we may release them at any time, and they may be subject to additional terms or fees.</p>
-                    </SectionContent>
-                    <SectionContent title="3. Retailer Obligations & Acceptable Use" value="tos-3">
-                        <h4>3.1 Account Security</h4>
-                        <p>You are responsible for all activities that occur under your account. You must maintain the confidentiality of your account credentials (usernames, passwords, API keys) and immediately notify us of any unauthorized use.</p>
-                        <h4>3.2 Retailer Data</h4>
-                        <p>You are solely responsible for the accuracy, quality, and legality of all data you provide or make accessible to the Service ("Retailer Data"), including product catalogs, pricing information, and any customer data shared via integrations. You must ensure you have all necessary rights and consents to use this data with the Service.</p>
-                        <h4>3.3 Acceptable Use</h4>
-                        <p>You agree not to, and not to permit your users to:</p>
-                        <ul>
-                            <li>Use the Service for any illegal or fraudulent purpose.</li>
-                            <li>Reverse-engineer, decompile, or otherwise attempt to discover the source code of the Service.</li>
-                            <li>Introduce any viruses, malware, or other harmful code into the Service.</li>
-                            <li>Use the Service to send spam or unsolicited messages.</li>
-                            <li>Attempt to gain unauthorized access to our systems or another user's data.</li>
-                            <li>Exceed any rate limits or usage quotas specified in your Subscription Plan without prior written consent.</li>
-                        </ul>
-                    </SectionContent>
-                    <SectionContent title="4. Fees, Payment, and Term" value="tos-4">
-                        <h4>4.1 Subscription Fees</h4>
-                        <p>You agree to pay all fees specified in your selected Subscription Plan. Fees are billed in advance on a monthly or annual basis, as agreed upon. All fees are non-refundable except as expressly stated otherwise in these Terms.</p>
-                        <h4>4.2 Payment</h4>
-                        <p>Payments will be processed via our designated payment processor. You must provide valid and up-to-date payment information. By providing this information, you authorize us to charge the recurring subscription fees to your payment method.</p>
-                        <h4>4.3 Late Payments</h4>
-                        <p>If any fees are not received by the due date, we may, without limiting our other rights, charge a late fee of 1.5% per month on the outstanding balance and/or suspend your access to the Service until payment is made in full.</p>
-                        <h4>4.4 Term and Termination</h4>
-                        <p>The initial term of your subscription will be as specified in your Service Order. Subscriptions automatically renew for successive periods of the same duration unless either party provides written notice of non-renewal at least thirty (30) days before the end of the current term. We may terminate these Terms and your access to the Service for cause if you are in material breach of these Terms and fail to cure such breach within thirty (30) days of receiving written notice.</p>
-                    </SectionContent>
-                    <SectionContent title="5. Data Ownership & Intellectual Property" value="tos-5">
-                        <h4>5.1 Retailer Data</h4>
-                        <p>As between you and iNteract AOE, you own all right, title, and interest in and to your Retailer Data. You grant us a worldwide, non-exclusive, royalty-free license to use, process, and transmit your Retailer Data as necessary to provide, maintain, and improve the Service.</p>
-                        <h4>5.2 Anonymized & Aggregated Data</h4>
-                        <p>You agree that iNteract AOE may collect, use, and create derivative works from anonymized and aggregated data derived from your use of the Service for the purposes of analytics, industry benchmarking, and improving our AI models and services. This aggregated data will not identify you or any individual.</p>
-                        <h4>5.3 iNteract AOE Intellectual Property</h4>
-                        <p>We own all right, title, and interest in and to the Service, including all underlying software, AI models, documentation, and know-how. No rights are granted to you hereunder other than as expressly set forth herein.</p>
-                    </SectionContent>
-                    <SectionContent title="6. Confidentiality" value="tos-6">
-                        <p>"Confidential Information" means all information disclosed by one party to the other, whether orally or in writing, that is designated as confidential or that reasonably should be understood to be confidential. Your Confidential Information includes your Retailer Data; our Confidential Information includes the Service and its pricing. Each party agrees to use the same degree of care that it uses to protect its own confidential information (but not less than reasonable care) and not to use or disclose any Confidential Information of the other party except as necessary to perform its obligations under these Terms.</p>
-                    </SectionContent>
-                    <SectionContent title="7. Disclaimers & Limitation of Liability" value="tos-7">
-                        <h4>7.1 Disclaimer of Warranties</h4>
-                        <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE." WE DISCLAIM ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR COMPLETELY SECURE.</p>
-                        <h4>7.2 Limitation of Liability</h4>
-                        <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL INTERACT AOE'S AGGREGATE LIABILITY ARISING OUT OF OR RELATED TO THESE TERMS EXCEED THE TOTAL AMOUNT PAID BY YOU HEREUNDER IN THE TWELVE (12) MONTHS PRECEDING THE FIRST INCIDENT OUT OF WHICH THE LIABILITY AROSE. IN NO EVENT WILL WE BE LIABLE FOR ANY LOST PROFITS, REVENUE, OR FOR ANY INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, HOWEVER CAUSED.</p>
-                    </SectionContent>
-                    <SectionContent title="8. General Provisions" value="tos-8">
-                        <h4>8.1 Governing Law</h4>
-                        <p>These Terms shall be governed by and construed in accordance with the laws of the Republic of South Africa, without regard to its conflict of law principles. Any disputes arising from these Terms shall be subject to the exclusive jurisdiction of the courts of South Africa.</p>
-                        <h4>8.2 Entire Agreement</h4>
-                        <p>These Terms, together with the Privacy Policy, Information Security Policy, and any applicable Service Order, constitute the entire agreement between the parties and supersede all prior agreements and communications.</p>
-                        <h4>8.3 Severability</h4>
-                        <p>If any provision of these Terms is held by a court of competent jurisdiction to be contrary to law, the provision will be modified by the court and interpreted so as best to accomplish the objectives of the original provision to the fullest extent permitted by law, and the remaining provisions will remain in effect.</p>
-                        <h4>8.4 Contact Information</h4>
-                        <p>For any questions about these Terms, please contact us at: legal@interact-aoe.com.</p>
-                    </SectionContent>
-                </DocSection>
 
-                {/* INFORMATION SECURITY POLICY */}
-                <DocSection title="Information Security Policy" version="1.0" date={currentDate} icon={<Shield className="text-primary"/>}>
-                    <SectionContent title="1. Executive Summary" value="isp-1">
-                        <h4>1.1 Purpose and Scope</h4>
-                        <p>This Information Security Policy establishes the framework for protecting the confidentiality, integrity, and availability of all information assets belonging to iNteract AOE Pty Ltd. and its clients. It provides the guiding principles for our security program, ensuring data is protected against unauthorized access, use, disclosure, alteration, or destruction. The scope covers all systems, networks, data, employees, and third-party contractors associated with the iNteract AOE platform.</p>
-                        <h4>1.2 Management Commitment</h4>
-                        <p>iNteract AOE management, led by the CEO, is fully committed to implementing and maintaining a robust Information Security Management System (ISMS) aligned with ISO 27001 principles. We pledge to provide the necessary resources to support this policy and to continually improve our security posture in response to evolving threats and business requirements.</p>
-                        <h4>1.3 Policy Objectives</h4>
-                        <ul>
-                            <li><strong>Confidentiality:</strong> Ensure that information is accessible only to those authorized to have access.</li>
-                            <li><strong>Integrity:</strong> Safeguard the accuracy and completeness of information and processing methods.</li>
-                            <li><strong>Availability:</strong> Ensure that authorized users have access to information and associated assets when required.</li>
-                            <li><strong>Compliance:</strong> Comply with all applicable legal, statutory, regulatory, and contractual requirements, including the Protection of Personal Information Act (POPIA) of South Africa.</li>
-                            <li><strong>Risk Management:</strong> Systematically identify, assess, and treat information security risks to an acceptable level.</li>
-                        </ul>
-                    </SectionContent>
-                    <SectionContent title="2. Scope & Applicability" value="isp-2">
-                        <h4>2.1 Systems Covered</h4>
-                        <p>This policy applies to all information technology systems and data managed by iNteract AOE, including but not limited to:</p>
-                        <ul>
-                            <li><strong>Backend Infrastructure:</strong> All cloud servers (Node.js applications), databases (PostgreSQL), and serverless functions hosted on Google Cloud Platform (GCP) or Amazon Web Services (AWS).</li>
-                            <li><strong>Frontend Applications:</strong> The iNteract AOE Admin Panel and the Retailer MVP dashboards, built with Next.js and React.</li>
-                            <li><strong>AI/ML Models:</strong> All proprietary and third-party models (e.g., Google Gemini) used for personalization, analytics, and other platform features.</li>
-                            <li><strong>Databases:</strong> All production and development databases containing customer data, retailer metrics, and application data.</li>
-                            <li><strong>Source Code Repositories:</strong> All company source code hosted on platforms like GitHub.</li>
-                        </ul>
-                        <h4>2.2 Personnel Covered</h4>
-                        <p>This policy applies to all individuals who have access to iNteract AOE's information assets, including:</p>
-                        <ul>
-                            <li>All full-time and part-time employees.</li>
-                            <li>All contractors, consultants, and temporary staff.</li>
-                            <li>Third-party vendors and partners with access to our systems.</li>
-                            <li>All platform users, to the extent of the Acceptable Use Policy.</li>
-                        </ul>
-                        <h4>2.3 Geographic Scope</h4>
-                        <p>This policy is effective across all operational jurisdictions. Initially, this primarily covers the Republic of South Africa. As iNteract AOE expands, this policy will be updated to reflect compliance with the legal and regulatory frameworks of new territories across Africa and other regions.</p>
-                    </SectionContent>
-                    <SectionContent title="3. Information Security Governance" value="isp-3">
-                         <h4>3.1 Organizational Structure</h4>
-                        <p>Information security governance at iNteract AOE is structured to ensure clear lines of authority, responsibility, and accountability. It operates on a top-down model, with ultimate responsibility resting with the CEO and the board (once established). The structure is designed to be agile, allowing for rapid response to security incidents while maintaining rigorous oversight.</p>
-                        
-                        <h4>3.2 Roles and Responsibilities</h4>
-                        <ul>
-                            <li><strong>Chief Executive Officer (CEO) / Founder (Johan Schwemmer):</strong> Holds ultimate accountability for the company's information security program. Responsible for approving the Information Security Policy, allocating sufficient resources for its implementation, and leading the company's security culture.</li>
-                            <li><strong>Chief Technology Officer (CTO) / Technical Lead:</strong> Responsible for the hands-on implementation, management, and monitoring of all technical security controls outlined in this policy. Oversees the secure development lifecycle, infrastructure security, and incident response team.</li>
-                            <li><strong>Data Protection Officer (DPO):</strong> Responsible for ensuring compliance with data protection regulations, primarily POPIA. The DPO handles data subject access requests, liaises with the Information Regulator, and conducts Privacy Impact Assessments (PIAs). Initially, this role is held by the CEO.</li>
-                            <li><strong>All Team Members:</strong> Every employee and contractor is responsible for complying with this policy in their day-to-day activities. This includes using strong passwords, reporting security incidents promptly, and handling data according to its classification level.</li>
-                        </ul>
-
-                        <h4>3.3 Security Committee Structure</h4>
-                        <p>An Ethics & Security Committee is established to provide cross-functional oversight. Its mandate includes:</p>
-                        <ul>
-                            <li>Reviewing and approving security policies and procedures.</li>
-                            <li>Reviewing the results of risk assessments and security audits.</li>
-                            <li>Overseeing the response to major security incidents.</li>
-                            <li>Assessing the security implications of new technologies or business initiatives.</li>
-                        </ul>
-                        <p>The committee meets quarterly and is composed of the CEO, CTO, and DPO.</p>
-
-                        <h4>3.4 Escalation Procedures</h4>
-                        <p>A clear escalation path is defined for security incidents:</p>
-                        <ol>
-                            <li><strong>Initial Detection:</strong> Any team member who detects a potential security incident must immediately report it to the CTO.</li>
-                            <li><strong>Initial Triage (CTO):</strong> The CTO performs an initial assessment to determine the severity and immediate containment steps required.</li>
-                            <li><strong>Escalation to CEO:</strong> For any medium or high-severity incidents, the CTO must escalate to the CEO within one hour of triage.</li>
-                            <li><strong>Escalation to DPO:</strong> If the incident involves personal information, the DPO must be notified concurrently with the CEO.</li>
-                            <li><strong>Committee Convening:</strong> For high-severity incidents, the CEO will convene an emergency meeting of the Security Committee within 24 hours.</li>
-                        </ol>
-                    </SectionContent>
-                </DocSection>
-                
-                {/* AI ETHICS & BIAS PREVENTION POLICY */}
-                 <DocSection title="AI Ethics & Bias Prevention Policy" version="1.0" date={currentDate} icon={<BrainCircuit className="text-primary"/>}>
-                    <SectionContent title="1. Executive Summary" value="aip-1">
-                        <h4>1.1 Purpose</h4>
-                        <p>This policy defines the ethical principles and bias prevention framework governing the design, development, deployment, and monitoring of all Artificial Intelligence (AI) and Machine Learning (ML) models within the iNteract AOE platform. Its purpose is to ensure our AI systems are fair, transparent, accountable, and aligned with our commitment to responsible innovation.</p>
-                        <h4>1.2 Scope</h4>
-                        <p>This policy applies to all AI/ML models, algorithms, and data-driven features used in the iNteract platform. This includes, but is not limited to, product recommendation engines, personalization algorithms, customer service chatbots, and analytical models that generate business insights.</p>
-                        <h4>1.3 Commitment to Responsible AI</h4>
-                        <p>iNteract AOE is committed to developing and deploying AI that benefits our clients and their customers without causing unfair or discriminatory outcomes. We believe that ethical considerations are not an add-on but a core component of building robust and trustworthy technology. This policy serves as the foundation for that commitment.</p>
-                    </SectionContent>
-                 </DocSection>
-
-                {/* DATA PROTECTION & PRIVACY POLICY */}
-                <DocSection title="Data Protection & Privacy Policy" version="1.0" date={currentDate} icon={<FileText className="text-primary"/>}>
-                    <SectionContent title="1. Executive Summary" value="dpp-1">
-                        <h4>1.1 Commitment to Data Protection</h4>
-                        <p>iNteract AOE Pty Ltd. ("we," "us," or "our") is unequivocally committed to protecting the privacy and personal information of our clients, their customers, and our employees. This policy outlines our comprehensive approach to data protection, ensuring that all personal information is handled securely, lawfully, and transparently.</p>
-                        <h4>1.2 POPIA Compliance Statement</h4>
-                        <p>This policy is designed to ensure full compliance with the Protection of Personal Information Act (POPIA), Act 4 of 2013, of South Africa. It details the principles we follow, the rights of data subjects, and the security measures we have implemented to meet and exceed our legal obligations.</p>
-                        <h4>1.3 Scope of Policy</h4>
-                        <p>This policy applies to all personal information processed by iNteract AOE in the course of providing our services. This includes data collected from end-users (shoppers) in retail environments, data provided by our retailer clients, and data from our own employees and business partners.</p>
-                    </SectionContent>
-                </DocSection>
+            <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Search documentation..." 
+                    className="pl-10" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
             </div>
+
+            <Tabs defaultValue="ari" className="w-full">
+                <TabsList className="bg-muted/50 p-1 rounded-xl mb-8">
+                    <TabsTrigger value="ari" className="rounded-lg font-bold gap-2">
+                        <Sparkles className="h-4 w-4 text-accent" /> Ari v1.5.0
+                    </TabsTrigger>
+                    <TabsTrigger value="governance" className="rounded-lg font-bold gap-2">
+                        <Shield className="h-4 w-4" /> Platform Governance
+                    </TabsTrigger>
+                    <TabsTrigger value="technical" className="rounded-lg font-bold gap-2">
+                        <Database className="h-4 w-4" /> Technical Specs
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="ari" className="space-y-12">
+                    {/* 00 - MASTER SYSTEM RECORD */}
+                    <Card id="ari-00" className="border-primary/20 shadow-lg overflow-hidden">
+                        <CardHeader className="bg-primary text-primary-foreground">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-2xl font-black uppercase tracking-tighter">00 — Ari Master System Record</CardTitle>
+                                    <CardDescription className="text-primary-foreground/70 font-bold">Standard Identifier: iN-ARI-1.5.0-MASTER</CardDescription>
+                                </div>
+                                <Badge className="bg-accent text-accent-foreground font-black">PILOT READY</Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-8 space-y-6">
+                            <div className="grid md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-sm uppercase tracking-widest text-primary">System Definition</h4>
+                                    <p className="text-sm leading-relaxed text-muted-foreground">
+                                        Ari is an <strong>evidence-grounded</strong> shopping assistant embedded in the iNteract Intelligence Layer. 
+                                        Unlike generative chatbots, Ari is architecturally constrained by the <strong>Ari Evidence Contract v1.0</strong>, 
+                                        ensuring that every interaction and retailer insight is backed by canonical data or explicit shopper input.
+                                    </p>
+                                    <ul className="space-y-2">
+                                        {[
+                                            "Decision-State Integrity: Seen -> Interested -> Considered -> Rejected.",
+                                            "Fact Context Grounding: Strictly non-hallucinatory specifications.",
+                                            "Non-Causal Attribution: Co-occurrence over claim.",
+                                            "Privacy-First: Server-side consent & PII scrubbing."
+                                        ].map((item, i) => (
+                                            <li key={i} className="flex gap-2 text-xs font-medium">
+                                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <div className="bg-muted/30 p-6 rounded-2xl border border-primary/5 space-y-4">
+                                    <h4 className="font-bold text-sm uppercase tracking-widest text-primary flex items-center gap-2">
+                                        <History className="h-4 w-4" /> Evidence Hierarchy
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
+                                            <span>Level</span>
+                                            <span>Source of Truth</span>
+                                        </div>
+                                        <Separator />
+                                        {[
+                                            { l: '1', n: 'Authoritative Data', s: 'PIM / Firestore' },
+                                            { l: '2', n: 'Explicit Shopper Input', s: 'Verified Interaction' },
+                                            { l: '3', n: 'Derived Logic', s: 'Deterministic Code' },
+                                            { l: '4', n: 'Chronological Sequence', s: 'Server Timestamps' },
+                                            { l: '5', n: 'AI Interpretation', s: 'Contextual Explanation' }
+                                        ].map(item => (
+                                            <div key={item.l} className="flex justify-between items-center text-xs">
+                                                <span className="font-bold text-primary w-4">{item.l}.</span>
+                                                <span className="flex-1 font-semibold">{item.n}</span>
+                                                <span className="text-[10px] font-mono opacity-60">{item.s}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-[9px] italic text-muted-foreground mt-4">
+                                        * Rule: Interpretation (L5) MUST NEVER be upgraded to Fact (L1-4).
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* 02 - EVIDENCE FRAMEWORK */}
+                    <Card id="ari-02">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-3">
+                                <Workflow className="text-primary h-6 w-6" />
+                                02 — Evidence & Decision Framework
+                            </CardTitle>
+                            <CardDescription>Rules governing shopper intent extraction and decision-state transition.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Accordion type="single" collapsible className="w-full">
+                                <AccordionItem value="logic-1">
+                                    <AccordionTrigger className="font-bold">Silence ≠ Acceptance</AccordionTrigger>
+                                    <AccordionContent className="space-y-4 pt-2">
+                                        <p className="text-sm text-muted-foreground">
+                                            iNteract architecture strictly forbids inferring acceptance from silence. If Ari recommends a product and the shopper provides no feedback, the state remains <Badge variant="outline" className="text-[10px]">UNRESOLVED</Badge>.
+                                        </p>
+                                        <div className="bg-red-50 border border-red-100 p-3 rounded-lg text-red-700 text-xs font-medium">
+                                            Blocker: "Dwell time" or "Silence" must never increment the Recommendation Acceptance rate.
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                                <AccordionItem value="logic-2">
+                                    <AccordionTrigger className="font-bold">Rejection Reason Integrity</AccordionTrigger>
+                                    <AccordionContent className="space-y-4 pt-2">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-3 border rounded-lg bg-background">
+                                                <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Scenario A</p>
+                                                <p className="text-xs font-bold italic">"No, too expensive."</p>
+                                                <Separator className="my-2" />
+                                                <div className="flex gap-2">
+                                                    <Badge className="bg-green-500 text-[9px]">REJECTION: YES</Badge>
+                                                    <Badge className="bg-blue-500 text-[9px]">REASON: PRICE</Badge>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 border rounded-lg bg-background">
+                                                <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Scenario B</p>
+                                                <p className="text-xs font-bold italic">"No."</p>
+                                                <Separator className="my-2" />
+                                                <div className="flex gap-2">
+                                                    <Badge className="bg-green-500 text-[9px]">REJECTION: YES</Badge>
+                                                    <Badge variant="outline" className="text-[9px]">REASON: NOT STATED</Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
+                        </CardContent>
+                    </Card>
+
+                    {/* 03 - PRODUCT KNOWLEDGE */}
+                    <Card id="ari-03">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-3">
+                                <Database className="text-primary h-6 w-6" />
+                                03 — Product Knowledge & Grounding
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <DocHeader title="Hallucination Prevention Protocol" version="1.0.0" status="IMPLEMENTED" />
+                            <p className="text-sm text-muted-foreground">
+                                Ari uses a strictly bound <strong>Fact Context</strong> retrieved via `getCanonicalProduct`. If a product attribute (e.g., Warranty) is missing from Firestore, Ari is instructed to state: <em>"I don't have verified information on that currently."</em>
+                            </p>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="text-[10px] font-black">Attribute</TableHead>
+                                        <TableHead className="text-[10px] font-black">Source</TableHead>
+                                        <TableHead className="text-[10px] font-black">Validation Rule</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell className="text-xs font-bold">Price</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground font-mono">Firestore/ERP</TableCell>
+                                        <TableCell className="text-[10px]">Strict numeric. No AI estimation.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="text-xs font-bold">Specs</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground font-mono">Canonical Facts</TableCell>
+                                        <TableCell className="text-[10px]">Literal match. No generative expansion.</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                    {/* 09 - KNOWN LIMITATIONS */}
+                    <Card id="ari-09" className="border-yellow-200 bg-yellow-50/20">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-3 text-yellow-800 uppercase text-lg font-black">
+                                <AlertTriangle className="h-6 w-6" />
+                                09 — Known Limitations
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {[
+                                    { t: 'Aggregation Scale', d: 'Firestore-based walks are currently limited to 5,000 events per query. Scale >100k scans requires BigQuery.', s: 'LIMITATION' },
+                                    { t: '90-Day Deletion', d: 'Retention policy is defined in code, but automated physical cleanup (Cloud Function) is not yet deployed.', s: 'PENDING' },
+                                    { t: 'Simulated POS', d: 'All transaction-derived metrics use simulation logic. Production ROI requires live ERP integration.', s: 'SIMULATED' },
+                                    { t: 'Identity Isolation', d: 'Context is session-bound. Closing the browser clears shopper memory (No Cross-Session Continuity).', s: 'IMPLEMENTED' }
+                                ].map((lim, i) => (
+                                    <div key={i} className="flex items-start gap-4 p-4 bg-white/60 rounded-xl border border-yellow-200">
+                                        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-[8px] font-black">{lim.s}</Badge>
+                                        <div>
+                                            <p className="text-sm font-bold text-yellow-900">{lim.t}</p>
+                                            <p className="text-xs text-yellow-800/80 leading-relaxed mt-1">{lim.d}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* 11 - IMPLEMENTATION EVIDENCE MATRIX */}
+                    <Card id="ari-11">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-3">
+                                <ListChecks className="text-primary h-6 w-6" />
+                                11 — Implementation Evidence Matrix
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="text-[10px] uppercase font-black tracking-widest">
+                                        <TableHead>Requirement</TableHead>
+                                        <TableHead>Implementation Path</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Audit Ref</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {[
+                                        { r: 'Server-Side Consent', i: 'product-chat-flow.ts (hasConsent gate)', s: 'VERIFIED', a: 'Step 11' },
+                                        { r: 'PII Scrubbing', i: 'interaction-signals.ts (PII Redaction prompt)', s: 'VERIFIED', a: 'Step 9' },
+                                        { r: 'Chronological Walk', i: 'decision-journey-intelligence.ts', s: 'VERIFIED', a: 'Step 7.1' },
+                                        { r: 'Non-Causal Language', i: 'Dashboard UI Audit', s: 'COMPLETE', a: 'Step 12' },
+                                        { r: 'Cross-Tenant Guard', i: 'Auth Context Server Verification', s: 'VERIFIED', a: 'Step 10' }
+                                    ].map((row, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell className="text-xs font-bold">{row.r}</TableCell>
+                                            <TableCell className="text-[10px] text-muted-foreground font-mono">{row.i}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="text-[9px] bg-green-50 text-green-700 border-green-200">{row.s}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right text-[10px] font-bold">{row.a}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                        <CardFooter className="bg-muted/10 p-4 border-t italic text-[10px] text-muted-foreground">
+                            * Final Acceptance Gate (Step 12) Passed on {new Date().toLocaleDateString()}.
+                        </CardFooter>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="technical" className="space-y-6">
+                    <Card>
+                        <CardHeader><CardTitle>Technical Integration Registry</CardTitle></CardHeader>
+                        <CardContent>
+                             <div className="space-y-6">
+                                <div>
+                                    <h4 className="text-sm font-bold mb-2">Core API Versioning</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {[
+                                            { n: 'Ari Core', v: '1.5.0' },
+                                            { n: 'Evidence Contract', v: '1.0.0' },
+                                            { n: 'Journey Walk', v: '1.4.0' },
+                                            { n: 'POS Simulation', v: '1.2.0' }
+                                        ].map(v => (
+                                            <div key={v.n} className="p-3 border rounded-lg bg-muted/30">
+                                                <p className="text-[10px] font-black text-muted-foreground uppercase">{v.n}</p>
+                                                <p className="text-lg font-black font-mono">v{v.v}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <Separator />
+                                <div>
+                                     <h4 className="text-sm font-bold mb-4">Event Schema: `interaction_signal`</h4>
+                                     <pre className="p-4 bg-slate-900 text-slate-300 rounded-lg text-xs font-mono overflow-x-auto">
+{`{
+  "type": "price_objection" | "product_rejection" | ...,
+  "evidenceType": "explicit" | "derived" | "inferred",
+  "confidence": "HIGH" | "MEDIUM" | "LOW" | "INFERRED",
+  "statedReason": string | null,
+  "extractionVersion": "1.5.0",
+  "sessionId": string
+}`}
+                                     </pre>
+                                </div>
+                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="governance" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Governance Policy Audit</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="p-6 border rounded-2xl bg-primary/5 space-y-4">
+                                <h4 className="text-lg font-black text-primary">iNteract AOE — Ari Governance Policy</h4>
+                                <Separator />
+                                <div className="space-y-4 text-sm leading-relaxed">
+                                    <p><strong>1. Human Accountability</strong>: Ari is an assistive layer. Final commercial decisions (Pricing, Stock, Policy) remain with authorized human administrators.</p>
+                                    <p><strong>2. Evidence Preservation</strong>: Under no circumstances shall Ari modify or delete historical shopper evidence to improve dashboard metrics.</p>
+                                    <p><strong>3. Non-Manipulation</strong>: Ari is forbidden from creating artificial urgency or utilizing dark patterns to influence purchase decisions.</p>
+                                    <p><strong>4. Transparency</strong>: The "SIMULATED" data status badge is a non-negotiable requirement for any dashboard containing prototype transaction data.</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

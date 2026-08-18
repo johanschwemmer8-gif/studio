@@ -1,11 +1,9 @@
 'use server';
 /**
  * @fileOverview iNteract Decision-Journey Aggregator.
- * CHRONOLOGICAL INTEGRITY (v1.3.0)
+ * CHRONOLOGICAL INTEGRITY (v1.4.0)
  * Logic: SCAN -> VIEW -> INTEREST -> CONSIDERATION -> PURCHASE.
- * Enforces: event.timestamp < subsequentEvent.timestamp.
- * Enforces: GTIN Isolation.
- * Enforces: Alternative Product Movement Tracking.
+ * Hardened Rejection & Barrier Intelligence implementation.
  */
 
 import { ai } from '@/ai/genkit';
@@ -19,23 +17,24 @@ const summaryPrompt = ai.definePrompt({
     input: { schema: z.object({ metrics: z.any() }) },
     output: { schema: z.object({ summary: z.string() }) },
     prompt: `You are the iNteract Decision Analyst. 
-    You have been provided with CHRONOLOGICALLY VERIFIED JOURNEY METRICS.
+    You have been provided with CHRONOLOGICALLY VERIFIED JOURNEY METRICS and REJECTION DATA.
     
-    TASK: Write a 2-3 sentence executive summary describing the shopper decision patterns.
+    TASK: Write a 2-3 sentence executive summary describing the shopper decision patterns and identified barriers.
     
     STRICT INTEGRITY RULES:
     1. NO CAUSAL CLAIMS: Do not use "because", "due to", or "resulted in".
     2. NO MANUFACTURED NUMBERS: Use only provided metrics.
     3. LANGUAGE: Use "subsequent purchase", "explicit rejection", and "verified progression".
-    4. CHRONOLOGY: Only mention transitions that were timestamp-verified.
+    4. BARRIERS: Use "observed barrier" or "explicitly stated reason".
     
     DATA:
     {{#if metrics.gtin}}ANALYSING GTIN: {{metrics.gtin}}{{/if}}
     {{#each metrics.funnel}}
     - {{stage}}: {{uniqueSessions}} sessions ({{rate}}%)
     {{/each}}
-    - Alt-Product Movements: {{metrics.stats.alternativeProductMovements}}
-    - Top Subsequent Alternative: {{#if metrics.altProductBreakdown.[0]}}{{metrics.altProductBreakdown.[0].gtin}}{{else}}None{{/if}}`
+    - Top Barrier: {{#if metrics.barriers.[0]}}{{metrics.barriers.[0].barrier}} ({{metrics.barriers.[0].count}} sessions){{else}}None{{/if}}
+    - Rejections with Reason: {{metrics.stats.rejectionsWithReason}}
+    - Rejections without Reason: {{metrics.stats.rejectionsWithoutReason}}`
 });
 
 export async function getDecisionJourneyIntelligence(retailerId: string, daysLookback: number = 30, targetGtin?: string): Promise<DecisionJourneyOutput> {
@@ -89,14 +88,17 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
     const sessionsBasket = new Set<string>();
     const sessionsPurchased = new Set<string>();
 
-    const rejectionReasons: Record<string, number> = {};
+    const rejectionReasons: Record<string, Set<string>> = {};
+    const barrierCounts: Record<string, Set<string>> = {};
     const altMovementTargets: Record<string, { sessions: Set<string>, purchases: Set<string> }> = {};
+    
+    let rejectionWithReasonCount = 0;
+    let rejectionWithoutReasonCount = 0;
     let altMovementCount = 0;
     let recToPurchaseCount = 0;
 
     // 5. Deterministic Temporal Walk
     Object.entries(sessionsMap).forEach(([sid, activity]) => {
-        // Sort by timestamp
         const timeline = activity.sort((a, b) => a.timestamp - b.timestamp);
         
         let hasValidExposure = false;
@@ -104,7 +106,6 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         let lastRecommendationTimestamp = 0;
         let lastRecommendationGtin: string | null = null;
 
-        // If targetGtin is specified, we ONLY care about sessions that touched this GTIN
         const sessionTouchesTarget = targetGtin 
             ? activity.some(n => n.gtin === targetGtin)
             : true;
@@ -126,8 +127,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                     }
                 }
 
-                // SUBSEQUENT ALTERNATIVE MOVEMENT
-                // Rule: If targetGtin is active, track any DIFFERENT gtin encountered AFTER first target exposure
+                // MOVEMENT TRACKING
                 if (targetGtin && hasValidExposure && node.gtin && node.gtin !== targetGtin && node.timestamp > firstTargetExposureTimestamp) {
                     if (!altMovementTargets[node.gtin]) {
                         altMovementTargets[node.gtin] = { sessions: new Set(), purchases: new Set() };
@@ -141,21 +141,41 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                     lastRecommendationGtin = node.gtin;
                 }
 
-                // SIGNALS
+                // SIGNALS (Hardened)
                 if (hasValidExposure && node.timestamp >= firstTargetExposureTimestamp) {
                     if (node.eventType === 'interaction_signal' && node.metadata?.evidenceType !== 'inferred') {
                         const sigType = node.metadata?.type;
+                        
+                        // 1. Interest & Consideration
                         if (sigType === 'product_interest' && nodeMatchesTarget) sessionsInterested.add(sid);
                         if (sigType === 'product_consideration' && nodeMatchesTarget) sessionsConsidered.add(sid);
+                        
+                        // 2. Rejection Logic
                         if (sigType === 'product_rejection' && nodeMatchesTarget) {
                             sessionsRejected.add(sid);
-                            rejectionReasons[node.metadata?.statedReason || 'Reason not stated'] = (rejectionReasons[node.metadata?.statedReason || 'Reason not stated'] || 0) + 1;
+                            const reason = node.metadata?.statedReason || 'Reason not stated';
+                            if (!rejectionReasons[reason]) rejectionReasons[reason] = new Set();
+                            rejectionReasons[reason].add(sid);
+                        }
+
+                        // 3. Barrier Logic
+                        const barrierMap: Record<string, string> = {
+                            'price_objection': 'Price',
+                            'budget_signal': 'Budget',
+                            'feature_requirement': 'Feature Mismatch',
+                            'availability_question': 'Availability',
+                            'product_concern': 'Suitability'
+                        };
+
+                        if (barrierMap[sigType] && nodeMatchesTarget) {
+                            const bLabel = barrierMap[sigType];
+                            if (!barrierCounts[bLabel]) barrierCounts[bLabel] = new Set();
+                            barrierCounts[bLabel].add(sid);
                         }
                     }
                     if (node.eventType === 'add_to_cart' && nodeMatchesTarget) sessionsBasket.add(sid);
                 }
             } else if (node.type === 'txn') {
-                // PURCHASE
                 if (hasValidExposure && node.timestamp >= firstTargetExposureTimestamp) {
                     if (nodeMatchesTarget) {
                         sessionsPurchased.add(sid);
@@ -163,7 +183,6 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                             recToPurchaseCount++;
                         }
                     } else if (targetGtin && node.gtin && node.gtin !== targetGtin) {
-                        // Log subsequent purchase of an alternative
                         if (altMovementTargets[node.gtin]) {
                             altMovementTargets[node.gtin].purchases.add(sid);
                         }
@@ -172,14 +191,9 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             }
         });
 
-        // Stats: Broad alt-movement (any session touching more than 1 GTIN)
         const uniqueGtins = new Set(activity.map(n => n.gtin).filter(Boolean));
-        if (uniqueGtins.size > 1) {
-            if (targetGtin) {
-                if (uniqueGtins.has(targetGtin)) altMovementCount++;
-            } else {
-                altMovementCount++;
-            }
+        if (uniqueGtins.size > 1 && (targetGtin ? uniqueGtins.has(targetGtin) : true)) {
+            altMovementCount++;
         }
     });
 
@@ -190,14 +204,31 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             retailerId,
             gtin: targetGtin,
             timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
-            summary: "Insufficient evidence for this product/period.",
+            summary: "Insufficient evidence for this period.",
             funnel: [],
             rejectionBreakdown: [],
-            altProductBreakdown: [],
-            stats: { totalUniqueSessions: 0, alternativeProductMovements: 0, recommendationToPurchaseCount: 0, leakagePoints: {} },
-            metadata: { aggregationVersion: '1.3.0', dataStatus: 'SIMULATED', evidenceStrength: 'LOW', methodology: 'Empty dataset.' }
+            barrierBreakdown: [],
+            stats: { totalUniqueSessions: 0, alternativeProductMovements: 0, recommendationToPurchaseCount: 0, leakagePoints: {}, rejectionsWithReason: 0, rejectionsWithoutReason: 0 },
+            metadata: { aggregationVersion: '1.4.0', dataStatus: 'SIMULATED', evidenceStrength: 'LOW', methodology: 'Empty dataset.' }
         };
     }
+
+    // Calculate Rejection Reason Stats
+    const sortedRejections = Object.entries(rejectionReasons).map(([reason, sessions]) => ({
+        reason,
+        count: sessions.size,
+        share: Math.round((sessions.size / (sessionsRejected.size || 1)) * 100)
+    })).sort((a, b) => b.count - a.count);
+
+    rejectionWithReasonCount = sortedRejections.filter(r => r.reason !== 'Reason not stated').reduce((a, b) => a + b.count, 0);
+    rejectionWithoutReasonCount = rejectionReasons['Reason not stated']?.size || 0;
+
+    // Calculate Barrier Stats
+    const barrierBreakdown = Object.entries(barrierCounts).map(([barrier, sessions]) => ({
+        barrier,
+        count: sessions.size,
+        share: Math.round((sessions.size / totalUniqueSessions) * 100)
+    })).sort((a, b) => b.count - a.count);
 
     const funnel = [
         { stage: 'EXPOSURE' as const, uniqueSessions: sessionsExposed.size, numerator: sessionsExposed.size, denominator: totalUniqueSessions, rate: 100, denominatorName: 'Total Unique Exposed Sessions' },
@@ -215,26 +246,23 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         purchaseCount: data.purchases.size
     })).sort((a, b) => b.uniqueSessions - a.uniqueSessions);
 
-    const sortedRejections = Object.entries(rejectionReasons).map(([reason, count]) => ({
-        reason,
-        count,
-        share: Math.round((count / (sessionsRejected.size || 1)) * 100)
-    })).sort((a, b) => b.count - a.count);
-
-    const { output } = await summaryPrompt({ metrics: { gtin: targetGtin, funnel, altProductBreakdown, stats: { alternativeProductMovements: altMovementCount } } });
+    const { output } = await summaryPrompt({ metrics: { gtin: targetGtin, funnel, barriers: barrierBreakdown, stats: { rejectionsWithReason: rejectionWithReasonCount, rejectionsWithoutReason: rejectionWithoutReasonCount } } });
 
     return {
         retailerId,
         gtin: targetGtin,
         timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
-        summary: output?.summary || "Factual decision journey analysis complete.",
+        summary: output?.summary || "Factual rejection and barrier analysis complete.",
         funnel,
         rejectionBreakdown: sortedRejections,
+        barrierBreakdown,
         altProductBreakdown,
         stats: {
             totalUniqueSessions,
             alternativeProductMovements: altMovementCount,
             recommendationToPurchaseCount: recToPurchaseCount,
+            rejectionsWithReason: rejectionWithReasonCount,
+            rejectionsWithoutReason: rejectionWithoutReasonCount,
             leakagePoints: {
                 'EXPOSURE_ONLY': totalUniqueSessions - sessionsInterested.size,
                 'INTEREST_ONLY': sessionsInterested.size - sessionsConsidered.size,
@@ -242,10 +270,10 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
             }
         },
         metadata: {
-            aggregationVersion: '1.3.0',
+            aggregationVersion: '1.4.0',
             dataStatus: 'SIMULATED', 
             evidenceStrength: totalUniqueSessions >= 30 ? 'HIGHER' : totalUniqueSessions >= 10 ? 'MODERATE' : 'LOW',
-            methodology: 'Strict chronological state machine with subsequent alternative encounter mapping.'
+            methodology: 'Deterministic per-GTIN chronological state machine with explicit barrier extraction.'
         }
     };
 }

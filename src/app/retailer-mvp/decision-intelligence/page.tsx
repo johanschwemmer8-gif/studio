@@ -9,7 +9,7 @@ import {
   ShieldCheck, HelpCircle, Sparkles,
   ArrowRight, ListChecks, History, 
   Barcode, Search, Filter, Loader2,
-  TrendingUp, ShoppingCart
+  TrendingUp, ShoppingCart, AlertCircle, Ban
 } from 'lucide-react';
 import { getDecisionJourneyIntelligence } from '@/ai/flows/decision-journey-intelligence';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -233,18 +233,84 @@ export default function DecisionIntelligencePage() {
                                             </div>
                                         </div>
                                     ))}
-                                    <p className="text-[9px] text-muted-foreground italic border-t pt-4">
-                                        * Leakage represents points where sessions ended without subsequent progression nodes.
-                                    </p>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        {/* Rejection & Movement Intelligence */}
+                        {/* Rejection & Barrier Intelligence */}
                         <div className="lg:col-span-2 space-y-8">
-                            {/* Alternative Movement Audit (STEP 8.2) */}
-                            {selectedGtin !== 'all' && (
+                            <div className="grid sm:grid-cols-2 gap-6">
+                                {/* Explicit Rejection Audit */}
                                 <div className="space-y-4">
+                                    <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                        <Ban className="h-5 w-5 text-destructive" />
+                                        Explicit Rejection Audit
+                                    </h2>
+                                    <div className="space-y-3">
+                                        {data.rejectionBreakdown.length === 0 ? (
+                                            <Card className="border-dashed p-8 text-center bg-muted/20">
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Rejections Recorded</p>
+                                            </Card>
+                                        ) : (
+                                            data.rejectionBreakdown.map((item) => (
+                                                <Card key={item.reason} className="border-primary/10 shadow-sm">
+                                                    <CardContent className="p-4">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-xs font-black uppercase tracking-tight">{item.reason}</span>
+                                                            <Badge variant="secondary" className="text-[9px] font-black">{item.share}% Share</Badge>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <p className="text-2xl font-black text-primary">{item.count}</p>
+                                                            <p className="text-[9px] text-muted-foreground font-bold uppercase">Unique Sessions</p>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            ))
+                                        )}
+                                    </div>
+                                    <div className="flex justify-between items-center px-2 py-1 bg-muted/50 rounded-lg">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase">Reason Captured Rate</span>
+                                        <span className="text-[11px] font-black text-primary">{Math.round((data.stats.rejectionsWithReason / (data.stats.rejectionsWithReason + data.stats.rejectionsWithoutReason || 1)) * 100)}%</span>
+                                    </div>
+                                </div>
+
+                                {/* Observed Barrier Intelligence */}
+                                <div className="space-y-4">
+                                    <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                        <AlertCircle className="h-5 w-5 text-yellow-500" />
+                                        Observed Barrier Reach
+                                    </h2>
+                                    <div className="space-y-3">
+                                        {data.barrierBreakdown.length === 0 ? (
+                                            <Card className="border-dashed p-8 text-center bg-muted/20">
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Barriers Identified</p>
+                                            </Card>
+                                        ) : (
+                                            data.barrierBreakdown.map((item) => (
+                                                <Card key={item.barrier} className="border-primary/10 shadow-sm">
+                                                    <CardContent className="p-4">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-xs font-black uppercase tracking-tight">{item.barrier}</span>
+                                                            <Badge variant="outline" className="text-[9px] font-black border-yellow-200 bg-yellow-50 text-yellow-700">{item.share}% of Exposed</Badge>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <p className="text-2xl font-black text-primary">{item.count}</p>
+                                                            <p className="text-[9px] text-muted-foreground font-bold uppercase">Unique Sessions</p>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            ))
+                                        )}
+                                    </div>
+                                    <p className="text-[9px] italic text-muted-foreground px-2">
+                                        * Barriers are factors explicitly cited by shoppers that may impede decision progress, regardless of final rejection.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Movement Audit */}
+                            {selectedGtin !== 'all' && (
+                                <div className="space-y-4 pt-4">
                                     <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
                                         <TrendingUp className="h-5 w-5" />
                                         Subsequent Product Movement
@@ -263,7 +329,7 @@ export default function DecisionIntelligencePage() {
                                                 {data.altProductBreakdown.length === 0 ? (
                                                     <TableRow>
                                                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic text-xs">
-                                                            No subsequent product movement recorded for this product.
+                                                            No subsequent movement recorded.
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : (
@@ -286,72 +352,8 @@ export default function DecisionIntelligencePage() {
                                             </TableBody>
                                         </Table>
                                     </Card>
-                                    <p className="text-[9px] italic text-muted-foreground px-2">
-                                        * Displays GTINs encountered in the same session chronologically AFTER the source product.
-                                    </p>
                                 </div>
                             )}
-
-                            <div className="grid sm:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                        <ListChecks className="h-5 w-5" />
-                                        Rejection Audit
-                                    </h2>
-                                    {data.rejectionBreakdown.length === 0 ? (
-                                        <Card className="border-dashed flex items-center justify-center p-12 text-center bg-muted/20">
-                                            <div className="space-y-2">
-                                                <HelpCircle className="h-10 w-10 mx-auto text-muted-foreground/30" />
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Rejection Data</p>
-                                            </div>
-                                        </Card>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {data.rejectionBreakdown.map((item) => (
-                                                <Card key={item.reason} className="border-primary/10 hover:border-primary/30 transition-all shadow-sm">
-                                                    <CardContent className="p-4">
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <span className="text-xs font-black uppercase tracking-tight">{item.reason}</span>
-                                                            <Badge variant="secondary" className="text-[10px] font-black">{item.share}%</Badge>
-                                                        </div>
-                                                        <div className="flex items-baseline gap-2">
-                                                            <p className="text-2xl font-black text-primary">{item.count}</p>
-                                                            <p className="text-[9px] text-muted-foreground font-bold uppercase">Unique Sessions</p>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                        <Activity className="h-5 w-5" />
-                                        Contextual Stats
-                                    </h2>
-                                    <div className="space-y-4">
-                                        <Card className="bg-primary shadow-lg border-none text-primary-foreground">
-                                            <CardContent className="p-6 text-center">
-                                                <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Recommendation Attribution</p>
-                                                <p className="text-4xl font-black">{data.stats.recommendationToPurchaseCount}</p>
-                                                <p className="text-[10px] font-bold opacity-60 mt-2 uppercase">Verified Journeys</p>
-                                                <p className="text-[9px] mt-4 italic opacity-40 leading-tight">
-                                                    Matching recommendation followed by transaction in same session.
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                        
-                                        <Card className="border-primary/10">
-                                            <CardContent className="p-6 text-center">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Alt-Product Movement</p>
-                                                <p className="text-3xl font-black text-primary">{data.stats.alternativeProductMovements}</p>
-                                                <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase">Cross-GTIN Sessions</p>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </>

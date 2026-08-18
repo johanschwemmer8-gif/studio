@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -51,34 +52,38 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
 
   useEffect(() => {
     const fetchInteraction = async () => {
-      const savedHeadline = localStorage.getItem(AI_CONTENT_HEADLINE_KEY);
-      const savedSubheading = localStorage.getItem(AI_CONTENT_SUBHEADING_KEY);
+      const savedHeadline = typeof window !== 'undefined' ? localStorage.getItem(AI_CONTENT_HEADLINE_KEY) : null;
+      const savedSubheading = typeof window !== 'undefined' ? localStorage.getItem(AI_CONTENT_SUBHEADING_KEY) : null;
       setGlobalContent({ headline: savedHeadline, subhead: savedSubheading });
       
       try {
         const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
         
         // --- Infrastructure Layer: Initialize Session ---
-        if (db) {
-            const sessionId = `sess_${Date.now()}`;
-            const sessionRef = doc(db, 'sessions', sessionId);
-            setDoc(sessionRef, {
-                sessionId,
-                shopperId: user?.uid || 'guest',
-                startTime: serverTimestamp(),
-                entryQrId: qrId,
-                retailerId: 'simulated-retailer-id'
-            }).catch(() => {});
+        if (db && qrId) {
+            try {
+                const sessionId = `sess_${Date.now()}`;
+                const sessionRef = doc(db, 'sessions', sessionId);
+                setDoc(sessionRef, {
+                    sessionId,
+                    shopperId: user?.uid || 'guest',
+                    startTime: serverTimestamp(),
+                    entryQrId: qrId,
+                    retailerId: 'simulated-retailer-id'
+                }).catch(() => {});
 
-            // Log raw behavioural scan event
-            const interactionRef = doc(db, 'product_interactions', `scan_${Date.now()}`);
-            setDoc(interactionRef, {
-                shopperId: user?.uid || 'guest',
-                sessionId,
-                type: 'scan',
-                timestamp: serverTimestamp(),
-                productId: result.destinationUrl.split('/').pop() || 'unknown'
-            }).catch(() => {});
+                // Log raw behavioural scan event
+                const interactionRef = doc(db, 'product_interactions', `scan_${Date.now()}`);
+                setDoc(interactionRef, {
+                    shopperId: user?.uid || 'guest',
+                    sessionId,
+                    type: 'scan',
+                    timestamp: serverTimestamp(),
+                    productId: result.destinationUrl.split('/').pop() || 'unknown'
+                }).catch(() => {});
+            } catch (e) {
+                console.warn("Client-side event logging failed, proceeding with UI.");
+            }
         }
 
         const hasCampaignContent = result.mediaUrl || result.headline || result.subhead;
@@ -86,19 +91,23 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         const hasMessages = result.messages && result.messages.length > 0;
 
         if (!hasCampaignContent && !hasGlobalContent && !hasMessages) {
-           window.location.href = result.destinationUrl;
+           router.replace(result.destinationUrl);
            return;
         }
 
         setData(result);
       } catch (e: any) {
-        setError(e.message || 'Decision Intelligence timeout.');
+        console.error("Interaction Fetch Error:", e);
+        setError(e.message || 'Decision Intelligence connection error.');
       } finally {
         setLoading(false);
       }
     };
-    fetchInteraction();
-  }, [qrId, user]);
+    
+    if (qrId) {
+        fetchInteraction();
+    }
+  }, [qrId, user, router]);
   
    useEffect(() => {
     if (data?.messages?.length) {
@@ -116,9 +125,8 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
   }, [data]);
 
   const handleContinue = () => {
-    if (data?.destinationUrl) {
-      window.location.href = data.destinationUrl;
-    }
+    const destination = data?.destinationUrl || 'https://interact-aoe.com';
+    window.location.href = destination;
   };
 
   if (loading) {
@@ -126,11 +134,8 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6 text-center space-y-6">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <div className="space-y-2">
-                <h2 className="text-xl font-bold">Ari is Synchronizing...</h2>
+                <h2 className="text-xl font-bold tracking-tight">Ari is Synchronizing...</h2>
                 <p className="text-sm text-muted-foreground">Identifying persistent behavioural memory.</p>
-            </div>
-            <div className="w-full max-w-sm mx-auto animate-pulse flex flex-col gap-6">
-                <div className="h-48 w-full bg-muted rounded-2xl" />
             </div>
         </div>
     );
@@ -139,14 +144,14 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
   if (error) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
-            <Alert variant="destructive" className="max-w-sm rounded-2xl shadow-lg border-none bg-red-50">
+            <Alert variant="destructive" className="max-w-sm rounded-2xl shadow-lg border-none bg-red-50 mb-6">
               <AlertTriangle className="h-4 w-4 text-red-600" />
               <AlertTitle className="text-red-900 font-bold">Ari Encountered Friction</AlertTitle>
               <AlertDescription className="text-red-800">
-                The Decision Intelligence layer is currently under high load. Redirecting you shortly...
+                The Decision Intelligence layer is temporarily under high load. You can continue to the product or retry.
               </AlertDescription>
             </Alert>
-            <Button variant="outline" className="mt-6 rounded-xl h-12" onClick={() => handleContinue()}>Skip to Product</Button>
+            <Button size="lg" className="w-full max-w-sm rounded-xl h-14 font-bold" onClick={() => handleContinue()}>Skip to Product</Button>
         </div>
     );
   }
@@ -167,10 +172,12 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         {/* Media Section */}
         {(data?.mediaUrl || displayHeadline || displaySubhead) && (
             <div className="mb-8 text-center animate-in fade-in zoom-in-95 duration-700">
-                {data?.mediaType === 'video' ? (
+                {data?.mediaType === 'video' && data.mediaUrl ? (
                     <video src={data.mediaUrl} controls autoPlay muted loop className="w-full rounded-2xl shadow-2xl aspect-video object-cover" />
                 ) : data?.mediaUrl ? (
-                    <Image src={data.mediaUrl} alt={data.headline || 'Brand Content'} width={400} height={225} className="w-full rounded-2xl shadow-2xl object-cover aspect-video" />
+                    <div className="relative w-full rounded-2xl shadow-2xl overflow-hidden aspect-video">
+                        <Image src={data.mediaUrl} alt={data.headline || 'Brand Content'} fill className="object-cover" />
+                    </div>
                 ) : null}
                 {displayHeadline && <h1 className="text-2xl font-black mt-6 tracking-tight leading-tight">{displayHeadline}</h1>}
                 {displaySubhead && <p className="text-muted-foreground mt-2 px-4 leading-relaxed text-sm">{displaySubhead}</p>}
@@ -211,7 +218,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
             showContinueButton ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
           )}
         >
-          {user ? `Welcome back, ${user.displayName}` : 'View Ari\'s Guidance'}
+          {user ? `Continue, ${user.displayName}` : 'View Ari\'s Guidance'}
         </Button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Continuity Engine Interaction Flow.
@@ -7,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { admin } from '@/lib/firebase-admin';
+import { getDb } from '@/lib/firebase-admin';
 import {
   GetScanInteractionInputSchema,
   type GetScanInteractionInput,
@@ -15,10 +16,6 @@ import {
   type GetScanInteractionOutput,
 } from '@/lib/schemas/scan-interaction';
 
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
 
 const InteractionPromptInputSchema = z.object({
     retailerName: z.string(),
@@ -63,10 +60,10 @@ export async function getScanInteraction(input: GetScanInteractionInput): Promis
   try {
     return await getScanInteractionFlow(input);
   } catch (error) {
-    console.warn("Continuity Engine Friction: Simulation mode engaged for QR interaction.", error);
+    console.warn("Continuity Engine Simulation: Providing fallback interaction due to infrastructure friction.", error);
     return {
-        messages: ["Hello! Ari here.", "Welcome back to the Decision Intelligence platform. I'm synchronizing your personalized guidance journey now."],
-        destinationUrl: "/product/1", // Safe fallback
+        messages: ["Hello! Ari here.", "Welcome to the iNteract platform. I'm synchronizing your personalized guidance journey now."],
+        destinationUrl: "https://interact-aoe.com", // Safe business fallback
         retailerLogoUrl: '',
     };
   }
@@ -79,32 +76,35 @@ const getScanInteractionFlow = ai.defineFlow(
     outputSchema: GetScanInteractionOutputSchema,
   },
   async ({ qrId, shopperUid }) => {
-    const db = admin.firestore();
+    const db = getDb();
+    if (!db) throw new Error("Firestore Admin not available.");
 
     const qrDoc = await db.collection('qrcodes').doc(qrId).get();
-    if (!qrDoc.exists) {
-      throw new Error(`Infrastructure mismatch: QR ${qrId} not found.`);
-    }
-    const qrData = qrDoc.data()!;
-
+    
     // ARCHITECTURAL RULE: Always check for a custom redirectUrl before falling back to product defaults.
-    const destinationUrl = qrData.redirectUrl || `/product/${qrData.productId || '1'}`;
+    let destinationUrl = "https://interact-aoe.com"; // Absolute fallback
+    let qrData: any = {};
+
+    if (qrDoc.exists) {
+        qrData = qrDoc.data()!;
+        destinationUrl = qrData.redirectUrl || `/p/${qrData.gtin || '06001234567891'}`;
+    }
 
     const fallbackResponse = {
-        messages: [],
+        messages: ["Hello! I'm Ari.", "Welcome to iNteract. Let's explore more details about this product."],
         destinationUrl,
         retailerLogoUrl: '',
-        mediaType: undefined,
-        mediaUrl: undefined,
-        headline: undefined,
-        subhead: undefined,
     };
     
     let mediaOptions: any = {};
     if (qrData.requestId) {
-        const requestDoc = await db.collection('bulkQrRequests').doc(qrData.requestId).get();
-        if (requestDoc.exists) {
-            mediaOptions = requestDoc.data()?.options || {};
+        try {
+            const requestDoc = await db.collection('bulkQrRequests').doc(qrData.requestId).get();
+            if (requestDoc.exists) {
+                mediaOptions = requestDoc.data()?.options || {};
+            }
+        } catch (e) {
+            console.warn("Could not fetch campaign options, using defaults.");
         }
     }
     
@@ -113,22 +113,26 @@ const getScanInteractionFlow = ai.defineFlow(
     let pastInterests: string[] = [];
     
     if (shopperUid) {
-        const shopperDoc = await db.collection('shoppers').doc(shopperUid).get();
-        if (shopperDoc.exists) {
-            const sData = shopperDoc.data()!;
-            shopperName = sData.displayName;
-            
-            const interactions = await db.collection('product_interactions')
-                .where('shopperId', '==', shopperUid)
-                .orderBy('timestamp', 'desc')
-                .limit(10)
-                .get();
-            
-            const categories = new Set<string>();
-            for(const doc of interactions.docs) {
-                if(doc.data().metadata?.category) categories.add(doc.data().metadata.category);
+        try {
+            const shopperDoc = await db.collection('shoppers').doc(shopperUid).get();
+            if (shopperDoc.exists) {
+                const sData = shopperDoc.data()!;
+                shopperName = sData.displayName;
+                
+                const interactions = await db.collection('product_interactions')
+                    .where('shopperId', '==', shopperUid)
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
+                
+                const categories = new Set<string>();
+                for(const doc of interactions.docs) {
+                    if(doc.data().metadata?.category) categories.add(doc.data().metadata.category);
+                }
+                pastInterests = Array.from(categories).slice(0, 3);
             }
-            pastInterests = Array.from(categories).slice(0, 3);
+        } catch (e) {
+            console.warn("Shopper memory fetch failed, continuing as guest.");
         }
     }
 
@@ -137,14 +141,14 @@ const getScanInteractionFlow = ai.defineFlow(
     try {
         const [aiProfileDoc, retailerDoc] = await Promise.all([
             db.collection('ai_profiles').doc(aiProfileId).get(),
-            db.collection('tenants').doc(qrData.retailerId).get()
+            db.collection('tenants').doc(qrData.retailerId || 'simulated-retailer-id').get()
         ]);
         
         const aiProfile = aiProfileDoc.exists ? aiProfileDoc.data()! : {
             personality: 'Expert & Knowledgeable',
             intent: 'Provide persistent buying guidance and lifecycle management.',
         };
-        const retailerName = retailerDoc.exists ? retailerDoc.data()!.name : 'our store';
+        const retailerName = retailerDoc.exists ? retailerDoc.data()!.name : 'iNteract';
         const retailerLogoUrl = retailerDoc.exists ? retailerDoc.data()!.logoUrl : undefined;
 
         const { output } = await prompt({
@@ -158,7 +162,7 @@ const getScanInteractionFlow = ai.defineFlow(
         });
 
         return {
-          messages: output?.messages || [],
+          messages: output?.messages || fallbackResponse.messages,
           destinationUrl,
           retailerLogoUrl,
           mediaType: mediaOptions.mediaType,
@@ -168,7 +172,7 @@ const getScanInteractionFlow = ai.defineFlow(
         };
 
     } catch (error) {
-        console.error(`Continuity Engine Error (qrId ${qrId}):`, error);
+        console.warn(`Continuity Prompt Failure for ${qrId}, using fallback content.`);
         return { ...fallbackResponse, ...mediaOptions };
     }
   }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -127,7 +126,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6 text-center space-y-6">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <div className="space-y-2">
-                <h2 className="text-xl font-bold">Synchronizing Intelligence...</h2>
+                <h2 className="text-xl font-bold">Ari is Synchronizing...</h2>
                 <p className="text-sm text-muted-foreground">Identifying persistent behavioural memory.</p>
             </div>
             <div className="w-full max-w-sm mx-auto animate-pulse flex flex-col gap-6">
@@ -142,7 +141,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
             <Alert variant="destructive" className="max-w-sm rounded-2xl shadow-lg border-none bg-red-50">
               <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertTitle className="text-red-900 font-bold">Intelligence Friction</AlertTitle>
+              <AlertTitle className="text-red-900 font-bold">Ari Encountered Friction</AlertTitle>
               <AlertDescription className="text-red-800">
                 The Decision Intelligence layer is currently under high load. Redirecting you shortly...
               </AlertDescription>
@@ -161,7 +160,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
       <div className="w-full max-w-sm mx-auto flex-1 flex flex-col justify-end pb-12">
         <div className="mb-6 flex justify-center">
             <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
-                <ShieldCheck className="h-3.5 w-3.5" /> Persistent Intelligence Active
+                <ShieldCheck className="h-3.5 w-3.5" /> Ari - Persistent Intelligence Active
             </Badge>
         </div>
 
@@ -184,8 +183,8 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                 {displayedMessages.map((msg, index) => (
                     <div key={index} className="flex items-end space-x-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
-                            <AvatarImage src={data?.retailerLogoUrl} alt="Intelligence Assistant" />
-                            <AvatarFallback className="bg-primary text-white font-black">iN</AvatarFallback>
+                            <AvatarImage src={data?.retailerLogoUrl} alt="Ari - Intelligence Assistant" />
+                            <AvatarFallback className="bg-primary text-white font-black">AR</AvatarFallback>
                         </Avatar>
                         <MessageBubble text={msg} isTyping={false} />
                     </div>
@@ -193,8 +192,8 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
                 {!showContinueButton && (
                         <div className="flex items-end space-x-3">
                             <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
-                                <AvatarImage src={data?.retailerLogoUrl} alt="Assistant" />
-                                <AvatarFallback className="bg-primary text-white">iN</AvatarFallback>
+                                <AvatarImage src={data?.retailerLogoUrl} alt="Ari" />
+                                <AvatarFallback className="bg-primary text-white font-black">AR</AvatarFallback>
                             </Avatar>
                             <MessageBubble text="" isTyping={true} />
                         </div>
@@ -212,7 +211,7 @@ export default function QrScanInteraction({ qrId }: QrScanInteractionProps) {
             showContinueButton ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
           )}
         >
-          {user ? `Welcome back, ${user.displayName}` : 'View Intelligent Guidance'}
+          {user ? `Welcome back, ${user.displayName}` : 'View Ari\'s Guidance'}
         </Button>
       </div>
     </div>

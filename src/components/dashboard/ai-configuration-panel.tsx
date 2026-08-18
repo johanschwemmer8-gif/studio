@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -50,7 +49,7 @@ import { Skeleton } from '../ui/skeleton';
 
 // Define Zod schema for form validation
 const formSchema = z.object({
-  assistantName: z.string().default('Store Assistant'),
+  assistantName: z.string().default('Ari'),
   personality: z.string().default('Friendly & Casual'),
   customPersonality: z.string().optional(),
   tone: z.string().default('Conversational'),
@@ -61,7 +60,7 @@ const formSchema = z.object({
   includePrice: z.boolean().default(true),
   showAvailability: z.boolean().default(true),
   recommendationTrigger: z.string().default('immediate'),
-  welcomeMessage: z.string().max(200).default('Hi there! How can I help you with this product?'),
+  welcomeMessage: z.string().max(200).default('Hi! I\'m Ari. How can I help you with this product today?'),
   faqCategories: z.array(z.string()).default(['product-information', 'store-policies']),
   enableHandoff: z.boolean().default(false),
   webhookUrl: z.string().optional(),
@@ -182,7 +181,7 @@ function LivePreviewPanel({ config }: { config: FormValues }) {
                     </Select>
                 </div>
                 <div className="flex gap-2">
-                    <Input placeholder="Ask AI a test question..." value={currentMessage} onChange={e => setCurrentMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} className="h-9 text-sm" />
+                    <Input placeholder="Ask Ari a test question..." value={currentMessage} onChange={e => setCurrentMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} className="h-9 text-sm" />
                     <Button onClick={handleSendMessage} size="sm"><Send className="h-4 w-4"/></Button>
                 </div>
            </div>
@@ -197,7 +196,7 @@ export default function AIConfigurationPanel() {
   const { watch, control, register, setValue } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      assistantName: 'Store Assistant',
+      assistantName: 'Ari',
       personality: 'Friendly & Casual',
       tone: 'Conversational',
       language: 'en',
@@ -206,7 +205,7 @@ export default function AIConfigurationPanel() {
       includePrice: true,
       showAvailability: true,
       recommendationTrigger: 'immediate',
-      welcomeMessage: 'Hi there! How can I help you with this product?',
+      welcomeMessage: 'Hi! I\'m Ari. How can I help you with this product today?',
       faqCategories: ['product-information', 'store-policies'],
       enableHandoff: false,
       ecommercePlatform: 'shopify',
@@ -350,10 +349,10 @@ export default function AIConfigurationPanel() {
                                 <CardContent className="flex flex-col items-center justify-center p-8 text-center gap-3">
                                     <Gift className="h-8 w-8 text-muted-foreground/50" />
                                     <div className="space-y-1">
-                                        <p className="text-sm font-medium">No active promotions linked to AI.</p>
-                                        <p className="text-xs text-muted-foreground">AI can automatically suggest coupons based on sentiment.</p>
+                                        <p className="text-sm font-medium">No active promotions linked to Ari.</p>
+                                        <p className="text-xs text-muted-foreground">Ari can automatically suggest coupons based on sentiment.</p>
                                     </div>
-                                    <Button size="sm" variant="outline" className="mt-2"><PlusCircle className="mr-2 h-4 w-4"/>Create AI-Driven Offer</Button>
+                                    <Button size="sm" variant="outline" className="mt-2"><PlusCircle className="mr-2 h-4 w-4"/>Create Ari-Driven Offer</Button>
                                 </CardContent>
                             </Card>
                         </div>
@@ -365,7 +364,7 @@ export default function AIConfigurationPanel() {
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between p-3 border rounded-lg"><div className="space-y-0.5"><Label>Product Bundling</Label><p className="text-[10px] text-muted-foreground">Suggest kits and sets.</p></div><Switch defaultChecked /></div>
                                 <div className="flex items-center justify-between p-3 border rounded-lg"><div className="space-y-0.5"><Label>Seasonal Intelligence</Label><p className="text-[10px] text-muted-foreground">Auto-adjust triggers by season.</p></div><Switch defaultChecked /></div>
-                                <div className="flex items-center justify-between p-3 border rounded-lg"><div className="space-y-0.5"><Label>Conversion A/B Testing</Label><p className="text-[10px] text-muted-foreground">Test different AI tones for ROI.</p></div><Switch /></div>
+                                <div className="flex items-center justify-between p-3 border rounded-lg"><div className="space-y-0.5"><Label>Conversion A/B Testing</Label><p className="text-[10px] text-muted-foreground">Test different Ari tones for ROI.</p></div><Switch /></div>
                             </div>
                          </div>
                     </TabsContent>
@@ -401,7 +400,7 @@ export default function AIConfigurationPanel() {
       <div className="lg:col-span-2 flex flex-wrap gap-2 justify-end sticky bottom-0 bg-background/90 backdrop-blur-md p-6 border-t -mx-8 -mb-8 z-50">
         <Button variant="ghost" className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Reset Defaults</Button>
         <Button variant="outline" onClick={() => setIsAdvancedSettingsOpen(true)} className="gap-2 font-bold uppercase text-[10px] tracking-widest"><Settings className="h-4 w-4"/>Model Advanced</Button>
-        <Button variant="default" className="gap-2 font-black uppercase text-[10px] tracking-widest px-12 shadow-xl"><Save className="h-4 w-4"/>Save AI Ecosystem</Button>
+        <Button variant="default" className="gap-2 font-black uppercase text-[10px] tracking-widest px-12 shadow-xl"><Save className="h-4 w-4"/>Save Ari Ecosystem</Button>
       </div>
 
         {/* Advanced Settings Modal */}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
@@ -93,7 +92,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
           }
       } catch (err) {
           console.error("Assistant Logic Friction:", err);
-          setMessages((prev) => [...prev, { role: 'model', content: "Friction in Decision Intelligence layer. Synchronizing..." }]);
+          setMessages((prev) => [...prev, { role: 'model', content: "Friction in Ari's intelligence layer. Synchronizing..." }]);
       }
     });
   };
@@ -129,7 +128,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
           <SheetHeader className="pb-4 border-b">
             <SheetTitle className="flex items-center gap-3 text-2xl font-black">
               <BotIcon />
-              Decision Assistant
+              Ari - Your Assistant
             </SheetTitle>
             <SheetDescription className="text-sm font-medium">
               {user ? `Analysing history for ${user.displayName}...` : 'AI-powered in-store buying consultant.'}
@@ -146,10 +145,10 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                 {messages.length === 0 && (
                   <div className="flex items-start gap-4">
                     <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
-                      <AvatarFallback className="bg-primary text-white font-bold">iN</AvatarFallback>
+                      <AvatarFallback className="bg-primary text-white font-bold">AR</AvatarFallback>
                     </Avatar>
                     <div className="rounded-2xl px-4 py-3 bg-muted text-sm leading-relaxed border border-primary/5">
-                      Hello! I've initialized your session for <strong>{product.name}</strong>. How can I assist your decision?
+                      Hello! I'm Ari. I've initialized your session for <strong>{product.name}</strong>. How can I assist your decision?
                     </div>
                   </div>
                 )}
@@ -163,7 +162,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     >
                     {message.role === 'model' && (
                         <Avatar className="h-10 w-10 border-2 border-accent shrink-0 shadow-sm">
-                        <AvatarFallback className="bg-primary text-white font-bold">iN</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-white font-bold">AR</AvatarFallback>
                         </Avatar>
                     )}
                     <div
@@ -181,7 +180,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                 {isPending && (
                     <div className="flex items-start gap-4">
                         <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
-                        <AvatarFallback className="bg-primary text-white font-bold">iN</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-white font-bold">AR</AvatarFallback>
                         </Avatar>
                         <div className="rounded-2xl px-4 py-3 bg-muted space-y-2 w-48 border border-primary/5">
                             <Skeleton className="h-3 w-full" />
@@ -211,7 +210,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask about specs or comparison..."
+                            placeholder="Ask Ari about specs or comparison..."
                             disabled={isPending}
                             className="bg-muted/80 border-none shadow-none h-12 rounded-xl text-sm"
                         />

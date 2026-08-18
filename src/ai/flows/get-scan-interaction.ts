@@ -100,7 +100,7 @@ const getScanInteractionFlow = ai.defineFlow(
         const qrDoc = await db.collection('qrcodes').doc(qrId).get();
         if (qrDoc.exists) {
             qrData = qrDoc.data()!;
-            // Ensure we use the redirectUrl from the test QR record
+            // Priority: The specific redirectUrl assigned to this QR code (crucial for Test QR)
             destinationUrl = qrData.redirectUrl || `/p/${qrData.gtin || '06001234567891'}`;
             
             if (qrData.requestId) {
@@ -111,7 +111,7 @@ const getScanInteractionFlow = ai.defineFlow(
             }
         }
     } catch (e) {
-        console.warn("QR Metadata fetch failed, using defaults.");
+        console.warn("QR Metadata fetch failed, using default redirection logic.");
     }
     
     if (shopperUid) {

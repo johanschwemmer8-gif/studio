@@ -1,16 +1,15 @@
 'use client';
 
 import { useEffect, useState, useTransition, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { getScanInteraction, productChat, type GetScanInteractionOutput } from '@/ai/flows';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { AlertTriangle, Sparkles, ShieldCheck, Loader2, Send } from 'lucide-react';
+import { Sparkles, ShieldCheck, Loader2, Send, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
@@ -33,22 +32,32 @@ function TypingIndicator() {
 export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const { user } = useAuth();
   const [data, setData] = useState<GetScanInteractionOutput | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [clientDestinationUrl, setClientDestinationUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [userInput, setUserInput] = useState('');
   const [isPendingChat, startChatTransition] = useTransition();
-  const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchInteraction = async () => {
       try {
-        const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
-        if (!result) throw new Error("No response from Ari.");
+        // 1. Client-side fetch for the destination URL (Bypasses Admin SDK sync issues)
+        if (db) {
+            const qrDoc = await getDoc(doc(db, 'qrcodes', qrId));
+            if (qrDoc.exists()) {
+                const qrData = qrDoc.data();
+                if (qrData.redirectUrl) {
+                    setClientDestinationUrl(qrData.redirectUrl);
+                }
+            }
+        }
 
-        // Log scan to Firestore (Safe Mode)
+        // 2. Call the Genkit flow for the AI greeting and personality
+        const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
+        
+        // Log the session if DB is available
         if (db) {
             const sessionId = `sess_${Date.now()}`;
             setDoc(doc(db, 'sessions', sessionId), {
@@ -60,23 +69,25 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             }).catch(() => {});
         }
 
-        setData(result);
-        if (result.messages?.length) {
-            // Sequence messages with typing simulation
-            setIsTyping(true);
-            let current = 0;
-            const interval = setInterval(() => {
-                if (current < result.messages.length) {
-                    setMessages(prev => [...prev, { role: 'model', content: result.messages[current] }]);
-                    current++;
-                } else {
-                    setIsTyping(false);
-                    clearInterval(interval);
-                }
-            }, 800);
+        if (result) {
+            setData(result);
+            if (result.messages?.length) {
+                // Sequence messages with typing simulation
+                setIsTyping(true);
+                let current = 0;
+                const interval = setInterval(() => {
+                    if (current < result.messages.length) {
+                        setMessages(prev => [...prev, { role: 'model', content: result.messages[current] }]);
+                        current++;
+                    } else {
+                        setIsTyping(false);
+                        clearInterval(interval);
+                    }
+                }, 800);
+            }
         }
       } catch (e: any) {
-        setError('Intelligence synchronization in progress.');
+        console.warn('Intelligence Layer Handshake Friction:', e);
       } finally {
         setLoading(false);
       }
@@ -93,7 +104,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userInput.trim() || isPendingChat) return;
+    if (!userInput.trim() || isPendingChat || isTyping) return;
 
     const userMessage = userInput.trim();
     setUserInput('');
@@ -104,10 +115,10 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         try {
             const res = await productChat({
                 product: {
-                    gtin: '06001234567891', // Fallback for test scans
-                    name: 'Test Product',
-                    description: 'Direct redirect target.',
-                    category: 'Test',
+                    gtin: '06001234567891', // Standard fallback
+                    name: 'Product Details',
+                    description: 'Interactive buyer guidance.',
+                    category: 'Shopping',
                     price: 0
                 },
                 history: [...messages, { role: 'user', content: userMessage }],
@@ -123,7 +134,8 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   };
 
   const handleContinue = () => {
-    const destination = data?.destinationUrl || 'https://interactaoe.co.za';
+    // Priority: 1. Client-fetched URL, 2. Flow-fetched URL, 3. Hardcoded fallback
+    const destination = clientDestinationUrl || data?.destinationUrl || 'https://interactaoe.co.za';
     window.location.href = destination;
   };
 
@@ -132,40 +144,42 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6 text-center space-y-6">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <div className="space-y-2">
-                <h2 className="text-xl font-bold tracking-tight">Ari is Synchronizing...</h2>
+                <h2 className="text-xl font-bold tracking-tight text-primary">Ari is Synchronizing...</h2>
                 <p className="text-sm text-muted-foreground">Identifying persistent behavioural memory.</p>
             </div>
         </div>
     );
   }
 
+  const shopperFirstName = (user && user.displayName) ? user.displayName.split(' ')[0] : null;
+
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="p-4 flex justify-center border-b bg-background/50 backdrop-blur-sm sticky top-0 z-50">
+    <div className="flex flex-col h-svh bg-background overflow-hidden">
+      <header className="p-4 flex justify-center border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
             <ShieldCheck className="h-3.5 w-3.5" /> Ari - Intelligence Active
         </Badge>
       </header>
 
       <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-        <div className="max-w-sm mx-auto flex flex-col space-y-4 pb-12">
+        <div className="max-w-md mx-auto flex flex-col space-y-4 pb-20">
             {/* Optional Campaign Media */}
             {(data?.mediaUrl || data?.headline) && (
                 <div className="mb-6 text-center animate-in fade-in zoom-in-95 duration-700">
                     {data?.mediaType === 'video' ? (
                         <video src={data.mediaUrl} autoPlay muted loop className="w-full rounded-2xl shadow-xl aspect-video object-cover border" />
                     ) : data?.mediaUrl ? (
-                        <div className="relative w-full rounded-2xl shadow-xl overflow-hidden aspect-video border">
+                        <div className="relative w-full rounded-2xl shadow-xl overflow-hidden aspect-video border bg-muted">
                             <Image src={data.mediaUrl} alt={data.headline || 'Content'} fill className="object-cover" />
                         </div>
                     ) : null}
-                    {data?.headline && <h1 className="text-xl font-black mt-4 leading-tight">{data.headline}</h1>}
+                    {data?.headline && <h1 className="text-2xl font-black mt-4 leading-tight tracking-tight">{data.headline}</h1>}
                 </div>
             )}
 
             {/* Chat History */}
             {messages.map((msg, index) => (
-                <div key={index} className={cn("flex items-end space-x-3", msg.role === 'user' ? "flex-row-reverse space-x-reverse" : "justify-start")}>
+                <div key={index} className={cn("flex items-end space-x-3", msg.role === 'user' ? "flex-row-reverse space-x-reverse" : "justify-start animate-in slide-in-from-left-2")}>
                     {msg.role === 'model' && (
                         <Avatar className="h-8 w-8 border-2 border-accent shrink-0 shadow-sm">
                             <AvatarImage src={data?.retailerLogoUrl} />
@@ -173,7 +187,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                         </Avatar>
                     )}
                     <div className={cn(
-                        "rounded-2xl p-3 max-w-[85%] text-sm leading-relaxed border",
+                        "rounded-2xl p-4 max-w-[85%] text-sm leading-relaxed border",
                         msg.role === 'user' ? "bg-primary text-primary-foreground border-primary shadow-md" : "bg-muted border-primary/5 text-foreground"
                     )}>
                         {msg.content}
@@ -182,11 +196,11 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             ))}
             
             {isTyping && (
-                <div className="flex items-end space-x-3">
+                <div className="flex items-end space-x-3 animate-in fade-in">
                     <Avatar className="h-8 w-8 border-2 border-accent shrink-0">
                         <AvatarFallback className="bg-primary text-white font-black text-[10px]">AR</AvatarFallback>
                     </Avatar>
-                    <div className="bg-muted rounded-2xl p-2 border border-primary/5">
+                    <div className="bg-muted rounded-2xl p-3 border border-primary/5">
                         <TypingIndicator />
                     </div>
                 </div>
@@ -194,25 +208,30 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         </div>
       </ScrollArea>
 
-      <div className="p-4 bg-background border-t space-y-4">
-        <form onSubmit={handleSend} className="max-w-sm mx-auto flex gap-2">
-            <Input 
-                placeholder="Ask Ari anything..." 
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                className="h-12 rounded-xl bg-muted/50 border-none shadow-none text-sm"
-            />
-            <Button type="submit" size="icon" className="h-12 w-12 rounded-xl shrink-0" disabled={!userInput.trim() || isTyping}>
-                <Send className="h-5 w-5" />
+      <div className="p-4 bg-background border-t space-y-4 shadow-[0_-10px_20px_-15px_rgba(0,0,0,0.1)]">
+        <form onSubmit={handleSend} className="max-w-md mx-auto flex gap-2">
+            <div className="relative flex-1">
+                <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Ask Ari about this product..." 
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    className="h-12 pl-10 rounded-xl bg-muted/50 border-none shadow-none text-sm focus-visible:ring-primary/20"
+                    disabled={isTyping}
+                />
+            </div>
+            <Button type="submit" size="icon" className="h-12 w-12 rounded-xl shrink-0 shadow-lg bg-primary hover:bg-primary/90" disabled={!userInput.trim() || isTyping}>
+                {isPendingChat ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </Button>
         </form>
         
         <Button
           onClick={handleContinue}
           size="lg"
-          className="w-full max-w-sm mx-auto block h-14 rounded-2xl text-lg font-bold shadow-xl bg-accent text-accent-foreground hover:bg-accent/90"
+          className="w-full max-w-md mx-auto flex h-14 rounded-2xl text-lg font-bold shadow-xl bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
         >
-          {user?.displayName ? `Continue, ${user.displayName.split(' ')[0]}` : 'Proceed to Product'}
+          {shopperFirstName ? `Continue, ${shopperFirstName}` : 'Proceed to Product'}
+          <Sparkles className="h-4 w-4 opacity-70" />
         </Button>
       </div>
     </div>

@@ -43,21 +43,23 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   useEffect(() => {
     const fetchInteraction = async () => {
       try {
-        // 1. Client-side fetch for the destination URL (Bypasses Admin SDK sync issues)
+        let finalDest = 'https://interactaoe.co.za';
+        
+        // 1. Client-side fetch for the destination URL
         if (db) {
             const qrDoc = await getDoc(doc(db, 'qrcodes', qrId));
             if (qrDoc.exists()) {
                 const qrData = qrDoc.data();
                 if (qrData.redirectUrl) {
                     setClientDestinationUrl(qrData.redirectUrl);
+                    finalDest = qrData.redirectUrl;
                 }
             }
         }
 
-        // 2. Call the Genkit flow for the AI greeting and personality
+        // 2. Call the Genkit flow for the AI greeting
         const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
         
-        // Log the session if DB is available
         if (db) {
             const sessionId = `sess_${Date.now()}`;
             setDoc(doc(db, 'sessions', sessionId), {
@@ -72,7 +74,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         if (result) {
             setData(result);
             if (result.messages?.length) {
-                // Sequence messages with typing simulation
                 setIsTyping(true);
                 let current = 0;
                 const interval = setInterval(() => {
@@ -87,7 +88,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             }
         }
       } catch (e: any) {
-        console.warn('Intelligence Layer Handshake Friction:', e);
+        console.warn('Intelligence Layer Handshake Friction');
       } finally {
         setLoading(false);
       }
@@ -107,6 +108,8 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     if (!userInput.trim() || isPendingChat || isTyping) return;
 
     const userMessage = userInput.trim();
+    const destination = clientDestinationUrl || data?.destinationUrl || 'https://interactaoe.co.za';
+    
     setUserInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsTyping(true);
@@ -114,13 +117,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     startChatTransition(async () => {
         try {
             const res = await productChat({
-                product: {
-                    gtin: '06001234567891', // Standard fallback
-                    name: 'Product Details',
-                    description: 'Interactive buyer guidance.',
-                    category: 'Shopping',
-                    price: 0
-                },
+                url: destination,
                 history: [...messages, { role: 'user', content: userMessage }],
                 shopperUid: user?.uid
             });
@@ -134,7 +131,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   };
 
   const handleContinue = () => {
-    // Priority: 1. Client-fetched URL, 2. Flow-fetched URL, 3. Hardcoded fallback
     const destination = clientDestinationUrl || data?.destinationUrl || 'https://interactaoe.co.za';
     window.location.href = destination;
   };
@@ -163,7 +159,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
       <ScrollArea className="flex-1 p-6" ref={scrollRef}>
         <div className="max-w-md mx-auto flex flex-col space-y-4 pb-20">
-            {/* Optional Campaign Media */}
             {(data?.mediaUrl || data?.headline) && (
                 <div className="mb-6 text-center animate-in fade-in zoom-in-95 duration-700">
                     {data?.mediaType === 'video' ? (
@@ -177,7 +172,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                 </div>
             )}
 
-            {/* Chat History */}
             {messages.map((msg, index) => (
                 <div key={index} className={cn("flex items-end space-x-3", msg.role === 'user' ? "flex-row-reverse space-x-reverse" : "justify-start animate-in slide-in-from-left-2")}>
                     {msg.role === 'model' && (
@@ -213,7 +207,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             <div className="relative flex-1">
                 <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Ask Ari about this product..." 
+                    placeholder="Ask Ari about this..." 
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     className="h-12 pl-10 rounded-xl bg-muted/50 border-none shadow-none text-sm focus-visible:ring-primary/20"
@@ -230,7 +224,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
           size="lg"
           className="w-full max-w-md mx-auto flex h-14 rounded-2xl text-lg font-bold shadow-xl bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
         >
-          {shopperFirstName ? `Continue, ${shopperFirstName}` : 'Proceed to Product'}
+          {shopperFirstName ? `Continue, ${shopperFirstName}` : 'Proceed to Website'}
           <Sparkles className="h-4 w-4 opacity-70" />
         </Button>
       </div>

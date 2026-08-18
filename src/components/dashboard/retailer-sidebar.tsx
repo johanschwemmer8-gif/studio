@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -29,7 +30,10 @@ import {
   Target, 
   LayoutDashboard,
   Building2,
-  Map
+  Bot,
+  Sparkles,
+  MessageSquare,
+  Cog
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
@@ -69,6 +73,37 @@ export default function RetailerSidebar({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Scan History & Activity">
                     <Link href="/retailer-mvp/qr-analytics"><BarChart2 /><span>Scan Analytics</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarSeparator/>
+
+          {/* AI Assistant Group */}
+          <SidebarGroup>
+            <SidebarGroupLabel>AI Assistant</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Monitor AI Interaction Performance">
+                    <Link href="/retailer-mvp/ai-performance"><BarChart2 /><span>Performance</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Configure Personality & Triggers">
+                    <Link href="/retailer-mvp/ai-configuration"><Cog /><span>Personality & Triggers</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Welcome Messages & Initial Content">
+                    <Link href="/retailer-mvp/ai-content"><MessageSquare /><span>Welcome Content</span></Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Governance & Ethical Rules">
+                    <Link href="/retailer-mvp/ai-policy"><Shield /><span>Ethics & Policy</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -133,16 +168,11 @@ export default function RetailerSidebar({
 
           <SidebarSeparator/>
 
-          {/* Governance Group */}
+          {/* Settings & Support Group */}
           <SidebarGroup>
-            <SidebarGroupLabel>Settings</SidebarGroupLabel>
+            <SidebarGroupLabel>Support</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Rules for AI Behavior">
-                    <Link href="/retailer-mvp/ai-policy"><Shield /><span>AI Rules</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="System Connections">
                     <Link href="/retailer-mvp/system-integration"><Settings /><span>App Connections</span></Link>

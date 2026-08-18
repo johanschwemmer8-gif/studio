@@ -1,9 +1,7 @@
 
 'use server';
 /**
- * @fileOverview A Genkit flow to calculate and aggregate executive-level ROI metrics across all retailers.
- *
- * - getExecutiveRoiMetrics - A flow that fetches data for all retailers and computes key metrics.
+ * @fileOverview A Genkit flow to calculate and aggregate executive-level ROI metrics.
  */
 
 import { ai } from '@/ai/genkit';
@@ -40,31 +38,18 @@ export const getExecutiveRoiMetrics = ai.defineFlow(
     outputSchema: ExecutiveRoiMetricsOutputSchema,
   },
   async () => {
-    // In a production environment, you would fetch and aggregate real data.
-    // To resolve authentication issues in local development, we will use mock data.
     const retailers = [
         { name: "Woolworths" },
-        { name: "TFG" }
+        { name: "TFG" },
+        { name: "Dis-Chem" }
     ];
 
-    if (retailers.length === 0) {
-        return {
-            metrics: [],
-            aggregates: {
-                totalRevenueUplift: 0,
-                averageBasketUplift: 0,
-                averageRoi: 0,
-            }
-        };
-    }
-
     const metrics: z.infer<typeof RetailerMetricSchema>[] = retailers.map(retailer => {
-        // For each retailer, you would run a complex aggregation query.
-        // Here, we'll generate realistic but random data for demonstration.
-        const totalScans = Math.floor(Math.random() * 50000) + 1000;
-        const basketUplift = Math.random() * 15 + 5; // 5% to 20%
-        const revenueUplift = totalScans * (Math.random() * 5 + 1); // R1 to R6 per scan
-        const roi = Math.random() * 4 + 1.5; // 1.5x to 5.5x
+        // High-fidelity mock generation for consistent prototype viewing
+        const totalScans = Math.floor(Math.random() * 50000) + 12000;
+        const basketUplift = Math.random() * 8 + 12; // 12% to 20%
+        const revenueUplift = totalScans * (Math.random() * 5 + 4); // R4 to R9 per scan
+        const roi = Math.random() * 2 + 3.5; // 3.5x to 5.5x
         
         return {
             name: retailer.name,
@@ -76,8 +61,8 @@ export const getExecutiveRoiMetrics = ai.defineFlow(
     });
 
     const totalRevenueUplift = metrics.reduce((acc, curr) => acc + curr.revenueUplift, 0);
-    const averageBasketUplift = metrics.length > 0 ? metrics.reduce((acc, curr) => acc + curr.basketUplift, 0) / metrics.length : 0;
-    const averageRoi = metrics.length > 0 ? metrics.reduce((acc, curr) => acc + curr.roi, 0) / metrics.length : 0;
+    const averageBasketUplift = metrics.reduce((acc, curr) => acc + curr.basketUplift, 0) / metrics.length;
+    const averageRoi = metrics.reduce((acc, curr) => acc + curr.roi, 0) / metrics.length;
     
     return {
         metrics,

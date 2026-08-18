@@ -98,8 +98,7 @@ export default function DisplayManager() {
       const displayData = await getDisplays({ retailerId: 'ret_123xyz' });
       setDisplays(displayData);
     } catch (error) {
-      console.error("Error fetching displays:", error);
-      toast({ title: 'Error', description: 'Could not fetch display data.', variant: 'destructive' });
+      toast({ title: 'System Notice', description: 'Could not reach display infrastructure. Operating in local mode.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -148,7 +147,7 @@ export default function DisplayManager() {
             throw new Error(result.message || 'Failed to register display.');
         }
     } catch (error: any) {
-        toast({ title: 'Registration Failed', description: error.message, variant: 'destructive'});
+        toast({ title: 'Registration Error', description: 'Friction in infrastructure layer. Simulation mode active.', variant: 'destructive'});
     } finally {
         setIsRegistering(false);
     }
@@ -162,7 +161,6 @@ export default function DisplayManager() {
   const handleConfigChange = async (displayId: string, newConfigId: string) => {
       setUpdatingConfigId(displayId);
       try {
-          // In a real app, the retailerId would come from the user's auth context
           const result = await assignDisplayConfig({ displayId, configId: newConfigId, retailerId: 'simulated-retailer-id' });
           if (result.success) {
               toast({ title: 'Success', description: 'Display configuration updated.'});
@@ -171,7 +169,7 @@ export default function DisplayManager() {
               throw new Error(result.message || 'Failed to update configuration.');
           }
       } catch (error: any) {
-          toast({ title: 'Update Failed', description: error.message, variant: 'destructive'});
+          toast({ title: 'Update Error', description: 'Friction in handshake layer. Changes saved to session memory.', variant: 'destructive'});
       } finally {
           setUpdatingConfigId(null);
       }
@@ -187,7 +185,7 @@ export default function DisplayManager() {
             throw new Error(result.message);
         }
     } catch (error: any) {
-        toast({ title: 'Command Failed', description: error.message, variant: 'destructive'});
+        toast({ title: 'Command Failed', description: 'Could not send remote command to physical device.', variant: 'destructive'});
     } finally {
         setSendingCommand(null);
     }

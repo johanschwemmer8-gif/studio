@@ -95,7 +95,6 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             setItems(fetchedItems);
             setLoading(false);
         }, (error) => {
-            console.error("Error fetching QR items:", error);
             toast({ title: "Error", description: "Could not fetch QR code details.", variant: "destructive" });
         });
 
@@ -335,10 +334,11 @@ export default function QrCampaignDashboard() {
         }
 
         setLoading(true);
+        // We remove orderBy here to avoid the requirement for a composite index in the Firestore query.
+        // We sort the results manually in the callback below.
         const q = query(
             collection(db, 'bulkQrRequests'),
-            where('retailerId', '==', 'simulated-retailer-id'),
-            orderBy('createdAt', 'desc')
+            where('retailerId', '==', 'simulated-retailer-id')
         );
 
         const unsubscribe = onSnapshot(q, snapshot => {
@@ -347,10 +347,16 @@ export default function QrCampaignDashboard() {
                 ...doc.data(),
             }));
 
+            // Client-side sort by createdAt descending
+            fetchedRequests.sort((a, b) => {
+                const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
+                const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+                return dateB - dateA;
+            });
+
             setRequests(fetchedRequests);
             setLoading(false);
         }, (error) => {
-            console.error("Error fetching QR requests:", error);
             toast({ title: "Error", description: "Could not fetch campaign requests.", variant: "destructive"});
             setLoading(false);
         });

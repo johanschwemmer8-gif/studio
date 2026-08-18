@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send, Sparkles, QrCode, X, Loader2, ShieldCheck } from 'lucide-react';
+import { MessageCircle, Send, Sparkles, QrCode, X, Loader2, ShieldCheck, Info } from 'lucide-react';
 import type { Product } from '@/lib/data';
 import { productChat, type ProductChatInput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,12 @@ import QrScannerCamera from '../qr-scanner-camera';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -76,16 +82,29 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   shopperId: user?.uid || 'guest',
                   gtin: product.gtin,
                   transcript: [...newMessages, { role: 'model', content: result.message }],
+                  shopperContext: result.shopperContext,
                   timestamp: serverTimestamp(),
                   aiModel: 'gemini-2.5-flash'
               }).catch(() => {});
 
-              // 2. HARDENED: Record Signals ONLY if behavioural analysis consent is granted
+              // 2. Log Recommendation Events (Separate from evidence)
+              if (result.rationale && result.rationale.confidence !== 'NONE') {
+                  const recId = `rec_${Date.now()}`;
+                  setDoc(doc(db, 'events', recId), {
+                      eventId: recId,
+                      sessionId,
+                      gtin: product.gtin,
+                      eventType: 'recommendation_event',
+                      timestamp: serverTimestamp(),
+                      metadata: result.rationale
+                  }).catch(() => {});
+              }
+
+              // 3. HARDENED: Record Signals ONLY if behavioural analysis consent is granted
               const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
               
               if (hasConsent && result.signals && result.signals.length > 0) {
                   result.signals.forEach((signal) => {
-                      // VALIDATION: Ensure inferred signals do not have HIGH confidence
                       if (signal.evidenceType === 'inferred' && signal.confidence === 'HIGH') {
                           signal.confidence = 'INFERRED';
                       }
@@ -99,8 +118,8 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                           timestamp: serverTimestamp(),
                           metadata: {
                               ...signal,
-                              sourceMessage: userText.substring(0, 500), // Data minimisation
-                              extractionVersion: '1.0.0'
+                              sourceMessage: userText.substring(0, 500),
+                              extractionVersion: '1.2.0'
                           }
                       }).catch(() => {});
                   });
@@ -141,12 +160,27 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent className="flex flex-col sm:max-w-md border-none rounded-l-[2rem] shadow-2xl">
           <SheetHeader className="pb-4 border-b">
-            <SheetTitle className="flex items-center gap-3 text-2xl font-black">
-              <BotIcon />
-              Ari - Your Assistant
-            </SheetTitle>
+            <div className="flex items-center justify-between">
+                <SheetTitle className="flex items-center gap-3 text-2xl font-black">
+                <BotIcon />
+                Ari - Your Assistant
+                </SheetTitle>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs p-3">
+                            <p className="font-bold text-xs uppercase mb-1">Evidence-Based Guidance</p>
+                            <p className="text-[10px] leading-relaxed">
+                                Ari uses strictly verified product facts and your explicit requirements to provide guidance. No commercial bias.
+                            </p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </div>
             <SheetDescription className="text-sm font-medium">
-              {user ? `Analysing history for ${user.displayName}...` : 'AI-powered grounded in-store guidance.'}
+              {user ? `Analysing session context for ${user.displayName}...` : 'Evidence-led shopping assistant.'}
             </SheetDescription>
           </SheetHeader>
 
@@ -163,7 +197,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                       <span className="text-white font-black text-xs">AR</span>
                     </div>
                     <div className="rounded-2xl px-4 py-3 bg-muted text-sm leading-relaxed border border-primary/5">
-                      Hello! I'm Ari. I've initialized a grounded session for <strong>{product.name}</strong>. How can I help?
+                      Hello! I'm Ari. I've initialized a grounded session for <strong>{product.name}</strong>. How can I help with your decision today?
                     </div>
                   </div>
                 )}
@@ -217,18 +251,18 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                     <div className="flex justify-between items-center px-1">
                         <Button variant="ghost" size="sm" onClick={handleStartScan} className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground h-auto p-0 hover:bg-transparent hover:text-primary">
                             <QrCode className="mr-2 h-3.5 w-3.5" />
-                            Verify Other
+                            Compare Product
                         </Button>
                         <div className="flex items-center gap-1.5">
                             <ShieldCheck className="h-3 w-3 text-green-500" />
-                            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-tighter">Signal Extraction Active</span>
+                            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-tighter">Shopper Control Active</span>
                         </div>
                     </div>
                     <form onSubmit={handleSendMessage} className="flex w-full gap-2 pb-2">
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask about price, features..."
+                            placeholder="Ask about specs, budget, suitability..."
                             disabled={isPending}
                             className="bg-muted/80 border-none shadow-none h-12 rounded-xl text-sm"
                         />

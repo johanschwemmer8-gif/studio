@@ -2,9 +2,9 @@
 import { z } from 'genkit';
 
 /**
- * @fileOverview Controlled Taxonomy for Structured Interaction Signals.
- * Defines the evidence layer for customer-expressed information.
- * HARDENED: Strict classification rules to prevent inference from masquerading as fact.
+ * @fileOverview Controlled Taxonomy for Structured Interaction Signals & Shopper Context.
+ * Defines the evidence layer for customer-expressed information and working session memory.
+ * VERSION: 1.2.0 (Multi-turn Reasoning)
  */
 
 export const EvidenceTypeSchema = z.enum(['explicit', 'derived', 'inferred']).describe(
@@ -37,14 +37,36 @@ export const InteractionSignalSchema = z.object({
 
 export type InteractionSignal = z.infer<typeof InteractionSignalSchema>;
 
-export const InteractionSignalEventSchema = z.object({
-  eventId: z.string(),
-  sessionId: z.string(),
-  gtin: z.string().optional(),
-  eventType: z.literal('interaction_signal'),
-  timestamp: z.any(), // Firestore Timestamp
-  metadata: InteractionSignalSchema.extend({
-    sourceMessage: z.string().describe('The scrubbed user message that triggered this signal. PII MUST BE REMOVED.'),
-    extractionVersion: z.string().default('1.0.0')
-  })
+/**
+ * Shopper Context Schema
+ * Maintains the "Working Memory" of the current shopping session.
+ */
+export const ShopperContextSchema = z.object({
+  objective: z.string().optional().describe('The main goal of the shopping session.'),
+  requirements: z.array(z.string()).describe('Explicit must-have features or constraints.'),
+  preferences: z.array(z.string()).describe('Stated likes or preferred attributes.'),
+  dislikes: z.array(z.string()).describe('Products or features explicitly rejected.'),
+  budget: z.object({
+    limit: z.number().optional(),
+    currency: z.string().default('ZAR'),
+    isFlexible: z.boolean().default(false)
+  }).optional(),
+  consideredGtins: z.array(z.string()).describe('GTINs discussed or viewed during the session.'),
+  unresolvedQuestions: z.array(z.string()).describe('Questions the shopper asked that require further follow-up.')
 });
+
+export type ShopperContext = z.infer<typeof ShopperContextSchema>;
+
+/**
+ * Recommendation Rationale Schema
+ * Ensures every Ari suggestion is traceable to evidence.
+ */
+export const RecommendationRationaleSchema = z.object({
+  recommendedGtin: z.string().optional(),
+  supportingShopperRequirements: z.array(z.string()),
+  supportingVerifiedFacts: z.array(z.string()),
+  confidence: z.enum(['HIGH', 'MEDIUM', 'LOW', 'NONE']),
+  logic: z.string().describe('Internal trace of why this product fits the shopper context.')
+});
+
+export type RecommendationRationale = z.infer<typeof RecommendationRationaleSchema>;

@@ -3,15 +3,20 @@
 /**
  * @fileOverview Ari - Intelligence Layer Continuity Assistant.
  * ENFORCED GROUNDING: Provides sophisticated guidance using only verified Fact Context.
- * SIGNAL EXTRACTION: Captures structured interaction signals from the conversation.
- * HARDENED: Strict evidence-based logic and PII scrubbing.
+ * MULTI-TURN REASONING: Maintains a structured Shopper Context across the session.
+ * EVIDENCE-BASED RECOMMENDATIONS: Rationale must link shopper needs to verified facts.
+ * HARDENED: Non-manipulative, no commercial bias.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
 import { buildFactContext } from '@/ai/fact-context';
-import { InteractionSignalSchema } from '@/lib/schemas/interaction-signals';
+import { 
+  InteractionSignalSchema, 
+  ShopperContextSchema, 
+  RecommendationRationaleSchema 
+} from '@/lib/schemas/interaction-signals';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -28,15 +33,17 @@ export type ProductChatInput = z.infer<typeof ProductChatInputSchema>;
 
 const ProductChatOutputSchema = z.object({
   message: z.string().describe("The model's grounded response."),
-  signals: z.array(InteractionSignalSchema).describe("Structured signals extracted from the user's latest expression.")
+  signals: z.array(InteractionSignalSchema).describe("Structured signals extracted from the user's latest expression."),
+  shopperContext: ShopperContextSchema.describe("The updated working understanding of the shopper's needs."),
+  rationale: RecommendationRationaleSchema.optional().describe("Internal rationale for any recommendation or alternative suggested.")
 });
 export type ProductChatOutput = z.infer<typeof ProductChatOutputSchema>;
 
 export async function productChat(input: ProductChatInput): Promise<ProductChatOutput> {
-  let shopperContext = "";
+  let shopperProfileContext = "";
   let factContextStr = "NO VERIFIED PRODUCT DATA AVAILABLE.";
 
-  // 1. STRICT EVIDENCE RETRIEVAL
+  // 1. AUTHORITATIVE PRODUCT FACT RETRIEVAL
   if (input.gtin) {
       const factContext = await buildFactContext(input.gtin);
       if (factContext.exists) {
@@ -54,11 +61,12 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
       }
   }
 
+  // 2. PERSISTENT SHOPPER IDENTITY (IF AUTHORIZED)
   if (input.shopperUid && db) {
     try {
       const shopperDoc = await db.collection('shoppers').doc(input.shopperUid).get();
       const shopperName = shopperDoc.data()?.displayName || "Shopper";
-      shopperContext = `SHOPPER PROFILE: Recognized as ${shopperName}. Maintain relationship continuity.`;
+      shopperProfileContext = `SHOPPER IDENTITY: Recognized as ${shopperName}. Maintain relationship continuity.`;
     } catch (e) {
       console.warn("Shopper memory sync deferred.");
     }
@@ -69,30 +77,40 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     content: [{ text: msg.content }],
   }));
 
-  const systemPrompt = `You are Ari, the world-class Continuity Assistant for iNteract Decision Intelligence.
+  const systemPrompt = `You are Ari, the world-class Shopping Assistant for iNteract Decision Intelligence.
+    
+    YOUR CORE MISSION: Assist the shopper. Do not manipulate. Do not perform commercial optimization for the retailer.
+    
+    EVIDENCE HIERARCHY (Absolute):
+    1. EXPLICIT Statements from the Shopper (Authoritative).
+    2. VERIFIED PRODUCT FACTS from iNteract Identity Layer (Authoritative).
+    3. Deterministic logic.
+    4. AI Interpretation (Never treat as fact).
+
+    MULTI-TURN REASONING RULES:
+    - Maintain a "Shopper Context" summarizing their objective, requirements, and budget across all turns.
+    - Connect requirements: If Turn 1 mentions a budget, and Turn 4 asks for a premium item, detect the conflict and clarify.
+    - Do not repeat questions if the information is already in the context.
+
+    RECOMMENDATION RULES:
+    - Recommendations must be evidence-led: (Shopper Need + Verified Fact) = Recommendation.
+    - You MUST link recommendations to specific verified facts.
+    - You MAY recommend cheaper alternatives if they satisfy shopper requirements better.
+    - If evidence is insufficient, do NOT recommend; instead, ASK A QUESTION.
+    - Rationale should be internal (structured output) but the message should be conversational.
     
     STRICT GROUNDING RULES:
-    1. AUTHORITATIVE SOURCE: Use ONLY "VERIFIED PRODUCT FACTS" for product info.
-    2. NO HALLUCINATION: Never invent attributes.
-    3. MISSING DATA: If facts are missing, state that info is unavailable.
-    
-    SIGNAL EXTRACTION RULES:
-    You must extract structured "Interaction Signals" from the user's LATEST message.
-    - EXPLICIT: Use only if the customer directly stated the info.
-    - DERIVED: Use only for deterministic logic (e.g. math).
-    - INFERRED: Use for interpretations.
-    - CONFIDENCE RULES:
-        * HIGH: Use ONLY for EXPLICIT statements.
-        * MEDIUM/LOW: Use for statements needing context.
-        * INFERRED: MUST use if the evidence type is inferred.
-    - PRIVACY: NEVER include customer names, emails, or phone numbers in the extracted signal values.
+    1. Use ONLY "VERIFIED PRODUCT FACTS" for product info.
+    2. HALLUCINATION IS FORBIDDEN: Never invent specifications, warranties, or prices.
+    3. MISSING DATA: If a fact is not in the context, state that info is unavailable.
     
     ${factContextStr}
-    ${shopperContext}
+    ${shopperProfileContext}
 
     PERSONALITY:
-    - Highly intelligent, engaging, and human-like.
-    - Reason about verified facts, but do not introduce unsupported claims.`;
+    - Highly intelligent, engaging, and empathetic.
+    - Reason aloud about shopper trade-offs.
+    - The shopper is in control. Accept rejections gracefully.`;
 
   const { output } = await ai.generate({
     model: 'googleai/gemini-2.5-flash',

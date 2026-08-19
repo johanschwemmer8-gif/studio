@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview Infrastructure Engagement Analysis Flow.
- * AUDIT VERSION: 1.5.1 (Non-Causal Terminology)
+ * AUDIT VERSION: 1.5.2 (NaN Protected & Non-Causal)
  */
 
 import { ai } from '@/ai/genkit';
@@ -74,14 +74,19 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     }
 
     // Infrastructure Simulation Data
+    const totalScans = 4829;
     const uniqueScans = 3210;
     const identifiedShoppers = 1184;
 
+    // PROTECTION: Avoid NaN on zero-scan sessions
+    const safeUniqueScans = Math.max(1, uniqueScans);
+    const safeTotalScans = Math.max(1, totalScans);
+
     const engagement = {
-        totalScans: 4829,
+        totalScans,
         uniqueScans,
         identifiedShoppers,
-        profileConversionRate: (identifiedShoppers / uniqueScans) * 100,
+        profileConversionRate: (identifiedShoppers / safeUniqueScans) * 100,
         engagementDuration: 32,
         scanRate: 5.4,
         authMethodBreakdown: {
@@ -110,7 +115,7 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
         calculatedUplift,
         salesUpliftPercentage: 14.8,
         conversionRate: 22.4,
-        scanToPurchaseConversion: (aoeTransactions / engagement.totalScans) * 100,
+        scanToPurchaseConversion: (aoeTransactions / safeTotalScans) * 100,
         assistedSales: Math.floor(aoeTransactions * 0.65),
         offerRedemptionRate: 18.2,
         totalRedeemedValue: 7280.50,
@@ -120,7 +125,7 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     return {
         engagement,
         conversion,
-        overallPerformance: `The Persistent Intelligence Layer is demonstrating high velocity adoption with a calculated uplift of R${calculatedUplift.toLocaleString()} (SIM). Identified Profile conversion is strong at 36.8%, and the scan-to-purchase conversion is currently associated with 25% of sessions.`,
+        overallPerformance: `The Persistent Intelligence Layer is demonstrating high velocity adoption with a calculated uplift of R${calculatedUplift.toLocaleString()} (SIM). Identified Profile conversion is strong at ${engagement.profileConversionRate.toFixed(1)}%, and the scan-to-purchase conversion is currently associated with 25% of sessions.`,
         conclusions: `- AI Guidance is associated with a R${basketSizeIncreaseRand.toFixed(2)} increase in average basket size.\n- 65% of associated sales are 'Assisted Sales', where the AI Assistant provided product information.\n- Mobile OTP remains the dominant identity entry point, capturing high-intent shoppers instantly.`,
         recommendations: "- Scale 'Assisted Sales' by integrating real-time stock availability into AI responses.\n- Monitor 'Calculated Uplift' items to further validate high-margin co-occurrence.\n- Refine the scan-to-purchase journey for low-conversion categories identified in the Intent-Gap analysis."
     };

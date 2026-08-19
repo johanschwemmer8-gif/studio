@@ -1,4 +1,7 @@
-'use server';
+
+'use client';
+
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -6,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { BarChart2, UserCheck, TrendingUp, Activity } from 'lucide-react';
+import { BarChart2, UserCheck, TrendingUp, Activity, Loader2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,7 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
-import { getScanAnalytics } from '@/ai/flows/scan-analytics';
+import { getScanAnalytics, type ScanAnalyticsOutput } from '@/ai/flows/scan-analytics';
+import { auth } from '@/lib/firebase';
 
 
 function AnalyticsCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description?: string }) {
@@ -34,13 +38,49 @@ function AnalyticsCard({ title, value, icon: Icon, description }: { title: strin
     )
 }
 
-export default async function ScanAnalytics() {
-  const analyticsData = await getScanAnalytics({
-    retailerId: 'simulated-retailer-id',
-    limit: 1000,
-  });
+export default function ScanAnalytics() {
+  const [data, setData] = useState<ScanAnalyticsOutput | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const { totalRawEvents, uniqueSessions, topEngagedProducts } = analyticsData;
+  useEffect(() => {
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const idToken = await auth.currentUser?.getIdToken();
+            const res = await getScanAnalytics({
+                idToken,
+                retailerId: 'simulated-retailer-id',
+                limit: 1000,
+            });
+            setData(res);
+        } catch (err: any) {
+            setError(err.message || "Failed to load scan analytics.");
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+      return (
+          <div className="flex flex-col items-center justify-center p-12 space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="text-sm font-bold text-muted-foreground">Authenticating & Aggregating...</p>
+          </div>
+      );
+  }
+
+  if (error || !data) {
+      return (
+          <div className="p-8 border border-destructive/20 bg-destructive/5 rounded-lg text-center">
+              <p className="text-destructive font-bold">{error || "Data Unavailable."}</p>
+          </div>
+      );
+  }
+
+  const { totalRawEvents, uniqueSessions, topEngagedProducts } = data;
 
   return (
     <div className="space-y-8">

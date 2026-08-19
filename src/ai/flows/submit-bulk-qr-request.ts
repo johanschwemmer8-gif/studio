@@ -8,6 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
+import { verifyAuth } from '@/lib/auth-server';
 
 // Define the schema for GS1 Digital Link options
 const QrOptionsSchema = z.object({
@@ -37,6 +38,7 @@ const QrOptionsSchema = z.object({
 });
 
 const SubmitBulkQrRequestInputSchema = z.object({
+  idToken: z.string().optional().describe("Firebase ID token for authorization."),
   retailerId: z.string().describe('The ID of the retailer.'),
   brandId: z.string().describe('The brand ID.'),
   campaignId: z.string().describe('The campaign ID.'),
@@ -62,8 +64,16 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     outputSchema: SubmitBulkQrRequestOutputSchema,
   },
   async (data) => {
+    // AUTHORIZATION GATE
+    const auth = await verifyAuth(data.idToken);
+    
+    // Enforcement: Retailer users can only submit for their own tenant
+    if (auth.role !== 'admin' && auth.retailerId !== data.retailerId) {
+        throw new Error('Unauthorized: Tenant identity mismatch.');
+    }
+
     // SIMULATION: Bypassing Firestore interaction for prototype speed
-    console.log(`(GS1 Simulation) Bulk request for campaign: ${data.campaignId}. GTIN: ${data.options?.gtin || 'N/A'}`);
+    console.log(`(GS1 Authenticated) Bulk request for campaign: ${data.campaignId}. Caller: ${auth.uid}`);
     const mockRequestId = `gs1_req_${Date.now()}`;
     return { success: true, requestId: mockRequestId };
   }

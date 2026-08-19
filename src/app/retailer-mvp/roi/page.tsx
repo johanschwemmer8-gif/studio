@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -22,6 +23,7 @@ import { analyzeEngagementMetrics, attributeTransactions, type AnalyzeEngagement
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SalesFunnelChart from '@/components/dashboard/sales-funnel-chart';
 import { useToast } from '@/hooks/use-toast';
+import { auth } from '@/lib/firebase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,15 +45,16 @@ export default function RoiPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const result = await analyzeEngagementMetrics({});
+        const idToken = await auth.currentUser?.getIdToken();
+        const result = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
         setMetricsData(result);
         
         startAttribution(async () => {
-            const attr = await attributeTransactions('simulated-retailer-id');
+            const attr = await attributeTransactions(idToken, 'simulated-retailer-id');
             setAttributionReport(attr);
         });
-      } catch (e) {
-        setError("Could not load factual metrics. Please check connectivity.");
+      } catch (e: any) {
+        setError(e.message || "Could not load factual metrics. Please check connectivity.");
       }
     };
     fetchInitialData();

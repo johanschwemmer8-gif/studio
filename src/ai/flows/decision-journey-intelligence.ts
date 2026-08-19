@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview iNteract Decision-Journey Aggregator.
@@ -8,6 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getDb } from '@/lib/firebase-admin';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import { DecisionJourneyOutputSchema, type DecisionJourneyOutput } from '@/lib/schemas/decision-journey';
 import { subDays } from 'date-fns';
 
@@ -38,18 +40,21 @@ const summaryPrompt = ai.definePrompt({
     - Rejections Unstated: {{metrics.stats.rejectionsWithoutReason}}`
 });
 
-export async function getDecisionJourneyIntelligence(retailerId: string, daysLookback: number = 30, targetGtin?: string): Promise<DecisionJourneyOutput> {
+export async function getDecisionJourneyIntelligence(idToken: string | undefined, retailerId: string, daysLookback: number = 30, targetGtin?: string): Promise<DecisionJourneyOutput> {
+    // AUTHORIZATION GATE
+    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
+    
     const db = getDb();
     const startTime = subDays(new Date(), daysLookback);
     const endTime = new Date();
 
     if (!db) {
-        return getSimulatedJourney(retailerId, targetGtin, startTime, endTime);
+        return getSimulatedJourney(authorizedRetailerId, targetGtin, startTime, endTime);
     }
 
     try {
         const eventSnapshot = await db.collection('events')
-            .where('retailerId', '==', retailerId)
+            .where('retailerId', '==', authorizedRetailerId)
             .where('timestamp', '>=', startTime)
             .limit(5000)
             .get();
@@ -61,7 +66,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         }));
 
         const txnSnapshot = await db.collection('transactions')
-            .where('retailerId', '==', retailerId)
+            .where('retailerId', '==', authorizedRetailerId)
             .where('timestamp', '>=', startTime)
             .limit(2500)
             .get();
@@ -92,7 +97,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
 
         const rejectionReasons: Record<string, Set<string>> = {};
         const barrierCounts: Record<string, Set<string>> = {};
-        const altMovementTargets: Record<string, { sessions: Set<string>, purchases: Set<string> }> = {};
+        const altProductBreakdown: Record<string, { sessions: Set<string>, purchases: Set<string> }> = {};
         
         let recToPurchaseCount = 0;
 
@@ -119,8 +124,8 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                         }
                     }
                     if (targetGtin && hasValidExposure && node.gtin && node.gtin !== targetGtin && node.timestamp > firstTargetExposureTimestamp) {
-                        if (!altMovementTargets[node.gtin]) altMovementTargets[node.gtin] = { sessions: new Set(), purchases: new Set() };
-                        altMovementTargets[node.gtin].sessions.add(sid);
+                        if (!altProductBreakdown[node.gtin]) altProductBreakdown[node.gtin] = { sessions: new Set(), purchases: new Set() };
+                        altProductBreakdown[node.gtin].sessions.add(sid);
                     }
                     if (node.eventType === 'recommendation_event' && nodeMatchesTarget) {
                         lastRecommendationTimestamp = node.timestamp;
@@ -154,22 +159,15 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
                                 recToPurchaseCount++;
                             }
                         } else if (targetGtin && node.gtin && node.gtin !== targetGtin) {
-                            if (altMovementTargets[node.gtin]) altMovementTargets[node.gtin].purchases.add(sid);
+                            if (altProductBreakdown[node.gtin]) altProductBreakdown[node.gtin].purchases.add(sid);
                         }
                     }
                 }
             });
         });
 
-        const reasonNotStated = rejectionReasons['Reason not stated'];
-        if (reasonNotStated) {
-            Object.entries(rejectionReasons).forEach(([reason, sids]) => {
-                if (reason !== 'Reason not stated') sids.forEach(sid => reasonNotStated.delete(sid));
-            });
-        }
-
         const totalUniqueSessions = sessionsExposed.size || 0;
-        if (totalUniqueSessions === 0) return getSimulatedJourney(retailerId, targetGtin, startTime, endTime);
+        if (totalUniqueSessions === 0) return getSimulatedJourney(authorizedRetailerId, targetGtin, startTime, endTime);
 
         const sortedRejections = Object.entries(rejectionReasons).map(([reason, sessions]) => ({
             reason, count: sessions.size, share: Math.round((sessions.size / (sessionsRejected.size || 1)) * 100)
@@ -191,11 +189,11 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         const { output } = await summaryPrompt({ metrics: { gtin: targetGtin, funnel, barriers: barrierBreakdown, stats: { rejectionsWithReason: sortedRejections.filter(r => r.reason !== 'Reason not stated').reduce((a, b) => a + b.count, 0), rejectionsWithoutReason: rejectionReasons['Reason not stated']?.size || 0 } } });
 
         return {
-            retailerId, gtin: targetGtin, timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
+            retailerId: authorizedRetailerId, gtin: targetGtin, timeWindow: { start: startTime.toISOString(), end: endTime.toISOString() },
             summary: output?.summary || "Factual observation complete.", funnel, rejectionBreakdown: sortedRejections, barrierBreakdown,
-            altProductBreakdown: Object.entries(altMovementTargets).map(([gtin, data]) => ({ gtin, uniqueSessions: data.sessions.size, rate: Math.round((data.sessions.size / totalUniqueSessions) * 100), purchaseCount: data.purchases.size })),
+            altProductBreakdown: Object.entries(altProductBreakdown).map(([gtin, data]) => ({ gtin, uniqueSessions: data.sessions.size, rate: Math.round((data.sessions.size / totalUniqueSessions) * 100), purchaseCount: data.purchases.size })),
             stats: {
-                totalUniqueSessions, alternativeProductMovements: Object.keys(altMovementTargets).length, recommendationToPurchaseCount: recToPurchaseCount,
+                totalUniqueSessions, alternativeProductMovements: Object.keys(altProductBreakdown).length, recommendationToPurchaseCount: recToPurchaseCount,
                 rejectionsWithReason: sortedRejections.filter(r => r.reason !== 'Reason not stated').reduce((a, b) => a + b.count, 0),
                 rejectionsWithoutReason: rejectionReasons['Reason not stated']?.size || 0,
                 leakagePoints: { 'EXPOSURE_ONLY': totalUniqueSessions - sessionsInterested.size, 'INTEREST_ONLY': sessionsInterested.size - sessionsConsidered.size, 'CONSIDERATION_ONLY': sessionsConsidered.size - (sessionsBasket.size + sessionsRejected.size) }
@@ -208,7 +206,7 @@ export async function getDecisionJourneyIntelligence(retailerId: string, daysLoo
         };
     } catch (error: any) {
         console.warn("[DecisionJourneyAggregator] Infrastructure Friction:", error.message);
-        return getSimulatedJourney(retailerId, targetGtin, startTime, endTime);
+        return getSimulatedJourney(authorizedRetailerId, targetGtin, startTime, endTime);
     }
 }
 

@@ -1,6 +1,8 @@
+
 import { z } from 'zod';
 
 export const GetScanEventsInputSchema = z.object({
+  idToken: z.string().optional().describe("Firebase ID token for authorization."),
   retailerId: z.string().optional(),
   campaignId: z.string().optional(),
   startDate: z.string().datetime().optional(),

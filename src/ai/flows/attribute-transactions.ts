@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Transactional Journey Attribution Flow.
@@ -8,38 +9,43 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getDb } from '@/lib/firebase-admin';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import { 
   AttributionReportSchema, 
   type AttributionRecord 
 } from '@/lib/schemas/attribution';
 import { subDays } from 'date-fns';
 
-export async function attributeTransactions(retailerId: string, daysLookback: number = 30) {
-    return attributeTransactionsFlow({ retailerId, daysLookback });
+export async function attributeTransactions(idToken: string | undefined, retailerId: string, daysLookback: number = 30) {
+    return attributeTransactionsFlow({ idToken, retailerId, daysLookback });
 }
 
 const attributeTransactionsFlow = ai.defineFlow(
   {
     name: 'attributeTransactionsFlow',
     inputSchema: z.object({
+        idToken: z.string().optional(),
         retailerId: z.string(),
         daysLookback: z.number().default(30)
     }),
     outputSchema: AttributionReportSchema,
   },
-  async ({ retailerId, daysLookback }) => {
+  async ({ idToken, retailerId, daysLookback }) => {
+    // AUTHORIZATION GATE
+    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
+    
     const db = getDb();
     const startTime = subDays(new Date(), daysLookback);
 
     // If Infrastructure is unavailable or token fails, use high-fidelity simulation fallback
     if (!db) {
-        return getSimulatedAttribution(retailerId);
+        return getSimulatedAttribution(authorizedRetailerId);
     }
 
     try {
         // 1. Fetch all unique sessions for the retailer
         const sessionSnapshot = await db.collection('sessions')
-            .where('retailerId', '==', retailerId)
+            .where('retailerId', '==', authorizedRetailerId)
             .where('startTime', '>=', startTime)
             .get();
 
@@ -75,7 +81,7 @@ const attributeTransactionsFlow = ai.defineFlow(
 
             const baseRecord = {
                 attributionId: `attr_${sessionId}`,
-                retailerId,
+                retailerId: authorizedRetailerId,
                 sessionId,
                 ariInteraction: hasAriInteraction,
                 journeyNodes: events.map(e => ({ type: e.eventType, timestamp: e.timestamp, gtin: e.gtin })),
@@ -116,7 +122,7 @@ const attributeTransactionsFlow = ai.defineFlow(
         }
 
         return {
-            retailerId,
+            retailerId: authorizedRetailerId,
             totalSessions: sessionIds.length,
             ariAssistedSessions: sessionIds.filter(id => records.some(r => r.sessionId === id && r.ariInteraction)).length,
             ariAssistedPurchases: ariAssistedPurchasesCount,
@@ -125,7 +131,7 @@ const attributeTransactionsFlow = ai.defineFlow(
         };
     } catch (error: any) {
         console.warn("[AttributionEngine] Infrastructure Friction:", error.message);
-        return getSimulatedAttribution(retailerId);
+        return getSimulatedAttribution(authorizedRetailerId);
     }
   }
 );

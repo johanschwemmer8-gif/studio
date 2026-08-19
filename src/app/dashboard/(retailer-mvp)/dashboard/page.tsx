@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useTransition, useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { auth } from '@/lib/firebase';
 import theme from '@/config/theme.json';
 
 
@@ -39,21 +41,27 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    // In a real app, filters would be passed here based on selectors
-    analyzeEngagementMetrics({}).then(data => {
-      setAnalyticsData(data);
-    });
+    const fetchData = async () => {
+        try {
+            const idToken = await auth.currentUser?.getIdToken();
+            const data = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
+            setAnalyticsData(data);
+        } catch (e: any) {
+            setError(e.message || "Failed to load dashboard data.");
+        }
+    };
+    fetchData();
   }, []);
 
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
         try {
-            // The flow can now be called without input, as it fetches its own data
-            const result = await analyzeEngagementMetrics({});
+            const idToken = await auth.currentUser?.getIdToken();
+            const result = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
             setAnalysis(result);
-        } catch (e) {
-            setError("We couldn't generate the analysis at this time. Please try again later.");
+        } catch (e: any) {
+            setError(e.message || "We couldn't generate the analysis at this time.");
         }
     });
   };
@@ -140,7 +148,7 @@ export default function DashboardPage() {
             {error && (
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Analysis Failed</AlertTitle>
+                    <AlertTitle>Operation Failed</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}

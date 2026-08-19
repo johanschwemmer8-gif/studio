@@ -7,12 +7,14 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
 const RegisterDisplayInputSchema = z.object({
+  idToken: z.string().optional().describe("Firebase ID token for authorization."),
   retailerId: z.string(),
   storeId: z.string(),
 });
@@ -29,7 +31,10 @@ export const registerDisplay = ai.defineFlow(
     inputSchema: RegisterDisplayInputSchema,
     outputSchema: RegisterDisplayOutputSchema,
   },
-  async ({ retailerId, storeId }) => {
+  async ({ idToken, retailerId, storeId }) => {
+    // AUTHORIZATION GATE
+    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
+    
     const sanitizedStoreId = storeId.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const displayId = `display_${sanitizedStoreId}_${Math.random().toString(36).substring(2, 7)}`;
     
@@ -39,7 +44,7 @@ export const registerDisplay = ai.defineFlow(
 
         await displayRef.set({
             displayId,
-            retailerId,
+            retailerId: authorizedRetailerId,
             storeId,
             contentConfigId: '',
             status: 'offline',

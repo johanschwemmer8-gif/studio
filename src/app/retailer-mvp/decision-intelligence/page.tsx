@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { DecisionJourneyOutput } from '@/lib/schemas/decision-journey';
 import { products as localProducts } from '@/lib/data';
+import { auth } from '@/lib/firebase';
 import {
   Select,
   SelectContent,
@@ -79,19 +81,27 @@ export default function DecisionIntelligencePage() {
     const { toast } = useToast();
 
     useEffect(() => {
-        setLoading(true);
-        const gtinArg = selectedGtin === 'all' ? undefined : selectedGtin;
-        
-        getDecisionJourneyIntelligence('simulated-retailer-id', 30, gtinArg)
-            .then(res => {
+        const fetchData = async () => {
+            setLoading(true);
+            const gtinArg = selectedGtin === 'all' ? undefined : selectedGtin;
+            
+            try {
+                const idToken = await auth.currentUser?.getIdToken();
+                // Pass authorized ID or placeholder which will be verified against token claim on server
+                const res = await getDecisionJourneyIntelligence(idToken, 'simulated-retailer-id', 30, gtinArg);
                 setData(res);
-                setLoading(false);
-            })
-            .catch(err => {
+            } catch (err: any) {
                 console.error(err);
-                toast({ title: "Intelligence Stream Friction", description: "Aggregator delayed. Retrying connection...", variant: "destructive" });
+                toast({ 
+                    title: "Intelligence Stream Friction", 
+                    description: err.message || "Aggregator delayed. Retrying connection...", 
+                    variant: "destructive" 
+                });
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+        fetchData();
     }, [toast, selectedGtin]);
 
     const handleExport = () => {

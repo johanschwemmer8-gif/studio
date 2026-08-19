@@ -10,6 +10,7 @@ import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
 import { getScanEvents } from './get-scan-events';
 import { GetScanEventsInputSchema } from '@/lib/schemas/scan-events';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -44,7 +45,13 @@ const getScanAnalyticsFlow = ai.defineFlow(
     outputSchema: ScanAnalyticsOutputSchema,
   },
   async (filters) => {
-    const events = await getScanEvents(filters);
+    // AUTHORIZATION GATE
+    const authorizedRetailerId = await getAuthorizedRetailerId(filters.idToken, filters.retailerId || 'simulated-retailer-id');
+    
+    // Explicitly scope filters to authorized tenant
+    const securedFilters = { ...filters, retailerId: authorizedRetailerId };
+    
+    const events = await getScanEvents(securedFilters);
 
     // 1. Calculate True Reach (Unique Sessions)
     const uniqueSessions = new Set(events.map(e => e.sessionId)).size;

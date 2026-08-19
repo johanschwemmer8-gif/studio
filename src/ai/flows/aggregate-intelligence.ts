@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview iNteract Retailer Intelligence Aggregator.
@@ -9,6 +10,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getDb } from '@/lib/firebase-admin';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import { 
   AggregateIntelligenceInputSchema, 
   AggregateIntelligenceOutputSchema,
@@ -56,7 +58,10 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     inputSchema: AggregateIntelligenceInputSchema,
     outputSchema: AggregateIntelligenceOutputSchema,
   },
-  async ({ retailerId, gtin, daysLookback }) => {
+  async ({ idToken, retailerId, gtin, daysLookback }) => {
+    // AUTHORIZATION GATE
+    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
+    
     const db = getDb();
     if (!db) throw new Error("Infrastructure Layer Unavailable.");
 
@@ -65,7 +70,7 @@ const aggregateIntelligenceFlow = ai.defineFlow(
     
     // 1. Fetch Total Sessions (The Denominator)
     let sessionQuery = db.collection('sessions')
-        .where('retailerId', '==', retailerId)
+        .where('retailerId', '==', authorizedRetailerId)
         .where('startTime', '>=', startTime);
     
     if (gtin) sessionQuery = sessionQuery.where('entryGtin', '==', gtin);
@@ -75,7 +80,7 @@ const aggregateIntelligenceFlow = ai.defineFlow(
 
     // 2. Fetch Relevant Interaction Signals (The Numerator)
     let signalQuery = db.collection('events')
-        .where('retailerId', '==', retailerId)
+        .where('retailerId', '==', authorizedRetailerId)
         .where('eventType', '==', 'interaction_signal')
         .where('timestamp', '>=', startTime);
 

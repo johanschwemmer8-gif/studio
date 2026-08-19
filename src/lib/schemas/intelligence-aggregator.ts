@@ -31,10 +31,10 @@ export const IntelligenceInsightSchema = z.object({
     totalSignalCount: z.number().int(),
     evidenceTypesIncluded: z.array(z.string()),
     aggregationVersion: z.string().default('1.1.0'),
-    timeWindow: z.object({
+    timeWindow: {
         start: z.string(),
         end: z.string()
-    })
+    }
   }),
   generatedAt: z.string()
 });
@@ -42,6 +42,7 @@ export const IntelligenceInsightSchema = z.object({
 export type IntelligenceInsight = z.infer<typeof IntelligenceInsightSchema>;
 
 export const AggregateIntelligenceInputSchema = z.object({
+  idToken: z.string().optional().describe("Firebase ID token for authorization."),
   retailerId: z.string(),
   gtin: z.string().optional(),
   daysLookback: z.number().default(30)

@@ -44,8 +44,9 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     const fetchInteraction = async () => {
       try {
         let finalDest = 'https://interactaoe.co.za';
+        let resolvedRetailerId = 'unknown';
         
-        // 1. Client-side fetch for the destination URL
+        // 1. Client-side fetch for the destination URL and retailer identity
         if (db) {
             const qrDoc = await getDoc(doc(db, 'qrcodes', qrId));
             if (qrDoc.exists()) {
@@ -54,6 +55,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                     setClientDestinationUrl(qrData.redirectUrl);
                     finalDest = qrData.redirectUrl;
                 }
+                resolvedRetailerId = qrData.retailerId || 'unknown';
             }
         }
 
@@ -67,7 +69,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                 shopperId: user?.uid || 'guest',
                 startTime: serverTimestamp(),
                 entryQrId: qrId,
-                retailerId: 'simulated-retailer-id'
+                retailerId: resolvedRetailerId
             }).catch(() => {});
         }
 
@@ -89,7 +91,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         }
       } catch (e: any) {
         console.warn('Intelligence Layer Handshake Friction');
-        // If AI fails, still allow the user to continue to the website
       } finally {
         setLoading(false);
       }
@@ -107,7 +108,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // IDEMPOTENCY & STATUS GUARD
     if (!userInput.trim() || isPendingChat || isTyping) return;
 
     const userMessage = userInput.trim();

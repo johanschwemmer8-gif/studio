@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Continuity Engine Interaction Flow.
@@ -88,8 +87,8 @@ const getScanInteractionFlow = ai.defineFlow(
     let pastInterests: string[] = [];
     let retailerName = 'iNteract';
     let retailerLogoUrl = '';
+    let resolvedRetailerId = 'unknown';
 
-    // RESILIENCE GATE: If DB is unavailable, return high-fidelity simulation immediately
     if (!db) {
         return {
             messages: ["Hello! I'm Ari.", "I'm currently operating in simulation mode while we synchronize with the store network.", "You can still view the product details below."],
@@ -103,6 +102,7 @@ const getScanInteractionFlow = ai.defineFlow(
         if (qrDoc.exists) {
             qrData = qrDoc.data()!;
             destinationUrl = qrData.redirectUrl || `/p/${qrData.gtin || '06001234567891'}`;
+            resolvedRetailerId = qrData.retailerId || 'unknown';
             
             if (qrData.requestId) {
                 const requestDoc = await db.collection('bulkQrRequests').doc(qrData.requestId).get();
@@ -144,7 +144,7 @@ const getScanInteractionFlow = ai.defineFlow(
     try {
         const [aiProfileDoc, retailerDoc] = await Promise.all([
             db.collection('ai_profiles').doc(aiProfileId).get(),
-            db.collection('tenants').doc(qrData.retailerId || 'simulated-retailer-id').get()
+            db.collection('tenants').doc(resolvedRetailerId).get()
         ]);
         
         const aiProfile = aiProfileDoc.exists ? aiProfileDoc.data()! : {

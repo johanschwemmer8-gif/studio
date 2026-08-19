@@ -9,9 +9,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { 
-  UserCheck, Clock, TrendingUp, ShoppingCart, Percent, 
-  Sparkles, AlertTriangle, ArrowUp, DollarSign, Target, BarChart3,
-  Download, Loader2, User, QrCode, ShieldCheck, ListChecks, History
+  Clock, TrendingUp, ShoppingCart, Percent, 
+  Sparkles, AlertTriangle, ArrowUp, DollarSign,
+  Download, Loader2, ShieldCheck, History, BarChart3
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import TopProductsTable from '@/components/dashboard/top-products-table';
@@ -132,7 +132,6 @@ export default function RoiPage() {
         </Alert>
       </div>
 
-      {/* CORE ECONOMIC PROOF SECTION */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -176,7 +175,6 @@ export default function RoiPage() {
 
       <Separator />
 
-      {/* Factual Transaction Audit Table */}
       <Card className="border-primary/10 shadow-lg overflow-hidden">
         <CardHeader className="bg-muted/30 border-b">
             <div className="flex justify-between items-center">

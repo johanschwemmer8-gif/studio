@@ -24,9 +24,14 @@ export type Product = {
   serialNumber?: string;
 };
 
+/**
+ * TEST FIXTURES: Mathematically Verified GS1 Identifiers
+ * 06009188000332 - Valid GTIN-14 (Normalized from standard GTIN-13)
+ * 00012345678905 - Valid GTIN-14 (Normalized from standard GTIN-12)
+ */
 export const products: Product[] = [
   {
-    gtin: '06001234567891', // Standard GS1 GTIN-14
+    gtin: '06009188000332', 
     name: 'Eco-Friendly Water Bottle',
     brand: 'HydroCool',
     description:
@@ -37,7 +42,7 @@ export const products: Product[] = [
     'data-ai-hint': placeholderImages.products['water-bottle'].ai_hint,
   },
   {
-    gtin: '06009876543210', // Standard GS1 GTIN-14
+    gtin: '00012345678905', 
     name: 'Wireless Charging Pad',
     brand: 'LifeTech',
     description: 'A sleek and fast wireless charging pad for all your compatible devices. Say goodbye to tangled cables.',
@@ -58,7 +63,7 @@ export const findProductByGtin = (gtin: string) => {
  * exclusively GTIN-based lookups.
  */
 export const findProductById = (id: string | number) => {
-    return products.find((p) => p.gtin === String(id));
+    return products.find((p) => p.gtin === String(id).padStart(14, '0'));
 };
 
 export const storesByRegion = [

@@ -8,11 +8,11 @@ import ProductChatbot from '@/components/product/product-chatbot';
 import theme from '@/config/theme.json';
 
 export default function ProductPagePreview() {
-  // Use the standard GTIN for the default preview
-  const product = findProductByGtin('06001234567891');
+  // Use a mathematically verified GTIN for the default preview
+  const product = findProductByGtin('06009188000332');
 
   if (!product) {
-    return <div className="p-4 text-red-500">Preview product not found (GTIN Error).</div>;
+    return <div className="p-4 text-red-500">Preview product not found (Canonical Identity Error).</div>;
   }
 
   const { optionalModules } = theme;

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -137,12 +136,12 @@ export default function RoiPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Engaged Session Value</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Associated Revenue (SIM)</CardTitle>
               <DollarSign className="h-4 w-4 opacity-70" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black">
-                {metricsData ? `R${metricsData.conversion.revenueInfluenced.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-primary-foreground/20" />}
+                {metricsData ? `R${metricsData.conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-primary-foreground/20" />}
               </div>
               <p className="text-[10px] opacity-70 mt-2 italic">Total sales value associated with engaged sessions.</p>
             </CardContent>
@@ -155,7 +154,7 @@ export default function RoiPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-yellow-800">
-                {metricsData ? `R${metricsData.conversion.incrementalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-yellow-200" />}
+                {metricsData ? `R${metricsData.conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-yellow-200" />}
               </div>
               <p className="text-[10px] text-yellow-600 mt-2 italic">Growth delta based on simulation baseline.</p>
             </CardContent>

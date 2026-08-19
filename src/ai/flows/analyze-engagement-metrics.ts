@@ -1,7 +1,7 @@
-
 'use server';
 /**
  * @fileOverview Infrastructure Engagement Analysis Flow.
+ * AUDIT VERSION: 1.5.1 (Non-Causal Terminology)
  */
 
 import { ai } from '@/ai/genkit';
@@ -33,8 +33,8 @@ const ConversionSchema = z.object({
       avgBasketSizeNonAoe: z.number(),
       basketSizeIncreaseRand: z.number(),
       basketSizeIncreasePercent: z.number(),
-      revenueInfluenced: z.number(),
-      incrementalRevenue: z.number(),
+      associatedRevenue: z.number().describe('Total revenue associated with engaged sessions.'),
+      calculatedUplift: z.number().describe('Calculated revenue delta based on observed basket uplift.'),
       salesUpliftPercentage: z.number(),
       conversionRate: z.number(),
       scanToPurchaseConversion: z.number(),
@@ -98,16 +98,16 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     const basketSizeIncreaseRand = avgBasketSizeAoe - avgBasketSizeNonAoe;
 
     const aoeTransactions = Math.floor(uniqueScans * 0.25);
-    const revenueInfluenced = aoeTransactions * avgBasketSizeAoe;
-    const incrementalRevenue = aoeTransactions * basketSizeIncreaseRand;
+    const associatedRevenue = aoeTransactions * avgBasketSizeAoe;
+    const calculatedUplift = aoeTransactions * basketSizeIncreaseRand;
 
     const conversion = {
         avgBasketSizeAoe,
         avgBasketSizeNonAoe,
         basketSizeIncreaseRand,
         basketSizeIncreasePercent: basketUpliftPercentage,
-        revenueInfluenced,
-        incrementalRevenue,
+        associatedRevenue,
+        calculatedUplift,
         salesUpliftPercentage: 14.8,
         conversionRate: 22.4,
         scanToPurchaseConversion: (aoeTransactions / engagement.totalScans) * 100,
@@ -120,9 +120,9 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     return {
         engagement,
         conversion,
-        overallPerformance: `The Persistent Intelligence Layer is demonstrating high velocity adoption with an incremental revenue contribution of R${incrementalRevenue.toLocaleString()}. Identified Profile conversion is strong at 36.8%, and the scan-to-purchase conversion is outperforming industry benchmarks by 2.4x.`,
-        conclusions: `- AI Guidance is directly responsible for a R${basketSizeIncreaseRand.toFixed(2)} increase in average basket size.\n- 65% of influenced sales are 'Assisted Sales', where the AI Assistant directly answered shopper questions.\n- Mobile OTP remains the dominant identity entry point, capturing high-intent shoppers instantly.`,
-        recommendations: "- Scale 'Assisted Sales' by integrating real-time stock availability into AI responses.\n- Deploy RMN placements targeting the 'Incremental Revenue' items to further boost high-margin conversions.\n- Refine the scan-to-purchase journey for low-conversion categories identified in the Intent-Gap analysis."
+        overallPerformance: `The Persistent Intelligence Layer is demonstrating high velocity adoption with a calculated uplift of R${calculatedUplift.toLocaleString()} (SIM). Identified Profile conversion is strong at 36.8%, and the scan-to-purchase conversion is currently associated with 25% of sessions.`,
+        conclusions: `- AI Guidance is associated with a R${basketSizeIncreaseRand.toFixed(2)} increase in average basket size.\n- 65% of associated sales are 'Assisted Sales', where the AI Assistant provided product information.\n- Mobile OTP remains the dominant identity entry point, capturing high-intent shoppers instantly.`,
+        recommendations: "- Scale 'Assisted Sales' by integrating real-time stock availability into AI responses.\n- Monitor 'Calculated Uplift' items to further validate high-margin co-occurrence.\n- Refine the scan-to-purchase journey for low-conversion categories identified in the Intent-Gap analysis."
     };
   }
 );

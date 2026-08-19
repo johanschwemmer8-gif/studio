@@ -21,7 +21,6 @@ import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/f
 import { analyzeDecisionIntelligence, DecisionIntelligenceOutput } from '@/ai/flows/analyze-decision-intelligence';
 import { Skeleton } from '@/components/ui/skeleton';
 import theme from '@/config/theme.json';
-import HourlyPerformanceChart from '@/components/dashboard/hourly-performance-chart';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase';
 
 export default function DashboardPage() {
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
@@ -58,20 +58,28 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    analyzeEngagementMetrics({}).then(data => {
-      setAnalyticsData(data);
-    });
-
-    analyzeDecisionIntelligence().then(data => {
-      setIntelligenceData(data);
-    });
+    const fetchData = async () => {
+        try {
+            const idToken = await auth.currentUser?.getIdToken();
+            const [engData, intelData] = await Promise.all([
+                analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' }),
+                analyzeDecisionIntelligence()
+            ]);
+            setAnalyticsData(engData);
+            setIntelligenceData(intelData);
+        } catch (e) {
+            setError("Friction in intelligence stream. Simulation fallback active.");
+        }
+    };
+    fetchData();
   }, []);
 
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
         try {
-            const result = await analyzeEngagementMetrics({});
+            const idToken = await auth.currentUser?.getIdToken();
+            const result = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
             setAnalysis(result);
         } catch (e) {
             setError("Decision Intelligence Engine is temporarily busy. Please try again.");
@@ -145,23 +153,23 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
            <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Associated Revenue</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Associated Revenue (SIM)</CardTitle>
               <DollarSign className="h-4 w-4 opacity-70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-black">R{conversion.revenueInfluenced.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-[10px] opacity-70 mt-1">Total revenue in engaged sessions.</p>
+              <div className="text-2xl font-black">R{conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+              <p className="text-[10px] opacity-70 mt-1">Total value in engaged sessions.</p>
             </CardContent>
           </Card>
           
            <Card className="border-green-200 bg-green-50 shadow-sm border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-green-700 tracking-widest">Calculated Uplift</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase text-green-700 tracking-widest">Calculated Uplift (SIM)</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-black text-green-800">R{conversion.incrementalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-[10px] text-green-600 mt-1">Growth metric (Simulation).</p>
+              <div className="text-2xl font-black text-green-800">R{conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+              <p className="text-[10px] text-green-600 mt-1">Growth projection vs baseline.</p>
             </CardContent>
           </Card>
 
@@ -217,7 +225,7 @@ export default function DashboardPage() {
             {isAnalyzing && (
                 <div className="p-8 border rounded-xl border-accent/20 bg-accent/5 flex flex-col items-center gap-4 text-center">
                     <Loader2 className="h-12 w-12 animate-spin text-accent" />
-                    <p className="text-lg font-bold">Summarizing Observations...</p>
+                    <p className="font-bold">Generating grounded summary...</p>
                 </div>
             )}
 
@@ -261,7 +269,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-black text-green-600">+{conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">R{conversion.basketSizeIncreaseRand.toFixed(2)} extra per engaged basket</p>
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">R{conversion.basketSizeIncreaseRand.toFixed(2)} delta (SIM)</p>
                 </CardContent>
               </Card>
 
@@ -283,7 +291,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-black">{conversion.scanToPurchaseConversion.toFixed(1)}%</div>
-                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Sessions ending in transaction</p>
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">Sessions associated with transaction</p>
                 </CardContent>
               </Card>
             </div>

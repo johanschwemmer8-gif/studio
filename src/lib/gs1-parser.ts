@@ -16,6 +16,7 @@ export type GS1Identity = {
  * Supports GS1 Digital Link URIs, AIDC encoded strings, and raw GTINs.
  * 
  * NOTE: This is a stateless identity resolution function.
+ * Normalizes all GTIN formats (8, 12, 13, 14) to a 14-digit zero-padded string.
  */
 export function parseGS1(input: string): GS1Identity | null {
   if (!input) return null;
@@ -40,7 +41,7 @@ export function parseGS1(input: string): GS1Identity | null {
   } 
   // Handle AIDC (01)... format
   else if (input.startsWith('(01)') || input.includes('(01)')) {
-    const gtinMatch = input.match(/\(01\)(\d{14})/);
+    const gtinMatch = input.match(/\(01\)(\d{8,14})/);
     gtin = gtinMatch ? gtinMatch[1] : '';
 
     const batchMatch = input.match(/\(10\)([A-Z0-9]+)/);
@@ -49,12 +50,12 @@ export function parseGS1(input: string): GS1Identity | null {
     const serialMatch = input.match(/\(21\)([A-Z0-9]+)/);
     serialNumber = serialMatch ? serialMatch[1] : '';
   }
-  // Fallback to numeric-only GTIN-13/14
-  else if (/^\d{13,14}$/.test(input)) {
-    gtin = input.padStart(14, '0');
+  // Fallback to numeric-only GTIN formats
+  else if (/^\d{8,14}$/.test(input)) {
+    gtin = input;
   }
 
-  if (!gtin || gtin.length < 13) return null;
+  if (!gtin || gtin.length < 8) return null;
 
   return {
     gtin: gtin.padStart(14, '0'),

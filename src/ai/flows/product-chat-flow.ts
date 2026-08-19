@@ -1,5 +1,5 @@
 
-'use client';
+'use server';
 /**
  * @fileOverview Ari - Intelligence Layer Continuity Assistant.
  * ARI_SYSTEM_VERSION: 1.6.0 (Launch Ready & Resilience Hardened)
@@ -8,14 +8,14 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase-admin';
 import { buildFactContext } from '@/ai/fact-context';
 import { 
   InteractionSignalSchema, 
   ShopperContextSchema, 
   RecommendationRationaleSchema 
 } from '@/lib/schemas/interaction-signals';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const ARI_CORE_VERSION = '1.6.0';
 
@@ -46,6 +46,7 @@ export type ProductChatOutput = z.infer<typeof ProductChatOutputSchema>;
 export async function productChat(input: ProductChatInput): Promise<ProductChatOutput> {
   let shopperProfileContext = "";
   let factContextStr = "NO VERIFIED PRODUCT DATA AVAILABLE.";
+  const db = getDb();
 
   // 1. Fact Context Retrieval (Authoritative Source)
   if (input.gtin) {
@@ -131,7 +132,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
 
           // A. Log Conversation Node
           const conversationId = `convo_${Date.now()}`;
-          setDoc(doc(db, 'ai_conversations', conversationId), {
+          db.collection('ai_conversations').doc(conversationId).set({
               conversationId,
               sessionId,
               shopperId: input.shopperUid || 'guest',
@@ -139,7 +140,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
               retailerId,
               transcript: [...input.history, { role: 'model', content: output.message }],
               shopperContext: output.shopperContext,
-              timestamp: serverTimestamp(),
+              timestamp: Timestamp.now(),
               ariVersion: ARI_CORE_VERSION,
               dataStatus: 'VERIFIED'
           }).catch(console.warn);
@@ -153,13 +154,13 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
                   }
 
                   const eventId = `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-                  setDoc(doc(db, 'events', eventId), {
+                  db.collection('events').doc(eventId).set({
                       eventId,
                       sessionId,
                       gtin,
                       retailerId,
                       eventType: 'interaction_signal',
-                      timestamp: serverTimestamp(),
+                      timestamp: Timestamp.now(),
                       metadata: {
                           ...signal,
                           statedReason: signal.statedReason ? "[PII REDACTED]" : null,
@@ -173,13 +174,13 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
           // C. Log Recommendation Node
           if (output.rationale && output.rationale.confidence !== 'NONE') {
               const recId = `rec_${Date.now()}`;
-              setDoc(doc(db, 'events', recId), {
+              db.collection('events').doc(recId).set({
                   eventId: recId,
                   sessionId,
                   gtin,
                   retailerId,
                   eventType: 'recommendation_event',
-                  timestamp: serverTimestamp(),
+                  timestamp: Timestamp.now(),
                   metadata: {
                       ...output.rationale,
                       ariVersion: ARI_CORE_VERSION

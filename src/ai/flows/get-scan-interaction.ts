@@ -1,5 +1,5 @@
 
-'use client';
+'use server';
 /**
  * @fileOverview Continuity Engine Interaction Flow.
  * Acts as the relationship infrastructure for returning shoppers.

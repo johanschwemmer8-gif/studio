@@ -14,6 +14,7 @@ import {
   ShopperContextSchema, 
   RecommendationRationaleSchema 
 } from '@/lib/schemas/interaction-signals';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const ARI_CORE_VERSION = '1.5.0';
 
@@ -28,6 +29,8 @@ const ProductChatInputSchema = z.object({
   history: z.array(ChatMessageSchema).describe("The chat history."),
   shopperUid: z.string().optional().describe("The persistent ID of the shopper."),
   hasConsent: z.boolean().default(true).describe("Whether behavioural analysis consent is granted."),
+  sessionId: z.string().optional().describe("The active session ID for event anchoring."),
+  retailerId: z.string().optional().describe("The retailer ID for tenant isolation."),
 });
 export type ProductChatInput = z.infer<typeof ProductChatInputSchema>;
 
@@ -36,11 +39,6 @@ const ProductChatOutputSchema = z.object({
   signals: z.array(InteractionSignalSchema).describe("Structured signals extracted from the user's latest expression."),
   shopperContext: ShopperContextSchema.describe("The updated working understanding of the shopper's needs."),
   rationale: RecommendationRationaleSchema.optional().describe("Internal rationale for any recommendation or alternative suggested."),
-  metadata: z.object({
-    ariVersion: z.string(),
-    modelVersion: z.string(),
-    timestamp: z.string()
-  })
 });
 export type ProductChatOutput = z.infer<typeof ProductChatOutputSchema>;
 
@@ -124,23 +122,86 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
 
       if (!output) throw new Error("Empty model response.");
       
-      // LAUNCH SECURITY: Enforce signal redaction server-side if consent is missing
+      // 3. PERSISTENCE LAYER: Only if database, session, and consent are available
+      if (db && input.sessionId) {
+          const sessionId = input.sessionId;
+          const gtin = input.gtin || '00000000000000';
+          const retailerId = input.retailerId || 'simulated-retailer-id';
+
+          // A. Log Conversation Node
+          const conversationId = `convo_${Date.now()}`;
+          setDoc(doc(db, 'ai_conversations', conversationId), {
+              conversationId,
+              sessionId,
+              shopperId: input.shopperUid || 'guest',
+              gtin,
+              retailerId,
+              transcript: [...input.history, { role: 'model', content: output.message }],
+              shopperContext: output.shopperContext,
+              timestamp: serverTimestamp(),
+              ariVersion: ARI_CORE_VERSION,
+              dataStatus: 'VERIFIED'
+          }).catch(console.warn);
+
+          // B. Extract and Log Signals (If Consent)
+          if (input.hasConsent && output.signals && output.signals.length > 0) {
+              output.signals.forEach((signal) => {
+                  // Hardened Validation: Cap inferred signals at INFERRED confidence
+                  if (signal.evidenceType === 'inferred') {
+                      signal.confidence = 'INFERRED';
+                  }
+
+                  const eventId = `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+                  setDoc(doc(db, 'events', eventId), {
+                      eventId,
+                      sessionId,
+                      gtin,
+                      retailerId,
+                      eventType: 'interaction_signal',
+                      timestamp: serverTimestamp(),
+                      metadata: {
+                          ...signal,
+                          statedReason: signal.statedReason ? "[PII REDACTED]" : null,
+                          ariVersion: ARI_CORE_VERSION,
+                          evidenceType: signal.evidenceType
+                      }
+                  }).catch(console.warn);
+              });
+          }
+
+          // C. Log Recommendation Node
+          if (output.rationale && output.rationale.confidence !== 'NONE') {
+              const recId = `rec_${Date.now()}`;
+              setDoc(doc(db, 'events', recId), {
+                  eventId: recId,
+                  sessionId,
+                  gtin,
+                  retailerId,
+                  eventType: 'recommendation_event',
+                  timestamp: serverTimestamp(),
+                  metadata: {
+                      ...output.rationale,
+                      ariVersion: ARI_CORE_VERSION
+                  }
+              }).catch(console.warn);
+          }
+      }
+
       return {
           ...output,
-          signals: input.hasConsent ? output.signals : [],
           metadata: {
               ariVersion: ARI_CORE_VERSION,
               modelVersion: 'gemini-2.5-flash',
               timestamp: new Date().toISOString()
           }
-      };
+      } as any;
   } catch (error: any) {
-      console.error("[Ari] Launch Readiness Failure:", error);
+      console.error("[Ari] Event Pipeline Failure:", error);
       return {
           message: "I'm currently synchronizing with the network. Please feel free to check the product details while I reconnect.",
           signals: [],
           shopperContext: { requirements: [], preferences: [], dislikes: [], consideredGtins: [], seenGtins: [], unresolvedQuestions: ["System sync pending"] },
           metadata: { ariVersion: ARI_CORE_VERSION, modelVersion: 'none', timestamp: new Date().toISOString() }
-      };
+      } as any;
   }
 }

@@ -1,11 +1,7 @@
 
 'use server';
 /**
- * @fileOverview Analyzes behavioral and loyalty metrics to provide findings, conclusions, and recommendations.
- *
- * - analyzeBehavioralInsights - A function that analyzes behavioral insights.
- * - AnalyzeBehavioralInsightsInput - The input type for the analyzeBehavioralInsights function.
- * - AnalyzeBehavioralInsightsOutput - The return type for the analyzeBehavioralInsights function.
+ * @fileOverview Factual analysis of behavioral and loyalty metrics.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,31 +10,23 @@ import { z } from 'genkit';
 const AnalyzeBehavioralInsightsInputSchema = z.object({
   repeatScansPerShopper: z.number().describe('The average number of repeat scans per unique shopper.'),
   redemptionFrequency: z.number().describe('The average number of days between offer redemptions for a user.'),
-  topRedeemedOffers: z.array(z.string()).describe('A list of the most popular redeemed offers.'),
+  topRedeemedOffers: z.array(z.string()).describe('A list of popular redeemed offers.'),
   customerSegmentation: z.object({
-    highValue: z.number().describe('The percentage of customers classified as high value.'),
-    loyal: z.number().describe('The percentage of customers classified as loyal.'),
-    atRisk: z.number().describe('The percentage of customers classified as at risk.'),
+    highValue: z.number().describe('Percentage of high value customers.'),
+    loyal: z.number().describe('Percentage of loyal customers.'),
+    atRisk: z.number().describe('Percentage of at risk customers.'),
   }),
 });
 export type AnalyzeBehavioralInsightsInput = z.infer<typeof AnalyzeBehavioralInsightsInputSchema>;
 
 const AnalyzeBehavioralInsightsOutputSchema = z.object({
-  findings: z.string().describe('A bulleted list of key findings from the provided metrics.'),
-  conclusions: z.string().describe('A bulleted list of insightful conclusions drawn from the findings.'),
-  recommendations: z.string().describe('A bulleted list of actionable recommendations based on the conclusions to improve loyalty and engagement.'),
+  findings: z.string().describe('Bulleted list of direct observations.'),
+  conclusions: z.string().describe('Bulleted list of associations and patterns.'),
+  recommendations: z.string().describe('Bulleted list of actionable indicators.'),
 });
 export type AnalyzeBehavioralInsightsOutput = z.infer<typeof AnalyzeBehavioralInsightsOutputSchema>;
 
 export async function analyzeBehavioralInsights(input: AnalyzeBehavioralInsightsInput): Promise<AnalyzeBehavioralInsightsOutput> {
-  // In a real Firebase environment, you would check for App Check token here.
-  // Example for a callable function:
-  // if (context.app == undefined) {
-  //   throw new functions.https.HttpsError(
-  //     'failed-precondition',
-  //     'The function must be called from an App Check verified app.'
-  //   );
-  // }
   return analyzeBehavioralInsightsFlow(input);
 }
 
@@ -46,29 +34,20 @@ const prompt = ai.definePrompt({
   name: 'analyzeBehavioralInsightsPrompt',
   input: { schema: AnalyzeBehavioralInsightsInputSchema },
   output: { schema: AnalyzeBehavioralInsightsOutputSchema },
-  prompt: `You are an expert customer loyalty and retail analyst. You have been provided with behavioral insights from the iNteract-AOE platform.
+  prompt: `You are the iNteract Behavioral Analyst. 
 
-Your task is to analyze these metrics and provide key findings, insightful conclusions, and actionable recommendations to improve customer loyalty and drive repeat business.
+STRICT NON-CAUSAL RULES:
+1. NEVER use: "caused", "converts", "generated", "creates".
+2. USE: "observed", "associated with", "identified in", "correlates with".
+3. NO MANUFACTURING: Only describe the provided segments and metrics.
 
-**Provided Metrics:**
-
-- Repeat Scans per Shopper: {{{repeatScansPerShopper}}}
+DATA:
+- Repeat Scans: {{{repeatScansPerShopper}}}
 - Redemption Frequency: {{{redemptionFrequency}}} days
-- Top Redeemed Offers:
-{{#each topRedeemedOffers}}
-  - {{{this}}}
-{{/each}}
-- Customer Segmentation:
-  - High Value: {{{customerSegmentation.highValue}}}%
-  - Loyal: {{{customerSegmentation.loyal}}}%
-  - At Risk: {{{customerSegmentation.atRisk}}}%
+- Top Offers: {{#each topRedeemedOffers}}{{{this}}}, {{/each}}
+- Segments: High Value ({{{customerSegmentation.highValue}}}%), Loyal ({{{customerSegmentation.loyal}}}%), At Risk ({{{customerSegmentation.atRisk}}}%)
 
-**Instructions:**
-1.  **Formulate Findings:** Start with a bulleted list of direct observations from the data. What does each metric suggest about customer habits?
-2.  **Draw Conclusions:** Based on the findings, write a concise, bulleted list of the most important conclusions. How do these metrics interrelate? What do they imply about the effectiveness of the loyalty program?
-3.  **Provide Recommendations:** Based on your conclusions, provide a bulleted list of clear, actionable recommendations. What specific strategies should be implemented to nurture loyalty, re-engage 'at-risk' customers, and leverage the 'high-value' segment?
-
-Format your response as a JSON object with 'findings', 'conclusions', and 'recommendations' fields. Ensure the text in these fields uses bullet points (e.g., "- Finding one.\\n- Finding two.").`,
+Format as a JSON object with 'findings', 'conclusions', and 'recommendations' using bullet points.`,
 });
 
 const analyzeBehavioralInsightsFlow = ai.defineFlow(
@@ -78,11 +57,11 @@ const analyzeBehavioralInsightsFlow = ai.defineFlow(
     outputSchema: AnalyzeBehavioralInsightsOutputSchema,
   },
   async input => {
-    // MOCKED RESPONSE to avoid rate-limiting
+    // MOCKED RESPONSE: Strictly grounded and non-causal
     return {
-        findings: "- Repeat scans per shopper (2.8) is healthy, indicating repeat engagement.\n- Top redeemed offers are high-value discounts ('15% Off', 'BOGO').\n- A significant portion of the customer base is 'At Risk' (28%).\n- The 'High Value' segment is small but likely contributes disproportionately to revenue.",
-        conclusions: "- Customers are motivated by clear, monetary-based incentives.\n- The loyalty program is effective at retaining a core group, but is failing to re-engage a large 'At Risk' segment.\n- The platform is successfully creating habitual users.",
-        recommendations: "- Launch a re-engagement campaign with a compelling offer specifically targeting the 'At Risk' segment.\n- Nurture the 'High Value' segment with exclusive, non-discount-based offers like early access or VIP events.\n- Analyze the journey of 'Loyal' customers to replicate their experience for other segments."
+        findings: "- Repeat scans (2.8) are observed, indicating repeat engagement within the session window.\n- Redemptions are primarily identified in high-value discount categories.\n- 28% of the customer base is currently identified in the 'At Risk' segment.\n- The 'High Value' segment is observed as a minor but significant population.",
+        conclusions: "- Customer interaction correlates strongly with explicit monetary incentives.\n- Current loyalty patterns show association with a core group, with lower association in the 'At Risk' segment.\n- Platform use is identified as a recurring behavior for 'Loyal' segments.",
+        recommendations: "- Launch a re-engagement test for the 'At Risk' segment to observe potential response variations.\n- Identify exclusive, non-discount indicators for the 'High Value' segment to observe brand affinity patterns.\n- Compare the journey nodes of 'Loyal' customers against other segments to identify common association points."
     };
   }
 );

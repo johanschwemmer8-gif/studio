@@ -1,8 +1,8 @@
 
 'use server';
 /**
- * @fileOverview Analyzes campaign and module performance metrics to provide findings, conclusions, and recommendations.
- *
+ * @fileOverview Factual analysis of campaign performance metrics.
+ * 
  * - analyzeCampaignPerformance - A function that analyzes campaign performance.
  * - AnalyzeCampaignPerformanceInput - The input type for the analyzeCampaignPerformance function.
  * - AnalyzeCampaignPerformanceOutput - The return type for the analyzeCampaignPerformance function.
@@ -23,21 +23,13 @@ const AnalyzeCampaignPerformanceInputSchema = z.object({
 export type AnalyzeCampaignPerformanceInput = z.infer<typeof AnalyzeCampaignPerformanceInputSchema>;
 
 const AnalyzeCampaignPerformanceOutputSchema = z.object({
-  findings: z.string().describe('A bulleted list of key findings from the provided metrics.'),
-  conclusions: z.string().describe('A bulleted list of insightful conclusions drawn from the findings.'),
-  recommendations: z.string().describe('A bulleted list of actionable recommendations based on the conclusions to improve performance.'),
+  findings: z.string().describe('A bulleted list of direct observations from the provided metrics.'),
+  conclusions: z.string().describe('A bulleted list of insightful associations drawn from the findings.'),
+  recommendations: z.string().describe('A bulleted list of clear indicators for performance optimization.'),
 });
 export type AnalyzeCampaignPerformanceOutput = z.infer<typeof AnalyzeCampaignPerformanceOutputSchema>;
 
 export async function analyzeCampaignPerformance(input: AnalyzeCampaignPerformanceInput): Promise<AnalyzeCampaignPerformanceOutput> {
-  // In a real Firebase environment, you would check for App Check token here.
-  // Example for a callable function:
-  // if (context.app == undefined) {
-  //   throw new functions.https.HttpsError(
-  //     'failed-precondition',
-  //     'The function must be called from an App Check verified app.'
-  //   );
-  // }
   return analyzeCampaignPerformanceFlow(input);
 }
 
@@ -45,25 +37,22 @@ const prompt = ai.definePrompt({
   name: 'analyzeCampaignPerformancePrompt',
   input: { schema: AnalyzeCampaignPerformanceInputSchema },
   output: { schema: AnalyzeCampaignPerformanceOutputSchema },
-  prompt: `You are an expert digital marketing analyst specializing in in-store retail technology. You have been provided with performance metrics for a digital campaign running on the iNteract-AOE platform.
+  prompt: `You are the iNteract Intelligence Analyst. You have been provided with performance metrics for a digital campaign.
 
-Your task is to analyze these metrics and provide key findings, insightful conclusions, and actionable recommendations.
+Your task is to provide a factual analysis of these metrics.
 
-**Provided Metrics:**
+STRICT NON-CAUSAL RULES:
+1. NEVER use: "caused", "generated", "converted", "drove", "increased", "resulted in".
+2. USE: "observed", "associated with", "presents as", "is identified in", "preceded".
+3. NO MANUFACTURING: Only describe the numbers provided.
 
-- Promo Card Click-through Rate: {{{promoCardCtr}}}%
-- AI Assistant Usage Rate: {{{aiAssistantUsageRate}}}%
-- Module Engagement Split:
-  - Recommendations: {{{moduleEngagementSplit.recommendations}}}%
-  - Chatbot: {{{moduleEngagementSplit.chatbot}}}%
-- Time to First Interaction: {{{timeToFirstInteraction}}} seconds
+METRICS:
+- Promo Card CTR: {{{promoCardCtr}}}%
+- AI Assistant Usage: {{{aiAssistantUsageRate}}}%
+- Recommendations vs Chatbot Split: {{{moduleEngagementSplit.recommendations}}}% / {{{moduleEngagementSplit.chatbot}}}%
+- Time to Interaction: {{{timeToFirstInteraction}}}s
 
-**Instructions:**
-1.  **Formulate Findings:** Start with a bulleted list of direct observations from the data. What does each metric tell you individually?
-2.  **Draw Conclusions:** Based on the findings, write a concise, bulleted list of the most important conclusions. How do the metrics relate to each other? What do they imply about user behavior and campaign effectiveness?
-3.  **Provide Recommendations:** Based on your conclusions, provide a bulleted list of clear, actionable recommendations. What should the retailer do next to improve these metrics and the overall campaign performance?
-
-Format your response as a JSON object with 'findings', 'conclusions', and 'recommendations' fields. Ensure the text in these fields uses bullet points (e.g., "- Finding one.\\n- Finding two.").`,
+Format the output as a JSON object with 'findings', 'conclusions', and 'recommendations' using bullet points.`,
 });
 
 const analyzeCampaignPerformanceFlow = ai.defineFlow(
@@ -73,11 +62,11 @@ const analyzeCampaignPerformanceFlow = ai.defineFlow(
     outputSchema: AnalyzeCampaignPerformanceOutputSchema,
   },
   async input => {
-    // MOCKED RESPONSE to avoid rate-limiting
+    // MOCKED RESPONSE: Using strictly non-causal association-led terminology
     return {
-        findings: "- Promo Card CTR of 8.2% is solid, indicating visuals are appealing.\n- AI Assistant usage is high at 25.6%, showing customers are curious.\n- Recommendations module drives most engagement (70%).\n- Time to first interaction is relatively high at 18 seconds.",
-        conclusions: "- The chatbot is a popular entry point, but may not be driving direct value.\n- The 18-second interaction delay suggests an opportunity to capture attention faster.\n- Users trust recommendations more than engaging in open-ended chat for conversions.",
-        recommendations: "- Simplify the initial chatbot interaction to provide value in a single click.\n- Feature the 'Recommendations' module more prominently on initial scan pages.\n- A/B test different promo card designs to see if the 8.2% CTR can be improved further."
+        findings: "- Promo Card CTR is observed at 8.2%, indicating visible engagement.\n- AI Assistant usage is recorded in 25.6% of sessions.\n- Recommendations module is associated with 70% of total engagement.\n- Time to first interaction is identified at an average of 18 seconds.",
+        conclusions: "- The chatbot represents a common entry node, though direct association with value requires further trace.\n- The 18-second delay is identified as a point of potential session leakage.\n- Shopper patterns show higher frequency of interaction with structured recommendations than open-ended chat.",
+        recommendations: "- Evaluate simplifying the initial chatbot interaction to shorten time to first engagement.\n- Feature the 'Recommendations' module more prominently during the initial exposure phase.\n- A/B test promo card visuals to observe variations in the 8.2% CTR baseline."
     };
   }
 );

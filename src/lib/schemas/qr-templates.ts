@@ -20,11 +20,13 @@ export const QrTemplateSchema = z.object({
 export type QrTemplate = z.infer<typeof QrTemplateSchema>;
 
 export const GetQrTemplatesInputSchema = z.object({
+  idToken: z.string().optional().describe("Firebase ID token for authorization."),
   retailerId: z.string(),
 });
 export type GetQrTemplatesInput = z.infer<typeof GetQrTemplatesInputSchema>;
 
 export const SaveQrTemplateInputSchema = z.object({
+  idToken: z.string().optional().describe("Firebase ID token for authorization."),
   retailerId: z.string(),
   name: z.string(),
   description: z.string().optional(),

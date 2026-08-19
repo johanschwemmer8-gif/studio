@@ -2,14 +2,13 @@
 'use server';
 /**
  * @fileOverview Saves a new QR code template to Firestore.
- *
- * - saveQrTemplate - A callable function to create a new QR template.
+ * Enforces tenant isolation via getAuthorizedRetailerId.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
 import { SaveQrTemplateInputSchema, SaveQrTemplateOutputSchema, type SaveQrTemplateInput, type SaveQrTemplateOutput } from '@/lib/schemas/qr-templates';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -27,18 +26,15 @@ const saveQrTemplateFlow = ai.defineFlow(
     outputSchema: SaveQrTemplateOutputSchema,
   },
   async (data) => {
-    const db = admin.firestore();
+    // AUTHORIZATION GATE
+    const authorizedRetailerId = await getAuthorizedRetailerId(data.idToken, data.retailerId);
     
-    // Authorization Check (conceptual)
-    const callerRetailerId = 'simulated-retailer-id';
-    if (data.retailerId !== callerRetailerId) {
-        throw new Error('User is not authorized to create templates for this retailer.');
-    }
-
+    const db = admin.firestore();
     const templateRef = db.collection('qrTemplates').doc();
     
     await templateRef.set({
         ...data,
+        retailerId: authorizedRetailerId, // Use verified ID
         templateId: templateRef.id,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),

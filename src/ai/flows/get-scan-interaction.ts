@@ -1,8 +1,10 @@
-'use server';
+
+'use client';
 /**
  * @fileOverview Continuity Engine Interaction Flow.
  * Acts as the relationship infrastructure for returning shoppers.
  * Constructs personalized lifecycle greetings based on persistent behavioral memory.
+ * AUDIT VERSION: 1.6.0 (Resilience Hardened)
  */
 
 import { ai } from '@/ai/genkit';
@@ -65,7 +67,7 @@ export async function getScanInteraction(input: GetScanInteractionInput): Promis
   try {
     return await getScanInteractionFlow(input);
   } catch (error: any) {
-    console.warn("Continuity Engine Simulation: Providing fallback interaction.");
+    console.warn("[Continuity Engine] Resilience Fallback Active:", error.message);
     return fallbackResponse;
   }
 }
@@ -87,7 +89,7 @@ const getScanInteractionFlow = ai.defineFlow(
     let retailerName = 'iNteract';
     let retailerLogoUrl = '';
 
-    // If DB is unavailable, return high-fidelity simulation immediately
+    // RESILIENCE GATE: If DB is unavailable, return high-fidelity simulation immediately
     if (!db) {
         return {
             messages: ["Hello! I'm Ari.", "I'm currently operating in simulation mode while we synchronize with the store network.", "You can still view the product details below."],
@@ -100,7 +102,6 @@ const getScanInteractionFlow = ai.defineFlow(
         const qrDoc = await db.collection('qrcodes').doc(qrId).get();
         if (qrDoc.exists) {
             qrData = qrDoc.data()!;
-            // Priority: The specific redirectUrl assigned to this QR code (crucial for Test QR)
             destinationUrl = qrData.redirectUrl || `/p/${qrData.gtin || '06001234567891'}`;
             
             if (qrData.requestId) {
@@ -111,7 +112,7 @@ const getScanInteractionFlow = ai.defineFlow(
             }
         }
     } catch (e) {
-        console.warn("QR Metadata fetch failed, using default redirection logic.");
+        console.warn("[Identity Resolution] Metadata friction, using resolution defaults.");
     }
     
     if (shopperUid) {
@@ -134,7 +135,7 @@ const getScanInteractionFlow = ai.defineFlow(
                 pastInterests = Array.from(categories).slice(0, 3);
             }
         } catch (e) {
-            console.warn("Shopper memory sync deferred.");
+            console.warn("[Shopper Memory] Synchronization deferred.");
         }
     }
 
@@ -175,7 +176,7 @@ const getScanInteractionFlow = ai.defineFlow(
 
     } catch (error) {
         return { 
-            messages: ["Hello! Ari here.", "Welcome to the experience layer. I'm ready to guide your purchase."],
+            messages: ["Hello! Ari here.", "Welcome back to the experience layer. I'm ready to guide your decision journey."],
             destinationUrl, 
             retailerLogoUrl,
             ...mediaOptions 

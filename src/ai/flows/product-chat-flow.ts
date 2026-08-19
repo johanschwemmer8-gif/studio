@@ -1,7 +1,8 @@
-'use server';
+
+'use client';
 /**
  * @fileOverview Ari - Intelligence Layer Continuity Assistant.
- * ARI_SYSTEM_VERSION: 1.5.0 (Launch Ready)
+ * ARI_SYSTEM_VERSION: 1.6.0 (Launch Ready & Resilience Hardened)
  * EVIDENCE_CONTRACT: v1.1 (Strictly Grounded & Neutral)
  */
 
@@ -16,7 +17,7 @@ import {
 } from '@/lib/schemas/interaction-signals';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-const ARI_CORE_VERSION = '1.5.0';
+const ARI_CORE_VERSION = '1.6.0';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -75,7 +76,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
       const shopperName = shopperDoc.data()?.displayName || "Shopper";
       shopperProfileContext = `SHOPPER: Recognized as ${shopperName}. Maintain relationship continuity.`;
     } catch (e) {
-      console.warn("Shopper context omitted due to read failure.");
+      console.warn("[Shopper Identity] Context omitted due to read failure.");
     }
   }
 
@@ -196,7 +197,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
           }
       } as any;
   } catch (error: any) {
-      console.error("[Ari] Event Pipeline Failure:", error);
+      console.error("[Ari] Resilience Fallback Active:", error);
       return {
           message: "I'm currently synchronizing with the network. Please feel free to check the product details while I reconnect.",
           signals: [],

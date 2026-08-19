@@ -32,6 +32,11 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+/**
+ * RETAILER ROI DASHBOARD
+ * VERSION: 1.5.0 (Audit Hardened & Non-Causal)
+ * STATUS: Simulation labels strictly enforced for pilot phase.
+ */
 export default function RoiPage() {
   const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [attributionReport, setAttributionReport] = useState<AttributionReport | null>(null);

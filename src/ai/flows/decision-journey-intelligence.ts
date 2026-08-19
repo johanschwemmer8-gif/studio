@@ -1,9 +1,8 @@
-
 'use server';
 /**
  * @fileOverview iNteract Decision-Journey Aggregator.
  * CHRONOLOGICAL INTEGRITY (v1.5.0)
- * AUDIT v1.5.1: Launch Readiness & Reliability Hardening.
+ * AUDIT v1.5.1: Non-Causal Grounding & Resilience Hardened.
  */
 
 import { ai } from '@/ai/genkit';

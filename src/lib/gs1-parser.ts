@@ -1,7 +1,7 @@
 /**
  * @fileOverview GS1-aligned parser for Digital Link and AIDC formats.
  * Normalizes global identifiers into a canonical structure for the iNteract Identity Layer.
- * VERSION: 1.1.0 (Checksum Verified)
+ * VERSION: 1.1.0 (Modulo-10 Checksum Verified)
  */
 
 export type GS1Identity = {
@@ -20,7 +20,7 @@ export type GS1Identity = {
  * 2. Sum the results.
  * 3. The check digit is (10 - (sum % 10)) % 10.
  */
-function validateGS1Checksum(input: string): boolean {
+export function validateGS1Checksum(input: string): boolean {
   if (!/^\d+$/.test(input) || ![8, 12, 13, 14].includes(input.length)) return false;
   
   const digits = input.split('').map(Number);

@@ -1,9 +1,8 @@
-
 'use server';
 /**
  * @fileOverview Ari - Intelligence Layer Continuity Assistant.
- * ARI_SYSTEM_VERSION: 1.6.0 (Launch Ready & Resilience Hardened)
- * EVIDENCE_CONTRACT: v1.1 (Strictly Grounded & Neutral)
+ * ARI_SYSTEM_VERSION: 1.6.0 (Audit Hardened & Resilience Handled)
+ * EVIDENCE_CONTRACT: v1.1 (Strictly Grounded, Non-Causal & PII Scrubbed)
  */
 
 import { ai } from '@/ai/genkit';
@@ -128,7 +127,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
       if (db && input.sessionId) {
           const sessionId = input.sessionId;
           const gtin = input.gtin || '00000000000000';
-          const retailerId = input.retailerId || 'simulated-retailer-id';
+          const retailerId = input.retailerId || 'unknown';
 
           // A. Log Conversation Node
           const conversationId = `convo_${Date.now()}`;

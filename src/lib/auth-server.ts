@@ -1,8 +1,8 @@
-
 'use server';
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * Enforces tenant isolation and role-based access control.
+ * VERSION: 1.2.0 (Fail-Closed Enforcement)
  */
 
 import { admin } from "./firebase-admin";

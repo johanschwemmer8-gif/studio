@@ -89,6 +89,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         }
       } catch (e: any) {
         console.warn('Intelligence Layer Handshake Friction');
+        // If AI fails, still allow the user to continue to the website
       } finally {
         setLoading(false);
       }
@@ -105,6 +106,8 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // IDEMPOTENCY & STATUS GUARD
     if (!userInput.trim() || isPendingChat || isTyping) return;
 
     const userMessage = userInput.trim();
@@ -123,7 +126,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             });
             setMessages(prev => [...prev, { role: 'model', content: res.message }]);
         } catch (e) {
-            setMessages(prev => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to continue to the product page." }]);
+            setMessages(prev => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to continue to the product page while I reconnect." }]);
         } finally {
             setIsTyping(false);
         }
@@ -169,6 +172,12 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                         </div>
                     ) : null}
                     {data?.headline && <h1 className="text-2xl font-black mt-4 leading-tight tracking-tight">{data.headline}</h1>}
+                </div>
+            )}
+
+            {messages.length === 0 && !isTyping && !loading && (
+                <div className="p-8 text-center text-muted-foreground italic text-sm">
+                    Initializing conversation...
                 </div>
             )}
 

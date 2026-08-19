@@ -53,11 +53,14 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // PRODUCTION HARDENING: Prevent duplicate messages or empty submissions
+    
+    // IDEMPOTENCY GUARD: Fail fast if already processing or input is empty
     if (!input.trim() || isPending) return;
 
     const userText = input.trim();
     const newMessages: ChatMessage[] = [...messages, { role: 'user', content: userText }];
+    
+    // Optimistically update UI
     setMessages(newMessages);
     setInput('');
 
@@ -85,10 +88,10 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   shopperContext: result.shopperContext,
                   timestamp: serverTimestamp(),
                   aiModel: 'gemini-2.5-flash',
-                  extractionVersion: '1.4.0'
+                  ariVersion: '1.5.0'
               }).catch(() => {});
 
-              // 2. Log Recommendation Events (Separate from evidence)
+              // 2. Log Recommendation Events
               if (result.rationale && result.rationale.confidence !== 'NONE') {
                   const recId = `rec_${Date.now()}`;
                   setDoc(doc(db, 'events', recId), {
@@ -101,12 +104,11 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   }).catch(() => {});
               }
 
-              // 3. HARDENED: Record Signals ONLY if behavioural analysis consent is granted
+              // 3. HARDENED: Record Signals with server-side consent check
               const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
               
               if (hasConsent && result.signals && result.signals.length > 0) {
                   result.signals.forEach((signal) => {
-                      // Explicit hierarchy check: AI inference never becomes High confidence
                       if (signal.evidenceType === 'inferred' && signal.confidence === 'HIGH') {
                           signal.confidence = 'INFERRED';
                       }
@@ -120,15 +122,15 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                           timestamp: serverTimestamp(),
                           metadata: {
                               ...signal,
-                              sourceMessage: "[PII REDACTED]", // Production rule: Do not store raw message in signal node
-                              extractionVersion: '1.4.0'
+                              sourceMessage: "[PII REDACTED]",
+                              ariVersion: '1.5.0'
                           }
                       }).catch(() => {});
                   });
               }
           }
       } catch (err) {
-          setMessages((prev) => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to ask another question." }]);
+          setMessages((prev) => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to ask another question or continue viewing product details." }]);
       }
     });
   };

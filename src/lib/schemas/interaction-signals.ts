@@ -1,14 +1,13 @@
-
 import { z } from 'genkit';
 
 /**
  * @fileOverview Controlled Taxonomy for Structured Interaction Signals & Shopper Context.
  * Defines the evidence layer for customer-expressed information and working session memory.
- * VERSION: 1.3.0 (Decision-State Integrity)
+ * VERSION: 1.3.1 (PII Hardened)
  */
 
 export const EvidenceTypeSchema = z.enum(['explicit', 'derived', 'inferred']).describe(
-  'explicit: Directly stated. derived: Deterministically calculated without assumptions. inferred: AI interpretation/guess.'
+  'explicit: Directly stated by the shopper. derived: Deterministically calculated from system events. inferred: AI interpretation of intent (never to be treated as fact).'
 );
 
 export const ConfidenceLevelSchema = z.enum(['HIGH', 'MEDIUM', 'LOW', 'INFERRED']).describe(
@@ -31,10 +30,10 @@ export const InteractionSignalSchema = z.object({
     'recommendation_response',
     'information_request'
   ]).describe('The category of the extracted signal.'),
-  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).describe('The structured value of the signal (PII MUST BE EXCLUDED).'),
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).describe('The structured value of the signal. PII (names, emails, etc.) MUST BE EXCLUDED.'),
   evidenceType: EvidenceTypeSchema,
   confidence: ConfidenceLevelSchema,
-  statedReason: z.string().optional().describe('The verbatim reason expressed by the customer (PII MUST BE EXCLUDED).'),
+  statedReason: z.string().optional().describe('The verbatim reason expressed by the customer. PII MUST BE EXCLUDED.'),
   comparisonProductGtin: z.string().optional().describe('GTIN of the product being compared, if applicable.')
 });
 

@@ -1,4 +1,5 @@
 
+'use client';
 'use server';
 /**
  * @fileOverview Batch CSV Importer for external QR identifiers.

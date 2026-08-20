@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { BarChart2, UserCheck, TrendingUp, Activity, Loader2 } from 'lucide-react';
+import { BarChart2, UserCheck, TrendingUp, Activity, Loader2, Sparkles } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -19,10 +18,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
-import { getScanAnalytics, type ScanAnalyticsOutput } from '@/ai/flows/scan-analytics';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/context/auth-context';
-
+import { collection, query, where, onSnapshot, orderBy, limit, Timestamp } from 'firebase/firestore';
 
 function AnalyticsCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description?: string }) {
     return (
@@ -41,76 +39,110 @@ function AnalyticsCard({ title, value, icon: Icon, description }: { title: strin
 
 export default function ScanAnalytics() {
   const { user } = useAuth();
-  const [data, setData] = useState<ScanAnalyticsOutput | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-        if (!user?.retailerId) return;
-        setLoading(true);
-        try {
-            const idToken = await user.getIdToken();
-            const res = await getScanAnalytics({
-                idToken,
-                retailerId: user.retailerId,
-                limit: 1000,
-            });
-            setData(res);
-        } catch (err: any) {
-            setError(err.message || "Failed to load scan analytics.");
-        } finally {
-            setLoading(false);
-        }
-    };
-    fetchData();
-  }, [user]);
+    if (!user?.retailerId || !db) return;
+
+    setLoading(true);
+    // Real-time listener for the last 1000 events belonging to this retailer
+    const q = query(
+        collection(db, 'events'),
+        where('retailerId', '==', user.retailerId),
+        orderBy('timestamp', 'desc'),
+        limit(1000)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setEvents(fetched);
+        setLoading(false);
+    }, (err) => {
+        console.error("Live Stream Error:", err);
+        setError("Friction in live intelligence stream.");
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user?.retailerId]);
 
   if (loading) {
       return (
           <div className="flex flex-col items-center justify-center p-12 space-y-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Authenticating & Aggregating...</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Awaiting Live Intelligence...</p>
           </div>
       );
   }
 
-  if (error || !data) {
+  if (error) {
       return (
           <div className="p-8 border border-destructive/20 bg-destructive/5 rounded-lg text-center">
-              <p className="text-destructive font-bold text-xs uppercase tracking-widest">{error || "Intelligence Stream Offline"}</p>
+              <p className="text-destructive font-bold text-xs uppercase tracking-widest">{error}</p>
           </div>
       );
   }
 
-  const { totalRawEvents, uniqueSessions, topEngagedProducts } = data;
+  // AGGREGATION LOGIC (Fact-First)
+  const sessionIds = new Set(events.map(e => e.sessionId));
+  const uniqueSessions = sessionIds.size;
+  const totalEvents = events.length;
+  
+  // Aggregate GTIN Popularity (Unique Sessions per GTIN)
+  const sessionsByGtin: Record<string, { sessions: Set<string>, campaignId: string }> = {};
+  events.forEach(event => {
+      const gtin = event.gtin || 'Unknown';
+      if (!sessionsByGtin[gtin]) {
+          sessionsByGtin[gtin] = { sessions: new Set(), campaignId: event.campaignId || 'unassigned' };
+      }
+      sessionsByGtin[gtin].sessions.add(event.sessionId);
+  });
+  
+  const topEngagedProducts = Object.entries(sessionsByGtin)
+      .map(([gtin, data]) => ({ 
+          gtin, 
+          uniqueSessions: data.sessions.size, 
+          campaignId: data.campaignId 
+      }))
+      .sort((a, b) => b.uniqueSessions - a.uniqueSessions)
+      .slice(0, 10);
 
   return (
-    <div className="space-y-8">
-      <Card className="border-primary/10">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <Card className="border-primary/10 bg-gradient-to-br from-primary/5 via-transparent to-transparent">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-black text-xl uppercase tracking-tighter"><BarChart2 className="text-primary"/> Reach Intelligence</CardTitle>
-            <CardDescription>
-                Analysing shopper reach through session-anchored behavioural events.
-            </CardDescription>
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle className="flex items-center gap-2 font-black text-xl uppercase tracking-tighter"><BarChart2 className="text-primary"/> Reach Intelligence</CardTitle>
+                    <CardDescription>
+                        Analysing shopper reach through session-anchored behavioural events.
+                    </CardDescription>
+                </div>
+                <Badge className="bg-green-500 text-white border-none gap-1.5 animate-pulse py-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                    Live
+                </Badge>
+            </div>
         </CardHeader>
         <CardContent className="space-y-8">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <AnalyticsCard 
-                    title="Unique Engagement Sessions" 
+                    title="True Reach" 
                     value={uniqueSessions.toLocaleString()} 
                     icon={UserCheck} 
-                    description="True reach (deduplicated by session)."
+                    description="Unique shopper sessions."
                 />
                 <AnalyticsCard 
-                    title="Total Event Nodes" 
-                    value={totalRawEvents.toLocaleString()} 
+                    title="Total Activity" 
+                    value={totalEvents.toLocaleString()} 
                     icon={Activity} 
-                    description="Raw behavioural activity logs."
+                    description="Raw behavioural nodes."
                 />
                 <AnalyticsCard 
                     title="Engagement Density" 
-                    value={(totalRawEvents / (uniqueSessions || 1)).toFixed(2)} 
+                    value={uniqueSessions > 0 ? (totalEvents / uniqueSessions).toFixed(2) : "0.00"} 
                     icon={TrendingUp} 
                     description="Avg. interactions per session."
                 />
@@ -118,16 +150,16 @@ export default function ScanAnalytics() {
 
             <div className="space-y-4">
                 <h3 className="font-black text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" /> 
-                    Product Sentiment (Sessions per GTIN)
+                    <Sparkles className="h-4 w-4 text-accent" /> 
+                    Product Sentiment (Unique Sessions)
                 </h3>
-                <div className="border rounded-xl overflow-hidden shadow-sm">
+                <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
                     <Table>
                         <TableHeader className="bg-muted/50">
                             <TableRow>
                                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Global Identifier (GTIN-14)</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Campaign Reference</TableHead>
-                                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">True Reach (Sessions)</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">True Reach</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -148,7 +180,7 @@ export default function ScanAnalytics() {
                     </Table>
                 </div>
                 <p className="text-[9px] italic text-muted-foreground">
-                    * Metrics are calculated based on unique shopper sessions to ensure high-fidelity intent mapping.
+                    * Metrics update in real-time. Factual aggregation is anchored to the session identifier.
                 </p>
             </div>
         </CardContent>

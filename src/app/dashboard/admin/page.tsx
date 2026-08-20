@@ -14,21 +14,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  PlusCircle, List, Eye, Trash2, RefreshCw, 
-  UserPlus, AlertTriangle, EyeOff, Loader2,
-  ShieldCheck, KeyRound, CheckCircle2, Info
+  PlusCircle, List, Eye, RefreshCw, 
+  UserPlus, Loader2,
+  ShieldCheck, KeyRound, Info
 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -39,16 +28,19 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { assignUserClaims } from '@/ai/flows/assign-user-claims';
 import { Badge } from '@/components/ui/badge';
+import { collection, onSnapshot, doc, setDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
 export type SavedRetailer = {
+  id: string;
   name: string;
+  type?: 'production' | 'test';
+  status: string;
 };
 
 function slugify(text: string) {
@@ -58,12 +50,12 @@ function slugify(text: string) {
 function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
     const [targetUid, setTargetUid] = useState('');
     const [selectedRole, setSelectedRole] = useState<'retailerAdmin' | 'storeManager' | 'analyst'>('retailerAdmin');
-    const [selectedRetailer, setSelectedRetailer] = useState('');
+    const [selectedRetailerId, setSelectedRetailerId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
 
     const handleAssign = async () => {
-        if (!targetUid || !selectedRetailer) return;
+        if (!targetUid || !selectedRetailerId) return;
         setIsLoading(true);
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -71,7 +63,7 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
                 idToken: idToken || '',
                 targetUid,
                 role: selectedRole,
-                retailerId: slugify(selectedRetailer)
+                retailerId: selectedRetailerId
             });
 
             if (result.success) {
@@ -104,10 +96,10 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase">Tenant/Retailer</Label>
-                            <Select onValueChange={setSelectedRetailer} value={selectedRetailer}>
+                            <Select onValueChange={setSelectedRetailerId} value={selectedRetailerId}>
                                 <SelectTrigger className="bg-white h-9 text-xs"><SelectValue placeholder="Select Tenant" /></SelectTrigger>
                                 <SelectContent>
-                                    {retailers.map(r => <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>)}
+                                    {retailers.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -126,14 +118,14 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
                 </div>
             </CardContent>
             <CardFooter className="flex-col gap-3">
-                <Button onClick={handleAssign} disabled={isLoading || !targetUid || !selectedRetailer} className="w-full gap-2 font-black uppercase text-[10px] tracking-widest">
+                <Button onClick={handleAssign} disabled={isLoading || !targetUid || !selectedRetailerId} className="w-full gap-2 font-black uppercase text-[10px] tracking-widest">
                     {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
                     Provision Trusted Access
                 </Button>
                 <Alert className="bg-blue-50 border-blue-200">
                     <Info className="h-3.5 w-3.5 text-blue-600" />
                     <AlertDescription className="text-[10px] text-blue-700 leading-tight">
-                        <strong>Important:</strong> After provisioning, the user MUST sign out and sign back in to refresh their security token and activate new permissions.
+                        <strong>Important:</strong> After provisioning, the user MUST sign out and sign back in to refresh their security token.
                     </AlertDescription>
                 </Alert>
             </CardFooter>
@@ -209,9 +201,6 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
                                 <Label className="text-[10px] font-black uppercase">Password</Label>
                                 <div className="relative">
                                     <Input name="password" type={showPassword ? 'text' : 'password'} required className="pr-10" />
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1/2 right-1 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </Button>
                                 </div>
                             </div>
                         </div>
@@ -238,27 +227,38 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
 
 export default function AdminPage() {
   const [newRetailerName, setNewRetailerName] = useState('');
-  const [savedRetailers, setSavedRetailers] = useState<SavedRetailer[]>([]);
+  const [retailers, setRetailers] = useState<SavedRetailer[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
   useEffect(() => {
-    const storedRetailers = localStorage.getItem('savedRetailers');
-    if (storedRetailers) {
-        setSavedRetailers(JSON.parse(storedRetailers));
-    }
+    if (!db) return;
+    const q = query(collection(db, 'tenants'), orderBy('name', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetched: SavedRetailer[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SavedRetailer));
+        setRetailers(fetched);
+        setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const handleAddRetailer = () => {
-    if (newRetailerName.trim()) {
-      const newSavedRetailer = { name: newRetailerName };
-      const updatedSavedRetailers = [...savedRetailers, newSavedRetailer];
-      setSavedRetailers(updatedSavedRetailers);
-      localStorage.setItem('savedRetailers', JSON.stringify(updatedSavedRetailers));
-      setNewRetailerName('');
-      toast({
-        title: "Retailer Added!",
-        description: `"${newRetailerName}" has been created.`
-      });
+  const handleAddRetailer = async () => {
+    if (newRetailerName.trim() && db) {
+      const id = slugify(newRetailerName);
+      const tenantRef = doc(db, 'tenants', id);
+      
+      try {
+          await setDoc(tenantRef, {
+              name: newRetailerName,
+              status: 'active',
+              type: 'production',
+              createdAt: serverTimestamp()
+          });
+          setNewRetailerName('');
+          toast({ title: "Retailer Added!", description: `"${newRetailerName}" registry created.` });
+      } catch (e: any) {
+          toast({ title: "Failed to Add", description: e.message, variant: "destructive" });
+      }
     }
   };
 
@@ -300,15 +300,21 @@ export default function AdminPage() {
                     <CardTitle className="text-lg">Active Retailers</CardTitle>
                 </CardHeader>
                 <CardContent>
-                {savedRetailers.length > 0 ? (
+                {loading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary opacity-20" /></div>
+                ) : retailers.length > 0 ? (
                     <div className="space-y-2">
-                        {savedRetailers.map((retailer, index) => (
-                            <div key={index} className="flex items-center gap-3 p-3 rounded-xl border bg-muted/30 group hover:bg-muted/50 transition-colors">
+                        {retailers.map((retailer) => (
+                            <div key={retailer.id} className="flex items-center gap-3 p-3 rounded-xl border bg-muted/30 group hover:bg-muted/50 transition-colors">
                                 <List className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-bold text-sm flex-1">{retailer.name}</span>
+                                <div className="flex-1 min-w-0">
+                                    <span className="font-bold text-sm block truncate">{retailer.name}</span>
+                                    <span className="text-[10px] text-muted-foreground uppercase font-mono">{retailer.id}</span>
+                                </div>
+                                {retailer.type === 'test' && <Badge variant="outline" className="text-[8px] font-black uppercase bg-accent/10 border-accent/20">Test Tenant</Badge>}
                                 <AddUserDialog retailer={retailer} />
                                 <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-primary">
-                                    <Link href={`/dashboard/admin/view/${slugify(retailer.name)}`}><Eye className="h-4 w-4" /></Link>
+                                    <Link href={`/dashboard/admin/view/${retailer.id}`}><Eye className="h-4 w-4" /></Link>
                                 </Button>
                             </div>
                         ))}
@@ -323,7 +329,7 @@ export default function AdminPage() {
         </div>
 
         <div className="space-y-8">
-            <VerifiedAccessManager retailers={savedRetailers} />
+            <VerifiedAccessManager retailers={retailers} />
             
             <Card className="border-accent border-2 bg-accent/5">
                 <CardHeader><CardTitle className="text-sm font-black uppercase">Platform Audit</CardTitle></CardHeader>

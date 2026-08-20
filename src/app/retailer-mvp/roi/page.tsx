@@ -22,7 +22,6 @@ import { analyzeEngagementMetrics, attributeTransactions, type AnalyzeEngagement
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SalesFunnelChart from '@/components/dashboard/sales-funnel-chart';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
 import { useAuth } from '@/context/auth-context';
 import {
   DropdownMenu,

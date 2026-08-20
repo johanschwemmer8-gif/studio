@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -34,13 +33,15 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
     try {
       // Use GTIN-only identifier for saved products
       const savedRef = doc(db, 'saved_products', `${user.uid}_${product.gtin}`);
+      const retailerId = product.retailerId || 'unknown';
+
       await setDoc(savedRef, {
         shopperId: user.uid,
         gtin: product.gtin,
         productName: product.name,
         price: product.price,
         category: product.category,
-        retailerId: 'simulated-retailer-id',
+        retailerId,
         savedAt: serverTimestamp(),
       });
       
@@ -48,6 +49,7 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
       await setDoc(interactionRef, {
         shopperId: user.uid,
         gtin: product.gtin,
+        retailerId,
         type: 'save',
         timestamp: serverTimestamp(),
       });

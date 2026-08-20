@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/context/auth-context';
 
 type BasketItem = {
     gtin: string;
@@ -25,6 +26,7 @@ type BasketItem = {
 type SyncedBasket = {
     id: string;
     shopperId: string;
+    retailerId: string;
     items: BasketItem[];
     total: number;
     status: 'active' | 'synced' | 'paid';
@@ -32,16 +34,25 @@ type SyncedBasket = {
 };
 
 export default function PosTerminalSimulation() {
+    const { user } = useAuth();
     const [syncedBasket, setSyncedBasket] = useState<SyncedBasket | null>(null);
     const [terminalId] = useState('register_001');
     const [loading, setLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const { toast } = useToast();
 
+    const currentRetailerId = user?.retailerId || 'unknown';
+
     useEffect(() => {
         if (!db) return;
-        // Listen for baskets synced to this terminal
-        const q = query(collection(db, 'baskets'), where('terminalId', '==', terminalId), where('status', '==', 'synced'));
+        // Listen for baskets synced to this terminal for THIS retailer
+        const q = query(
+            collection(db, 'baskets'), 
+            where('terminalId', '==', terminalId), 
+            where('status', '==', 'synced'),
+            where('retailerId', '==', currentRetailerId)
+        );
+        
         const unsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
                 const doc = snapshot.docs[0];
@@ -53,7 +64,7 @@ export default function PosTerminalSimulation() {
             setLoading(false);
         });
         return () => unsubscribe();
-    }, [terminalId, toast]);
+    }, [terminalId, currentRetailerId, toast]);
 
     const handleCompleteSale = async () => {
         if (!syncedBasket || !db) return;
@@ -63,7 +74,7 @@ export default function PosTerminalSimulation() {
             await addDoc(collection(db, 'transactions'), {
                 transactionId: `gs1_txn_${Date.now()}`,
                 shopperId: syncedBasket.shopperId,
-                retailerId: 'simulated-retailer-id',
+                retailerId: syncedBasket.retailerId,
                 amount: syncedBasket.total,
                 paymentMethod: 'POS Terminal Cash/Card',
                 items: syncedBasket.items,

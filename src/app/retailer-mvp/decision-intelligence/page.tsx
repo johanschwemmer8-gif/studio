@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,6 +18,7 @@ import { cn } from '@/lib/utils';
 import type { DecisionJourneyOutput } from '@/lib/schemas/decision-journey';
 import { products as localProducts } from '@/lib/data';
 import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/auth-context';
 import {
   Select,
   SelectContent,
@@ -74,6 +73,7 @@ const FunnelStage = ({
 );
 
 export default function DecisionIntelligencePage() {
+    const { user } = useAuth();
     const [data, setData] = useState<DecisionJourneyOutput | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedGtin, setSelectedGtin] = useState<string>('all');
@@ -81,12 +81,13 @@ export default function DecisionIntelligencePage() {
 
     useEffect(() => {
         const fetchData = async () => {
+            if (!user) return;
             setLoading(true);
             const gtinArg = selectedGtin === 'all' ? undefined : selectedGtin;
             
             try {
-                const idToken = await auth.currentUser?.getIdToken();
-                const res = await getDecisionJourneyIntelligence(idToken, 'simulated-retailer-id', 30, gtinArg);
+                const idToken = await user.getIdToken();
+                const res = await getDecisionJourneyIntelligence(idToken, user.retailerId || 'unknown', 30, gtinArg);
                 setData(res);
             } catch (err: any) {
                 console.error(err);
@@ -100,7 +101,7 @@ export default function DecisionIntelligencePage() {
             }
         };
         fetchData();
-    }, [toast, selectedGtin]);
+    }, [toast, selectedGtin, user]);
 
     const handleExport = () => {
         toast({
@@ -312,4 +313,3 @@ export default function DecisionIntelligencePage() {
         </div>
     );
 }
-

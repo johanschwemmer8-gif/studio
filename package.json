@@ -1,10 +1,19 @@
-"dependencies": {
+{
+  "name": "studio",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
     "@genkit-ai/google-genai": "1.17.0",
     "@genkit-ai/next": "1.17.0",
     "@hookform/resolvers": "^4.1.3",
-    ...
     "firebase": "10.12.2",
     "firebase-admin": "^13.0.0",
-    "genkit": "1.17.0",
-    ...
-  },
+    "genkit": "1.17.0"
+  }
+}

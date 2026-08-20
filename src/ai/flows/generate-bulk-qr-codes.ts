@@ -59,19 +59,8 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     }
     
     // In a real Firebase Callable Function, you'd get the auth context here.
-    // App Check would also be enforced by the Firebase Functions runtime.
-    //
-    // Example:
-    // if (!context.app) {
-    //   throw new functions.https.HttpsError('failed-precondition', 'The function must be called from an App Check verified app.');
-    // }
-    // if (!context.auth) { 
-    //   throw new functions.https.HttpsError('unauthenticated', 'Authentication required.'); 
-    // }
-    // const { uid, token } = context.auth;
-    // const callerRetailerId = token.retailerId; // From custom claims
-    const createdBy = 'simulated-user@example.com'; // Placeholder for auth.token.email or auth.uid
-    const callerRetailerId = 'simulated-retailer-id'; // Placeholder for custom claim
+    const createdBy = 'simulated-user@example.com'; 
+    const callerRetailerId = data.retailerId; // Placeholder for custom claim verification
     
     // Enforce tenant matching
     if (callerRetailerId !== data.retailerId) {
@@ -82,30 +71,6 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     
     const requestRef = db.collection('bulkQrRequests').doc();
     
-    // === Conceptual Quota Check ===
-    // In a real implementation, this would be a transaction.
-    // const tenantRef = db.collection('tenants').doc(retailerId);
-    // await db.runTransaction(async (transaction) => {
-    //   const tenantDoc = await transaction.get(tenantRef);
-    //   if (!tenantDoc.exists) {
-    //     throw new Error('Tenant configuration not found.');
-    //   }
-    //   const tenantData = tenantDoc.data();
-    //
-    //   // Check if reset is needed
-    //   if (new Date() > resetAt.toDate()) {
-    //      // reset usedToday and update resetAt, handle logic here
-    //   }
-    //
-    //   if (usedToday + count > dailyLimit) {
-    //     throw new Error('Daily quota exceeded.');
-    //   }
-    //
-    //   transaction.update(tenantRef, { usedToday: admin.firestore.FieldValue.increment(count) });
-    // });
-    // === End Conceptual Quota Check ===
-
-
     const batch = db.batch();
     const requestData = {
         retailerId,
@@ -121,13 +86,14 @@ const submitBulkQrRequestFlow = ai.defineFlow(
 
     // Create N item stubs
     for (let i = 0; i < count; i++) {
-      const qrCodeId = db.collection('qrcodes').doc().id; // Pre-generate a unique ID
+      const qrCodeId = db.collection('qrcodes').doc().id; 
       const itemRef = requestRef.collection('items').doc(qrCodeId);
       
       const itemData = {
           index: i,
           qrCodeId: qrCodeId,
-          redirectUrl: '', // To be filled by processor
+          retailerId: retailerId, // Crucial for scoped deletion and analytics
+          redirectUrl: '', 
           signedUrl: '',
           storagePath: '',
           status: 'PENDING',

@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview Privileged server flow to reset the iNteract Test Retailer environment.
- * AUDIT VERSION: 1.1.0 (Chunked & Recursive Cleanup)
+ * AUDIT VERSION: 1.2.0 (Recursive Sub-item Cleanup Enabled)
  * SECURITY: Gated to Platform Admins. Hard-coded to interact-test-tenant.
  */
 
@@ -65,6 +65,7 @@ const resetTestRetailerFlow = ai.defineFlow(
     const deleteScopedRecords = async (collectionName: string, countKey: string, isSubcollection = false) => {
         let hasMore = true;
         while (hasMore) {
+            // Note: isSubcollection uses collectionGroup, which requires 'retailerId' field in docs.
             const query = isSubcollection 
                 ? db.collectionGroup(collectionName).where('retailerId', '==', TEST_RETAILER_ID)
                 : db.collection(collectionName).where('retailerId', '==', TEST_RETAILER_ID);
@@ -91,17 +92,18 @@ const resetTestRetailerFlow = ai.defineFlow(
 
     try {
         // 2. Execute Recursive Reset Sequence
-        // Operational Data
         await deleteScopedRecords('products', 'products');
         await deleteScopedRecords('bulkQrRequests', 'qrJobs');
-        await deleteScopedRecords('items', 'qrCodes', true); // Recursive cleanup of job items
+        
+        // Use recursive sub-item cleanup. 
+        // Remediation 8A.4: Items now have retailerId, enabling scoped collectionGroup wipe.
+        await deleteScopedRecords('items', 'qrCodes', true); 
+        
         await deleteScopedRecords('qrcodes', 'qrCodes');
         await deleteScopedRecords('sessions', 'sessions');
         await deleteScopedRecords('events', 'events');
         await deleteScopedRecords('transactions', 'transactions');
         await deleteScopedRecords('ai_conversations', 'conversations');
-        
-        // Configuration & Metadata
         await deleteScopedRecords('qrTemplates', 'templates');
         await deleteScopedRecords('displays', 'displays');
 
@@ -131,7 +133,7 @@ const resetTestRetailerFlow = ai.defineFlow(
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             result: 'success',
             deletedCounts: counts,
-            methodology: 'v1.1.0-chunked'
+            methodology: 'v1.2.0-recursive-items'
         });
 
         return {

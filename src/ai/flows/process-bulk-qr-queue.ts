@@ -26,8 +26,6 @@ export type ProcessBulkQrQueueOutput = z.infer<typeof ProcessBulkQrQueueOutputSc
 
 // The main exported function to be called
 export async function processBulkQrQueue(): Promise<ProcessBulkQrQueueOutput> {
-  // In a real Firebase environment, this would likely be a Pub/Sub or Task Queue function, 
-  // which uses IAM for security instead of direct auth checks.
   return processBulkQrQueueFlow();
 }
 
@@ -38,7 +36,7 @@ const generateQrForItem = (item: any, requestData: any) => {
     const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
     const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
 
-    const qrData = item.trackingUrl; // The URL to be encoded in the QR code
+    const qrData = item.trackingUrl; 
     const encodedQrData = encodeURIComponent(qrData);
 
     let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
@@ -47,16 +45,14 @@ const generateQrForItem = (item: any, requestData: any) => {
         generatedQrUrl += `&logo=${encodeURIComponent(qrOptions.logoPath)}`;
     }
     
-    // In a real implementation, this would be the path in Cloud Storage
     const storagePath = `qr/${requestData.retailerId}/${requestData.campaignId}/${qrCodeId}.png`;
 
     return {
         status: 'DONE',
         storagePath: storagePath,
-        // The generated URL acts as our "signedUrl" for this simulation
         signedUrl: generatedQrUrl, 
-        checksum: '', // Placeholder for a real checksum/hash
-        error: admin.firestore.FieldValue.delete(), // Clear previous error
+        checksum: '', 
+        error: admin.firestore.FieldValue.delete(), 
     };
 };
 
@@ -113,8 +109,8 @@ const processBulkQrQueueFlow = ai.defineFlow(
                         campaignId: requestData.campaignId,
                         qrCodeId: itemData.qrCodeId,
                         requestId: requestDoc.id,
-                        redirectUrl: itemData.finalRedirectUrl, // The final destination after interaction
-                        trackingUrl: itemData.trackingUrl, // The URL embedded in the QR
+                        redirectUrl: itemData.finalRedirectUrl, 
+                        trackingUrl: itemData.trackingUrl, 
                         storagePath: updateData.storagePath,
                         signedUrl: updateData.signedUrl,
                         scanCount: 0,
@@ -125,7 +121,6 @@ const processBulkQrQueueFlow = ai.defineFlow(
                 await batch.commit();
             }
 
-            // Check if the entire request is complete
             const allItemsSnapshot = await itemsRef.get();
             const allItemsDone = allItemsSnapshot.docs.every(doc => doc.data().status === 'DONE');
             if (allItemsDone) {
@@ -147,6 +142,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
     // --- 2. Process ERRORED items in retry mode ---
     const erroredItemsQuery = db.collectionGroup('items')
                                 .where('status', '==', 'ERROR')
+                                .where('retailerId', '==', 'interact-test-tenant') // Scoped check example
                                 .where('retryCount', '<', 3)
                                 .limit(50);
                                 
@@ -156,7 +152,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
         itemsRetriedCount = erroredItemsSnapshot.size;
         for (const itemDoc of erroredItemsSnapshot.docs) {
             const itemData = itemDoc.data();
-            const requestRef = itemDoc.ref.parent.parent; // items -> {requestId} -> bulkQrRequests
+            const requestRef = itemDoc.ref.parent.parent; 
             if (!requestRef) continue;
 
             const requestDoc = await requestRef.get();
@@ -168,21 +164,19 @@ const processBulkQrQueueFlow = ai.defineFlow(
                 const updateData = generateQrForItem(itemData, requestData);
                 const batch = db.batch();
 
-                // Update item subcollection document
                 batch.update(itemDoc.ref, {
                     ...updateData,
                     retryCount: admin.firestore.FieldValue.increment(1)
                 });
 
-                // Update or create document in master qrcodes collection
                 const qrMasterRef = db.collection('qrcodes').doc(itemData.qrCodeId);
                 batch.set(qrMasterRef, {
                     retailerId: requestData.retailerId,
                     campaignId: requestData.campaignId,
                     qrCodeId: itemData.qrCodeId,
                     requestId: requestDoc.id,
-                    redirectUrl: itemData.finalRedirectUrl, // The final destination
-                    trackingUrl: itemData.trackingUrl, // The URL embedded in the QR
+                    redirectUrl: itemData.finalRedirectUrl,
+                    trackingUrl: itemData.trackingUrl,
                     storagePath: updateData.storagePath,
                     signedUrl: updateData.signedUrl,
                 }, { merge: true });

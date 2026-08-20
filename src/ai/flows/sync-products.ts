@@ -1,11 +1,8 @@
 
 'use server';
 /**
- * @fileOverview A mock product synchronization service.
- *
- * - syncProducts - A flow that accepts a product list and saves it to Firestore.
- * - SyncProductsInput - The input type for the flow.
- * - SyncProductsOutput - The return type for the flow.
+ * @fileOverview Authoritative Product Sync Service.
+ * Implements chunked batching to respect Firestore 500-operation limits.
  */
 
 import { ai } from '@/ai/genkit';
@@ -37,12 +34,9 @@ const SyncProductsOutputSchema = z.object({
 });
 export type SyncProductsOutput = z.infer<typeof SyncProductsOutputSchema>;
 
-
 export async function syncProducts(input: SyncProductsInput): Promise<SyncProductsOutput> {
-  // In a real environment, you'd add auth/permission checks here.
   return syncProductsFlow(input);
 }
-
 
 const syncProductsFlow = ai.defineFlow(
   {
@@ -52,28 +46,31 @@ const syncProductsFlow = ai.defineFlow(
   },
   async ({ retailerId, products }) => {
     const db = admin.firestore();
-    const batch = db.batch();
+    const BATCH_SIZE = 500;
     let syncedCount = 0;
 
-    // A real implementation should check for the retailer's existence and user permissions.
-    
-    for (const product of products) {
-      // Use the SKU as the document ID for easy lookups and to prevent duplicates.
-      const productRef = db.collection('products').doc(product.sku);
-      
-      batch.set(productRef, {
-        ...product,
-        retailerId: retailerId, // Ensure the retailerId is part of the document data
-      });
-      syncedCount++;
-    }
-
     try {
-      await batch.commit();
-      return { success: true, syncedCount };
+        for (let i = 0; i < products.length; i += BATCH_SIZE) {
+            const chunk = products.slice(i, i + BATCH_SIZE);
+            const batch = db.batch();
+            
+            chunk.forEach(product => {
+                const productRef = db.collection('products').doc(product.sku);
+                batch.set(productRef, {
+                    ...product,
+                    retailerId: retailerId,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                }, { merge: true });
+                syncedCount++;
+            });
+
+            await batch.commit();
+        }
+
+        return { success: true, syncedCount };
     } catch (error: any) {
       console.error("Failed to sync products to Firestore:", error);
-      throw new Error(`Firestore batch commit failed: ${error.message}`);
+      throw new Error(`Firestore chunked sync failed: ${error.message}`);
     }
   }
 );

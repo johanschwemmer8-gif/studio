@@ -1,53 +1,70 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { notFound } from 'next/navigation';
 import { Template1, Template2, Template3, Template4, Template5, Template6, Template7, Template8, Template9 } from '@/components/dashboard/ui-templates';
 import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
-export default function RetailerLandingPage({ params }: { params: { name: string } }) {
-    const [selectedTemplate, setSelectedTemplate] = useState('template1');
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [logoWidth, setLogoWidth] = useState(128);
-    const [logoAlign, setLogoAlign] = useState('flex-start');
-    const [logoPadding, setLogoPadding] = useState(0);
+/**
+ * RETAILER LANDING PAGE (Next.js 15)
+ * Correctly awaits params and resolves branding from the authoritative registry.
+ */
+export default function RetailerLandingPage({ params }: { params: Promise<{ name: string }> }) {
+    const { name } = use(params);
+    const [branding, setBranding] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // This code runs only on the client side to access localStorage
-        const savedTemplate = localStorage.getItem('selected-ui-template');
-        if (savedTemplate) setSelectedTemplate(savedTemplate);
+        async function fetchBranding() {
+            if (!db || !name) return;
+            try {
+                // Resolve retailerId from the human-friendly name/slug
+                const tenantsRef = collection(db, 'tenants');
+                const q = query(tenantsRef, where('name', '==', decodeURIComponent(name)), limit(1));
+                const snap = await getDocs(q);
+                
+                if (!snap.empty) {
+                    const retailerId = snap.docs[0].id;
+                    const configRef = collection(db, 'configurations');
+                    const configSnap = await getDocs(query(configRef, where('retailerId', '==', retailerId), where('type', '==', 'brand'), limit(1)));
+                    
+                    if (!configSnap.empty) {
+                        setBranding(configSnap.docs[0].data().data);
+                    }
+                }
+            } catch (e) {
+                console.error("Branding resolution friction");
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchBranding();
+    }, [name]);
 
-        const savedLandingLogo = localStorage.getItem('landing-page-logo');
-        setLogoPreview(savedLandingLogo);
-
-        const savedLandingWidth = localStorage.getItem('landing-page-logo-width');
-        setLogoWidth(Number(savedLandingWidth || 128));
-
-        const savedLandingAlign = localStorage.getItem('landing-page-logo-align');
-        setLogoAlign(savedLandingAlign || 'flex-start');
-
-        const savedLandingPadding = localStorage.getItem('landing-page-logo-padding');
-        setLogoPadding(Number(savedLandingPadding || 0));
-        
-        setLoading(false);
-    }, []);
-
-    if (!params.name) {
-        notFound();
-    }
-    
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen p-4">
-                 <Skeleton className="w-full max-w-md h-[80vh]" />
+                 <Skeleton className="w-full max-w-md h-[80vh] rounded-[2rem]" />
             </div>
         )
     }
 
+    if (!branding) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center gap-4">
+                <h1 className="text-2xl font-black">Brand Not Found</h1>
+                <p className="text-muted-foreground">The retailer "{decodeURIComponent(name)}" is not currently active on the AOE platform.</p>
+            </div>
+        );
+    }
+
+    const { selectedTemplate, logoUrl, logoWidth, logoAlign, logoPadding } = branding;
+
     const renderTemplate = () => {
-        const props = { logoPreview, logoWidth, logoAlign, logoPadding };
+        const props = { logoPreview: logoUrl, logoWidth, logoAlign, logoPadding };
         switch(selectedTemplate) {
             case 'template1': return <Template1 {...props} />;
             case 'template2': return <Template2 {...props} />;
@@ -63,7 +80,7 @@ export default function RetailerLandingPage({ params }: { params: { name: string
     }
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-background">
            {renderTemplate()}
         </div>
     );

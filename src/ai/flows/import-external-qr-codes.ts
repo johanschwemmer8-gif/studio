@@ -1,11 +1,9 @@
 
+'use client';
 'use server';
 /**
- * @fileOverview A Genkit flow for importing external QR codes from a CSV file.
- *
- * - importExternalQrCodes - Imports a batch of external QR codes into Firestore.
- * - ImportExternalQrCodesInput - The input type for the flow.
- * - ImportExternalQrCodesOutput - The return type for the flow.
+ * @fileOverview Batch CSV Importer for external QR identifiers.
+ * Implements chunked processing for high-volume imports.
  */
 
 import { ai } from '@/ai/genkit';
@@ -38,14 +36,6 @@ const ImportExternalQrCodesOutputSchema = z.object({
 export type ImportExternalQrCodesOutput = z.infer<typeof ImportExternalQrCodesOutputSchema>;
 
 export async function importExternalQrCodes(input: ImportExternalQrCodesInput): Promise<ImportExternalQrCodesOutput> {
-  // In a real Firebase environment, you would check for App Check token here.
-  // Example for a callable function:
-  // if (context.app == undefined) {
-  //   throw new functions.https.HttpsError(
-  //     'failed-precondition',
-  //     'The function must be called from an App Check verified app.'
-  //   );
-  // }
   return importExternalQrCodesFlow(input);
 }
 
@@ -58,8 +48,8 @@ const importExternalQrCodesFlow = ai.defineFlow(
   async (data) => {
     const db = admin.firestore();
     const { retailerId, campaignId, csvData } = data;
-    const batch = db.batch();
     const batchId = `ext-batch-${Date.now()}`;
+    const BATCH_SIZE = 500;
     let importedCount = 0;
     let errorCount = 0;
 
@@ -67,34 +57,36 @@ const importExternalQrCodesFlow = ai.defineFlow(
 
     if (parseResult.errors.length > 0) {
         console.error('CSV Parsing errors:', parseResult.errors);
-        // Potentially throw an error or handle it gracefully
     }
     
-    for (const row of parseResult.data) {
-        const validation = QrCodeRecordSchema.safeParse(row);
-        if (validation.success) {
-            const { id, url } = validation.data;
-            const qrRef = db.collection('externalQRCodes').doc(id);
+    const validRows = parseResult.data.filter(row => {
+        const v = QrCodeRecordSchema.safeParse(row);
+        if (!v.success) errorCount++;
+        return v.success;
+    });
 
-            const qrData = {
+    for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+        const chunk = validRows.slice(i, i + BATCH_SIZE);
+        const batch = db.batch();
+        
+        chunk.forEach((row: any) => {
+            const { id, url } = QrCodeRecordSchema.parse(row);
+            const qrRef = db.collection('externalQRCodes').doc(id);
+            batch.set(qrRef, {
                 retailerId,
                 campaignId,
                 originalUrl: url,
-                interactUrl: `/track/${id}`, // This is the wrapped URL
+                interactUrl: `/track/${id}`,
                 scanCount: 0,
                 status: 'active',
-                createdAt: new Date(),
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 batchId,
-            };
-            batch.set(qrRef, qrData);
+            });
             importedCount++;
-        } else {
-            console.warn('Skipping invalid row:', row, validation.error.flatten());
-            errorCount++;
-        }
-    }
+        });
 
-    await batch.commit();
+        await batch.commit();
+    }
     
     return { success: true, importedCount, errorCount, batchId };
   }

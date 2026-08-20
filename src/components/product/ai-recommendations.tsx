@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Sparkles, Terminal } from 'lucide-react';
+import { Sparkles, Terminal, ShoppingCart } from 'lucide-react';
 
 type AiRecommendationsProps = {
   product: Product;
@@ -77,8 +77,9 @@ export default function AiRecommendations({ product }: AiRecommendationsProps) {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                  Add to Cart
+                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold gap-2">
+                  <ShoppingCart className="h-4 w-4" />
+                  Add to Smart Trolley
                 </Button>
               </CardFooter>
             </Card>

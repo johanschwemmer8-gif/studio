@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -56,7 +57,7 @@ export default function SponsoredProduct() {
                     // Increment global counter
                     updateDoc(doc(db, 'adCampaigns', campaignDoc.id), {
                         'metrics.impressions': increment(1)
-                    });
+                    }).catch(() => {});
                 }
             } catch (error) {
                 console.error("Error fetching sponsored placement:", error);
@@ -83,7 +84,7 @@ export default function SponsoredProduct() {
         // Increment global counter
         updateDoc(doc(db, 'adCampaigns', ad.id), {
             'metrics.clicks': increment(1)
-        });
+        }).catch(() => {});
 
         window.open('https://interact-aoe.com', '_blank');
     };
@@ -92,24 +93,25 @@ export default function SponsoredProduct() {
         return <Skeleton className="h-32 w-full mt-12 rounded-xl" />;
     }
 
+    // High-fidelity fallback for the Wine Demo
     if (!ad) {
         return (
             <div className="mt-12">
-                 <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                 <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-accent" /> Sponsored Opportunity
                 </h3>
-                <Card className="border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors cursor-pointer group" onClick={() => window.open('#')}>
+                <Card className="border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors cursor-pointer group shadow-sm" onClick={() => window.open('#')}>
                     <CardContent className="p-4 flex items-center gap-4">
-                        <div className="h-20 w-20 relative rounded-lg overflow-hidden border bg-white shrink-0">
-                             <Image src={placeholderImages.recommendations.mug.src} alt="Sample Ad" fill className="object-cover" />
+                        <div className="h-20 w-20 relative rounded-lg overflow-hidden border bg-white shrink-0 shadow-inner">
+                             <Image src={placeholderImages.recommendations.mug.src} alt="Sommelier Partner" fill className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                                <Badge variant="secondary" className="bg-accent/20 text-accent-foreground border-accent/20 mb-1">Brand Partner</Badge>
+                                <Badge variant="secondary" className="bg-accent/20 text-accent-foreground border-accent/20 mb-1 text-[9px] font-black uppercase">Premium Accessory</Badge>
                                 <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors" />
                             </div>
-                            <p className="font-bold text-lg truncate">Premium Beverage Companion</p>
-                            <p className="text-sm text-muted-foreground line-clamp-1">Designed for the Eco-Friendly Water Bottle user.</p>
+                            <p className="font-bold text-base truncate">Crystal Aerating Decanter</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1">The perfect companion for your Heritage Red.</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -119,7 +121,7 @@ export default function SponsoredProduct() {
 
     return (
         <div className="mt-12">
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+            <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-accent" /> Sponsored Placement
             </h3>
             <Card className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer group shadow-sm" onClick={handleAdClick}>
@@ -130,12 +132,12 @@ export default function SponsoredProduct() {
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                             <Badge className="bg-primary/10 text-primary border-primary/20 uppercase text-[10px]">{ad.supplierBrand}</Badge>
-                            <span className="text-[10px] text-muted-foreground font-semibold">PARTNER RECC</span>
+                            <span className="text-[9px] text-muted-foreground font-black uppercase">PARTNER RECC</span>
                         </div>
-                        <p className="font-extrabold text-xl leading-tight group-hover:text-primary transition-colors">{ad.adCreative.title}</p>
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{ad.adCreative.description}</p>
+                        <p className="font-black text-xl leading-tight group-hover:text-primary transition-colors tracking-tight">{ad.adCreative.title}</p>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{ad.adCreative.description}</p>
                     </div>
-                    <div className="hidden sm:flex h-12 w-12 rounded-full bg-muted items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                    <div className="hidden sm:flex h-12 w-12 rounded-full bg-muted items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
                         <ArrowUpRight className="h-6 w-6" />
                     </div>
                 </CardContent>

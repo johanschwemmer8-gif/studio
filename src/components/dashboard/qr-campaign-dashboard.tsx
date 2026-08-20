@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2, CheckCircle2, ListChecks, Printer, MapPin, Scan } from 'lucide-react';
+import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2, CheckCircle2, ListChecks, Printer, MapPin, Scan, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
@@ -25,6 +26,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/context/auth-context';
+import { cn } from '@/lib/utils';
 
 type BulkRequest = {
     id: string;
@@ -158,6 +160,10 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
                                 {downloading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
                                 Download Deployment Package
                             </Button>
+                            <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-[10px] text-yellow-800 font-bold">
+                                <Info className="h-3 w-3 shrink-0" />
+                                <span>Remember: 100% of labels must be scanned before launch.</span>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -333,7 +339,6 @@ export default function QrCampaignDashboard() {
                         const isProcessing = processingIds.includes(req.id) || req.status === 'PROCESSING';
                         const isSelected = selectedRequest?.id === req.id;
                         
-                        // Remediate A.06: Allow re-processing of DRAFT or stalled PROCESSING jobs
                         const canProcess = req.status === 'DRAFT' || (req.status === 'PROCESSING' && !isProcessing);
 
                         return (

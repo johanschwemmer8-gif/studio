@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -14,7 +15,7 @@ import {
 import { 
   UserCheck, TrendingUp, Sparkles, AlertTriangle, 
   ArrowUp, MessageSquare, ShoppingCart, Loader2, Lightbulb, DollarSign,
-  Search, Download, BarChart2, CheckCircle2, Circle
+  Search, Download, BarChart2, CheckCircle2, Circle, BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
@@ -33,6 +34,7 @@ import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
+import { cn } from '@/lib/utils';
 
 function SetupGuide({ retailerId }: { retailerId: string }) {
   const [status, setStatus] = useState({ network: false, brand: false, catalog: false, qr: false });
@@ -66,15 +68,17 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
 
   if (loading) return <Skeleton className="h-48 w-full rounded-2xl" />;
 
-  // Hide guide if all essential setup is done
-  if (status.network && status.brand && status.catalog && status.qr) return null; 
-
   const steps = [
     { label: "My Retail Network", href: "/retailer-mvp/organization", done: status.network, desc: "Define your stores and brands." },
     { label: "Brand & Experience", href: "/retailer-mvp/ui-management", done: status.brand, desc: "Upload logos and pick a template." },
     { label: "Product Catalog", href: "/retailer-mvp/products", done: status.catalog, desc: "Add products you want to activate." },
     { label: "QR Activation", href: "/retailer-mvp/qr-management", done: status.qr, desc: "Create your first digital link." },
+    { label: "Learn the Platform", href: "/retailer-mvp/documentation", done: true, desc: "Review metrics and training guides.", optional: true },
   ];
+
+  // Hide guide if all essential setup is done (excluding the optional training step)
+  const isComplete = status.network && status.brand && status.catalog && status.qr;
+  if (isComplete) return null;
 
   return (
     <Card className="border-accent bg-accent/5 shadow-lg border-2 overflow-hidden mb-8">
@@ -84,12 +88,12 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
           Welcome! Let's get started
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
+      <CardContent className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6 pt-6">
         {steps.map((step) => (
           <Link key={step.label} href={step.href} className="group block space-y-2">
             <div className="flex items-center gap-3">
               {step.done ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <Circle className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />}
-              <span className={cn("font-bold text-sm group-hover:underline", step.done && "text-muted-foreground")}>{step.label}</span>
+              <span className={cn("font-bold text-sm group-hover:underline", step.done && !step.optional && "text-muted-foreground")}>{step.label}</span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-tight pl-8">{step.desc}</p>
           </Link>

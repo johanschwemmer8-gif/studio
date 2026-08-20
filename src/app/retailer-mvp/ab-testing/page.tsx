@@ -53,7 +53,6 @@ const experimentSchema = z.object({
 
 type ExperimentFormData = z.infer<typeof experimentSchema>;
 
-
 type Experiment = {
   id: string;
   name: string;
@@ -74,7 +73,6 @@ type Experiment = {
   };
 };
 
-
 export default function ABTestingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -91,7 +89,6 @@ export default function ABTestingPage() {
         variables: { A: '', B: '' },
     }
   });
-
 
   useEffect(() => {
     if (!db) {
@@ -338,6 +335,7 @@ export default function ABTestingPage() {
                             : 0}%
                     </p>
                 </CardContent>
+            </Card>
         </div>
         
         <Card className="bg-muted">

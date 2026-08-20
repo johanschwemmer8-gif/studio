@@ -42,17 +42,18 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
     const checkStatus = async () => {
       if (!db || !retailerId || retailerId === 'unknown') return;
       try {
-        const [orgSnap, brandSnap, productsSnap] = await Promise.all([
+        const [orgSnap, brandSnap, productsSnap, qrsSnap] = await Promise.all([
           getDoc(doc(db, 'configurations', `${retailerId}_org`)),
           getDoc(doc(db, 'configurations', `${retailerId}_brand`)),
-          getDocs(query(collection(db, 'products'), where('retailerId', '==', retailerId), limit(1)))
+          getDocs(query(collection(db, 'products'), where('retailerId', '==', retailerId), limit(1))),
+          getDocs(query(collection(db, 'qrcodes'), where('retailerId', '==', retailerId), limit(1)))
         ]);
         
         setStatus({
           network: orgSnap.exists(),
           brand: brandSnap.exists(),
           catalog: !productsSnap.empty,
-          qr: false // Future improvement: check qrcodes collection
+          qr: !qrsSnap.empty
         });
       } catch (e) {
         console.warn("Status check friction.");
@@ -65,8 +66,8 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
 
   if (loading) return <Skeleton className="h-48 w-full rounded-2xl" />;
 
-  // Hide guide if essential setup is done
-  if (status.network && status.brand && status.catalog) return null; 
+  // Hide guide if all essential setup is done
+  if (status.network && status.brand && status.catalog && status.qr) return null; 
 
   const steps = [
     { label: "My Retail Network", href: "/retailer-mvp/organization", done: status.network, desc: "Define your stores and brands." },
@@ -76,7 +77,7 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
   ];
 
   return (
-    <Card className="border-accent bg-accent/5 shadow-lg border-2 overflow-hidden">
+    <Card className="border-accent bg-accent/5 shadow-lg border-2 overflow-hidden mb-8">
       <CardHeader className="bg-accent/10 py-4">
         <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent-foreground" />
@@ -88,7 +89,7 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
           <Link key={step.label} href={step.href} className="group block space-y-2">
             <div className="flex items-center gap-3">
               {step.done ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <Circle className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />}
-              <span className="font-bold text-sm group-hover:underline">{step.label}</span>
+              <span className={cn("font-bold text-sm group-hover:underline", step.done && "text-muted-foreground")}>{step.label}</span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-tight pl-8">{step.desc}</p>
           </Link>

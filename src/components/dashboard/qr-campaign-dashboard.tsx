@@ -332,6 +332,10 @@ export default function QrCampaignDashboard() {
                         const progress = req.totalRequested > 0 ? ((req.itemsDone || 0) / req.totalRequested) * 100 : 0;
                         const isProcessing = processingIds.includes(req.id) || req.status === 'PROCESSING';
                         const isSelected = selectedRequest?.id === req.id;
+                        
+                        // Remediate A.06: Allow re-processing of DRAFT or stalled PROCESSING jobs
+                        const canProcess = req.status === 'DRAFT' || (req.status === 'PROCESSING' && !isProcessing);
+
                         return (
                             <Card key={req.id} className={cn("transition-all duration-300", isSelected ? "border-primary ring-2 ring-primary/10" : "hover:border-primary/30")}>
                                 <div className="flex flex-col sm:flex-row p-6 items-center gap-6">
@@ -348,10 +352,10 @@ export default function QrCampaignDashboard() {
                                         <Progress value={progress} className="h-2" />
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
-                                        {req.status === 'DRAFT' ? (
+                                        {canProcess ? (
                                             <Button variant="default" size="sm" onClick={() => { setProcessingIds(p => [...p, req.id]); processRequestInChunks(req).finally(() => setProcessingIds(p => p.filter(id => id !== req.id))); }} disabled={isProcessing} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest shadow-md">
                                                 {isProcessing ? <Loader2 className="h-3 w-3 animate-spin"/> : <RefreshCw className="h-3 w-3"/>}
-                                                Process Activation
+                                                {req.status === 'PROCESSING' ? 'Resume Activation' : 'Process Activation'}
                                             </Button>
                                         ) : (
                                             <Button variant={isSelected ? "secondary" : "outline"} size="sm" onClick={() => setSelectedRequest(isSelected ? null : req)} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { Cloud, Database, ShoppingBasket, KeyRound, ArrowLeft, AlertTriangle } f
 import Link from 'next/link';
 import ApiKeyManager from '@/components/dashboard/api-key-manager';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function SystemIntegrationPage() {
@@ -29,7 +31,7 @@ export default function SystemIntegrationPage() {
             </p>
         </div>
         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 gap-1.5 py-1.5 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
-            <AlertTriangle className="h-3.5 w-3.5" /> Configuration Only
+            <AlertTriangle className="h-3.5 w-3.5" /> Demo Configuration
         </Badge>
       </div>
 
@@ -63,7 +65,7 @@ export default function SystemIntegrationPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-black text-base uppercase tracking-tight">
                     <Database className="text-primary h-4 w-4" />
-                    Checkout / POS
+                    Checkout Terminal
                 </CardTitle>
                 <CardDescription className="text-[10px] leading-tight mt-1">
                     Manage the handshake with your Point-of-Sale system for GTIN-aligned transaction capture.
@@ -79,15 +81,15 @@ export default function SystemIntegrationPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-black text-base uppercase tracking-tight">
                     <ShoppingBasket className="text-primary h-4 w-4" />
-                    Product / PIM
+                    Product Data
                 </CardTitle>
                 <CardDescription className="text-[10px] leading-tight mt-1">
-                   Map your Product Information Management system to ensure global identifier integrity.
+                   Upload your product list or connect your catalog to start generating scannable digital links.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Button asChild variant="outline" className="w-full text-[10px] font-bold uppercase tracking-widest">
-                  <Link href="/retailer-mvp/system-integration/pim">Configure PIM Mapping</Link>
+                  <Link href="/retailer-mvp/system-integration/pim">Setup Product Connection</Link>
                 </Button>
             </CardContent>
         </Card>
@@ -95,10 +97,10 @@ export default function SystemIntegrationPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-black text-base uppercase tracking-tight">
                     <Cloud className="text-primary h-4 w-4" />
-                    Loyalty / CRM
+                    Customer Profiles
                 </CardTitle>
                 <CardDescription className="text-[10px] leading-tight mt-1">
-                    Connect your shopper profiles to enable personalized behavioral insights and rewards.
+                    Connect your shopper data to enable personalized behavioral insights and loyalty rewards.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -112,4 +114,3 @@ export default function SystemIntegrationPage() {
   );
 }
 
-import { Badge } from '@/components/ui/badge';

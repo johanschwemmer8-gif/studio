@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -48,7 +49,7 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
         setStatus({
           network: orgSnap.exists(),
           brand: brandSnap.exists(),
-          qr: false // We could check qrcodes collection here if needed
+          qr: false 
         });
       } catch (e) {
         console.warn("Status check friction.");
@@ -67,7 +68,7 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
     { label: "QR Activation", href: "/retailer-mvp/qr-management", done: status.qr, desc: "Create your first digital link." },
   ];
 
-  if (status.network && status.brand) return null; // Hide when primary setup is done
+  if (status.network && status.brand) return null; 
 
   return (
     <Card className="border-accent bg-accent/5 shadow-lg border-2 overflow-hidden">
@@ -152,13 +153,16 @@ export default function DashboardPage() {
   
   if(!analyticsData || !intelligenceData) {
     return (
-      <div className="space-y-8 p-4">
-         <Skeleton className="h-12 w-full" />
+      <div className="space-y-8">
+         <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
+            <Skeleton className="h-10 w-full max-w-md" />
+            <Skeleton className="h-10 w-full max-w-xs" />
+         </div>
          <Separator />
          <div className="grid gap-4 md:grid-cols-4">
-             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32" />)}
+             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
          </div>
-         <Skeleton className="h-64 w-full" />
+         <Skeleton className="h-96 w-full rounded-2xl" />
       </div>
     );
   }
@@ -366,3 +370,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

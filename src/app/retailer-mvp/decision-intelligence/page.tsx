@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -110,6 +111,34 @@ export default function DecisionIntelligencePage() {
 
     const selectedProduct = localProducts.find(p => p.gtin === selectedGtin);
 
+    if (loading) {
+        return (
+            <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
+                    <Skeleton className="h-14 w-full max-w-lg rounded-2xl" />
+                    <div className="flex gap-3 w-full lg:w-auto">
+                        <Skeleton className="h-11 w-full lg:w-72 rounded-lg" />
+                        <Skeleton className="h-11 w-40 rounded-lg" />
+                    </div>
+                </div>
+                <Card className="border-primary/5">
+                    <CardHeader className="bg-muted/10">
+                        <Skeleton className="h-3 w-1/4" />
+                    </CardHeader>
+                    <CardContent className="h-48 flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
+                            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 animate-pulse">Authenticating & Aggregating...</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 rounded-2xl" />)}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-card p-6 rounded-2xl border border-primary/10 shadow-sm">
@@ -146,22 +175,7 @@ export default function DecisionIntelligencePage() {
                 </div>
             </div>
 
-            {loading ? (
-                <div className="space-y-8 animate-in fade-in duration-500">
-                    <Card className="border-primary/5">
-                      <CardHeader className="pb-2"><Skeleton className="h-4 w-1/4" /></CardHeader>
-                      <CardContent className="h-40 flex items-center justify-center border-t border-primary/5">
-                        <div className="flex flex-col items-center gap-4">
-                          <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
-                          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 animate-pulse">Authenticating & Aggregating...</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
-                    </div>
-                </div>
-            ) : !data ? (
+            {!data ? (
                 <Card className="border-dashed"><CardContent className="py-20 text-center"><p className="text-muted-foreground italic">Intelligence stream unavailable.</p></CardContent></Card>
             ) : (
                 <>
@@ -299,4 +313,3 @@ export default function DecisionIntelligencePage() {
     );
 }
 
-import { Sparkles } from 'lucide-react';

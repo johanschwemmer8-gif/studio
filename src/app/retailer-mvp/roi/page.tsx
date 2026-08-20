@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -81,6 +82,21 @@ export default function RoiPage() {
     sales: metricsData.conversion.aoeTransactions,
   } : null;
 
+  if (!metricsData) {
+    return (
+        <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <Skeleton className="h-10 w-full max-w-md" />
+                <Skeleton className="h-10 w-full max-w-xs" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+            </div>
+            <Skeleton className="h-96 w-full rounded-2xl" />
+        </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -136,8 +152,8 @@ export default function RoiPage() {
               <DollarSign className="h-4 w-4 opacity-70" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black">
-                {metricsData ? `R${metricsData.conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-primary-foreground/20" />}
+              <div className="text-2xl font-black">
+                R{metricsData.conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
               <p className="text-[10px] opacity-70 mt-2 italic">Sales matched to digital engagement sessions.</p>
             </CardContent>
@@ -150,7 +166,7 @@ export default function RoiPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-yellow-800">
-                {metricsData ? `R${metricsData.conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-yellow-200" />}
+                R{metricsData.conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
               <p className="text-[10px] text-yellow-600 mt-2 italic">Observed delta against the baseline.</p>
             </CardContent>
@@ -163,7 +179,7 @@ export default function RoiPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-primary">
-                {metricsData ? `+${metricsData.conversion.salesUpliftPercentage.toFixed(1)}%` : <Skeleton className="h-8 w-20 bg-muted" />}
+                +{metricsData.conversion.salesUpliftPercentage.toFixed(1)}%
               </div>
               <p className="text-[10px] text-muted-foreground mt-2">Conversion trend within engaged segments.</p>
             </CardContent>
@@ -261,3 +277,4 @@ export default function RoiPage() {
     </div>
   );
 }
+

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -33,7 +32,9 @@ import {
   Bot,
   Sparkles,
   MessageSquare,
-  Cog
+  Cog,
+  Palette,
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
@@ -50,29 +51,33 @@ export default function RetailerSidebar({
       <Sidebar>
         {children}
         <SidebarContent>
-          {/* Results & Insights Group */}
+          {/* Insights & Results Group */}
           <SidebarGroup>
-            <SidebarGroupLabel>Results & Insights</SidebarGroupLabel>
+            <SidebarGroupLabel>Insights & Results</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Main Dashboard">
-                    <Link href="/retailer-mvp/dashboard"><LayoutDashboard /><span>Overview</span></Link>
+                  <SidebarMenuButton asChild tooltip="Performance Overview">
+                    <Link href="/retailer-mvp/dashboard">
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span>Performance Overview</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Money Saved & Profit Uplift">
-                    <Link href="/retailer-mvp/roi"><DollarSign /><span>Profit & ROI</span></Link>
+                  <SidebarMenuButton asChild tooltip="Profit & ROI Audit">
+                    <Link href="/retailer-mvp/roi">
+                      <DollarSign className="h-4 w-4" />
+                      <span>Profit & ROI</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Customer Behavior Patterns">
-                    <Link href="/retailer-mvp/decision-intelligence"><Target /><span>Shopper Behavior</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Scan History & Activity">
-                    <Link href="/retailer-mvp/qr-analytics"><BarChart2 /><span>Scan Analytics</span></Link>
+                  <SidebarMenuButton asChild tooltip="Shopper Behavior Patterns">
+                    <Link href="/retailer-mvp/decision-intelligence">
+                      <Target className="h-4 w-4" />
+                      <span>Shopper Behavior</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -81,29 +86,33 @@ export default function RetailerSidebar({
 
           <SidebarSeparator/>
 
-          {/* AI Assistant Group */}
+          {/* Shopper Experience Group */}
           <SidebarGroup>
-            <SidebarGroupLabel>AI Assistant</SidebarGroupLabel>
+            <SidebarGroupLabel>Shopper Experience</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Monitor AI Interaction Performance">
-                    <Link href="/retailer-mvp/ai-performance"><BarChart2 /><span>Performance</span></Link>
+                  <SidebarMenuButton asChild tooltip="QR Activation Creator">
+                    <Link href="/retailer-mvp/qr-management">
+                      <QrCode className="h-4 w-4" />
+                      <span>QR Activation</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Configure Personality & Triggers">
-                    <Link href="/retailer-mvp/ai-configuration"><Cog /><span>Personality & Triggers</span></Link>
+                  <SidebarMenuButton asChild tooltip="Brand & Landing Page Editor">
+                    <Link href="/retailer-mvp/ui-management">
+                      <Palette className="h-4 w-4" />
+                      <span>Brand & Experience</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Welcome Messages & Initial Content">
-                    <Link href="/retailer-mvp/ai-content"><MessageSquare /><span>Welcome Content</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Governance & Ethical Rules">
-                    <Link href="/retailer-mvp/ai-policy"><Shield /><span>Ethics & Policy</span></Link>
+                  <SidebarMenuButton asChild tooltip="Ari (AI) Assistant Settings">
+                    <Link href="/retailer-mvp/ai-configuration">
+                      <Bot className="h-4 w-4" />
+                      <span>Ari Experience</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -112,36 +121,41 @@ export default function RetailerSidebar({
 
           <SidebarSeparator/>
 
-          {/* Customer Experience Group */}
+          {/* Network Setup Group */}
           <SidebarGroup>
-            <SidebarGroupLabel>Store & Customer Setup</SidebarGroupLabel>
+            <SidebarGroupLabel>Network Setup</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Manage Brands, Regions & Stores">
-                    <Link href="/retailer-mvp/organization"><Building2 /><span>My Organization</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                {optionalModules.qrAiManagement && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Manage QR Code Points">
-                      <Link href="/retailer-mvp/qr-management"><QrCode /><span>QR Codes</span></Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Manage In-Store Screens">
-                    <Link href="/retailer-mvp/in-store-display"><MonitorSmartphone /><span>Store Screens</span></Link>
+                  <SidebarMenuButton asChild tooltip="My Retail Network Hierarchy">
+                    <Link href="/retailer-mvp/organization">
+                      <Building2 className="h-4 w-4" />
+                      <span>My Retail Network</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Connect with Registers">
-                    <Link href="/retailer-mvp/pos-terminal"><ShoppingCart /><span>Checkout Sync</span></Link>
+                  <SidebarMenuButton asChild tooltip="App Connections & Data Sync">
+                    <Link href="/retailer-mvp/system-integration">
+                      <Settings className="h-4 w-4" />
+                      <span>App Connections</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="GS1 Data Compliance">
-                    <Link href="/retailer-mvp/gs1-conformance"><ShieldCheck /><span>Data Standards</span></Link>
+                  <SidebarMenuButton asChild tooltip="Terminal Checkout Sync">
+                    <Link href="/retailer-mvp/pos-terminal">
+                      <ShoppingCart className="h-4 w-4" />
+                      <span>Checkout Sync</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Global Data Standards">
+                    <Link href="/retailer-mvp/gs1-conformance">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Global Standards</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -150,37 +164,33 @@ export default function RetailerSidebar({
 
           <SidebarSeparator/>
 
-          {/* Growth & Monetisation Group */}
-          {optionalModules.retailMediaNetwork && (
-            <SidebarGroup>
-                <SidebarGroupLabel>Advertising</SidebarGroupLabel>
-                <SidebarGroupContent>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Manage Sponsored Placements">
-                          <Link href="/retailer-mvp/retail-media-network"><Network /><span>Ad Revenue</span></Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-          )}
-
-          <SidebarSeparator/>
-
-          {/* Settings & Support Group */}
+          {/* Management & Support Group */}
           <SidebarGroup>
-            <SidebarGroupLabel>Support</SidebarGroupLabel>
+            <SidebarGroupLabel>Management</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="System Connections">
-                    <Link href="/retailer-mvp/system-integration"><Settings /><span>App Connections</span></Link>
+                  <SidebarMenuButton asChild tooltip="Subscription & Billing">
+                    <Link href="/retailer-mvp/billing">
+                      <CreditCard className="h-4 w-4" />
+                      <span>Subscription & Billing</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Help & Training">
-                    <Link href="/retailer-mvp/documentation"><BookOpen /><span>Help Center</span></Link>
+                  <SidebarMenuButton asChild tooltip="Ethics & Policy Disclosures">
+                    <Link href="/retailer-mvp/ai-policy">
+                      <Shield className="h-4 w-4" />
+                      <span>Ethics & Policy</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Help Center & Training">
+                    <Link href="/retailer-mvp/documentation">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Help Center</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

@@ -33,7 +33,8 @@ import {
   FlaskConical,
   Lock,
   Globe,
-  Building2
+  Building2,
+  BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
@@ -123,57 +124,30 @@ export default function DashboardLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Core Operations</SidebarGroupLabel>
+            <SidebarGroupLabel>Network Control</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="User Management">
-                    <Link href="/create-admin"><Users /><span>User Access</span></Link>
+                  <SidebarMenuButton asChild tooltip="Retailer Management">
+                    <Link href="/dashboard/admin">
+                      <Database className="h-4 w-4" />
+                      <span>Retailers</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="System Connections">
-                    <Link href="/dashboard/core-integration"><Settings /><span>System Connections</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Retailer List">
-                        <Link href="/dashboard/admin">
-                          <Database className="h-4 w-4" />
-                          <span>Retailer List</span>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Manage Retail Hierarchy">
-                    <Link href="/retailer-mvp/organization"><Building2 /><span>Network Structure</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-          
-          <SidebarSeparator />
-
-          <SidebarGroup>
-            <SidebarGroupLabel>Business Performance</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Global ROI Dashboard">
-                    <Link href="/dashboard/executive-roi"><DollarSign /><span>Global ROI</span></Link>
+                    <Link href="/dashboard/executive-roi">
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Portfolio ROI</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Platform Health">
-                    <Link href="/dashboard/platform-security"><Activity /><span>Platform Health</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Ecosystem Deployment">
+                  <SidebarMenuButton asChild tooltip="Update Manager">
                     <Link href="/dashboard/retailers-dashboards">
-                      <Rocket />
-                      <span>Push Updates</span>
+                      <Rocket className="h-4 w-4" />
+                      <span>Update Manager</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -184,27 +158,57 @@ export default function DashboardLayout({
           <SidebarSeparator />
 
           <SidebarGroup>
-            <SidebarGroupLabel>Compliance & Security</SidebarGroupLabel>
+            <SidebarGroupLabel>Infrastructure</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="System Connections">
+                    <Link href="/dashboard/core-integration">
+                      <Settings className="h-4 w-4" />
+                      <span>System Connections</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Platform Health">
+                    <Link href="/dashboard/platform-security">
+                      <Activity className="h-4 w-4" />
+                      <span>Platform Health</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Test Laboratory">
+                    <Link href="/dashboard/system-integration">
+                      <FlaskConical className="h-4 w-4" />
+                      <span>Test Laboratory</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          
+          <SidebarSeparator />
+
+          <SidebarGroup>
+            <SidebarGroupLabel>Governance & Standards</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="AI Governance Rules">
-                    <Link href="/dashboard/ai-policy"><Shield /><span>AI Rules</span></Link>
+                    <Link href="/dashboard/ai-policy">
+                      <Shield className="h-4 w-4" />
+                      <span>AI Rules</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="GS1 Product Standards">
-                    <Link href="/dashboard/gs1-conformance"><FileCheck /><span>GS1 Standards</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Data Security">
-                    <Link href="/dashboard/aoe-security"><Lock /><span>Data Security</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="API Key Management">
-                    <Link href="/dashboard/external-security-integrations"><Globe /><span>API Access</span></Link>
+                  <SidebarMenuButton asChild tooltip="Global Standards">
+                    <Link href="/dashboard/gs1-conformance">
+                      <FileCheck className="h-4 w-4" />
+                      <span>Global Standards</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -214,24 +218,22 @@ export default function DashboardLayout({
           <SidebarSeparator />
           
           <SidebarGroup>
-            <SidebarGroupLabel>Resources & Lab</SidebarGroupLabel>
+            <SidebarGroupLabel>Platform Support</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Integration Testing">
-                    <Link href="/dashboard/system-integration"><FlaskConical /><span>Test Environment</span></Link>
+                  <SidebarMenuButton asChild tooltip="User Access">
+                    <Link href="/create-admin">
+                      <Users className="h-4 w-4" />
+                      <span>User Access</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Documentation Center">
-                    <Link href="/dashboard/documentation"><BookOpen /><span>Help Center</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="MVP Simulator">
-                    <Link href="/retailer-mvp/dashboard">
-                      <PlayCircle />
-                      <span>MVP Simulator</span>
+                  <SidebarMenuButton asChild tooltip="Help Center">
+                    <Link href="/dashboard/documentation">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Help Center</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

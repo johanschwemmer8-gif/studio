@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,13 +6,14 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
     ShoppingCart, Monitor, Loader2, ShieldCheck, 
-    Smartphone, Banknote, RotateCcw, Barcode
+    Smartphone, Banknote, RotateCcw, Barcode, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 type BasketItem = {
     gtin: string;
@@ -88,16 +88,24 @@ export default function PosTerminalSimulation() {
                 <div>
                     <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
                         <Monitor className="text-primary h-8 w-8" />
-                        GS1 Compliant POS Infrastructure
+                        Checkout Sync Simulation
                     </h1>
-                    <p className="text-muted-foreground max-w-3xl">
-                        Simulating the physical point-of-sale handshake using global trade identifiers.
+                    <p className="text-muted-foreground max-w-3xl text-sm">
+                        Simulating the physical point-of-sale handshake using global trade identifiers (GTIN).
                     </p>
                 </div>
-                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
-                    <ShieldCheck className="h-3.5 w-3.5" /> GS1 Global Standards Active
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 gap-1.5 py-1.5 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Simulation
                 </Badge>
             </div>
+
+            <Alert className="bg-primary/5 border-primary/10">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <AlertTitle className="text-[10px] font-black uppercase tracking-widest text-primary">GS1 Standard Verification</AlertTitle>
+                <AlertDescription className="text-xs">
+                    This module demonstrates the <strong>Verified Handshake</strong> protocol. All identifiers are normalized to the 14-digit GTIN standard before being committed to the transactional layer.
+                </AlertDescription>
+            </Alert>
 
             <Separator />
 
@@ -105,17 +113,17 @@ export default function PosTerminalSimulation() {
                 <div className="lg:col-span-2 space-y-6">
                     <Card className="border-none shadow-2xl bg-slate-900 text-white min-h-[500px] flex flex-col">
                         <CardHeader className="border-b border-white/10 flex flex-row justify-between items-center bg-slate-800/50">
-                            <div><CardTitle className="text-xl font-black">Register #01</CardTitle><CardDescription className="text-slate-400">Sync: GLN 6001234567890</CardDescription></div>
-                            <Badge className="bg-green-500 text-white font-black border-none">GS1 READY</Badge>
+                            <div><CardTitle className="text-xl font-black uppercase tracking-tighter">Terminal Register #01</CardTitle><CardDescription className="text-slate-400 text-xs">Factual Sync: GLN 6001234567890</CardDescription></div>
+                            <Badge className="bg-green-500 text-white font-black border-none text-[10px] uppercase">GS1 READY</Badge>
                         </CardHeader>
                         
                         <CardContent className="flex-1 p-0 flex">
                             {!syncedBasket ? (
                                 <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-6">
                                     <div className="h-20 w-20 rounded-full bg-slate-800 flex items-center justify-center"><ShoppingCart className="h-10 w-10 text-slate-500" /></div>
-                                    <h2 className="text-2xl font-bold opacity-40">Awaiting GS1 Identity...</h2>
-                                    <div className="text-xs text-slate-500 max-w-xs mx-auto">
-                                        Scan the terminal QR code on your mobile device to sync your digital trolley.
+                                    <h2 className="text-2xl font-black uppercase tracking-tight opacity-40">Awaiting Identity...</h2>
+                                    <div className="text-[10px] font-bold text-slate-500 max-w-xs mx-auto uppercase tracking-widest">
+                                        Scan the terminal QR to sync digital basket
                                     </div>
                                 </div>
                             ) : (
@@ -124,7 +132,7 @@ export default function PosTerminalSimulation() {
                                         <div className="flex items-center gap-3">
                                             <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center"><Smartphone className="h-6 w-6" /></div>
                                             <div>
-                                                <p className="text-xs font-black uppercase opacity-80">GTIN Data Received</p>
+                                                <p className="text-xs font-black uppercase opacity-80 tracking-tighter">Verified GTIN Identity</p>
                                                 <p className="font-bold text-lg">Shopper: {syncedBasket.shopperId.substring(0, 8)}</p>
                                             </div>
                                         </div>
@@ -138,7 +146,7 @@ export default function PosTerminalSimulation() {
                                         <table className="w-full text-sm">
                                             <thead>
                                                 <tr className="text-slate-400 uppercase text-[10px] font-black tracking-widest text-left border-b border-white/10">
-                                                    <th className="pb-4">Standard Identifiers</th>
+                                                    <th className="pb-4">Product Identifier (GTIN)</th>
                                                     <th className="pb-4 text-center">Qty</th>
                                                     <th className="pb-4 text-right">Price</th>
                                                 </tr>
@@ -148,9 +156,9 @@ export default function PosTerminalSimulation() {
                                                     <tr key={i} className="hover:bg-white/5 transition-colors">
                                                         <td className="py-4">
                                                             <p className="font-bold">{item.name}</p>
-                                                            <div className="flex items-center gap-1.5 opacity-50"><Barcode className="h-3 w-3" /><span className="text-[9px] font-mono">GTIN: {item.gtin}</span></div>
+                                                            <div className="flex items-center gap-1.5 opacity-50"><Barcode className="h-3 w-3" /><span className="text-[9px] font-mono font-bold tracking-tighter">{item.gtin}</span></div>
                                                         </td>
-                                                        <td className="py-4 text-center font-mono">{item.quantity}</td>
+                                                        <td className="py-4 text-center font-mono font-bold">{item.quantity}</td>
                                                         <td className="py-4 text-right font-mono font-black text-blue-400">R{item.price.toFixed(2)}</td>
                                                     </tr>
                                                 ))}
@@ -159,9 +167,9 @@ export default function PosTerminalSimulation() {
                                     </div>
 
                                     <CardFooter className="p-6 border-t border-white/10 bg-slate-800/30 flex gap-4">
-                                        <Button variant="ghost" onClick={() => setSyncedBasket(null)} className="h-14 px-8 text-slate-300 font-bold hover:bg-white/10"><RotateCcw className="h-5 w-5 mr-2"/> Reset</Button>
-                                        <Button onClick={handleCompleteSale} disabled={isProcessing} className="flex-1 h-14 bg-green-600 hover:bg-green-500 text-white font-black text-xl gap-3 shadow-2xl">
-                                            {isProcessing ? <Loader2 className="animate-spin" /> : <Banknote />} Complete Final Sale
+                                        <Button variant="ghost" onClick={() => setSyncedBasket(null)} className="h-14 px-8 text-slate-300 font-black uppercase text-[10px] tracking-widest hover:bg-white/10"><RotateCcw className="h-4 w-4 mr-2"/> Reset</Button>
+                                        <Button onClick={handleCompleteSale} disabled={isProcessing} className="flex-1 h-14 bg-green-600 hover:bg-green-500 text-white font-black text-xl gap-3 shadow-2xl uppercase tracking-tighter">
+                                            {isProcessing ? <Loader2 className="animate-spin" /> : <Banknote />} Process Simulation Sale
                                         </Button>
                                     </CardFooter>
                                 </div>
@@ -173,8 +181,8 @@ export default function PosTerminalSimulation() {
                 <div className="space-y-6">
                     <Card className="border-primary/20 bg-muted/30">
                         <CardHeader className="text-center">
-                            <CardTitle className="text-lg">Terminal Digital Link</CardTitle>
-                            <CardDescription>Scan this to sync your mobile trolley.</CardDescription>
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground">Terminal Identity</CardTitle>
+                            <CardDescription className="text-xs">Scan to resolve and sync digital links.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex justify-center p-8 bg-white m-4 rounded-xl shadow-inner border">
                             <div className="relative">
@@ -192,16 +200,16 @@ export default function PosTerminalSimulation() {
                     
                     <Card className="border-primary/10">
                         <CardHeader>
-                            <CardTitle className="text-sm font-black uppercase tracking-widest opacity-50">Transaction Integrity</CardTitle>
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest opacity-50">Handshake Integrity</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex items-center gap-3 text-xs">
-                                <ShieldCheck className="text-green-500 h-5 w-5" />
+                            <div className="flex items-center gap-3 text-xs font-medium">
+                                <ShieldCheck className="text-green-500 h-5 w-5 shrink-0" />
                                 <span>End-to-end GTIN verification active.</span>
                             </div>
-                            <div className="flex items-center gap-3 text-xs">
-                                <ShieldCheck className="text-green-500 h-5 w-5" />
-                                <span>Real-time inventory synchronization.</span>
+                            <div className="flex items-center gap-3 text-xs font-medium">
+                                <ShieldCheck className="text-green-500 h-5 w-5 shrink-0" />
+                                <span>Simulated inventory synchronization.</span>
                             </div>
                         </CardContent>
                     </Card>

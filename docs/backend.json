@@ -39,12 +39,27 @@
         "category": { "type": "string" },
         "retailerId": { "type": "string" }
       }
+    },
+    "TenantRegistry": {
+      "title": "Tenant Registry",
+      "description": "Global registry of onboarded retailers.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "type": "string" },
+        "type": { "type": "string", "enum": ["production", "test"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
     "providers": ["google.com", "apple.com", "password", "phone"]
   },
   "firestore": {
+    "/tenants/{tenantId}": {
+      "schema": "#/backend/entities/TenantRegistry",
+      "description": "Global authoritative retailer registry."
+    },
     "/configurations/{configId}": {
       "schema": "#/backend/entities/RetailerConfig",
       "description": "Authoritative tenant configuration hub."

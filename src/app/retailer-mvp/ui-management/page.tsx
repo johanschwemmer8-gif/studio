@@ -16,67 +16,25 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Image as ImageIcon, Palette, LayoutTemplate, Sparkles, Link2 } from 'lucide-react';
+import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Image as ImageIcon, Palette, LayoutTemplate, Sparkles, Link2, Loader2 } from 'lucide-react';
 import PhoneMockup from '@/components/dashboard/phone-mockup';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Template1, Template2, Template3, Template4, Template5, Template6, Template7, Template8, Template9 } from '@/components/dashboard/ui-templates';
+import { useAuth } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
-function MobileLandingPagePreview({ selectedTemplate }: { selectedTemplate: string }) {
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [logoWidth, setLogoWidth] = useState(128);
-    const [logoAlign, setLogoAlign] = useState('flex-start');
-    const [logoPadding, setLogoPadding] = useState(0);
-
-    useEffect(() => {
-        const updatePreview = () => {
-            const savedLandingLogo = localStorage.getItem('landing-page-logo');
-            setLogoPreview(savedLandingLogo);
-            const savedLandingWidth = localStorage.getItem('landing-page-logo-width');
-            setLogoWidth(Number(savedLandingWidth || 128));
-            const savedLandingAlign = localStorage.getItem('landing-page-logo-align');
-            setLogoAlign(savedLandingAlign || 'flex-start');
-            const savedLandingPadding = localStorage.getItem('landing-page-logo-padding');
-            setLogoPadding(Number(savedLandingPadding || 0));
-        };
-        
-        updatePreview(); // Initial load
-        
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key?.startsWith('landing-page-logo')) {
-                updatePreview();
-            }
-        };
-
-        const handleCustomEvent = (e: Event) => {
-            const detail = (e as CustomEvent).detail;
-             if (detail.key.startsWith('landing-page-logo')) {
-                updatePreview();
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        window.addEventListener('logoUpdated', handleCustomEvent);
-
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('logoUpdated', handleCustomEvent);
-        };
-    }, []);
-
-    const logoContainerClass = cn('w-full px-4 text-center', {
-      'text-left': logoAlign === 'flex-start',
-      'text-center': logoAlign === 'center',
-      'text-right': logoAlign === 'flex-end',
-    });
-    
-    const headerStyle: React.CSSProperties = {
-      paddingTop: `${logoPadding}px`,
-      paddingBottom: `${logoPadding}px`,
-    };
+function MobileLandingPagePreview({ settings }: { settings: any }) {
+    const { logoUrl, logoWidth, logoAlign, logoPadding, selectedTemplate } = settings;
 
     const renderTemplate = () => {
-        const props = { logoPreview, logoWidth, logoAlign, logoPadding };
+        const props = { 
+            logoPreview: logoUrl, 
+            logoWidth: logoWidth || 128, 
+            logoAlign: logoAlign || 'flex-start', 
+            logoPadding: logoPadding || 0 
+        };
         switch(selectedTemplate) {
             case 'template1': return <Template1 {...props} />;
             case 'template2': return <Template2 {...props} />;
@@ -98,68 +56,92 @@ function MobileLandingPagePreview({ selectedTemplate }: { selectedTemplate: stri
     );
 }
 
-
 export default function UiManagementPage() {
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [logoWidth, setLogoWidth] = useState(128);
-  const [logoAlign, setLogoAlign] = useState('flex-start');
-  const [logoPadding, setLogoPadding] = useState(0);
-  const [selectedTemplate, setSelectedTemplate] = useState('template1');
-  const [landingPageUrl, setLandingPageUrl] = useState('');
-  const [scanDestination, setScanDestination] = useState<'url' | 'ai'>('url');
-  
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+
+  const [settings, setSettings] = useState({
+      logoUrl: '',
+      logoWidth: 128,
+      logoAlign: 'center',
+      logoPadding: 0,
+      selectedTemplate: 'template1',
+      landingPageUrl: '',
+      scanDestination: 'ai' as 'url' | 'ai',
+  });
 
   useEffect(() => {
-    // Load settings from localStorage on component mount
-    const savedLandingLogo = localStorage.getItem('landing-page-logo');
-    if (savedLandingLogo) setLogoPreview(savedLandingLogo);
-    const savedLandingWidth = localStorage.getItem('landing-page-logo-width');
-    if (savedLandingWidth) setLogoWidth(Number(savedLandingWidth));
-    const savedLandingAlign = localStorage.getItem('landing-page-logo-align');
-    if (savedLandingAlign) setLogoAlign(savedLandingAlign);
-    const savedLandingPadding = localStorage.getItem('landing-page-logo-padding');
-    if (savedLandingPadding) setLogoPadding(Number(savedLandingPadding));
-    const savedTemplate = localStorage.getItem('selected-ui-template');
-    if (savedTemplate) setSelectedTemplate(savedTemplate);
-    const savedUrl = localStorage.getItem('landing-page-url');
-    if (savedUrl) setLandingPageUrl(savedUrl);
-    const savedDestination = localStorage.getItem('scan-destination');
-    if (savedDestination) setScanDestination(savedDestination as 'url' | 'ai');
-  }, []);
+    if (!user?.retailerId || !db) return;
+
+    const docRef = doc(db, 'configurations', `${user.retailerId}_brand`);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            setSettings(docSnap.data().data);
+        } else {
+            // Migration fallback
+            const savedLogo = localStorage.getItem('landing-page-logo');
+            const savedTemplate = localStorage.getItem('selected-ui-template');
+            if (savedLogo || savedTemplate) {
+                setSettings(prev => ({
+                    ...prev,
+                    logoUrl: savedLogo || '',
+                    selectedTemplate: savedTemplate || 'template1'
+                }));
+            }
+        }
+        setIsFetching(false);
+    });
+
+    return () => unsubscribe();
+  }, [user?.retailerId]);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (file) {
           const reader = new FileReader();
           reader.onloadend = () => {
-              setLogoPreview(reader.result as string);
+              setSettings(prev => ({ ...prev, logoUrl: reader.result as string }));
           };
           reader.readAsDataURL(file);
       }
   };
 
-  const handleSaveSettings = () => {
-      if (logoPreview) {
-          localStorage.setItem('landing-page-logo', logoPreview);
-          localStorage.setItem('landing-page-logo-width', String(logoWidth));
-          localStorage.setItem('landing-page-logo-align', logoAlign);
-          localStorage.setItem('landing-page-logo-padding', String(logoPadding));
-      } else {
-          localStorage.removeItem('landing-page-logo');
-          localStorage.removeItem('landing-page-logo-width');
-          localStorage.removeItem('landing-page-logo-align');
-          localStorage.removeItem('landing-page-logo-padding');
-      }
-      localStorage.setItem('selected-ui-template', selectedTemplate);
-      localStorage.setItem('scan-destination', scanDestination);
-      localStorage.setItem('landing-page-url', landingPageUrl);
+  const handleSaveSettings = async () => {
+      if (!user?.retailerId || !db) return;
 
-      // Dispatch a custom event to notify other components (like the preview) of the change
-      window.dispatchEvent(new CustomEvent('logoUpdated', { detail: { key: 'landing-page-logo' }}));
-      toast({ title: "UI Settings Saved" });
+      setIsSaving(true);
+      try {
+          const docRef = doc(db, 'configurations', `${user.retailerId}_brand`);
+          await setDoc(docRef, {
+              retailerId: user.retailerId,
+              type: 'brand',
+              data: settings,
+              updatedAt: serverTimestamp()
+          });
+
+          // Clean up legacy
+          localStorage.removeItem('landing-page-logo');
+          localStorage.removeItem('selected-ui-template');
+
+          toast({ title: "UI Settings Saved", description: "Authoritative branding synchronized." });
+      } catch (e: any) {
+          toast({ title: "Save Failed", description: e.message, variant: "destructive" });
+      } finally {
+          setIsSaving(false);
+      }
   };
-  
+
+  if (isFetching) {
+      return (
+          <div className="flex flex-col items-center justify-center p-12 gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading Brand Assets...</p>
+          </div>
+      );
+  }
+
   const templates = [
       { id: 'template1', name: 'Minimalist', component: Template1 },
       { id: 'template2', name: 'Image Focus', component: Template2 },
@@ -184,7 +166,6 @@ export default function UiManagementPage() {
        <Separator />
        
       <div className="grid lg:grid-cols-3 gap-8 items-start">
-        {/* Left Side: Controls */}
         <div className="lg:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
@@ -192,18 +173,15 @@ export default function UiManagementPage() {
                         <LayoutTemplate className="text-primary"/>
                         Layout Templates
                     </CardTitle>
-                    <CardDescription>
-                        Choose a base layout for your mobile landing page.
-                    </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {templates.map(template => (
-                        <div key={template.id} onClick={() => setSelectedTemplate(template.id)} className="cursor-pointer">
+                        <div key={template.id} onClick={() => setSettings(p => ({ ...p, selectedTemplate: template.id }))} className="cursor-pointer">
                             <div className={cn(
                                 "w-full aspect-[9/19.5] rounded-md border-2 p-2 bg-muted/50 transition-all",
-                                selectedTemplate === template.id ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-muted-foreground"
+                                settings.selectedTemplate === template.id ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-muted-foreground"
                             )}>
-                                <template.component logoPreview={logoPreview} logoWidth={logoWidth} logoAlign={logoAlign} logoPadding={logoPadding} isThumbnail={true} />
+                                <template.component logoPreview={settings.logoUrl} logoWidth={settings.logoWidth} logoAlign={settings.logoAlign} logoPadding={settings.logoPadding} isThumbnail={true} />
                             </div>
                             <p className="text-center text-sm font-medium mt-2">{template.name}</p>
                         </div>
@@ -217,48 +195,32 @@ export default function UiManagementPage() {
                         <Palette className="text-primary"/>
                         Landing Page Customization
                     </CardTitle>
-                    <CardDescription>
-                        Control the branding of the page customers see when they scan a QR code. This will apply to your selected template.
-                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="space-y-2">
                         <Label>On-Scan Destination</Label>
-                        <RadioGroup value={scanDestination} onValueChange={(value) => setScanDestination(value as 'url' | 'ai')} className="flex gap-4">
+                        <RadioGroup value={settings.scanDestination} onValueChange={(v) => setSettings(p => ({ ...p, scanDestination: v as 'url' | 'ai' }))} className="flex gap-4">
                             <Label htmlFor="dest-url" className="flex items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
                                 <RadioGroupItem value="url" id="dest-url" />
-                                <Link2 className="h-4 w-4 mr-1" />
                                 <span>Landing Page</span>
                             </Label>
                             <Label htmlFor="dest-ai" className="flex items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
                                 <RadioGroupItem value="ai" id="dest-ai" />
-                                <Sparkles className="h-4 w-4 mr-1" />
                                 <span>AI Assistant</span>
                             </Label>
                         </RadioGroup>
-                        <p className="text-xs text-muted-foreground mt-1">Choose what the customer sees immediately after scanning.</p>
                     </div>
 
-                    {scanDestination === 'url' && (
+                    {settings.scanDestination === 'url' && (
                         <div>
                             <Label htmlFor="landing-page-url">Landing Page URL</Label>
                             <Input
                                 id="landing-page-url"
                                 type="url"
-                                placeholder="https://yourstore.com/product/..."
-                                value={landingPageUrl}
-                                onChange={(e) => setLandingPageUrl(e.target.value)}
+                                value={settings.landingPageUrl}
+                                onChange={(e) => setSettings(p => ({ ...p, landingPageUrl: e.target.value }))}
                                 className="mt-2"
                             />
-                             <p className="text-xs text-muted-foreground mt-1">This is the destination URL for the QR code.</p>
-                        </div>
-                    )}
-                    {scanDestination === 'ai' && (
-                        <div className="p-4 border rounded-lg bg-muted/50 text-center">
-                             <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                <Sparkles className="h-6 w-6" />
-                                <p className="text-sm">The QR code will open the AI Assistant on scan.</p>
-                             </div>
                         </div>
                     )}
 
@@ -266,82 +228,58 @@ export default function UiManagementPage() {
                         <Label htmlFor="logo-upload-landing">Landing Page Logo</Label>
                         <Input id="logo-upload-landing" type="file" accept="image/*" onChange={handleLogoUpload} className="mt-2" />
                     </div>
-                     <div className="space-y-2">
-                        <Label>Logo Preview</Label>
-                        <div className="p-4 border rounded-lg bg-muted/50 min-h-[120px] flex items-center justify-center">
-                            <div style={{ width: '100%', textAlign: logoAlign.replace('flex-start', 'left').replace('flex-end', 'right') as 'left' | 'center' | 'right' }}>
-                                {logoPreview ? (
-                                    <Image
-                                        src={logoPreview}
-                                        alt="Logo Preview"
-                                        width={logoWidth}
-                                        height={logoWidth / (128 / 50)}
-                                        className="inline-block transition-all"
-                                        style={{ width: `${logoWidth}px` }}
-                                    />
-                                ) : (
-                                    <div className="text-center text-muted-foreground">
-                                        <ImageIcon className="mx-auto h-8 w-8" />
-                                        <p className="text-xs mt-1">Upload a logo to see the preview</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    
                      <div className="space-y-4">
                         <Label>Logo Sizing & Spacing</Label>
                         <div className="p-4 border rounded-lg space-y-4">
                             <div>
-                                <Label htmlFor="logo-width">Width: {logoWidth}px</Label>
-                                <Slider id="logo-width" value={[logoWidth]} onValueChange={(v) => setLogoWidth(v[0])} min={50} max={250} step={1} />
+                                <Label>Width: {settings.logoWidth}px</Label>
+                                <Slider value={[settings.logoWidth]} onValueChange={(v) => setSettings(p => ({ ...p, logoWidth: v[0] }))} min={50} max={250} step={1} />
                             </div>
                              <div>
-                                <Label htmlFor="logo-padding">Vertical Padding: {logoPadding}px</Label>
-                                <Slider id="logo-padding" value={[logoPadding]} onValueChange={(v) => setLogoPadding(v[0])} min={0} max={100} step={1} />
+                                <Label>Vertical Padding: {settings.logoPadding}px</Label>
+                                <Slider value={[settings.logoPadding]} onValueChange={(v) => setSettings(p => ({ ...p, logoPadding: v[0] }))} min={0} max={100} step={1} />
                             </div>
                         </div>
                     </div>
                      <div className="space-y-2">
                         <Label>Logo Alignment</Label>
-                        <RadioGroup value={logoAlign} onValueChange={setLogoAlign} className="flex gap-4">
-                            <Label htmlFor="align-start" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
+                        <RadioGroup value={settings.logoAlign} onValueChange={(v) => setSettings(p => ({ ...p, logoAlign: v }))} className="flex gap-4">
+                             <RadioGroupItem value="flex-start" id="align-start" className="sr-only" />
+                             <Label htmlFor="align-start" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
                                 <AlignHorizontalJustifyStart />
-                                <RadioGroupItem value="flex-start" id="align-start" className="sr-only" />
                                 <span>Left</span>
                             </Label>
+                             <RadioGroupItem value="center" id="align-center" className="sr-only" />
                              <Label htmlFor="align-center" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
                                 <AlignHorizontalJustifyCenter />
-                                <RadioGroupItem value="center" id="align-center" className="sr-only" />
                                 <span>Center</span>
                             </Label>
+                             <RadioGroupItem value="flex-end" id="align-end" className="sr-only" />
                              <Label htmlFor="align-end" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
                                 <AlignHorizontalJustifyEnd />
-                                <RadioGroupItem value="flex-end" id="align-end" className="sr-only" />
                                 <span>Right</span>
                             </Label>
                         </RadioGroup>
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleSaveSettings}>
-                        <Save className="mr-2 h-4 w-4" /> Save UI Settings
+                    <Button onClick={handleSaveSettings} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />} 
+                        Save UI Settings
                     </Button>
                 </CardFooter>
             </Card>
         </div>
 
-        {/* Right Side: Preview */}
         <div className="lg:col-span-1">
             <Card className="sticky top-6">
                 <CardHeader>
                     <CardTitle>Mobile Preview</CardTitle>
-                    <CardDescription>
-                        A live preview of the customer's landing page experience with your selected template and customizations.
-                    </CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center">
                     <PhoneMockup>
-                       <MobileLandingPagePreview selectedTemplate={selectedTemplate} />
+                       <MobileLandingPagePreview settings={settings} />
                     </PhoneMockup>
                 </CardContent>
             </Card>

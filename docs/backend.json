@@ -1,6 +1,17 @@
-
 {
   "entities": {
+    "RetailerConfig": {
+      "title": "Retailer Configuration",
+      "description": "Tenant-scoped settings for organization and branding.",
+      "type": "object",
+      "properties": {
+        "retailerId": { "type": "string" },
+        "type": { "type": "string", "enum": ["org", "brand"] },
+        "data": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["retailerId", "type", "data"]
+    },
     "PlatformUser": {
       "title": "Platform User",
       "description": "Retailer staff or platform administrators.",
@@ -20,82 +31,13 @@
       "description": "Product data keyed by GTIN (Global Trade Item Number).",
       "type": "object",
       "properties": {
-        "gtin": { "type": "string", "description": "14-digit Global Trade Item Number (Canonical Identifier)" },
+        "gtin": { "type": "string" },
         "name": { "type": "string" },
         "brand": { "type": "string" },
         "description": { "type": "string" },
         "price": { "type": "number" },
         "category": { "type": "string" },
-        "batchNumber": { "type": "string", "description": "GS1 AI 10 support" },
-        "serialNumber": { "type": "string", "description": "GS1 AI 21 support" },
-        "gs1DigitalLink": { "type": "string", "description": "Canonical Digital Link URI" },
-        "imageUrl": { "type": "string" },
-        "retailerId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["gtin", "name", "price", "retailerId"]
-    },
-    "ShopperProfile": {
-      "title": "Shopper Profile",
-      "description": "Persistent identity for a retail customer.",
-      "type": "object",
-      "properties": {
-        "uid": { "type": "string" },
-        "displayName": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "phone": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["uid"]
-    },
-    "ShoppingSession": {
-      "title": "iNteract Session",
-      "description": "A single behavioural window initiated by a GS1 resolution.",
-      "type": "object",
-      "properties": {
-        "sessionId": { "type": "string" },
-        "shopperId": { "type": "string" },
-        "startTime": { "type": "string", "format": "date-time" },
-        "entryGtin": { "type": "string" },
-        "storeId": { "type": "string" }
-      }
-    },
-    "BehaviouralEvent": {
-      "title": "Behavioural Event",
-      "description": "Granular interaction logged within a session context.",
-      "type": "object",
-      "properties": {
-        "eventId": { "type": "string" },
-        "sessionId": { "type": "string", "description": "Primary session anchor" },
-        "eventType": { "type": "string", "enum": ["scan", "view", "add_to_cart", "checkout", "chat_interaction"] },
-        "gtin": { "type": "string", "description": "Product dimension" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "metadata": { "type": "object" }
-      },
-      "required": ["sessionId", "eventType", "timestamp"]
-    },
-    "Basket": {
-      "title": "Transaction Layer Basket",
-      "description": "Digital trolley using GTIN-based dimensions.",
-      "type": "object",
-      "properties": {
-        "basketId": { "type": "string" },
-        "shopperId": { "type": "string" },
-        "items": { 
-          "type": "array", 
-          "items": { 
-            "type": "object",
-            "properties": {
-              "gtin": { "type": "string" },
-              "name": { "type": "string" },
-              "price": { "type": "number" },
-              "quantity": { "type": "number" }
-            }
-          } 
-        },
-        "total": { "type": "number" },
-        "status": { "type": "string", "enum": ["active", "synced", "paid"] }
+        "retailerId": { "type": "string" }
       }
     }
   },
@@ -103,6 +45,10 @@
     "providers": ["google.com", "apple.com", "password", "phone"]
   },
   "firestore": {
+    "/configurations/{configId}": {
+      "schema": "#/backend/entities/RetailerConfig",
+      "description": "Authoritative tenant configuration hub."
+    },
     "/users/{userId}": {
       "schema": "#/backend/entities/PlatformUser",
       "description": "Management users and staff."
@@ -111,21 +57,17 @@
       "schema": "#/backend/entities/Product",
       "description": "GS1-aligned products keyed by GTIN."
     },
-    "/shoppers/{shopperId}": {
-      "schema": "#/backend/entities/ShopperProfile",
-      "description": "Customer profiles."
+    "/qrcodes/{qrId}": {
+      "schema": "object",
+      "description": "Master QR code registry."
     },
     "/sessions/{sessionId}": {
-      "schema": "#/backend/entities/ShoppingSession",
-      "description": "Intelligence Layer sessions."
+      "schema": "object",
+      "description": "Shopper journey sessions."
     },
     "/events/{eventId}": {
-      "schema": "#/backend/entities/BehaviouralEvent",
-      "description": "Session-anchored behavioural events."
-    },
-    "/baskets/{id}": {
-      "schema": "#/backend/entities/Basket",
-      "description": "Transaction Layer trolleys."
+      "schema": "object",
+      "description": "Behavioral event nodes."
     }
   }
 }

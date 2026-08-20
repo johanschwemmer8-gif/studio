@@ -10,7 +10,20 @@ service cloud.firestore {
     }
 
     function isPlatformAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    function getRetailerId() {
+      return request.auth.token.retailerId;
+    }
+
+    // --- CONFIGURATION HUB ---
+
+    match /configurations/{configId} {
+      // Branding is public read for shoppers, but restricted write
+      // Org is restricted read/write
+      allow read: if (configId.endsWith('_brand')) || (request.auth != null && getRetailerId() != null && configId == getRetailerId() + '_org');
+      allow write: if request.auth != null && getRetailerId() != null && (configId == getRetailerId() + '_brand' || configId == getRetailerId() + '_org');
     }
 
     // --- IDENTITY LAYER (GS1) ---
@@ -20,30 +33,32 @@ service cloud.firestore {
       allow write: if isPlatformAdmin() && validateGtin(gtin);
     }
 
+    match /qrcodes/{qrId} {
+      allow read: if true;
+      allow write: if request.auth != null && (getRetailerId() == request.resource.data.retailerId || isPlatformAdmin());
+    }
+
     // --- INTELLIGENCE LAYER (iNteract) ---
 
     match /sessions/{sessionId} {
       allow create: if true;
-      allow read, update: if request.auth != null && (resource == null || resource.data.shopperId == request.auth.uid);
+      allow read, update: if true; // Shoppers need to read session to resolve retailerId for branding
     }
 
     match /events/{eventId} {
       allow create: if true;
-      allow read: if request.auth != null;
-      // Ensure all events follow session-first architecture
-      allow create: if request.resource.data.sessionId != null && request.resource.data.gtin != null;
+      allow read: if request.auth != null && (getRetailerId() == resource.data.retailerId || isPlatformAdmin());
     }
 
     match /ai_conversations/{id} {
       allow create: if true;
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && (getRetailerId() == resource.data.retailerId || isPlatformAdmin());
     }
 
     // --- TRANSACTION LAYER ---
 
     match /baskets/{id} {
       allow read, write: if request.auth != null && (resource == null || resource.data.shopperId == request.auth.uid || request.resource.data.shopperId == request.auth.uid);
-      allow read: if true; // Terminals read basket via GLN handshake
     }
 
     match /shoppers/{shopperId} {
@@ -51,8 +66,8 @@ service cloud.firestore {
     }
 
     match /saved_products/{id} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && (request.resource.data.shopperId == request.auth.uid || resource.data.shopperId == request.auth.uid);
+      allow read: if request.auth != null && (resource.data.shopperId == request.auth.uid);
+      allow write: if request.auth != null && (request.resource.data.shopperId == request.auth.uid);
     }
 
     // --- PLATFORM GOVERNANCE ---
@@ -63,7 +78,6 @@ service cloud.firestore {
     }
 
     // --- FALLBACK ---
-    // STRICT PILOT HARDENING: Fail closed for any path not explicitly matched above.
     match /{document=**} {
       allow read, write: if false;
     }

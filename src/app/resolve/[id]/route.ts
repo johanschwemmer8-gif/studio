@@ -9,7 +9,6 @@ if (!admin.apps.length) {
 /**
  * ARCHITECTURAL FIREWALL:
  * This route is the strictly stateless gateway for GS1-aligned Identity Resolution.
- * In Next.js 15, route params are promises.
  */
 export async function GET(
   request: NextRequest,
@@ -27,15 +26,25 @@ export async function GET(
   const { gtin, batchNumber, serialNumber } = identity;
 
   try {
-    // 2. Initialize iNteract Intelligence Session (Anchors all future behavior)
+    // 2. Resolve Retailer Identity from QR Registry
+    // If scanning a direct GS1 link, we may need a global product lookup
+    const qrDoc = await db.collection('qrcodes').doc(id).get();
+    let resolvedRetailerId = 'unknown';
+    
+    if (qrDoc.exists) {
+        resolvedRetailerId = qrDoc.data()?.retailerId || 'unknown';
+    }
+
+    // 3. Initialize iNteract Intelligence Session (Anchors all future behavior)
     const sessionId = `sess_${Date.now()}`;
     const eventId = `ev_${Date.now()}`;
     
     const batch = db.batch();
     
-    // Create Session
+    // Create Session with Retailer Anchor
     batch.set(db.collection('sessions').doc(sessionId), {
         sessionId,
+        retailerId: resolvedRetailerId,
         shopperId: 'guest',
         startTime: admin.firestore.FieldValue.serverTimestamp(),
         entryGtin: gtin,
@@ -45,12 +54,12 @@ export async function GET(
         ip: request.ip || ''
     });
 
-    // 3. Log Atomic Behavioral Event (Scan)
-    // Dimension: GTIN. Anchor: Session.
+    // 4. Log Atomic Behavioral Event (Scan)
     batch.set(db.collection('events').doc(eventId), {
         eventId,
         sessionId,
         gtin,
+        retailerId: resolvedRetailerId,
         eventType: 'scan',
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         metadata: {
@@ -62,7 +71,7 @@ export async function GET(
 
     await batch.commit();
 
-    // 4. Hand-off to Experience Layer (Product View)
+    // 5. Hand-off to Experience Layer (Product View)
     let destination = `/p/${gtin}?session=${sessionId}`;
     if (batchNumber) destination += `&batch=${batchNumber}`;
     if (serialNumber) destination += `&serial=${serialNumber}`;

@@ -1,29 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { 
   Building2, 
   PlusCircle, 
   Trash2, 
-  ChevronRight, 
-  ChevronDown, 
-  Store, 
-  MapPin, 
   Globe, 
   Layers,
   Save,
-  Loader2
+  Loader2,
+  MapPin,
+  Store
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useAuth } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 const storeSchema = z.object({
   name: z.string().min(1, 'Store name is required'),
@@ -58,25 +56,15 @@ const organizationSchema = z.object({
 type OrganizationValues = z.infer<typeof organizationSchema>;
 
 export function OrganizationManager() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
 
   const form = useForm<OrganizationValues>({
     resolver: zodResolver(organizationSchema),
     defaultValues: {
-      brands: [
-        { 
-          name: 'Default Brand', 
-          divisions: [
-            { 
-              name: 'Main Division', 
-              regions: [
-                { name: 'Gauteng', areas: [{ name: 'Sandton', stores: [{ name: 'Sandton City' }] }] }
-              ] 
-            }
-          ] 
-        }
-      ],
+      brands: [],
     },
   });
 
@@ -86,27 +74,73 @@ export function OrganizationManager() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('retail-organization-structure');
-    if (saved) {
-      try {
-        form.reset(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load org structure');
-      }
-    }
-  }, [form]);
+    if (!user?.retailerId || !db) return;
 
-  const onSubmit = (data: OrganizationValues) => {
+    const docRef = doc(db, 'configurations', `${user.retailerId}_org`);
+    
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        form.reset(data.data as OrganizationValues);
+      } else {
+        // Migration fallback: check localStorage
+        const saved = localStorage.getItem('retail-organization-structure');
+        if (saved) {
+          try {
+            form.reset(JSON.parse(saved));
+          } catch (e) {
+            console.error('Failed to parse legacy org structure');
+          }
+        }
+      }
+      setIsFetching(false);
+    });
+
+    return () => unsubscribe();
+  }, [user?.retailerId, form]);
+
+  const onSubmit = async (data: OrganizationValues) => {
+    if (!user?.retailerId || !db) {
+        toast({ title: 'Error', description: 'Authentication context missing.', variant: 'destructive' });
+        return;
+    }
+
     setIsLoading(true);
-    localStorage.setItem('retail-organization-structure', JSON.stringify(data));
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const docRef = doc(db, 'configurations', `${user.retailerId}_org`);
+      await setDoc(docRef, {
+        retailerId: user.retailerId,
+        type: 'org',
+        data: data,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Clean up legacy storage once migrated
+      localStorage.removeItem('retail-organization-structure');
+
       toast({
         title: 'Organization Saved',
-        description: 'Your retail hierarchy has been updated across the platform.',
+        description: 'Network hierarchy synchronized with server.',
       });
-    }, 800);
+    } catch (e: any) {
+      toast({
+        title: 'Save Failed',
+        description: e.message || 'Firestore write error.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isFetching) {
+      return (
+          <div className="flex flex-col items-center justify-center p-12 gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Retrieving Network Hierarchy...</p>
+          </div>
+      );
+  }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-20">

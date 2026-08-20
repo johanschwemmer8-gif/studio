@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
-import theme from '@/config/theme.json';
 
 export default function RetailerSidebar({
     children,
@@ -40,7 +39,7 @@ export default function RetailerSidebar({
     children?: React.ReactNode;
 }) {
   return (
-      <div className="flex h-full flex-col">
+      <Sidebar>
         {children}
         <SidebarContent>
           {/* Insights & Results Group */}
@@ -62,8 +61,8 @@ export default function RetailerSidebar({
                       <DollarSign className="h-4 w-4" />
                       <span>Profit & ROI</span>
                     </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                  </SidebarMenuItem>
+                </SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Shopper Behavior Patterns">
                     <Link href="/retailer-mvp/decision-intelligence">
@@ -76,7 +75,7 @@ export default function RetailerSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
 
-          <SidebarSeparator/>
+        <SidebarSeparator/>
 
           {/* Shopper Experience Group */}
           <SidebarGroup>
@@ -97,8 +96,8 @@ export default function RetailerSidebar({
                       <Palette className="h-4 w-4" />
                       <span>Brand & Experience</span>
                     </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                  </SidebarMenuItem>
+                </SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Ari (AI) Assistant Settings">
                     <Link href="/retailer-mvp/ai-configuration">
@@ -111,58 +110,58 @@ export default function RetailerSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
 
-          <SidebarSeparator/>
+        <SidebarSeparator/>
 
-          {/* Network Setup Group */}
-          <SidebarGroup>
-            <SidebarGroupLabel>Network Setup</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="My Retail Network Hierarchy">
-                    <Link href="/retailer-mvp/organization">
-                      <Building2 className="h-4 w-4" />
-                      <span>My Retail Network</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Manage your product catalog">
-                    <Link href="/retailer-mvp/products">
-                      <ShoppingBasket className="h-4 w-4" />
-                      <span>Product Catalog</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="App Connections & Data Sync">
-                    <Link href="/retailer-mvp/system-integration">
-                      <Settings className="h-4 w-4" />
-                      <span>App Connections</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Terminal Checkout Sync">
-                    <Link href="/retailer-mvp/pos-terminal">
-                      <ShoppingCart className="h-4 w-4" />
-                      <span>Checkout Sync (SIM)</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Global Data Standards">
-                    <Link href="/retailer-mvp/gs1-conformance">
-                      <ShieldCheck className="h-4 w-4" />
-                      <span>Global Standards</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+        {/* Network Setup Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Network Setup</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="My Retail Network Hierarchy">
+                  <Link href="/retailer-mvp/organization">
+                    <Building2 className="h-4 w-4" />
+                    <span>My Retail Network</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Manage your product catalog">
+                  <Link href="/retailer-mvp/products">
+                    <ShoppingBasket className="h-4 w-4" />
+                    <span>Product Catalog</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="App Connections & Data Sync">
+                  <Link href="/retailer-mvp/system-integration">
+                    <Settings className="h-4 w-4" />
+                    <span>App Connections</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Terminal Checkout Sync">
+                  <Link href="/retailer-mvp/pos-terminal">
+                    <ShoppingCart className="h-4 w-4" />
+                    <span>Checkout Sync (SIM)</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Global Data Standards">
+                  <Link href="/retailer-mvp/gs1-conformance">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Global Standards</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-          <SidebarSeparator/>
+        <SidebarSeparator/>
 
           {/* Management & Support Group */}
           <SidebarGroup>
@@ -194,6 +193,6 @@ export default function RetailerSidebar({
                 <LogoutButton />
             </SidebarMenu>
         </SidebarFooter>
-      </div>
+      </Sidebar>
   );
 }

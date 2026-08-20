@@ -1,5 +1,9 @@
 # iNteract — First Live Retailer Pilot Deployment Plan
 
+**Release Candidate**: iN-PROD-RC1-2026
+**Certification Status**: CERTIFIED — GO LIVE
+**Environment**: Production-Ready / Firebase App Hosting aligned
+
 ## 1. Executive Summary
 This document defines the authoritative architecture and operational procedure for deploying iNteract into the first physical pilot store. The system leverages a **Trusted Identity Model** and **GS1-aligned Digital Links** to ensure all digital interactions are securely anchored to the retailer while remaining frictionless for the shopper.
 

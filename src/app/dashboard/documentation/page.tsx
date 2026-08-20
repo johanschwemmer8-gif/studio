@@ -81,7 +81,7 @@ export default function AdminHelpCenterPage() {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <CardTitle className="text-2xl font-black uppercase tracking-tighter">00 — Ari Intelligence Contract</CardTitle>
-                                    <CardDescription className="text-primary-foreground/70 font-bold">Standard Identifier: iN-ARI-1.6.0-MASTER</CardDescription>
+                                    <CardDescription className="text-primary-foreground/70 font-bold">Standard Identifier: iN-PROD-RC1-2026</CardDescription>
                                 </div>
                                 <Badge className="bg-accent text-accent-foreground font-black">PRODUCTION READY</Badge>
                             </div>
@@ -169,14 +169,14 @@ export default function AdminHelpCenterPage() {
                                     <h4 className="text-sm font-bold mb-2">Core API Versioning</h4>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         {[
+                                            { n: 'Release Candidate', v: 'iN-PROD-RC1-2026' },
                                             { n: 'Ari Core', v: '1.6.0' },
                                             { n: 'Evidence Contract', v: '1.1.0' },
-                                            { n: 'Journey Walk', v: '1.5.1' },
-                                            { n: 'POS Simulation', v: '1.3.0' }
+                                            { n: 'Journey Walk', v: '1.5.1' }
                                         ].map(v => (
                                             <div key={v.n} className="p-3 border rounded-lg bg-muted/30">
                                                 <p className="text-[10px] font-black text-muted-foreground uppercase">{v.n}</p>
-                                                <p className="text-lg font-black font-mono">v{v.v}</p>
+                                                <p className="text-lg font-black font-mono">{v.v.startsWith('v') ? v.v : `v${v.v}`}</p>
                                             </div>
                                         ))}
                                     </div>

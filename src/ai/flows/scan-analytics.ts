@@ -1,20 +1,14 @@
-
 'use server';
 /**
- * @fileOverview Intelligence Layer Aggregator.
- * Enforces session-first logic: All GTIN analytics must be derived from session context.
+ * @fileOverview Live Intelligence Layer Aggregator.
+ * AUDIT VERSION: 2.0.0 (Grounded in real Firestore events)
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { admin } from '@/lib/firebase-admin';
 import { getScanEvents } from './get-scan-events';
 import { GetScanEventsInputSchema } from '@/lib/schemas/scan-events';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
 
 const ScanAnalyticsInputSchema = GetScanEventsInputSchema.extend({});
 export type ScanAnalyticsInput = z.infer<typeof ScanAnalyticsInputSchema>;
@@ -33,7 +27,6 @@ const ScanAnalyticsOutputSchema = z.object({
 });
 export type ScanAnalyticsOutput = z.infer<typeof ScanAnalyticsOutputSchema>;
 
-
 export async function getScanAnalytics(input: ScanAnalyticsInput): Promise<ScanAnalyticsOutput> {
   return getScanAnalyticsFlow(input);
 }
@@ -45,18 +38,23 @@ const getScanAnalyticsFlow = ai.defineFlow(
     outputSchema: ScanAnalyticsOutputSchema,
   },
   async (filters) => {
-    // AUTHORIZATION GATE
-    const authorizedRetailerId = await getAuthorizedRetailerId(filters.idToken, filters.retailerId || 'simulated-retailer-id');
-    
-    // Explicitly scope filters to authorized tenant
-    const securedFilters = { ...filters, retailerId: authorizedRetailerId };
-    
-    const events = await getScanEvents(securedFilters);
+    // 1. Authorize & Fetch Real Events
+    const events = await getScanEvents(filters);
 
-    // 1. Calculate True Reach (Unique Sessions)
-    const uniqueSessions = new Set(events.map(e => e.sessionId)).size;
+    if (events.length === 0) {
+        return {
+            totalRawEvents: 0,
+            uniqueSessions: 0,
+            engagementByDay: {},
+            topEngagedProducts: [],
+        };
+    }
+
+    // 2. Calculate True Reach (Unique Sessions)
+    const sessionIds = new Set(events.map(e => e.sessionId));
+    const uniqueSessionsCount = sessionIds.size;
     
-    // 2. Aggregate by Day using unique sessions as unit
+    // 3. Aggregate by Day using unique sessions as unit
     const sessionsByDay: Record<string, Set<string>> = {};
     events.forEach(event => {
         const day = new Date(event.timestamp).toISOString().split('T')[0];
@@ -69,8 +67,7 @@ const getScanAnalyticsFlow = ai.defineFlow(
         engagementByDay[day] = sessionsByDay[day].size;
     });
 
-    // 3. Aggregate GTIN Popularity (Unique Sessions per GTIN)
-    // Rule Enforcement: GTIN is a dimension of the session, not a direct primary key.
+    // 4. Aggregate GTIN Popularity (Unique Sessions per GTIN)
     const sessionsByGtin: Record<string, { sessions: Set<string>, campaignId: string }> = {};
     events.forEach(event => {
         if (!sessionsByGtin[event.gtin]) {
@@ -90,7 +87,7 @@ const getScanAnalyticsFlow = ai.defineFlow(
 
     return {
       totalRawEvents: events.length,
-      uniqueSessions,
+      uniqueSessions: uniqueSessionsCount,
       engagementByDay,
       topEngagedProducts,
     };

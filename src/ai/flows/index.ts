@@ -38,6 +38,7 @@ import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from '.
 import { aggregateIntelligence } from './aggregate-intelligence';
 import { attributeTransactions } from './attribute-transactions';
 import { getDecisionJourneyIntelligence } from './decision-journey-intelligence';
+import { assignUserClaims } from './assign-user-claims';
 
 export {
     analyzeBehavioralInsights,
@@ -73,6 +74,7 @@ export {
     aggregateIntelligence,
     attributeTransactions,
     getDecisionJourneyIntelligence,
+    assignUserClaims,
 };
 
 export type {

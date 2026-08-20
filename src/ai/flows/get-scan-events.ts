@@ -1,23 +1,21 @@
 'use server';
 /**
- * @fileOverview Retrieves recent scan events with optional filtering.
- * Anchors all events to a sessionId to satisfy the Intelligence Layer requirements.
+ * @fileOverview Retrieves real scan and interaction events from Firestore.
+ * Enforces strict tenant isolation via trusted authentication context.
+ * AUDIT VERSION: 2.0.0 (Live Data Enabled)
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { admin } from '@/lib/firebase-admin';
-import { subHours, subDays } from 'date-fns';
+import { getDb } from '@/lib/firebase-admin';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import {
   GetScanEventsInputSchema,
   type GetScanEventsInput,
   GetScanEventsOutputSchema,
   type GetScanEventsOutput,
 } from '@/lib/schemas/scan-events';
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getScanEvents(input: GetScanEventsInput): Promise<GetScanEventsOutput> {
   return getScanEventsFlow(input);
@@ -30,58 +28,49 @@ const getScanEventsFlow = ai.defineFlow(
     outputSchema: GetScanEventsOutputSchema,
   },
   async (filters) => {
-    // Infrastructure Simulation: Returning session-anchored events.
-    // Note: Multiple events may share the same sessionId (e.g., refresh or double-scan).
-    const mockEvents: GetScanEventsOutput = [
-        {
-            eventId: 'ev_1',
-            sessionId: 'sess_alpha',
-            gtin: '06001234567891',
-            retailerId: 'simulated-retailer-id',
-            campaignId: 'summer-sale-2024',
-            timestamp: new Date().toISOString(),
-            userAgent: 'iPhone/Safari',
-            referrer: 'https://google.com',
-        },
-        {
-            eventId: 'ev_2',
-            sessionId: 'sess_alpha', // Same session as ev_1 (Intelligence Layer should deduplicate)
-            gtin: '06001234567891',
-            retailerId: 'simulated-retailer-id',
-            campaignId: 'summer-sale-2024',
-            timestamp: subHours(new Date(), 1).toISOString(),
-            userAgent: 'iPhone/Safari',
-            referrer: 'https://google.com',
-        },
-        {
-            eventId: 'ev_3',
-            sessionId: 'sess_beta',
-            gtin: '06001234567891',
-            retailerId: 'simulated-retailer-id',
-            campaignId: 'summer-sale-2024',
-            timestamp: subHours(new Date(), 2).toISOString(),
-            userAgent: 'Android/Chrome',
-            referrer: '',
-        },
-        {
-            eventId: 'ev_4',
-            sessionId: 'sess_gamma',
-            gtin: '06009876543210',
-            retailerId: 'simulated-retailer-id',
-            campaignId: 'winter-clearance',
-            timestamp: subDays(new Date(), 1).toISOString(),
-            userAgent: 'iPhone/Safari',
-            referrer: 'https://instagram.com',
-        }
-    ];
-    
-    return mockEvents.filter(event => {
-        const eventDate = new Date(event.timestamp);
-        const isRetailerMatch = !filters.retailerId || event.retailerId === filters.retailerId;
-        const isCampaignMatch = !filters.campaignId || event.campaignId === filters.campaignId;
-        const isStartDateMatch = !filters.startDate || eventDate >= new Date(filters.startDate);
-        const isEndDateMatch = !filters.endDate || eventDate <= new Date(filters.endDate);
-        return isRetailerMatch && isCampaignMatch && isStartDateMatch && isEndDateMatch;
-    }).slice(0, filters.limit);
+    const db = getDb();
+    if (!db) {
+        throw new Error("Infrastructure Layer Unavailable.");
+    }
+
+    // 1. Resolve Authoritative Retailer Identity
+    const authorizedRetailerId = await getAuthorizedRetailerId(filters.idToken, filters.retailerId || '');
+
+    // 2. Build Factual Query
+    let query = db.collection('events')
+        .where('retailerId', '==', authorizedRetailerId);
+
+    if (filters.campaignId) {
+        query = query.where('campaignId', '==', filters.campaignId);
+    }
+
+    if (filters.startDate) {
+        query = query.where('timestamp', '>=', Timestamp.fromDate(new Date(filters.startDate)));
+    }
+
+    if (filters.endDate) {
+        query = query.where('timestamp', '<=', Timestamp.fromDate(new Date(filters.endDate)));
+    }
+
+    const snapshot = await query.orderBy('timestamp', 'desc').limit(filters.limit || 100).get();
+
+    if (snapshot.empty) {
+        return [];
+    }
+
+    // 3. Map to Standard Schema
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            eventId: doc.id,
+            sessionId: data.sessionId || 'legacy',
+            gtin: data.gtin || '00000000000000',
+            retailerId: data.retailerId,
+            campaignId: data.campaignId || 'unassigned',
+            timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString(),
+            userAgent: data.userAgent || 'unknown',
+            referrer: data.referrer || '',
+        };
+    });
   }
 );

@@ -1,20 +1,20 @@
 # iNteract Pilot Operations Guide (Admin)
 
-## 1. Retailer Onboarding
+## 1. Retailer Provisioning
 1. **Navigate** to `Network Control > Retailers`.
-2. **Add Retailer**: Enter the group name (e.g., "Woolworths").
+2. **Add Retailer**: Enter the canonical group name (e.g., "Woolworths").
 3. **Setup User**: Create the Firebase Auth account for the Retailer Admin.
 4. **Verified Access Manager**: 
-   - Copy the newly created UID.
-   - Paste into "Firebase User UID".
-   - Select the corresponding Tenant and Role.
+   - Enter the User's UID.
+   - Select the corresponding Retailer and Role.
    - Click "Provision Trusted Access".
 
-**CRITICAL**: The user MUST sign out and back in after claims are provisioned to refresh their identity token.
+**CRITICAL**: The user MUST sign out and back in after claims are provisioned to refresh their security token.
 
 ## 2. Platform Monitoring
-- Use **Platform Health** to monitor baseline infrastructure. Note: Current telemetry is simulated for the pilot phase.
-- Use **Portfolio ROI** to view aggregate impact across all pilot tenants.
+- **Platform Health**: Monitor baseline infrastructure latency. Note: Current telemetry is simulation benchmarks.
+- **Portfolio ROI**: View aggregate impact across all pilot tenants (SIM).
 
-## 3. Deployment Updates
-Use the **Update Manager** to push UI changes or new Ari capabilities to all active pilot instances simultaneously.
+## 3. Operational Support
+- **Claim Issues**: If a user sees "Access Denied", verify the `retailerId` claim in the Verified Access Manager.
+- **QR Failures**: If a QR resolves to the wrong product, first check the Product Catalog mapping before regenerating.

@@ -42,6 +42,7 @@ const SubmitBulkQrRequestInputSchema = z.object({
   retailerId: z.string().describe('The intended ID of the retailer.'),
   brandId: z.string().describe('The brand ID.'),
   campaignId: z.string().describe('The campaign ID.'),
+  productName: z.string().optional().describe("Friendly name of the product for the manifest."),
   count: z.number().int().min(1).max(10000),
   options: QrOptionsSchema.optional(),
 });
@@ -65,16 +66,12 @@ const submitBulkQrRequestFlow = ai.defineFlow(
   },
   async (data) => {
     // AUTHORIZATION GATE
-    // We derive the authorized retailerId from the verified ID token.
-    // Mismatches between client-supplied retailerId and token claim are rejected.
     const authorizedRetailerId = await getAuthorizedRetailerId(data.idToken, data.retailerId);
     
     if (!db) {
         throw new Error('Infrastructure Layer Unavailable.');
     }
 
-    // AUTHENTICATED TRANSACTION
-    // Use the verified authorizedRetailerId for the remainder of the operation.
     const requestRef = db.collection('bulkQrRequests').doc();
     
     try {
@@ -82,17 +79,18 @@ const submitBulkQrRequestFlow = ai.defineFlow(
             retailerId: authorizedRetailerId,
             brandId: data.brandId,
             campaignId: data.campaignId,
+            productName: data.productName || 'Unnamed Product',
             totalRequested: data.count,
-            status: 'COMPLETED', // Synchronous processing simulation for pilot
+            status: 'DRAFT', // Set to DRAFT to allow UI-driven processing/chunking
             createdAt: new Date(),
             updatedAt: new Date(),
             options: data.options || {},
-            itemsDone: data.count,
+            itemsDone: 0,
             isGs1Compliant: true,
             dataStatus: 'VERIFIED'
         });
 
-        console.log(`[QR Management] Verified Batch Created: ${requestRef.id} for Tenant ${authorizedRetailerId}`);
+        console.log(`[QR Management] Verified Draft Created: ${requestRef.id} for Tenant ${authorizedRetailerId}`);
         
         return { 
             success: true, 

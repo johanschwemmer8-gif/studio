@@ -1,16 +1,33 @@
 # iNteract Retailer Quick Start
 
-## 1. Initial Setup
-Follow the **Setup Guide** on your dashboard:
-- **My Retail Network**: Define your brands, divisions, and stores.
-- **Brand & Experience**: Upload your logo and choose a shopper template.
-- **QR Activation**: Activate your first product by entering its barcode (GTIN).
+Welcome to the iNteract Pilot. This guide provides the essential steps to configure your store network and launch your first digital activations.
 
-## 2. Managing Products
-- Go to **App Connections > Product Data**.
-- Currently in **Demo Configuration**: You can see how products will link, but live PIM sync is deferred for the pilot.
+## 1. Initial Account Setup
+Follow the **Welcome & Setup Guide** on your primary dashboard to complete the following:
 
-## 3. Reviewing Results
-- **Performance Overview**: Live scan volume and shopper reach.
-- **Profit & ROI**: Review transactions associated with Ari interactions. Note: Transaction data is currently simulated (SIM) for pilot verification.
-- **Shopper Behavior**: Factual patterns of what shoppers ask Ari in-store.
+- **My Retail Network**: Define your brands, divisions, and specific store locations. This anchors your behavioral data to the physical footprint.
+- **Brand & Experience**: Upload your logo and select a template. This is what shoppers will see when they scan in-store.
+- **Product Catalog**: Add the specific products participating in the pilot. Enter the **Product Name** and the **Product Barcode (GTIN)** found on the packaging.
+
+## 2. Creating Digital Activations
+Once your products are in the catalog, navigate to **QR Activation**:
+
+1. **Select Product**: Choose a product from your catalog.
+2. **Quantity**: Choose how many unique codes you need for that product.
+3. **Execution**: Click "Execute Activation".
+4. **Processing**: Go to **Activation History** and click "Process Activation". This generates the unique Digital Links for each sticker.
+
+## 3. Deployment & Verification
+After processing is complete, manage the batch in your history:
+
+- **Download Package**: Get the ZIP file containing your QR stickers and the `deployment_manifest.csv`.
+- **Match & Place**: Use the manifest to match each sticker to the correct product on the shelf.
+- **Verify**: Scan **every** label once placed. Ensure the correct product and brand load on your mobile device.
+
+## 4. Monitoring Results
+- **Scan Statistics**: Live view of total reach and product popularity.
+- **Shopper Behavior**: Factual patterns of what shoppers ask Ari about your products.
+- **Commercial Insights**: ROI and transaction metrics marked with **(SIM)** are pilot benchmarks used for planning.
+
+## 5. Support
+For access issues or system anomalies, contact your iNteract Platform Administrator or use the **Help Center** within the dashboard.

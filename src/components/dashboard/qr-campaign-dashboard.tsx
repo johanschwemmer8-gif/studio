@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2 } from 'lucide-react';
+import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2, CheckCircle2, ListChecks, Printer, MapPin, Scan } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
@@ -23,16 +22,17 @@ import {
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, Timestamp, updateDoc, writeBatch, addDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
+import { useAuth } from '@/context/auth-context';
 
 type BulkRequest = {
     id: string;
     campaignId: string;
+    productName?: string;
     totalRequested: number;
     status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'DRAFT';
-    createdAt: Timestamp | Date; // Can be a Firestore Timestamp or a JS Date
+    createdAt: Timestamp | Date;
     itemsDone: number;
     aiStatus?: 'PENDING' | 'READY' | 'ERROR';
     aiOutputs?: GenerateCampaignAIOutput;
@@ -46,38 +46,27 @@ type QrItem = {
     redirectUrl: string;
     status: 'PENDING' | 'DONE' | 'ERROR';
     signedUrl: string;
+    trackingUrl?: string;
     regeneratedAt?: { toDate: () => Date };
 };
 
-// Helper function to robustly format dates
 const getDisplayDate = (timestamp: any) => {
-    if (!timestamp) {
-        return 'Date pending...';
-    }
-    // Firestore Timestamps have a toDate() method
-    if (typeof timestamp.toDate === 'function') {
-        return new Date(timestamp.toDate()).toLocaleString();
-    }
-    // Handle JS Date objects or ISO strings
-    if (timestamp instanceof Date) {
-        return timestamp.toLocaleString();
-    }
-    // Handle string dates
+    if (!timestamp) return 'Date pending...';
+    if (typeof timestamp.toDate === 'function') return new Date(timestamp.toDate()).toLocaleString();
+    if (timestamp instanceof Date) return timestamp.toLocaleString();
     const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) {
-        return date.toLocaleString();
-    }
-    
-    return 'Invalid Date';
+    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
 };
 
-const CHUNK_SIZE = 50; // Process 50 QR codes at a time to be safe
+const CHUNK_SIZE = 50;
 
 function QrRequestDetails({ request }: { request: BulkRequest }) {
+    const { user } = useAuth();
     const [items, setItems] = useState<QrItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [regeneratingIds, setRegeneratingIds] = useState<string[]>([]);
+    const [downloading, setDownloading] = useState(false);
     const { toast } = useToast();
     
     const [currentRequest, setCurrentRequest] = useState(request);
@@ -94,8 +83,6 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             }));
             setItems(fetchedItems);
             setLoading(false);
-        }, (error) => {
-            toast({ title: "Error", description: "Could not fetch QR code details.", variant: "destructive" });
         });
 
         const requestRef = doc(db, 'bulkQrRequests', request.id);
@@ -109,204 +96,142 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             unsubscribeItems();
             unsubscribeRequest();
         };
-    }, [request.id, toast]);
+    }, [request.id]);
 
     const handleRegenerate = async (qrCodeId: string) => {
         setRegeneratingIds(prev => [...prev, qrCodeId]);
         try {
             const result = await regenerateQrCode({ requestId: request.id, qrCodeId });
             if (result.success) {
-                toast({
-                    title: "QR Code Regenerated",
-                    description: `Successfully regenerated ${qrCodeId}.`,
-                });
-                // The onSnapshot listener will handle the UI update automatically.
+                toast({ title: "QR Code Regenerated" });
             } else {
-                 throw new Error('Regeneration failed on the server.');
+                 throw new Error('Regeneration failed.');
             }
         } catch (error: any) {
-             toast({
-                title: "Regeneration Failed",
-                description: error.message,
-                variant: 'destructive',
-            });
+             toast({ title: "Regeneration Failed", description: error.message, variant: 'destructive' });
         } finally {
             setRegeneratingIds(prev => prev.filter(id => id !== qrCodeId));
         }
     }
-    
-    const handleRegenerateAI = () => {
-        startAiRegenerating(async () => {
-            if (!db) {
-                toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
-                return;
-            }
 
-            const mockAiOutput: GenerateCampaignAIOutput = {
-              landingCopy: 'Discover the fresh look of our summer collection! Quality and style you can feel.',
-              cta: 'Shop Now & Get 15% Off',
-              scanTriggers: [
-                'Scan for a surprise!',
-                'Unlock exclusive content.',
-                'See if your size is in stock.'
-              ]
-            };
-
-            try {
-                const requestRef = doc(db, 'bulkQrRequests', currentRequest.id);
-                await updateDoc(requestRef, {
-                    aiStatus: 'READY',
-                    aiOutputs: mockAiOutput,
-                    aiError: '', // Clear any previous error
-                });
-                
-                toast({
-                    title: "AI Content Generated!",
-                    description: "The campaign content has been refreshed (simulation).",
-                });
-            } catch (e: any) {
-                 toast({
-                    title: "AI Simulation Failed",
-                    description: e.message || 'Could not update campaign with mock AI content.',
-                    variant: 'destructive',
-                });
+    const handleDownloadZip = async () => {
+        setDownloading(true);
+        try {
+            const idToken = await user?.getIdToken();
+            const result = await generateZipForRequest({ requestId: request.id, idToken });
+            if (result.success && result.zipDataUri) {
+                const link = document.createElement("a");
+                link.href = result.zipDataUri;
+                link.download = `interact_${request.campaignId.replace(/\s+/g, '_')}.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast({ title: "Download Started", description: "Your deployment package is ready." });
+            } else {
+                throw new Error(result.message || 'ZIP failed.');
             }
-        });
-    }
+        } catch (error: any) {
+             toast({ title: "Download Failed", description: error.message, variant: 'destructive' });
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     const filteredItems = items.filter(item => statusFilter === 'ALL' || item.status === statusFilter);
 
     return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="text-accent" />
-                        AI-Powered Campaign Content
-                    </CardTitle>
-                    <CardDescription>
-                        Use our AI to generate engaging copy for your campaign based on your goals.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     {currentRequest.aiStatus === 'PENDING' && !isAiRegenerating && (
-                        <div className="flex items-center justify-center flex-col gap-2 text-muted-foreground p-8 text-center">
-                            <Loader2 className="h-8 w-8 animate-spin" />
-                            <p>AI content generation is pending...</p>
-                            <p className="text-xs">This will start after the request is processed.</p>
-                        </div>
-                    )}
+        <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+            {currentRequest.status === 'COMPLETED' && (
+                <div className="grid md:grid-cols-2 gap-6">
+                    <Card className="border-primary/20 bg-primary/5 shadow-md">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                Ready for Deployment
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                This digital activation batch is complete. Download the package and follow the checklist to go live.
+                            </p>
+                            <Button className="w-full h-12 font-black uppercase text-[10px] tracking-widest gap-2" onClick={handleDownloadZip} disabled={downloading}>
+                                {downloading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
+                                Download Deployment Package
+                            </Button>
+                        </CardContent>
+                    </Card>
 
-                    {(currentRequest.aiStatus === 'READY' || (isAiRegenerating && currentRequest.aiOutputs)) && currentRequest.aiOutputs && (
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <h4 className="font-semibold text-sm">Landing Page Copy</h4>
-                                    <p className="text-muted-foreground text-sm p-3 bg-muted/50 rounded-md mt-1">{currentRequest.aiOutputs.landingCopy}</p>
-                                </div>
-                                 <div>
-                                    <h4 className="font-semibold text-sm">Call-to-Action (CTA)</h4>
-                                    <p className="text-muted-foreground text-sm p-3 bg-muted/50 rounded-md mt-1 font-medium">{currentRequest.aiOutputs.cta}</p>
-                                </div>
-                            </div>
-                             <div>
-                                <h4 className="font-semibold text-sm">Scan Trigger Ideas</h4>
-                                <ul className="list-disc pl-5 mt-2 space-y-2 text-sm text-muted-foreground">
-                                    {currentRequest.aiOutputs.scanTriggers.map((trigger, i) => <li key={i}>{trigger}</li>)}
-                                </ul>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {currentRequest.aiStatus === 'ERROR' && (
-                         <Alert variant="destructive">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>AI Generation Failed</AlertTitle>
-                            <AlertDescription>{currentRequest.aiError || 'An unknown error occurred.'}</AlertDescription>
-                        </Alert>
-                    )}
-
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleRegenerateAI} disabled={isAiRegenerating}>
-                        {isAiRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                        {currentRequest.aiOutputs ? 'Regenerate AI Content' : 'Generate AI Content'}
-                    </Button>
-                </CardFooter>
-            </Card>
+                    <Card className="border-accent/20 bg-accent/5">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-accent-foreground">
+                                <ListChecks className="h-4 w-4" />
+                                Deployment Checklist
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                             {[
+                                { icon: <Printer />, text: "Print QR stickers (40x40mm ink/thermal)" },
+                                { icon: <MapPin />, text: "Place labels on shelf-edge next to price" },
+                                { icon: <Scan />, text: "Verify 100% of labels by scanning" },
+                             ].map((step, i) => (
+                                 <div key={i} className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
+                                     <div className="h-5 w-5 shrink-0 text-primary">{step.icon}</div>
+                                     <span>{step.text}</span>
+                                 </div>
+                             ))}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             <Separator />
             
-            <div>
-                 <h3 className="text-lg font-semibold">QR Code Previews</h3>
-                <div className="w-full sm:w-64 mt-2">
+            <div className="flex justify-between items-center">
+                 <h3 className="text-lg font-black uppercase tracking-tighter">Activation Previews</h3>
+                <div className="w-48">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Filter by status..." />
-                        </SelectTrigger>
+                        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">All Statuses</SelectItem>
-                            <SelectItem value="DONE">Done</SelectItem>
-                            <SelectItem value="ERROR">Error</SelectItem>
-                            <SelectItem value="PENDING">Pending</SelectItem>
+                            <SelectItem value="DONE">Verified</SelectItem>
+                            <SelectItem value="ERROR">Failure</SelectItem>
+                            <SelectItem value="PENDING">Processing</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
             </div>
 
             {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {[...Array(8)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {[...Array(6)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}
                 </div>
             ) : filteredItems.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No QR codes match the filter.</p>
+                <p className="text-muted-foreground text-center py-8 italic text-sm">No activations match the current filter.</p>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {filteredItems.map(item => {
-                        const isRegenerating = regeneratingIds.includes(item.qrCodeId);
-                        return (
-                            <Card key={item.qrCodeId} className="group relative flex flex-col">
-                                <CardContent className="p-2 flex-1">
-                                     <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
-                                        {item.status === 'PENDING' ? (
-                                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                                        ) : item.status === 'ERROR' ? (
-                                             <div className="text-center text-destructive p-2">
-                                                <AlertTriangle className="h-8 w-8 mx-auto" />
-                                                <p className="text-xs mt-2">Generation Failed</p>
-                                             </div>
-                                        ) : (
-                                            <Image src={item.signedUrl} alt={item.qrCodeId} width={200} height={200} className="w-full h-full object-contain" />
-                                        )}
-                                        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
-                                             <Button 
-                                                size="sm"
-                                                disabled={isRegenerating || (item.status !== 'DONE' && item.status !== 'ERROR')}
-                                                onClick={() => handleRegenerate(item.qrCodeId)}
-                                                className="w-full"
-                                             >
-                                                {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                                Regenerate
-                                            </Button>
-                                             <Button asChild size="sm" variant="secondary" className="w-full" disabled={item.status !== 'DONE'}>
-                                                <Link href={`/retailer-mvp/qr-analytics/${item.qrCodeId}`}>
-                                                    <BarChart2 className="mr-2 h-4 w-4"/>
-                                                    View Scans
-                                                </Link>
-                                            </Button>
-                                        </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {filteredItems.map(item => (
+                        <Card key={item.qrCodeId} className="group relative overflow-hidden">
+                            <CardContent className="p-1">
+                                 <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
+                                    {item.status === 'PENDING' ? (
+                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/30" />
+                                    ) : item.status === 'ERROR' ? (
+                                         <div className="text-center text-destructive p-2"><AlertTriangle className="h-6 w-6 mx-auto" /></div>
+                                    ) : (
+                                        <Image src={item.signedUrl} alt={item.qrCodeId} width={150} height={150} className="w-full h-full object-contain" />
+                                    )}
+                                    <div className="absolute inset-0 bg-primary/90 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                                         <Button variant="secondary" size="sm" onClick={() => handleRegenerate(item.qrCodeId)} className="w-full text-[8px] font-black uppercase tracking-widest h-8">
+                                            <RefreshCw className="h-3 w-3 mr-1" /> Fix Code
+                                        </Button>
                                     </div>
-                                </CardContent>
-                                <CardFooter className="p-2 flex-col items-start text-xs">
-                                    <Badge variant={item.status === 'DONE' ? 'default' : item.status === 'ERROR' ? 'destructive' : 'secondary'} className="mb-1">
-                                        {item.status}
-                                    </Badge>
-                                    <p className="font-mono text-muted-foreground truncate w-full">{item.qrCodeId}</p>
-                                    {item.regeneratedAt && <p className="text-blue-500">Regen: {new Date(item.regeneratedAt.toDate()).toLocaleTimeString()}</p>}
-                                </CardFooter>
-                            </Card>
-                        )
-                    })}
+                                </div>
+                            </CardContent>
+                             <div className="p-2 border-t bg-muted/10">
+                                <p className="text-[8px] font-mono text-muted-foreground truncate">{item.qrCodeId}</p>
+                            </div>
+                        </Card>
+                    ))}
                 </div>
             )}
         </div>
@@ -314,288 +239,137 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
 }
 
 export default function QrCampaignDashboard() {
+    const { user } = useAuth();
     const [requests, setRequests] = useState<BulkRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<BulkRequest | null>(null);
-    const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
     const [processingIds, setProcessingIds] = useState<string[]>([]);
-
     const { toast } = useToast();
     
     useEffect(() => {
-        if (!db) {
-            toast({
-                title: "Firebase Not Connected",
-                description: "QR Campaign Dashboard requires a Firestore connection.",
-                variant: "destructive"
-            });
+        if (!db || !user?.retailerId) {
             setLoading(false);
             return;
         }
 
-        setLoading(true);
-        // We remove orderBy here to avoid the requirement for a composite index in the Firestore query.
-        // We sort the results manually in the callback below.
-        const q = query(
-            collection(db, 'bulkQrRequests'),
-            where('retailerId', '==', 'simulated-retailer-id')
-        );
-
+        const q = query(collection(db, 'bulkQrRequests'), where('retailerId', '==', user.retailerId));
         const unsubscribe = onSnapshot(q, snapshot => {
-            const fetchedRequests: BulkRequest[] = snapshot.docs.map((doc: any) => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-
-            // Client-side sort by createdAt descending
-            fetchedRequests.sort((a, b) => {
+            const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+            fetched.sort((a, b) => {
                 const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
                 const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
                 return dateB - dateA;
             });
-
-            setRequests(fetchedRequests);
-            setLoading(false);
-        }, (error) => {
-            toast({ title: "Error", description: "Could not fetch campaign requests.", variant: "destructive"});
+            setRequests(fetched);
             setLoading(false);
         });
             
         return () => unsubscribe();
-    }, [toast]);
-
-    const handleDownloadZip = async (requestId: string) => {
-        setDownloadingIds(prev => [...prev, requestId]);
-        try {
-            const result = await generateZipForRequest({ requestId });
-            if (result.success && result.zipDataUri) {
-                const link = document.createElement("a");
-                link.href = result.zipDataUri;
-                link.download = `${requestId}.zip`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast({
-                    title: "Download Started",
-                    description: "Your ZIP file is being downloaded.",
-                });
-            } else {
-                throw new Error(result.message || 'Failed to generate ZIP.');
-            }
-        } catch (error: any) {
-             toast({
-                title: "Download Failed",
-                description: error.message,
-                variant: 'destructive',
-            });
-        } finally {
-            setDownloadingIds(prev => prev.filter(id => id !== requestId));
-        }
-    };
+    }, [user?.retailerId]);
 
     const processRequestInChunks = async (request: BulkRequest) => {
-        if (!db) {
-            toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
-            return;
-        }
-        
+        if (!db) return;
         const requestRef = doc(db, 'bulkQrRequests', request.id);
-
         try {
             await updateDoc(requestRef, { status: 'PROCESSING', updatedAt: new Date() });
-
             let itemsDone = 0;
             while (itemsDone < request.totalRequested) {
                 const batch = writeBatch(db);
                 const itemsRef = collection(db, `bulkQrRequests/${requestRef.id}/items`);
-                const qrcodesRef = collection(db, 'qrcodes');
-
                 const currentChunkSize = Math.min(CHUNK_SIZE, request.totalRequested - itemsDone);
-                
                 for (let i = 0; i < currentChunkSize; i++) {
                     const qrCodeId = doc(collection(db, 'id_generator')).id;
-                    const itemRef = doc(itemsRef, qrCodeId);
-                    
                     const qrOptions = request.options || {};
                     const qrColor = (qrOptions.colorHex || '#000000').replace('#', '');
                     const qrBgColor = (qrOptions.bgColorHex || '#FFFFFF').replace('#', '');
-                    const qrError = qrOptions.errorCorrection || 'M';
-
-                    const trackingUrl = `${window.location.origin}/track/${qrCodeId}`;
-                    const encodedQrData = encodeURIComponent(trackingUrl);
-                    let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
-                    const storagePath = `qr/${request.retailerId}/${request.campaignId}/${qrCodeId}.png`;
-
+                    const trackingUrl = `${window.location.origin}/resolve/${qrCodeId}`;
                     const itemData = {
                         index: itemsDone + i,
-                        qrCodeId: qrCodeId,
-                        redirectUrl: `/product/1`,
-                        trackingUrl: trackingUrl,
-                        signedUrl: generatedQrUrl,
-                        storagePath: storagePath,
-                        status: 'DONE' as const,
-                        checksum: '',
+                        qrCodeId,
+                        trackingUrl,
+                        signedUrl: `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(trackingUrl)}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrOptions.errorCorrection || 'M'}`,
+                        status: 'DONE',
                     };
-                    batch.set(itemRef, itemData);
-
-                    const qrMasterRef = doc(db, 'qrcodes', qrCodeId);
-                    batch.set(qrMasterRef, {
+                    batch.set(doc(itemsRef, qrCodeId), itemData);
+                    batch.set(doc(db, 'qrcodes', qrCodeId), {
                         retailerId: request.retailerId,
                         campaignId: request.campaignId,
-                        qrCodeId: qrCodeId,
+                        qrCodeId,
                         requestId: request.id,
-                        redirectUrl: `/product/1`,
-                        trackingUrl: trackingUrl,
-                        storagePath: storagePath,
-                        signedUrl: generatedQrUrl,
+                        gtin: qrOptions.gtin,
+                        trackingUrl,
                         scanCount: 0,
                         createdAt: new Date(),
-                        expiresAt: request.options?.expiresAt ? new Date(request.options.expiresAt) : null,
-                        aiProfileId: null,
                     });
                 }
-                
                 await batch.commit();
                 itemsDone += currentChunkSize;
-                
-                await updateDoc(requestRef, {
-                    itemsDone: itemsDone,
-                    updatedAt: new Date()
-                });
-
-                await new Promise(resolve => setTimeout(resolve, 1)); // Reduced delay
+                await updateDoc(requestRef, { itemsDone, updatedAt: new Date() });
             }
-            
-            await updateDoc(requestRef, {
-                status: 'COMPLETED',
-                updatedAt: new Date()
-            });
-
-            toast({
-                title: 'Campaign Processed!',
-                description: `"${request.campaignId}" is now complete and ready for download.`,
-            });
-            
-        } catch (error: any) {
-             toast({
-                title: "Processing Failed",
-                description: error.message,
-                variant: 'destructive',
-            });
+            await updateDoc(requestRef, { status: 'COMPLETED' });
+            toast({ title: 'Batch Verified', description: `Activations for "${request.productName}" are ready.` });
+        } catch (e: any) {
+            toast({ title: "Process Failed", description: e.message, variant: 'destructive' });
             await updateDoc(requestRef, { status: 'DRAFT' });
         }
     };
 
-    const handleProcessJob = (request: BulkRequest) => {
-        setProcessingIds(prev => [...prev, request.id]);
-        processRequestInChunks(request).finally(() => {
-             setProcessingIds(prev => prev.filter(id => id !== request.id));
-        });
-    };
-
-    if (loading) {
-        return (
-             <Card>
-                <CardHeader>
-                    <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="h-4 w-3/4" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                </CardContent>
-            </Card>
-        )
-    }
+    if (loading) return <Card className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary opacity-20 h-10 w-10"/></Card>;
 
     return (
         <div className="space-y-6">
-            <Card>
+            <Card className="border-primary/10 shadow-lg">
                 <CardHeader>
-                    <CardTitle>Request History</CardTitle>
-                    <CardDescription>A list of your bulk QR code generation requests.</CardDescription>
+                    <CardTitle className="text-xl font-black uppercase tracking-tighter">Activation History</CardTitle>
+                    <CardDescription>Monitor and manage your digital activation requests.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     {requests.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">No requests found. Create a new bulk request to get started.</p>
-                    ) : (
-                        <div className="space-y-4">
-                            {requests.map(req => {
-                                const progress = req.totalRequested > 0 ? ((req.itemsDone || 0) / req.totalRequested) * 100 : 0;
-                                const isDownloading = downloadingIds.includes(req.id);
-                                const isProcessing = processingIds.includes(req.id) || req.status === 'PROCESSING';
-                                return (
-                                    <Card key={req.id} className="flex flex-col sm:flex-row">
-                                        <CardHeader className="flex-1">
-                                            <CardTitle className="text-lg">{req.campaignId}</CardTitle>
-                                            <CardDescription>
-                                                {getDisplayDate(req.createdAt)}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="pt-6 flex-1 space-y-3">
-                                            {req.status === 'DRAFT' ? (
-                                                <div className="text-sm text-muted-foreground pt-3">
-                                                    This campaign is a draft. Process it to generate QR codes.
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <div className="flex justify-between text-sm font-medium mb-1">
-                                                        <span>{req.status}</span>
-                                                        <span>{req.itemsDone || 0} / {req.totalRequested}</span>
-                                                    </div>
-                                                    <Progress value={progress} />
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                        <CardContent className="pt-6 flex-none flex items-center gap-2">
-                                            {req.status === 'DRAFT' ? (
-                                                <Button variant="secondary" size="sm" onClick={() => handleProcessJob(req)} disabled={isProcessing}>
-                                                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4"/>}
-                                                    Process Job
-                                                </Button>
-                                            ) : (
-                                                <>
-                                                    <Button variant="outline" size="sm" onClick={() => setSelectedRequest(req)}>
-                                                        <Eye className="mr-2 h-4 w-4" /> View
-                                                    </Button>
-                                                    <Button 
-                                                        size="sm" 
-                                                        disabled={req.status !== 'COMPLETED' || isDownloading}
-                                                        onClick={() => handleDownloadZip(req.id)}
-                                                    >
-                                                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                                        Download
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                )
-                            })}
+                        <div className="p-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
+                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No activation history found.</p>
                         </div>
-                    )}
+                    ) : requests.map(req => {
+                        const progress = req.totalRequested > 0 ? ((req.itemsDone || 0) / req.totalRequested) * 100 : 0;
+                        const isProcessing = processingIds.includes(req.id) || req.status === 'PROCESSING';
+                        const isSelected = selectedRequest?.id === req.id;
+                        return (
+                            <Card key={req.id} className={cn("transition-all duration-300", isSelected ? "border-primary ring-2 ring-primary/10" : "hover:border-primary/30")}>
+                                <div className="flex flex-col sm:flex-row p-6 items-center gap-6">
+                                    <div className="flex-1 min-w-0">
+                                        <Badge variant="outline" className="mb-2 text-[8px] font-black uppercase tracking-tighter opacity-50">{req.campaignId}</Badge>
+                                        <h4 className="text-lg font-black tracking-tight truncate">{req.productName || 'Unnamed Product'}</h4>
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">{getDisplayDate(req.createdAt)}</p>
+                                    </div>
+                                    <div className="w-full sm:w-48 space-y-2">
+                                        <div className="flex justify-between text-[10px] font-black uppercase">
+                                            <span className={cn(req.status === 'COMPLETED' ? "text-green-600" : "text-primary")}>{req.status}</span>
+                                            <span>{req.itemsDone || 0} / {req.totalRequested}</span>
+                                        </div>
+                                        <Progress value={progress} className="h-2" />
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {req.status === 'DRAFT' ? (
+                                            <Button variant="default" size="sm" onClick={() => { setProcessingIds(p => [...p, req.id]); processRequestInChunks(req).finally(() => setProcessingIds(p => p.filter(id => id !== req.id))); }} disabled={isProcessing} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest shadow-md">
+                                                {isProcessing ? <Loader2 className="h-3 w-3 animate-spin"/> : <RefreshCw className="h-3 w-3"/>}
+                                                Process Activation
+                                            </Button>
+                                        ) : (
+                                            <Button variant={isSelected ? "secondary" : "outline"} size="sm" onClick={() => setSelectedRequest(isSelected ? null : req)} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest">
+                                                <Eye className="h-3.5 w-3.5 mr-2" /> {isSelected ? 'Close' : 'Manage'}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                {isSelected && (
+                                    <div className="px-6 pb-6 pt-0 border-t bg-muted/5">
+                                        <div className="pt-6"><QrRequestDetails request={req} /></div>
+                                    </div>
+                                )}
+                            </Card>
+                        )
+                    })}
                 </CardContent>
             </Card>
-
-            {selectedRequest && (
-                <Card>
-                    <CardHeader className="flex items-start justify-between">
-                        <div>
-                            <CardTitle>Details for: {selectedRequest.campaignId}</CardTitle>
-                            <CardDescription>
-                                Manage AI content and view individual QR code statuses for this campaign.
-                                {selectedRequest.status !== 'COMPLETED' && " Previews will update as they are generated."}
-                            </CardDescription>
-                        </div>
-                         <Button variant="ghost" size="icon" onClick={() => setSelectedRequest(null)}>
-                            <X className="h-4 w-4"/>
-                        </Button>
-                    </CardHeader>
-                    <CardContent>
-                       <QrRequestDetails request={selectedRequest} />
-                    </CardContent>
-                </Card>
-            )}
         </div>
     );
 }

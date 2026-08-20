@@ -24,8 +24,8 @@ import {
   Barcode,
   ExternalLink,
   Info,
-  ChevronRight,
-  ShoppingBasket
+  CheckCircle2,
+  ArrowRight
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
@@ -68,6 +68,7 @@ export default function BulkQRCodeGenerator() {
     const { user } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
     const [products, setProducts] = useState<any[]>([]);
     const [loadingProducts, setLoadingProducts] = useState(true);
 
@@ -117,16 +118,20 @@ export default function BulkQRCodeGenerator() {
             const idToken = await user?.getIdToken();
             if (!idToken) throw new Error("Please log in again to continue.");
 
+            const selectedProduct = products.find(p => p.gtin === data.options?.gtin);
+
             const result = await submitBulkQrRequest({
                 ...data,
-                idToken
+                idToken,
+                productName: selectedProduct?.name
             });
 
             if (result.success) {
                 toast({ 
                     title: 'QR Activation Created!', 
-                    description: `Batch ${data.campaignId} has been successfully added to your network.` 
+                    description: `Batch "${data.campaignId}" is ready for processing.` 
                 });
+                setIsSuccess(true);
                 form.reset({
                     ...form.getValues(),
                     campaignId: ''
@@ -150,6 +155,38 @@ export default function BulkQRCodeGenerator() {
     };
 
     const currentGtin = form.watch('options.gtin');
+
+    if (isSuccess) {
+        return (
+            <Card className="border-green-200 bg-green-50 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                <CardHeader className="text-center pt-10 pb-4">
+                    <div className="h-20 w-20 rounded-full bg-green-500 flex items-center justify-center mx-auto shadow-lg mb-6">
+                        <CheckCircle2 className="h-10 w-10 text-white" />
+                    </div>
+                    <CardTitle className="text-2xl font-black uppercase tracking-tight text-green-800">Job Queued Successfully</CardTitle>
+                    <CardDescription className="text-green-700 font-medium">
+                        Your digital activation request has been accepted by the network.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center px-10">
+                    <p className="text-sm text-green-700/80 leading-relaxed mb-8">
+                        To finish generating your QR codes and download your deployment package, head over to the Request History below.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                         <Button onClick={() => setIsSuccess(false)} variant="outline" className="border-green-200 text-green-700 hover:bg-green-100 font-bold uppercase text-[10px] tracking-widest h-12">
+                            Activate Another
+                        </Button>
+                        <Button asChild className="bg-green-600 hover:bg-green-500 text-white font-black uppercase text-[10px] tracking-widest h-12 px-8">
+                            <a href="#job-dashboard">
+                                Go to History <ArrowRight className="ml-2 h-4 w-4" />
+                            </a>
+                        </Button>
+                    </div>
+                </CardContent>
+                <div className="h-2 bg-green-500/20 w-full mt-10"></div>
+            </Card>
+        );
+    }
 
     return (
         <div className="space-y-8">

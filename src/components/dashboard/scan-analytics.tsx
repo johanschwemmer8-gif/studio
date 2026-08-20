@@ -21,6 +21,7 @@ import {
 import { Badge } from '../ui/badge';
 import { getScanAnalytics, type ScanAnalyticsOutput } from '@/ai/flows/scan-analytics';
 import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/auth-context';
 
 
 function AnalyticsCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description?: string }) {
@@ -39,18 +40,20 @@ function AnalyticsCard({ title, value, icon: Icon, description }: { title: strin
 }
 
 export default function ScanAnalytics() {
+  const { user } = useAuth();
   const [data, setData] = useState<ScanAnalyticsOutput | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
+        if (!user?.retailerId) return;
         setLoading(true);
         try {
-            const idToken = await auth.currentUser?.getIdToken();
+            const idToken = await user.getIdToken();
             const res = await getScanAnalytics({
                 idToken,
-                retailerId: 'simulated-retailer-id',
+                retailerId: user.retailerId,
                 limit: 1000,
             });
             setData(res);
@@ -61,13 +64,13 @@ export default function ScanAnalytics() {
         }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   if (loading) {
       return (
           <div className="flex flex-col items-center justify-center p-12 space-y-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-sm font-bold text-muted-foreground">Authenticating & Aggregating...</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Authenticating & Aggregating...</p>
           </div>
       );
   }
@@ -75,7 +78,7 @@ export default function ScanAnalytics() {
   if (error || !data) {
       return (
           <div className="p-8 border border-destructive/20 bg-destructive/5 rounded-lg text-center">
-              <p className="text-destructive font-bold">{error || "Data Unavailable."}</p>
+              <p className="text-destructive font-bold text-xs uppercase tracking-widest">{error || "Intelligence Stream Offline"}</p>
           </div>
       );
   }
@@ -86,7 +89,7 @@ export default function ScanAnalytics() {
     <div className="space-y-8">
       <Card className="border-primary/10">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-black text-xl"><BarChart2 className="text-primary"/> Intelligence Reach</CardTitle>
+            <CardTitle className="flex items-center gap-2 font-black text-xl uppercase tracking-tighter"><BarChart2 className="text-primary"/> Reach Intelligence</CardTitle>
             <CardDescription>
                 Analysing shopper reach through session-anchored behavioural events.
             </CardDescription>
@@ -130,15 +133,15 @@ export default function ScanAnalytics() {
                         <TableBody>
                             {topEngagedProducts.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground italic text-xs uppercase tracking-widest opacity-50">
                                         Initializing Intelligence stream...
                                     </TableCell>
                                 </TableRow>
                             ) : topEngagedProducts.map((p) => (
-                            <TableRow key={p.gtin}>
-                                <TableCell className="font-mono text-xs font-bold">{p.gtin}</TableCell>
+                            <TableRow key={p.gtin} className="group hover:bg-muted/30 transition-colors">
+                                <TableCell className="font-mono text-xs font-bold text-primary">{p.gtin}</TableCell>
                                 <TableCell><Badge variant="outline" className="text-[10px] uppercase font-bold border-primary/20">{p.campaignId}</Badge></TableCell>
-                                <TableCell className="text-right font-black text-primary text-lg">{p.uniqueSessions}</TableCell>
+                                <TableCell className="text-right font-black text-lg">{p.uniqueSessions}</TableCell>
                             </TableRow>
                             ))}
                         </TableBody>

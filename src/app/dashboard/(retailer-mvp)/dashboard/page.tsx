@@ -11,16 +11,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, UserCheck, ShieldCheck } from 'lucide-react';
+import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, UserCheck, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/auth-context';
 import theme from '@/config/theme.json';
 
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 
@@ -42,23 +44,25 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+        if (!user?.retailerId) return;
         try {
-            const idToken = await auth.currentUser?.getIdToken();
-            const data = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
+            const idToken = await user.getIdToken();
+            const data = await analyzeEngagementMetrics({ idToken, retailerId: user.retailerId });
             setAnalyticsData(data);
         } catch (e: any) {
             setError(e.message || "Failed to load dashboard data.");
         }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
+        if (!user?.retailerId) return;
         try {
-            const idToken = await auth.currentUser?.getIdToken();
-            const result = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
+            const idToken = await user.getIdToken();
+            const result = await analyzeEngagementMetrics({ idToken, retailerId: user.retailerId });
             setAnalysis(result);
         } catch (e: any) {
             setError(e.message || "We couldn't generate the analysis at this time.");

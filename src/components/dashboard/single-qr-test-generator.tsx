@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,8 +12,10 @@ import { QrCode, Loader2, Link2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/context/auth-context';
 
 export default function SingleQrTestGenerator() {
+  const { user } = useAuth();
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [destinationUrl, setDestinationUrl] = useState('https://interact-aoe.com');
@@ -21,25 +24,22 @@ export default function SingleQrTestGenerator() {
   const handleGenerateTestQr = async () => {
     setIsLoading(true);
     setQrCodeUrl(null);
-    if (!db) {
-      toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
+    if (!db || !user?.retailerId) {
+      toast({ title: 'Error', description: 'Handshake with identity infrastructure failed.', variant: 'destructive'});
       setIsLoading(false);
       return;
     }
 
     try {
-      // Use a unique ID for the test QR
       const qrCodeId = `test_${Date.now()}`;
       const qrRef = doc(db, 'qrcodes', qrCodeId);
       
       const qrData = {
-          retailerId: 'simulated-retailer-id',
-          campaignId: 'test-campaign',
+          retailerId: user.retailerId,
+          campaignId: 'Test Laboratory',
           qrCodeId: qrCodeId,
           requestId: 'test-request',
-          // Prioritize the custom destination URL entered by the user
-          redirectUrl: destinationUrl || '/product/1',
-          // The tracking URL is the standard entry point
+          redirectUrl: destinationUrl || '/p/06001234567891',
           trackingUrl: `${window.location.origin}/scan/${qrCodeId}`,
           scanCount: 0,
           createdAt: new Date(),
@@ -48,7 +48,6 @@ export default function SingleQrTestGenerator() {
       
       await setDoc(qrRef, qrData);
 
-      // Encode the tracking URL into the QR code
       const encodedUrl = encodeURIComponent(qrData.trackingUrl);
       const generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodedUrl}`;
       

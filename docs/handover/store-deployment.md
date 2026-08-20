@@ -1,31 +1,27 @@
-# Pilot Store Deployment Guide
+# Store Deployment & Verification Guide
 
-This document outlines the physical procedure for deploying iNteract activations in-store.
+This document outlines the physical procedure for deploying iNteract activations on the store floor.
 
-## 1. Pre-Deployment (Head Office)
-- [x] **Catalog Finalized**: All pilot products added to the Product Catalog.
-- [x] **QR Batch Processed**: All activations generated and "Verified" in the dashboard.
-- [x] **Package Ready**: ZIP archive downloaded and manifest reviewed.
+## 1. Preparation
+1. **Download**: Retrieve the deployment ZIP package for the current batch.
+2. **Print**: Use 40mm x 40mm adhesive stock. Ensure high contrast and a clear quiet zone around the QR.
+3. **Sort**: Use `deployment_manifest.csv` to sort stickers by product name or area.
 
-## 2. Physical Preparation
-1. **Printing**: Print QR images onto 40mm x 40mm adhesive labels (Thermal or Inkjet).
-2. **Sorting**: Use `deployment_manifest.csv` to sort stickers by product name.
+## 2. Placement (The SEL Rule)
+- **Position**: Place the sticker on the Shelf-Edge Label (SEL) to the **immediate right** of the price.
+- **Orientation**: Ensure the sticker is flat. Avoid curved edges of shelf-talkers or obstructions.
+- **Height**: Ideal placement is between eye-level and chest-level.
 
-## 3. Placement (In-Store)
-1. **The SEL Rule**: Place the QR sticker on the Shelf-Edge Label (SEL) to the right of the price.
-2. **Alignment**: Ensure the QR is flat and unobstructed.
-3. **Height**: Placement should be between eye-level and chest-level where possible.
+## 3. Verification Protocol (100% Rule)
+Before the pilot is declared live for shoppers, a store staff member must perform a verification scan of **every physical label**.
+- **Action**: Scan the placed QR with a standard mobile camera.
+- **Verify Product**: Does the correct product name and price appear?
+- **Verify Brand**: Does the correct retailer logo and color scheme load?
+- **Verify Ari**: Does the Ari assistant have the correct context for this item?
+- **Record**: Any QR that fails to resolve or points to the wrong product must be removed and reported for regeneration.
 
-## 4. The 100% Verification Rule
-Before the store opens:
-- **Scan Every Label**: A deployment team member must scan every physically placed QR.
-- **Confirm**:
-    - Correct product name displays.
-    - Correct retailer branding appears.
-    - Ari assistant is active and has correct product context.
-- **Record**: Note any failed scans in the Incident Register.
-
-## 5. Staff Instruction
-Staff only need to know:
-- These labels provide "Buying Guidance" via Ari.
-- Damaged or missing labels should be reported for regeneration.
+## 4. Staff Instructions
+Staff should be briefed on:
+1. **Purpose**: These labels provide "Buying Guidance" via the Ari assistant.
+2. **Reporting**: Report missing or damaged stickers for immediate replacement.
+3. **Interaction**: Encourage shoppers to "Scan for sommelier guidance" if they seem undecided.

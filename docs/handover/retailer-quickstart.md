@@ -1,25 +1,35 @@
-# iNteract Retailer Quick Start
+# iNteract Retailer Onboarding Checklist
 
-Welcome to the iNteract Pilot. This guide summarizes the self-guided journey to your first digital activation.
+Welcome to the iNteract Pilot. Follow this sequence to take your store from provisioning to digital activation.
 
-## 1. The Setup Guide
-Upon your first login, follow the dashboard's checklist:
-- **My Retail Network**: Define your brands and specific store locations.
-- **Brand & Experience**: Upload your logo and select your shopper-facing template.
-- **Product Catalog**: Add the products you want to activate. Use the barcode found on the packaging.
+## Phase 1: Digital Setup (Dashboard)
+- [ ] **Account Verification**: Sign in and confirm your brand name appears in the top header.
+- [ ] **My Retail Network**: Define your brands and the specific store location for the pilot.
+- [ ] **Brand & Experience**: 
+    - [ ] Upload a high-resolution logo.
+    - [ ] Select your customer-facing mobile template.
+    - [ ] Preview the branding on the mobile mockup.
+- [ ] **Product Catalog**: 
+    - [ ] Add the products for the pilot.
+    - [ ] **Crucial**: Enter the 13-digit barcode (EAN) found on the packaging.
+    - [ ] Provide sommelier/product facts to ground Ari's assistance.
 
-## 2. Creating QR Activations
-Once products are in your catalog, navigate to **QR Activation**:
-1. **Select Product**: Pick the product from your catalog.
-2. **Quantity**: Choose how many unique stickers you need.
-3. **Execute**: Click "Execute Activation".
-4. **Process**: Go to **Activation History** and click "Process Activation".
+## Phase 2: QR Activation
+- [ ] **Select Products**: Choose the items from your catalog you wish to activate.
+- [ ] **Batch Generation**: 
+    - [ ] Specify quantity (number of stickers).
+    - [ ] Click "Execute Activation".
+- [ ] **Activation History**: 
+    - [ ] Click "Process Activation" on your draft job.
+    - [ ] Wait for status: **COMPLETED**.
+- [ ] **Package Download**: Get the ZIP file containing your QR stickers and the `deployment_manifest.csv`.
 
-## 3. Deployment
-- **Download**: Get the ZIP file containing your QR stickers and the `deployment_manifest.csv`.
-- **Match**: Use the manifest to match stickers to products.
-- **Verify**: Scan every label once placed to confirm the correct experience loads.
+## Phase 3: Store Readiness
+- [ ] **Review Manifest**: Ensure the `deployment_manifest.csv` maps correctly to your product list.
+- [ ] **Printing**: Print labels at 40mm x 40mm.
+- [ ] **Shelf Placement**: Place stickers on the Shelf-Edge Label (SEL) to the right of the price.
+- [ ] **The 100% Rule**: Scan every single placed label to verify the correct experience loads.
 
-## 4. Viewing Results
-- **Scan Statistics**: Live view of customer reach and product popularity.
-- **Profit & ROI**: Note that ROI and Transaction metrics are currently marked **(SIM)** as benchmarks.
+## Phase 4: Monitoring
+- [ ] **Live Dashboard**: View scan statistics and interaction signals as they occur.
+- [ ] **Analytics**: Identify which products are generating the most "Interest" or "Consideration" signals.

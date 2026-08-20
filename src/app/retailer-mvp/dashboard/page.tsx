@@ -30,26 +30,29 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { auth, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 
 function SetupGuide({ retailerId }: { retailerId: string }) {
-  const [status, setStatus] = useState({ network: false, brand: false, qr: false });
+  const [status, setStatus] = useState({ network: false, brand: false, catalog: false, qr: false });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkStatus = async () => {
-      if (!db || !retailerId) return;
+      if (!db || !retailerId || retailerId === 'unknown') return;
       try {
-        const [orgSnap, brandSnap] = await Promise.all([
+        const [orgSnap, brandSnap, productsSnap] = await Promise.all([
           getDoc(doc(db, 'configurations', `${retailerId}_org`)),
-          getDoc(doc(db, 'configurations', `${retailerId}_brand`))
+          getDoc(doc(db, 'configurations', `${retailerId}_brand`)),
+          getDocs(query(collection(db, 'products'), where('retailerId', '==', retailerId), limit(1)))
         ]);
+        
         setStatus({
           network: orgSnap.exists(),
           brand: brandSnap.exists(),
-          qr: false 
+          catalog: !productsSnap.empty,
+          qr: false // Future improvement: check qrcodes collection
         });
       } catch (e) {
         console.warn("Status check friction.");
@@ -62,13 +65,15 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
 
   if (loading) return <Skeleton className="h-48 w-full rounded-2xl" />;
 
+  // Hide guide if essential setup is done
+  if (status.network && status.brand && status.catalog) return null; 
+
   const steps = [
     { label: "My Retail Network", href: "/retailer-mvp/organization", done: status.network, desc: "Define your stores and brands." },
     { label: "Brand & Experience", href: "/retailer-mvp/ui-management", done: status.brand, desc: "Upload logos and pick a template." },
+    { label: "Product Catalog", href: "/retailer-mvp/products", done: status.catalog, desc: "Add products you want to activate." },
     { label: "QR Activation", href: "/retailer-mvp/qr-management", done: status.qr, desc: "Create your first digital link." },
   ];
-
-  if (status.network && status.brand) return null; 
 
   return (
     <Card className="border-accent bg-accent/5 shadow-lg border-2 overflow-hidden">
@@ -78,7 +83,7 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
           Welcome! Let's get started
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid sm:grid-cols-3 gap-6 pt-6">
+      <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
         {steps.map((step) => (
           <Link key={step.label} href={step.href} className="group block space-y-2">
             <div className="flex items-center gap-3">
@@ -120,11 +125,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-        if (!user) return;
+        if (!user || !user.retailerId) return;
         try {
             const idToken = await user.getIdToken();
             const [engData, intelData] = await Promise.all([
-                analyzeEngagementMetrics({ idToken, retailerId }),
+                analyzeEngagementMetrics({ idToken, retailerId: user.retailerId }),
                 analyzeDecisionIntelligence()
             ]);
             setAnalyticsData(engData);
@@ -135,14 +140,14 @@ export default function DashboardPage() {
         }
     };
     fetchData();
-  }, [user, retailerId]);
+  }, [user]);
 
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
         try {
             const idToken = await user?.getIdToken();
-            const result = await analyzeEngagementMetrics({ idToken, retailerId });
+            const result = await analyzeEngagementMetrics({ idToken, retailerId: user?.retailerId });
             setAnalysis(result);
         } catch (e) {
             setError("Analysis engine busy. Please retry.");

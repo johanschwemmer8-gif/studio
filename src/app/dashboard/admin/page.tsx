@@ -16,9 +16,8 @@ import { Label } from '@/components/ui/label';
 import { 
   PlusCircle, List, Eye, Trash2, RefreshCw, 
   UserPlus, AlertTriangle, EyeOff, Loader2,
-  ShieldCheck, KeyRound, CheckCircle2
+  ShieldCheck, KeyRound, CheckCircle2, Info
 } from 'lucide-react';
-import RetailerDashboardPreview from '@/components/dashboard/retailer-dashboard-preview';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +37,6 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTrigger,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
@@ -127,11 +125,17 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
                     </div>
                 </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col gap-3">
                 <Button onClick={handleAssign} disabled={isLoading || !targetUid || !selectedRetailer} className="w-full gap-2 font-black uppercase text-[10px] tracking-widest">
                     {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
                     Provision Trusted Access
                 </Button>
+                <Alert className="bg-blue-50 border-blue-200">
+                    <Info className="h-3.5 w-3.5 text-blue-600" />
+                    <AlertDescription className="text-[10px] text-blue-700 leading-tight">
+                        <strong>Important:</strong> After provisioning, the user MUST sign out and sign back in to refresh their security token and activate new permissions.
+                    </AlertDescription>
+                </Alert>
             </CardFooter>
         </Card>
     );

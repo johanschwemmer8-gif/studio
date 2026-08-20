@@ -15,26 +15,20 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { 
-  Network, 
   QrCode, 
-  BarChart2, 
   MonitorSmartphone, 
-  Shield, 
   ShoppingCart, 
   ShieldCheck,
   DollarSign, 
-  Zap, 
   Settings, 
   BookOpen, 
   Target, 
   LayoutDashboard,
   Building2,
   Bot,
-  Sparkles,
-  MessageSquare,
-  Cog,
   Palette,
-  CreditCard
+  CreditCard,
+  ShoppingBasket
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
@@ -60,7 +54,7 @@ export default function RetailerSidebar({
                   <SidebarMenuButton asChild tooltip="Performance Overview">
                     <Link href="/retailer-mvp/dashboard">
                       <LayoutDashboard className="h-4 w-4" />
-                      <span>Performance Overview</span>
+                      <span>Overview</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -135,6 +129,14 @@ export default function RetailerSidebar({
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Manage your product catalog">
+                    <Link href="/retailer-mvp/products">
+                      <ShoppingBasket className="h-4 w-4" />
+                      <span>Product Catalog</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="App Connections & Data Sync">
                     <Link href="/retailer-mvp/system-integration">
                       <Settings className="h-4 w-4" />
@@ -146,7 +148,7 @@ export default function RetailerSidebar({
                   <SidebarMenuButton asChild tooltip="Terminal Checkout Sync">
                     <Link href="/retailer-mvp/pos-terminal">
                       <ShoppingCart className="h-4 w-4" />
-                      <span>Checkout Sync</span>
+                      <span>Checkout Sync (SIM)</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -174,14 +176,6 @@ export default function RetailerSidebar({
                     <Link href="/retailer-mvp/billing">
                       <CreditCard className="h-4 w-4" />
                       <span>Subscription & Billing</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Ethics & Policy Disclosures">
-                    <Link href="/retailer-mvp/ai-policy">
-                      <Shield className="h-4 w-4" />
-                      <span>Ethics & Policy</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

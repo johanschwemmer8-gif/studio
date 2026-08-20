@@ -36,11 +36,16 @@ service cloud.firestore {
       allow write: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(configId.replace('_brand', '').replace('_org', '')));
     }
 
-    // --- IDENTITY & QR LAYER ---
+    // --- IDENTITY & PRODUCT LAYER ---
 
     match /products/{gtin} {
+      // Products are public read for shoppers to see details
       allow read: if true;
-      allow write: if isPlatformAdmin() && validateGtin(gtin);
+      // Write/Create limited to the authorized tenant or platform admin
+      // We ensure the retailerId in the data matches the user's trusted claim
+      allow create: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(request.resource.data.retailerId) && validateGtin(gtin));
+      allow update: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(resource.data.retailerId) && request.resource.data.retailerId == resource.data.retailerId);
+      allow delete: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(resource.data.retailerId));
     }
 
     match /qrcodes/{qrId} {

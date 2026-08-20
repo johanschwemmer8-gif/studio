@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import BrandQrTemplateDesigner from './brand-qr-template-designer';
+import { useAuth } from '@/context/auth-context';
 
 
 function TemplatePreview({ template }: { template: QrTemplate }) {
@@ -93,16 +94,21 @@ function TemplateCard({ template, onEdit }: { template: QrTemplate, onEdit: (id:
 
 
 export default function BrandQrTemplateGallery() {
+    const { user } = useAuth();
     const [templates, setTemplates] = useState<QrTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDesignerOpen, setIsDesignerOpen] = useState(false);
     const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>(undefined);
     const { toast } = useToast();
 
+    const retailerId = user?.retailerId || 'unknown';
+
     useEffect(() => {
         const fetchTemplates = async () => {
+            if (retailerId === 'unknown') return;
             try {
-                const result = await getQrTemplates({ retailerId: 'simulated-retailer-id' });
+                const idToken = await user?.getIdToken();
+                const result = await getQrTemplates({ idToken, retailerId });
                 setTemplates(result);
             } catch (error: any) {
                 console.error('Failed to fetch templates:', error);
@@ -117,7 +123,7 @@ export default function BrandQrTemplateGallery() {
         };
 
         fetchTemplates();
-    }, [toast]);
+    }, [toast, retailerId, user]);
     
     const handleCreateNew = () => {
         setEditingTemplateId(undefined);
@@ -133,11 +139,12 @@ export default function BrandQrTemplateGallery() {
         setIsDesignerOpen(false);
         setEditingTemplateId(undefined);
         if (refresh) {
-            // Refetch templates
             setLoading(true);
-            getQrTemplates({ retailerId: 'simulated-retailer-id' })
-                .then(setTemplates)
-                .finally(() => setLoading(false));
+            user?.getIdToken().then(idToken => {
+              getQrTemplates({ idToken, retailerId })
+                  .then(setTemplates)
+                  .finally(() => setLoading(false));
+            });
         }
     };
     

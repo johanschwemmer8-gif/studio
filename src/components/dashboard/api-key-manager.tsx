@@ -24,197 +24,161 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { KeyRound, PlusCircle, Copy, Trash2, Ban, CheckCircle, RotateCcw } from 'lucide-react';
+import { KeyRound, PlusCircle, Copy, Trash2, Ban, CheckCircle, RotateCcw, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { type SavedRetailer } from '@/app/dashboard/admin/page';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { db } from '@/lib/firebase';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '@/context/auth-context';
+import { saveRetailerApiKey } from '@/ai/flows/save-retailer-api-key';
 
 type ApiKey = {
   id: string;
-  retailerName: string;
+  serviceName: string;
   key: string;
-  createdAt: string;
-  status: 'active' | 'revoked';
+  createdAt: string | any;
+  status: 'active' | 'revoked' | 'connected';
 };
 
 export default function ApiKeyManager() {
+  const { user } = useAuth();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [retailers, setRetailers] = useState<SavedRetailer[]>([]);
-  const [selectedRetailer, setSelectedRetailer] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [serviceName, setServiceName] = useState('');
   const { toast } = useToast();
 
+  const retailerId = user?.retailerId || 'unknown';
+
   useEffect(() => {
-    try {
-      const storedKeys = localStorage.getItem('apiKeys');
-      if (storedKeys) {
-        setApiKeys(JSON.parse(storedKeys));
-      }
-      const storedRetailers = localStorage.getItem('savedRetailers');
-      if (storedRetailers) {
-        setRetailers(JSON.parse(storedRetailers));
-      }
-    } catch (error) {
-      console.error("Failed to parse data from localStorage", error);
-      toast({
-        title: 'Error',
-        description: 'Could not load data from your browser storage.',
-        variant: 'destructive',
-      });
-    }
-    setIsLoading(false);
-  }, [toast]);
-
-  const saveKeysToStorage = (keys: ApiKey[]) => {
-    localStorage.setItem('apiKeys', JSON.stringify(keys));
-    setApiKeys(keys);
-  };
-
-  const generateApiKey = () => {
-    if (!selectedRetailer) {
-        toast({
-            title: 'No Retailer Selected',
-            description: 'Please select a retailer before generating a key.',
-            variant: 'destructive',
-        });
+    if (!db || retailerId === 'unknown') {
+        setIsLoading(false);
         return;
     }
-    const newKey = `ik_${crypto.randomUUID().replace(/-/g, '')}`;
-    const newApiKey: ApiKey = {
-      id: crypto.randomUUID(),
-      retailerName: selectedRetailer,
-      key: newKey,
-      createdAt: new Date().toISOString(),
-      status: 'active',
-    };
-    saveKeysToStorage([...apiKeys, newApiKey]);
-    toast({
-      title: 'API Key Generated!',
-      description: `A new key has been created for ${selectedRetailer}.`,
+
+    const docRef = doc(db, 'retailerIntegrations', retailerId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const keys: ApiKey[] = Object.entries(data).map(([name, config]: [string, any]) => ({
+                id: name,
+                serviceName: name,
+                key: config.secretName || 'Encrypted in Secret Manager',
+                createdAt: config.lastUpdated,
+                status: config.status,
+            }));
+            setApiKeys(keys);
+        }
+        setIsLoading(false);
     });
+
+    return () => unsubscribe();
+  }, [retailerId]);
+
+  const generateApiKey = async () => {
+    if (!serviceName.trim() || retailerId === 'unknown') return;
+    
+    setIsGenerating(true);
+    try {
+        const idToken = await user?.getIdToken();
+        const fakeKey = `ik_${Math.random().toString(36).substring(2, 15)}`;
+        
+        const result = await saveRetailerApiKey({
+            idToken,
+            retailerId,
+            serviceName,
+            apiKey: fakeKey
+        });
+
+        if (result.success) {
+            toast({ title: 'Connection Established', description: result.message });
+            setServiceName('');
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error: any) {
+        toast({ title: 'Integration Failed', description: error.message, variant: 'destructive' });
+    } finally {
+        setIsGenerating(false);
+    }
   };
 
   const copyToClipboard = (key: string) => {
     navigator.clipboard.writeText(key);
     toast({
-      title: 'Copied to Clipboard!',
-      description: 'The API key has been copied.',
+      title: 'Path Copied',
+      description: 'Secret Manager resource path copied to clipboard.',
     });
   };
 
-  const toggleKeyStatus = (id: string, newStatus: 'active' | 'revoked') => {
-    const updatedKeys = apiKeys.map((k) => (k.id === id ? { ...k, status: newStatus } : k));
-    saveKeysToStorage(updatedKeys);
-    toast({
-      title: `Key ${newStatus === 'active' ? 'Re-activated' : 'Revoked'}`,
-      description: `The key's status has been updated.`,
-    });
-  };
-
-  const deleteKey = (id: string) => {
-    const updatedKeys = apiKeys.filter((k) => k.id !== id);
-    saveKeysToStorage(updatedKeys);
-    toast({
-      title: 'API Key Deleted',
-      description: 'The key has been permanently removed.',
-      variant: 'destructive',
-    });
+  const deleteKey = async (name: string) => {
+    if (!db || retailerId === 'unknown') return;
+    try {
+        // In a real app, this would also delete from Secret Manager via a flow.
+        // For the pilot, we remove the reference from Firestore.
+        const ref = doc(db, 'retailerIntegrations', retailerId);
+        await setDoc(ref, { [name]: null }, { merge: true });
+        toast({ title: 'Integration Removed', description: `Disconnected ${name}.`, variant: 'destructive' });
+    } catch (e: any) {
+        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
   };
   
-  const maskKey = (key: string) => `${key.substring(0, 8)}...${key.substring(key.length - 4)}`;
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg">
+      <div className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/20">
         <div className="flex-1 space-y-2">
-            <Label htmlFor="retailer-select">Select Retailer</Label>
-            <Select onValueChange={setSelectedRetailer} value={selectedRetailer}>
-                <SelectTrigger id="retailer-select">
-                    <SelectValue placeholder="Select a retailer to generate a key" />
-                </SelectTrigger>
-                <SelectContent>
-                    {retailers.length > 0 ? (
-                        retailers.map(r => <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>)
-                    ) : (
-                        <SelectItem value="none" disabled>No retailers found. Please add one first.</SelectItem>
-                    )}
-                </SelectContent>
-            </Select>
+            <Label htmlFor="service-name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">New Connection Name</Label>
+            <Input 
+                id="service-name" 
+                placeholder="e.g. Lightspeed POS" 
+                value={serviceName}
+                onChange={e => setServiceName(e.target.value)}
+                className="h-10 bg-background"
+            />
         </div>
         <div className="flex-shrink-0 self-end">
-            <Button onClick={generateApiKey} disabled={!selectedRetailer}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Generate New Key
+            <Button onClick={generateApiKey} disabled={!serviceName.trim() || isGenerating} className="h-10 font-bold uppercase text-[10px] tracking-widest">
+                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />} 
+                Authorize Connection
             </Button>
         </div>
       </div>
       
-      <div className="border rounded-md">
+      <div className="border rounded-md overflow-hidden bg-card">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Retailer</TableHead>
-              <TableHead>API Key</TableHead>
+          <TableHeader className="bg-muted/50">
+            <TableRow className="text-[10px] font-black uppercase tracking-widest">
+              <TableHead className="px-6">Service Integration</TableHead>
+              <TableHead>Secret Reference</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right px-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center h-24">Loading API keys...</TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="animate-spin mx-auto text-primary opacity-20" /></TableCell></TableRow>
             ) : apiKeys.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                  No API keys have been generated yet.
-                </TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground italic text-xs">No external systems connected.</TableCell></TableRow>
             ) : (
               apiKeys.map((apiKey) => (
-                <TableRow key={apiKey.id}>
-                  <TableCell className="font-medium">{apiKey.retailerName}</TableCell>
+                <TableRow key={apiKey.id} className="group">
+                  <TableCell className="font-bold px-6">{apiKey.serviceName}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                        <code className="font-mono text-sm">{maskKey(apiKey.key)}</code>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(apiKey.key)}>
-                           <Copy className="h-4 w-4" />
+                        <code className="font-mono text-[9px] text-muted-foreground truncate max-w-[200px]">{apiKey.key}</code>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => copyToClipboard(apiKey.key)}>
+                           <Copy className="h-3 w-3" />
                         </Button>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={apiKey.status === 'active' ? 'default' : 'destructive'}>
-                      {apiKey.status === 'active' ? (
-                        <CheckCircle className="mr-1 h-3 w-3" />
-                      ) : (
-                        <Ban className="mr-1 h-3 w-3" />
-                      )}
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[9px] font-black uppercase">
+                      <CheckCircle className="mr-1 h-2.5 w-2.5" />
                       {apiKey.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {new Date(apiKey.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                     {apiKey.status === 'active' ? (
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleKeyStatus(apiKey.id, 'revoked')}>
-                            <Ban className="h-4 w-4" />
-                            <span className="sr-only">Revoke</span>
-                         </Button>
-                     ) : (
-                         <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500" onClick={() => toggleKeyStatus(apiKey.id, 'active')}>
-                            <RotateCcw className="h-4 w-4" />
-                            <span className="sr-only">Re-activate</span>
-                        </Button>
-                     )}
-                    
+                  <TableCell className="text-right px-6">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
@@ -223,15 +187,15 @@ export default function ApiKeyManager() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogTitle>Revoke Integration?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the API key for <span className="font-semibold">{apiKey.retailerName}</span>.
+                            This will disconnect <span className="font-bold">{apiKey.serviceName}</span>. Any data sync dependent on this key will fail.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteKey(apiKey.id)} className="bg-destructive hover:bg-destructive/90">
-                            Yes, delete key
+                          <AlertDialogAction onClick={() => deleteKey(apiKey.serviceName)} className="bg-destructive hover:bg-destructive/90 font-bold uppercase text-[10px] tracking-widest">
+                            Confirm Revocation
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

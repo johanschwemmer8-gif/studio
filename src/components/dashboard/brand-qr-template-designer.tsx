@@ -25,6 +25,7 @@ import { saveQrTemplate } from '@/ai/flows/save-qr-template';
 import Image from 'next/image';
 import { Textarea } from '../ui/textarea';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
 
 const templateDesignerSchema = z.object({
   brandId: z.string().min(1, 'Brand is required'),
@@ -91,7 +92,7 @@ function LivePreview({ settings }: { settings: Partial<TemplateDesignerValues> }
       case 'top-left-rounded': return { borderRadius: '1.5rem 0.25rem 0.25rem 0.25rem' };
       case 'top-right-rounded': return { borderRadius: '0.25rem 1.5rem 0.25rem 0.25rem' };
       case 'bottom-left-rounded': return { borderRadius: '0.25rem 0.25rem 0.25rem 1.5rem' };
-      case 'bottom-right-rounded': return { borderRadius: '0.25rem 0.25rem 1.5rem 0.25rem' };
+      case 'bottom-right-rounded': return { borderRadius: '0.25rem 1.5rem 0.25rem 0.25rem' };
       case 'diamond': return { clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' };
       case 'heart': return { clipPath: 'path("M 96 40 C 96 21 81 6 64 6 C 53 6 44 11 38 19 L 32 28 L 26 19 C 20 11 11 6 0 6 C -17 6 -32 21 -32 40 C -32 68 -2 88 32 115 L 32 115 L 32 115 C 66 88 96 68 96 40 Z")' };
       case 'star': return { clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' };
@@ -172,13 +173,16 @@ export default function BrandQrTemplateDesigner({
   onSave,
   onCancel,
 }: BrandQrTemplateDesignerProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  const retailerId = user?.retailerId || 'unknown';
 
   const form = useForm<TemplateDesignerValues>({
     resolver: zodResolver(templateDesignerSchema),
     defaultValues: {
-      brandId: '',
+      brandId: retailerId,
       name: '',
       description: '',
       qrShape: 'square',
@@ -201,9 +205,7 @@ export default function BrandQrTemplateDesigner({
 
   useEffect(() => {
     if (templateId) {
-      // In a real app, fetch template data from Firestore
-      console.log(`Editing template: ${templateId}`);
-      // form.reset(fetchedTemplateData);
+      // Fetch logic for existing template...
     }
   }, [templateId, form]);
 
@@ -219,10 +221,13 @@ export default function BrandQrTemplateDesigner({
   };
 
   const onSubmit = async (data: TemplateDesignerValues) => {
+    if (retailerId === 'unknown') return;
     setIsLoading(true);
     try {
+      const idToken = await user?.getIdToken();
       const result = await saveQrTemplate({
-          retailerId: 'simulated-retailer-id',
+          idToken,
+          retailerId,
           name: data.name,
           description: data.description,
           defaults: data,
@@ -263,13 +268,8 @@ export default function BrandQrTemplateDesigner({
                     <div className="grid md:grid-cols-2 gap-4">
                         <Controller name="brandId" control={form.control} render={({ field }) => (
                             <CustomFormItem>
-                                <Label>Brand</Label>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger><SelectValue placeholder="Select a brand..." /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="simulated-retailer-id">My Brand</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Label>Brand ID (Authoritative)</Label>
+                                <Input value={retailerId} readOnly className="bg-muted font-mono text-xs" />
                             </CustomFormItem>
                         )}/>
                         <CustomFormItem>

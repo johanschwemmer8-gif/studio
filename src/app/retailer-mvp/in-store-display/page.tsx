@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp, doc, deleteDoc, updateDoc, where } from 'firebase/firestore';
 import DisplayManager from '@/components/dashboard/display-manager';
 import {
   Dialog,
@@ -38,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useAuth } from '@/context/auth-context';
 
 type ContentType = 'static_image' | 'dynamic_ai_prompt' | 'promotional_video' | 'product_showcase' | 'dynamic_content';
 
@@ -52,7 +53,7 @@ function LivePreview({ config }: { config: any }) {
   return (
     <Card className="sticky top-6">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Tv /> Live Preview</CardTitle>
+            <CardTitle>Live Preview</CardTitle>
             <CardDescription>This is what will be displayed on the in-store screen.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,7 +64,7 @@ function LivePreview({ config }: { config: any }) {
                 {config.type === 'dynamic_ai_prompt' && (
                     <div className="space-y-4">
                         <Sparkles className="h-12 w-12 mx-auto text-accent" />
-                        <h3 className="text-xl font-bold">Dynamic AI Content</h3>
+                        <h3 className="text-xl font-bold">AI Powered Display</h3>
                         <p className="text-sm text-muted-foreground italic">"{config.prompt}"</p>
                     </div>
                 )}
@@ -93,6 +94,7 @@ function LivePreview({ config }: { config: any }) {
 
 
 export default function InStoreDisplayPage() {
+  const { user } = useAuth();
   const [contentType, setContentType] = useState<ContentType>('dynamic_ai_prompt');
   const [config, setConfig] = useState<any>({type: 'dynamic_ai_prompt', prompt: 'Highlight today\'s best deals.'});
   const [configName, setConfigName] = useState('');
@@ -103,13 +105,18 @@ export default function InStoreDisplayPage() {
   const [inStoreConfigs, setInStoreConfigs] = useState<InStoreConfig[]>([]);
   const [loadingConfigs, setLoadingConfigs] = useState(true);
 
+  const retailerId = user?.retailerId || 'unknown';
+
   useEffect(() => {
-    if (!db) {
-        toast({ title: 'Error', description: 'Firebase connection not available.', variant: 'destructive'});
+    if (!db || retailerId === 'unknown') {
         setLoadingConfigs(false);
         return;
     }
-    const q = query(collection(db, 'inStoreConfigs'), orderBy('lastUpdated', 'desc'));
+    const q = query(
+        collection(db, 'inStoreConfigs'), 
+        where('retailerId', '==', retailerId),
+        orderBy('lastUpdated', 'desc')
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const configsData: InStoreConfig[] = [];
         snapshot.forEach(doc => {
@@ -123,7 +130,7 @@ export default function InStoreDisplayPage() {
         setLoadingConfigs(false);
     });
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, retailerId]);
 
 
   const handleContentTypeChange = (value: ContentType) => {
@@ -135,21 +142,10 @@ export default function InStoreDisplayPage() {
     setConfig((prev: any) => ({ ...prev, [key]: value }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-          handleConfigChange('imageUrl', reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
      event.preventDefault();
-     if (!db) {
-        toast({ title: 'Error', description: 'Firestore is not initialized.', variant: 'destructive'});
+     if (!db || retailerId === 'unknown') {
+        toast({ title: 'Error', description: 'Handshake with identity layer failed.', variant: 'destructive'});
         return;
     }
     if (!configName.trim()) {
@@ -160,7 +156,7 @@ export default function InStoreDisplayPage() {
     setIsSaving(true);
     try {
         await addDoc(collection(db, 'inStoreConfigs'), {
-            retailerId: 'ret_123xyz', // In real app, get this from auth
+            retailerId: retailerId,
             configId: `config_${Date.now()}`,
             configName: configName,
             contentSlot: config,
@@ -169,7 +165,7 @@ export default function InStoreDisplayPage() {
         });
         toast({
             title: "Configuration Saved!",
-            description: `"${configName}" has been saved.`,
+            description: `"${configName}" has been saved to the cloud.`,
         });
         setIsConfigModalOpen(false);
         setConfigName('');
@@ -206,21 +202,23 @@ export default function InStoreDisplayPage() {
   return (
     <div className="space-y-8">
         <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-2">In-Store Experience</h2>
-            <p className="text-muted-foreground max-w-3xl">
-                Manage the content displayed on your in-store digital screens.
+            <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">In-Store Experience</h2>
+            <p className="text-muted-foreground max-w-3xl text-sm">
+                Manage the content and intelligence displayed on your in-store digital screens.
             </p>
         </div>
 
-        <Card>
-            <CardHeader className="flex flex-row justify-between items-start">
+        <Card className="border-primary/10 shadow-lg">
+            <CardHeader className="flex flex-col sm:flex-row justify-between items-start border-b bg-muted/30">
                 <div>
-                    <CardTitle>Content Configurations</CardTitle>
-                    <CardDescription>Manage the library of content to be shown on your displays.</CardDescription>
+                    <CardTitle className="text-lg">Content Configurations</CardTitle>
+                    <CardDescription className="text-xs">Library of content and AI prompts for your store network.</CardDescription>
                 </div>
                 <Dialog open={isConfigModalOpen} onOpenChange={setIsConfigModalOpen}>
                     <DialogTrigger asChild>
-                         <Button><PlusCircle className="mr-2"/> Create New Configuration</Button>
+                         <Button className="mt-4 sm:mt-0 font-bold uppercase text-[10px] tracking-widest gap-2">
+                            <PlusCircle className="h-4 w-4"/> New Configuration
+                        </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl grid-rows-[auto,1fr] p-0 max-h-[90vh]">
                          <DialogHeader className="p-6 pb-0">
@@ -231,14 +229,14 @@ export default function InStoreDisplayPage() {
                             <div className="md:col-span-2 space-y-6">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Configuration Details</CardTitle>
+                                        <CardTitle className="text-base">Identity</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="space-y-2">
-                                            <Label htmlFor="configName" className="font-semibold">Configuration Name</Label>
+                                            <Label htmlFor="configName" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Configuration Name</Label>
                                             <Input 
                                                 id="configName"
-                                                placeholder="e.g., 'Summer Sale Welcome Screen'"
+                                                placeholder="e.g., Summer Sale Welcome"
                                                 value={configName}
                                                 onChange={e => setConfigName(e.target.value)}
                                                 required
@@ -248,11 +246,11 @@ export default function InStoreDisplayPage() {
                                 </Card>
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Content Setup</CardTitle>
+                                        <CardTitle className="text-base">Intelligence & Content</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         <div>
-                                            <Label htmlFor="content-type">Content Type</Label>
+                                            <Label htmlFor="content-type" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</Label>
                                             <Select onValueChange={handleContentTypeChange} value={contentType}>
                                                 <SelectTrigger id="content-type"><SelectValue placeholder="Select a content type" /></SelectTrigger>
                                                 <SelectContent>
@@ -267,30 +265,30 @@ export default function InStoreDisplayPage() {
                                         
                                         {contentType === 'dynamic_ai_prompt' && (
                                             <div className="space-y-2">
-                                                <Label htmlFor="ai-prompt">AI Prompt</Label>
+                                                <Label htmlFor="ai-prompt" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AI Prompt Instructions</Label>
                                                 <Textarea id="ai-prompt" placeholder="e.g., 'Show a welcome message and highlight products on sale.'" value={config.prompt || ''} onChange={e => handleConfigChange('prompt', e.target.value)} />
                                             </div>
                                         )}
                                         {contentType === 'static_image' && (
                                              <div className="space-y-2">
-                                                <Label htmlFor="image-upload">Image URL</Label>
-                                                <Input id="image-upload" type="text" placeholder="https://example.com/image.png" onChange={e => handleConfigChange('imageUrl', e.target.value)} />
+                                                <Label htmlFor="image-upload" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Image URL</Label>
+                                                <Input id="image-upload" type="text" placeholder="https://..." onChange={e => handleConfigChange('imageUrl', e.target.value)} />
                                             </div>
                                         )}
                                         {contentType === 'promotional_video' && (
                                              <div className="space-y-4">
-                                                <div className="space-y-2"><Label htmlFor="video-headline">Headline</Label><Input id="video-headline" placeholder="e.g., 'Unmissable Summer Deals!'" value={config.videoHeadline || ''} onChange={e => handleConfigChange('videoHeadline', e.target.value)} /></div>
-                                                <div className="space-y-2"><Label htmlFor="video-url">Video URL</Label><Input id="video-url" placeholder="https://example.com/video.mp4" value={config.videoUrl || ''} onChange={e => handleConfigChange('videoUrl', e.target.value)} /></div>
+                                                <div className="space-y-2"><Label htmlFor="video-headline" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Headline</Label><Input id="video-headline" value={config.videoHeadline || ''} onChange={e => handleConfigChange('videoHeadline', e.target.value)} /></div>
+                                                <div className="space-y-2"><Label htmlFor="video-url" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Video URL</Label><Input id="video-url" value={config.videoUrl || ''} onChange={e => handleConfigChange('videoUrl', e.target.value)} /></div>
                                             </div>
                                         )}
                                         {contentType === 'product_showcase' && (
-                                            <div className="space-y-2"><Label htmlFor="product-sku">Product SKU</Label><Input id="product-sku" placeholder="Enter product SKU to showcase" value={config.productSku || ''} onChange={e => handleConfigChange('productSku', e.target.value)} /></div>
+                                            <div className="space-y-2"><Label htmlFor="product-sku" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product Barcode/SKU</Label><Input id="product-sku" value={config.productSku || ''} onChange={e => handleConfigChange('productSku', e.target.value)} /></div>
                                         )}
                                         {contentType === 'dynamic_content' && (
                                             <div className="space-y-2">
-                                                <Label htmlFor="dynamic-type">Dynamic Content Type</Label>
+                                                <Label htmlFor="dynamic-type" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Source</Label>
                                                 <Select onValueChange={(value) => handleConfigChange('dynamicType', value)} value={config.dynamicType}>
-                                                    <SelectTrigger id="dynamic-type"><SelectValue placeholder="Select a dynamic type" /></SelectTrigger>
+                                                    <SelectTrigger id="dynamic-type"><SelectValue placeholder="Select source..." /></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="top_selling_products">Top Selling Products</SelectItem>
                                                         <SelectItem value="low_inventory_items">Low Inventory Items</SelectItem>
@@ -304,10 +302,9 @@ export default function InStoreDisplayPage() {
                             <div className="md:col-span-1">
                                 <LivePreview config={config} />
                             </div>
-                            <DialogFooter className="col-span-full">
-                                <Button type="submit" size="lg" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                    <Save className="mr-2 h-4 w-4"/>
+                            <DialogFooter className="col-span-full border-t p-6">
+                                <Button type="submit" size="lg" disabled={isSaving} className="w-full font-black uppercase text-xs tracking-widest gap-2">
+                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}
                                     Save Configuration
                                 </Button>
                             </DialogFooter>
@@ -315,40 +312,43 @@ export default function InStoreDisplayPage() {
                     </DialogContent>
                 </Dialog>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
                  <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Configuration Name</TableHead>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow className="text-[10px] font-black uppercase tracking-widest">
+                            <TableHead className="px-6">Name</TableHead>
                             <TableHead>Type</TableHead>
                             <TableHead>Last Updated</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead className="text-right px-6">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loadingConfigs ? (
-                            <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                            <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto text-primary opacity-20" /></TableCell></TableRow>
                         ) : inStoreConfigs.length === 0 ? (
-                            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No configurations created yet.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground italic text-xs">No configurations created.</TableCell></TableRow>
                         ) : (
                             inStoreConfigs.map(cfg => (
-                                <TableRow key={cfg.id}>
-                                    <TableCell className="font-medium">{cfg.configName}</TableCell>
-                                    <TableCell className="capitalize text-muted-foreground">{cfg.contentSlot?.type?.replace(/_/g, ' ')}</TableCell>
-                                    <TableCell>{cfg.lastUpdated ? new Date(cfg.lastUpdated.toDate()).toLocaleString() : 'N/A'}</TableCell>
+                                <TableRow key={cfg.id} className="group transition-colors">
+                                    <TableCell className="font-bold px-6">{cfg.configName}</TableCell>
+                                    <TableCell className="capitalize text-[10px] font-bold text-muted-foreground uppercase">{cfg.contentSlot?.type?.replace(/_/g, ' ')}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{cfg.lastUpdated ? new Date(cfg.lastUpdated.toDate()).toLocaleDateString() : 'N/A'}</TableCell>
                                     <TableCell>
                                         <Button 
                                             size="sm" 
-                                            variant={cfg.contentSlot?.isActive ? "secondary" : "outline"}
-                                            onClick={() => handleToggleActive(cfg.id, cfg.contentSlot?.isActive || false)}
+                                            variant={cfg.isActive ? "secondary" : "outline"}
+                                            className="text-[9px] font-black uppercase tracking-widest h-7"
+                                            onClick={() => handleToggleActive(cfg.id, cfg.isActive || false)}
                                         >
-                                            {cfg.contentSlot?.isActive ? "Active" : "Inactive"}
+                                            {cfg.isActive ? "Active" : "Inactive"}
                                         </Button>
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteConfig(cfg.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    <TableCell className="text-right px-6">
+                                        <div className="flex justify-end gap-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteConfig(cfg.id)}><Trash2 className="h-4 w-4" /></Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -361,9 +361,9 @@ export default function InStoreDisplayPage() {
         <Separator />
         
         <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-2">Live Display Status</h2>
-            <p className="text-muted-foreground max-w-3xl">
-                Monitor the real-time status of all registered in-store display devices.
+            <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">Live Display Fleet</h2>
+            <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
+                Monitor real-time health and heartbeat logs for your physical in-store hardware.
             </p>
         </div>
         

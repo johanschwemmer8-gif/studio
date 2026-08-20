@@ -34,9 +34,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { cn } from '@/lib/utils';
 import { differenceInMinutes, formatDistanceToNow } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { remoteDisplayCommand } from '@/ai/flows/remote-display-command';
+import { useAuth } from '@/context/auth-context';
 
 type InStoreConfig = {
     id: string;
@@ -78,6 +79,7 @@ const getStatusInfo = (lastPing: string): { status: 'Online' | 'Offline' | 'Erro
 };
 
 export default function DisplayManager() {
+  const { user } = useAuth();
   const [displays, setDisplays] = useState<Display[]>([]);
   const [inStoreConfigs, setInStoreConfigs] = useState<InStoreConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,13 +91,16 @@ export default function DisplayManager() {
   const [sendingCommand, setSendingCommand] = useState<string | null>(null);
 
   const { toast } = useToast();
+  const retailerId = user?.retailerId || 'unknown';
   
   const allStores = storesByRegion.flatMap(region => region.stores.map(store => ({ ...store, province: region.province })));
 
   const fetchDisplays = async () => {
+    if (retailerId === 'unknown') return;
     setLoading(true);
     try {
-      const displayData = await getDisplays({ retailerId: 'ret_123xyz' });
+      const idToken = await user?.getIdToken();
+      const displayData = await getDisplays({ idToken, retailerId });
       setDisplays(displayData);
     } catch (error) {
       toast({ title: 'System Notice', description: 'Could not reach display infrastructure. Operating in local mode.', variant: 'destructive' });
@@ -106,9 +111,13 @@ export default function DisplayManager() {
 
   useEffect(() => {
     fetchDisplays();
-    if (!db) return;
+    if (!db || retailerId === 'unknown') return;
 
-    const q = query(collection(db, 'inStoreConfigs'), orderBy('lastUpdated', 'desc'));
+    const q = query(
+        collection(db, 'inStoreConfigs'), 
+        where('retailerId', '==', retailerId),
+        orderBy('lastUpdated', 'desc')
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const configsData: InStoreConfig[] = [];
         snapshot.forEach(doc => {
@@ -118,7 +127,7 @@ export default function DisplayManager() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, retailerId, user]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -129,13 +138,15 @@ export default function DisplayManager() {
   
   const handleRegisterDisplay = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (retailerId === 'unknown') return;
     setIsRegistering(true);
     const formData = new FormData(event.currentTarget);
     const storeCode = formData.get('storeId') as string;
     const storeName = allStores.find(s => s.code.toString() === storeCode)?.name || 'Unknown Store';
 
     try {
-        const result = await registerDisplay({ retailerId: 'ret_123xyz', storeId: storeName });
+        const idToken = await user?.getIdToken();
+        const result = await registerDisplay({ idToken, retailerId, storeId: storeName });
         if (result.success) {
             toast({
                 title: 'Display Registered',
@@ -161,7 +172,8 @@ export default function DisplayManager() {
   const handleConfigChange = async (displayId: string, newConfigId: string) => {
       setUpdatingConfigId(displayId);
       try {
-          const result = await assignDisplayConfig({ displayId, configId: newConfigId, retailerId: 'simulated-retailer-id' });
+          const idToken = await user?.getIdToken();
+          const result = await assignDisplayConfig({ idToken, displayId, configId: newConfigId, retailerId });
           if (result.success) {
               toast({ title: 'Success', description: 'Display configuration updated.'});
               fetchDisplays();
@@ -178,7 +190,8 @@ export default function DisplayManager() {
   const handleSendCommand = async (displayId: string, command: string) => {
     setSendingCommand(command);
     try {
-        const result = await remoteDisplayCommand({ displayId, command, retailerId: 'ret_123xyz' });
+        const idToken = await user?.getIdToken();
+        const result = await remoteDisplayCommand({ idToken, displayId, command, retailerId });
         if (result.success) {
             toast({ title: 'Command Sent', description: `Command '${command}' sent to display.`});
         } else {

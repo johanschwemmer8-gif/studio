@@ -35,7 +35,7 @@ import { db } from '@/lib/firebase';
 import { collection, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-// import { processSubscriptionPayment } from '@/ai/flows/process-subscription-payment';
+import { useAuth } from '@/context/auth-context';
 
 
 type Invoice = {
@@ -66,6 +66,7 @@ const subscriptionPlans = [
 ];
 
 export default function BillingPage() {
+  const { user } = useAuth();
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -73,11 +74,10 @@ export default function BillingPage() {
   const [isChangingPlan, setIsChangingPlan] = useState(false);
   const { toast } = useToast();
 
-  const retailerId = 'ret_123xyz'; // In a real app, get this from auth context
+  const retailerId = user?.retailerId || 'unknown';
 
   useEffect(() => {
-    if (!db) {
-        toast({ title: "Firebase not configured", description: "Please set up your Firebase connection.", variant: "destructive" });
+    if (!db || retailerId === 'unknown') {
         setLoading(false);
         return;
     }
@@ -87,7 +87,6 @@ export default function BillingPage() {
         if (doc.exists()) {
             setSubscription(doc.data() as Subscription);
         } else {
-            // In a real app, you might want to create a default subscription here
             console.warn(`Subscription for retailer ${retailerId} not found.`);
         }
     }, (error) => {
@@ -118,17 +117,9 @@ export default function BillingPage() {
   const handlePlanChange = async (newPlanId: string) => {
       setIsChangingPlan(true);
       try {
-        //   const { sessionId } = await processSubscriptionPayment({ planId: newPlanId, retailerId });
           toast({ title: "Redirecting to Checkout", description: "Stripe integration is currently disabled. This is a placeholder action." });
-          
-          // In a real application, you would use the Stripe.js library
-          // to redirect to the checkout session.
-          // For this simulation, we'll just log the ID.
-        //   console.log(`(Simulation) Redirecting to Stripe Checkout with session ID: ${sessionId}`);
-          console.log(`(Simulation) Would redirect to Stripe Checkout for plan ${newPlanId}`);
-          
+          console.log(`(Simulation) Would redirect to Stripe Checkout for plan ${newPlanId} for retailer ${retailerId}`);
           setIsPlanModalOpen(false);
-
       } catch(error: any) {
           toast({ title: "Plan Change Failed", description: error.message || 'Could not initiate plan change.', variant: "destructive" });
       } finally {
@@ -170,7 +161,7 @@ export default function BillingPage() {
                     <p className="text-3xl font-bold">{currentPlan.price}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
                 </>
              ) : (
-                <p className="text-muted-foreground">No subscription data found.</p>
+                <p className="text-muted-foreground text-sm italic">Initializing subscription record...</p>
              )}
           </CardContent>
           <CardFooter>
@@ -185,19 +176,19 @@ export default function BillingPage() {
                     </DialogHeader>
                     <div className="grid md:grid-cols-3 gap-6 py-4">
                         {subscriptionPlans.map(plan => (
-                            <Card key={plan.name} className={plan.name === currentPlan.name ? 'border-primary ring-2 ring-primary' : ''}>
+                            <Card key={plan.name} className={plan.id === currentPlan.id ? 'border-primary ring-2 ring-primary' : ''}>
                                 <CardHeader>
-                                    <CardTitle className="flex items-center justify-between">
+                                    <CardTitle className="flex items-center justify-between text-base">
                                         {plan.name}
-                                        {plan.name === currentPlan.name && <Star className="h-5 w-5 text-primary" />}
+                                        {plan.id === currentPlan.id && <Star className="h-5 w-5 text-primary" />}
                                     </CardTitle>
                                     <p className="text-2xl font-bold">{plan.price}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
                                 </CardHeader>
                                 <CardContent>
-                                    <ul className="space-y-2 text-sm text-muted-foreground">
+                                    <ul className="space-y-2 text-xs text-muted-foreground">
                                         {plan.features.map(feature => (
                                             <li key={feature} className="flex items-center gap-2">
-                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                                <CheckCircle className="h-3 w-3 text-green-500" />
                                                 {feature}
                                             </li>
                                         ))}
@@ -205,12 +196,12 @@ export default function BillingPage() {
                                 </CardContent>
                                 <CardFooter>
                                     <Button 
-                                        className="w-full" 
-                                        disabled={plan.name === currentPlan.name || isChangingPlan} 
+                                        className="w-full text-xs font-bold uppercase tracking-widest" 
+                                        disabled={plan.id === currentPlan.id || isChangingPlan} 
                                         onClick={() => handlePlanChange(plan.id)}
                                     >
                                         {isChangingPlan && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        {plan.name === currentPlan.name ? 'Current Plan' : 'Select Plan'}
+                                        {plan.id === currentPlan.id ? 'Current Plan' : 'Select Plan'}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -236,7 +227,7 @@ export default function BillingPage() {
                         </div>
                     </div>
                  ) : (
-                     <p className="text-muted-foreground">No payment method on file.</p>
+                     <p className="text-muted-foreground text-sm italic">No payment method on file.</p>
                  )}
             </CardContent>
              <CardFooter>
@@ -267,22 +258,22 @@ export default function BillingPage() {
               {loading ? (
                   <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
               ) : invoices.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No invoices found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground italic">No invoices generated yet.</TableCell></TableRow>
               ) : (
                 invoices.map((invoice) => (
                     <TableRow key={invoice.id}>
-                    <TableCell className="font-mono">{invoice.invoiceId}</TableCell>
+                    <TableCell className="font-mono text-xs">{invoice.invoiceId}</TableCell>
                     <TableCell>{new Date(invoice.date.toDate()).toLocaleDateString()}</TableCell>
                     <TableCell>R{invoice.amount.toFixed(2)}</TableCell>
                     <TableCell>
-                        <Badge variant={invoice.status === 'Paid' ? 'default' : 'destructive'} className={invoice.status === 'Paid' ? "bg-green-500/20 text-green-700" : ""}>
+                        <Badge variant={invoice.status === 'Paid' ? 'default' : 'destructive'} className={invoice.status === 'Paid' ? "bg-green-500/10 text-green-700 border-green-200" : ""}>
                         {invoice.status}
                         </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                        <Button variant="outline" size="sm" disabled={!invoice.pdfUrl}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download PDF
+                        <Button variant="outline" size="sm" disabled={!invoice.pdfUrl} className="text-xs">
+                        <Download className="mr-2 h-3.5 w-3.5" />
+                        PDF
                         </Button>
                     </TableCell>
                     </TableRow>

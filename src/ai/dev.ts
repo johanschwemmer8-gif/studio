@@ -1,3 +1,4 @@
+
 import { config } from 'dotenv';
 config();
 
@@ -32,6 +33,7 @@ import '@/ai/flows/assign-display-config.ts';
 import '@/ai/flows/get-executive-roi-metrics.ts';
 import '@/ai/flows/save-qr-campaign-draft.ts';
 import '@/ai/flows/assign-user-claims.ts';
+import '@/ai/flows/reset-test-retailer.ts';
 import { seedBillingData } from '@/lib/seed-billing';
 
 // Seed data on startup

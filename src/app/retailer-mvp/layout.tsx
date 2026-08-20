@@ -10,10 +10,14 @@ import {
 import RetailerSidebar from '@/components/dashboard/retailer-sidebar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FlaskConical, ShieldCheck } from 'lucide-react';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
+import { useAuth } from '@/context/auth-context';
+import { Badge } from '@/components/ui/badge';
+
+const TEST_RETAILER_ID = 'interact-test-tenant';
 
 function SidebarLogo() {
     const { logoUrl, logoWidth } = useTheme();
@@ -31,7 +35,7 @@ function SidebarLogo() {
                 />
             ) : (
                  <div className="w-32 h-12 bg-muted rounded-md flex items-center justify-center">
-                    <span className="text-sm text-muted-foreground">Logo</span>
+                    <span className="text-sm text-muted-foreground font-bold">iNteract</span>
                 </div>
             )}
         </Link>
@@ -43,29 +47,46 @@ function RetailerMvpLayoutContent({
 }: {
   children: React.ReactNode;
 }) {
+    const { user } = useAuth();
+    const isTestEnvironment = user?.retailerId === TEST_RETAILER_ID;
+
     return (
         <SidebarProvider>
             <RetailerSidebar>
                 <SidebarHeader>
-                    <div className="p-2">
+                    <div className="p-2 border-b">
                         <SidebarLogo />
+                        {isTestEnvironment && (
+                            <div className="mt-2 px-2">
+                                <Badge className="w-full justify-center gap-1.5 bg-accent text-accent-foreground border-none font-black uppercase text-[9px] tracking-widest py-1 animate-pulse">
+                                    <FlaskConical className="h-3 w-3" />
+                                    Test Environment
+                                </Badge>
+                            </div>
+                        )}
                     </div>
                 </SidebarHeader>
             </RetailerSidebar>
             <SidebarInset>
-                <header className="flex items-center justify-between p-4 border-b bg-card h-16 gap-4">
+                <header className="flex items-center justify-between p-4 border-b bg-card h-16 gap-4 sticky top-0 z-50">
                 <div className="flex items-center gap-4">
                     <SidebarTrigger />
-                    <h1 className="text-xl font-semibold whitespace-nowrap">Retailer Dashboard</h1>
+                    <h1 className="text-xl font-bold whitespace-nowrap tracking-tight">Retailer Dashboard</h1>
                 </div>
                 <div className="flex flex-1 items-center justify-center">
                     <SearchBar />
                 </div>
+                {isTestEnvironment && (
+                    <div className="hidden md:flex items-center gap-2 px-4 py-1.5 bg-accent/10 border border-accent/20 rounded-full">
+                         <ShieldCheck className="h-3.5 w-3.5 text-accent-foreground" />
+                         <span className="text-[10px] font-black uppercase tracking-widest text-accent-foreground">Verified Test Mode Active</span>
+                    </div>
+                )}
                 </header>
                 <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">{children}</main>
                 <footer className="p-4 text-center text-xs text-muted-foreground border-t">
                     <div className="flex items-center justify-center gap-2">
-                        <span>Powered by iNteract AOE. Made in South Africa.</span>
+                        <span>Powered by iNteract AOE. Persistent Retail Intelligence.</span>
                     </div>
                 </footer>
             </SidebarInset>

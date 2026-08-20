@@ -1,4 +1,3 @@
-
 'use server';
 
 // This file exports all the Genkit flows for easy access from the client.
@@ -41,6 +40,7 @@ import { attributeTransactions } from './attribute-transactions';
 import { getDecisionJourneyIntelligence } from './decision-journey-intelligence';
 import { assignUserClaims } from './assign-user-claims';
 import { resetTestRetailer } from './reset-test-retailer';
+import { seedTestRetailerDemo } from './seed-test-retailer-demo';
 
 export {
     analyzeBehavioralInsights,
@@ -78,6 +78,7 @@ export {
     getDecisionJourneyIntelligence,
     assignUserClaims,
     resetTestRetailer,
+    seedTestRetailerDemo,
 };
 
 export type {

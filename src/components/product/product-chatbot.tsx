@@ -54,13 +54,11 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // IDEMPOTENCY GUARD: Fail fast if already processing or input is empty
     if (!input.trim() || isPending) return;
 
     const userText = input.trim();
     const newMessages: ChatMessage[] = [...messages, { role: 'user', content: userText }];
     
-    // Optimistically update UI
     setMessages(newMessages);
     setInput('');
 
@@ -77,7 +75,6 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
           setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
 
           if (db && sessionId) {
-              // 1. Log Conversation History
               const conversationId = `convo_${Date.now()}`;
               setDoc(doc(db, 'ai_conversations', conversationId), {
                   conversationId,
@@ -88,10 +85,8 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   shopperContext: result.shopperContext,
                   timestamp: serverTimestamp(),
                   aiModel: 'gemini-2.5-flash',
-                  ariVersion: '1.5.0'
               }).catch(() => {});
 
-              // 2. Log Recommendation Events
               if (result.rationale && result.rationale.confidence !== 'NONE') {
                   const recId = `rec_${Date.now()}`;
                   setDoc(doc(db, 'events', recId), {
@@ -104,7 +99,6 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                   }).catch(() => {});
               }
 
-              // 3. HARDENED: Record Signals with server-side consent check
               const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
               
               if (hasConsent && result.signals && result.signals.length > 0) {
@@ -123,7 +117,6 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                           metadata: {
                               ...signal,
                               sourceMessage: "[PII REDACTED]",
-                              ariVersion: '1.5.0'
                           }
                       }).catch(() => {});
                   });

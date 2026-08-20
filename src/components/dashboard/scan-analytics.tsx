@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { BarChart2, UserCheck, TrendingUp, Activity, Loader2, Sparkles } from 'lucide-react';
+import { BarChart2, UserCheck, TrendingUp, Activity, Loader2, Sparkles, QrCode } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -47,7 +47,6 @@ export default function ScanAnalytics() {
     if (!user?.retailerId || !db) return;
 
     setLoading(true);
-    // Real-time listener for the last 1000 events belonging to this retailer
     const q = query(
         collection(db, 'events'),
         where('retailerId', '==', user.retailerId),
@@ -85,12 +84,10 @@ export default function ScanAnalytics() {
       );
   }
 
-  // AGGREGATION LOGIC (Fact-First)
   const sessionIds = new Set(events.map(e => e.sessionId));
   const uniqueSessions = sessionIds.size;
   const totalEvents = events.length;
   
-  // Aggregate GTIN Popularity (Unique Sessions per GTIN)
   const sessionsByGtin: Record<string, { sessions: Set<string>, campaignId: string }> = {};
   events.forEach(event => {
       const gtin = event.gtin || 'Unknown';
@@ -154,30 +151,34 @@ export default function ScanAnalytics() {
                     Product Sentiment (Unique Sessions)
                 </h3>
                 <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
-                    <Table>
-                        <TableHeader className="bg-muted/50">
-                            <TableRow>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest">Global Identifier (GTIN-14)</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase tracking-widest">Campaign Reference</TableHead>
-                                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">True Reach</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {topEngagedProducts.length === 0 ? (
+                    {topEngagedProducts.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center gap-4 bg-muted/10">
+                            <QrCode className="h-12 w-12 text-muted-foreground/20" />
+                            <div className="space-y-1">
+                                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Waiting for your first scan</p>
+                                <p className="text-[10px] text-muted-foreground italic px-8">Physical shopper interactions will appear here in real-time as they occur in-store.</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader className="bg-muted/50">
                                 <TableRow>
-                                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground italic text-xs uppercase tracking-widest opacity-50">
-                                        Initializing Intelligence stream...
-                                    </TableCell>
+                                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Global Identifier (GTIN-14)</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Campaign Reference</TableHead>
+                                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">True Reach</TableHead>
                                 </TableRow>
-                            ) : topEngagedProducts.map((p) => (
-                            <TableRow key={p.gtin} className="group hover:bg-muted/30 transition-colors">
-                                <TableCell className="font-mono text-xs font-bold text-primary">{p.gtin}</TableCell>
-                                <TableCell><Badge variant="outline" className="text-[10px] uppercase font-bold border-primary/20">{p.campaignId}</Badge></TableCell>
-                                <TableCell className="text-right font-black text-lg">{p.uniqueSessions}</TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {topEngagedProducts.map((p) => (
+                                <TableRow key={p.gtin} className="group hover:bg-muted/30 transition-colors">
+                                    <TableCell className="font-mono text-xs font-bold text-primary">{p.gtin}</TableCell>
+                                    <TableCell><Badge variant="outline" className="text-[10px] uppercase font-bold border-primary/20">{p.campaignId}</Badge></TableCell>
+                                    <TableCell className="text-right font-black text-lg">{p.uniqueSessions}</TableCell>
+                                </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                 </div>
                 <p className="text-[9px] italic text-muted-foreground">
                     * Metrics update in real-time. Factual aggregation is anchored to the session identifier.

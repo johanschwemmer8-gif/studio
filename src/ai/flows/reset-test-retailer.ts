@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview Privileged server flow to reset the iNteract Test Retailer environment.
- * AUDIT VERSION: 1.0.0
+ * AUDIT VERSION: 1.1.0 (Chunked & Recursive Cleanup)
  * SECURITY: Gated to Platform Admins. Hard-coded to interact-test-tenant.
  */
 
@@ -12,6 +12,7 @@ import { admin, getDb } from '@/lib/firebase-admin';
 import { verifyAuth } from '@/lib/auth-server';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
+const FIRESTORE_BATCH_LIMIT = 500;
 
 const ResetTestRetailerInputSchema = z.object({
   idToken: z.string().describe("Administrator's Firebase ID token."),
@@ -51,17 +52,29 @@ const resetTestRetailerFlow = ai.defineFlow(
         events: 0,
         transactions: 0,
         conversations: 0,
-        configs: 0
+        configs: 0,
+        templates: 0,
+        integrations: 0,
+        displays: 0
     };
 
-    try {
-        // 2. Define scoped deletion helper
-        const deleteByTenant = async (collectionName: string, countKey: string) => {
-            const snapshot = await db.collection(collectionName)
-                .where('retailerId', '==', TEST_RETAILER_ID)
-                .get();
+    /**
+     * Chunked Deletion Helper
+     * Handles large volumes (>500) and ensures atomic safety.
+     */
+    const deleteScopedRecords = async (collectionName: string, countKey: string, isSubcollection = false) => {
+        let hasMore = true;
+        while (hasMore) {
+            const query = isSubcollection 
+                ? db.collectionGroup(collectionName).where('retailerId', '==', TEST_RETAILER_ID)
+                : db.collection(collectionName).where('retailerId', '==', TEST_RETAILER_ID);
             
-            if (snapshot.empty) return;
+            const snapshot = await query.limit(FIRESTORE_BATCH_LIMIT).get();
+            
+            if (snapshot.empty) {
+                hasMore = false;
+                break;
+            }
 
             const batch = db.batch();
             snapshot.docs.forEach(doc => {
@@ -69,43 +82,61 @@ const resetTestRetailerFlow = ai.defineFlow(
                 counts[countKey]++;
             });
             await batch.commit();
-        };
-
-        // 3. Execute Reset Sequence
-        await deleteByTenant('products', 'products');
-        await deleteByTenant('bulkQrRequests', 'qrJobs');
-        await deleteByTenant('qrcodes', 'qrCodes');
-        await deleteByTenant('sessions', 'sessions');
-        await deleteByTenant('events', 'events');
-        await deleteByTenant('transactions', 'transactions');
-        await deleteByTenant('ai_conversations', 'conversations');
-
-        // Special handling for configurations (keyed by ID)
-        const configIds = [`${TEST_RETAILER_ID}_org`, `${TEST_RETAILER_ID}_brand`];
-        const configBatch = db.batch();
-        for (const cid of configIds) {
-            const docRef = db.collection('configurations').doc(cid);
-            const docSnap = await docRef.get();
-            if (docSnap.exists) {
-                configBatch.delete(docRef);
-                counts.configs++;
+            
+            if (snapshot.size < FIRESTORE_BATCH_LIMIT) {
+                hasMore = false;
             }
         }
-        await configBatch.commit();
+    };
 
-        // 4. Audit Log
+    try {
+        // 2. Execute Recursive Reset Sequence
+        // Operational Data
+        await deleteScopedRecords('products', 'products');
+        await deleteScopedRecords('bulkQrRequests', 'qrJobs');
+        await deleteScopedRecords('items', 'qrCodes', true); // Recursive cleanup of job items
+        await deleteScopedRecords('qrcodes', 'qrCodes');
+        await deleteScopedRecords('sessions', 'sessions');
+        await deleteScopedRecords('events', 'events');
+        await deleteScopedRecords('transactions', 'transactions');
+        await deleteScopedRecords('ai_conversations', 'conversations');
+        
+        // Configuration & Metadata
+        await deleteScopedRecords('qrTemplates', 'templates');
+        await deleteScopedRecords('displays', 'displays');
+
+        // Special handling for keyed documents
+        const specialDocs = [
+            { coll: 'configurations', id: `${TEST_RETAILER_ID}_org`, key: 'configs' },
+            { coll: 'configurations', id: `${TEST_RETAILER_ID}_brand`, key: 'configs' },
+            { coll: 'retailerIntegrations', id: TEST_RETAILER_ID, key: 'integrations' }
+        ];
+
+        const keyBatch = db.batch();
+        for (const item of specialDocs) {
+            const ref = db.collection(item.coll).doc(item.id);
+            const snap = await ref.get();
+            if (snap.exists) {
+                keyBatch.delete(ref);
+                counts[item.key]++;
+            }
+        }
+        await keyBatch.commit();
+
+        // 3. Audit Log
         await db.collection('auditLogs').add({
             action: 'TEST_RETAILER_RESET',
             targetRetailerId: TEST_RETAILER_ID,
             performedByUid: caller.uid,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             result: 'success',
-            deletedCounts: counts
+            deletedCounts: counts,
+            methodology: 'v1.1.0-chunked'
         });
 
         return {
             success: true,
-            message: `Test environment reset complete for ${TEST_RETAILER_ID}.`,
+            message: `Test environment reset complete. ${Object.values(counts).reduce((a, b) => a + b, 0)} records removed.`,
             counts
         };
 

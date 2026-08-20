@@ -1,22 +1,18 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow to regenerate a single QR code within a bulk request.
- *
- * - regenerateQrCode - A callable function to regenerate a specific QR code.
- * - RegenerateQrCodeInput - The input type for the flow.
- * - RegenerateQrCodeOutput - The return type for the flow.
+ * Hardened with server-side authorization and tenant isolation.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-// Re-usable QR generation logic
 const generateQrForItem = (item: any, requestData: any) => {
     const { qrCodeId } = item;
     const qrOptions = requestData.options || {};
@@ -24,8 +20,7 @@ const generateQrForItem = (item: any, requestData: any) => {
     const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
     const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
 
-    // Use the already existing redirectUrl from the item
-    const qrData = item.redirectUrl; 
+    const qrData = item.trackingUrl || `${process.env.NEXT_PUBLIC_BASE_URL || ''}/resolve/${qrCodeId}`; 
     const encodedQrData = encodeURIComponent(qrData);
 
     let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
@@ -40,17 +35,18 @@ const generateQrForItem = (item: any, requestData: any) => {
         status: 'DONE',
         storagePath: storagePath,
         signedUrl: generatedQrUrl,
-        checksum: '', // Placeholder for a real checksum/hash
+        checksum: '', 
         error: admin.firestore.FieldValue.delete(),
         regeneratedAt: admin.firestore.FieldValue.serverTimestamp(),
         regenerationCount: admin.firestore.FieldValue.increment(1),
     };
 };
 
-
 const RegenerateQrCodeInputSchema = z.object({
   requestId: z.string(),
   qrCodeId: z.string(),
+  idToken: z.string().describe("Firebase ID token for authorization."),
+  retailerId: z.string().describe("The retailer ID for tenant verification."),
 });
 export type RegenerateQrCodeInput = z.infer<typeof RegenerateQrCodeInputSchema>;
 
@@ -61,12 +57,9 @@ const RegenerateQrCodeOutputSchema = z.object({
 });
 export type RegenerateQrCodeOutput = z.infer<typeof RegenerateQrCodeOutputSchema>;
 
-
 export async function regenerateQrCode(input: RegenerateQrCodeInput): Promise<RegenerateQrCodeOutput> {
-  // In a real Firebase environment, you would check for App Check and Auth context here.
   return regenerateQrCodeFlow(input);
 }
-
 
 const regenerateQrCodeFlow = ai.defineFlow(
   {
@@ -74,24 +67,12 @@ const regenerateQrCodeFlow = ai.defineFlow(
     inputSchema: RegenerateQrCodeInputSchema,
     outputSchema: RegenerateQrCodeOutputSchema,
   },
-  async ({ requestId, qrCodeId }) => {
-    const db = admin.firestore();
+  async ({ requestId, qrCodeId, idToken, retailerId }) => {
+    // 1. Authorize & Resolve Authoritative Identity
+    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
+    const actor = await verifyAuth(idToken);
     
-    // In a real Firebase Callable Function, you'd get the auth context here.
-    // App Check would also be enforced by the Firebase Functions runtime.
-    //
-    // Example:
-    // if (!context.app) {
-    //   throw new functions.https.HttpsError('failed-precondition', 'The function must be called from an App Check verified app.');
-    // }
-    // if (!context.auth) { 
-    //   throw new functions.https.HttpsError('unauthenticated', 'Authentication required.'); 
-    // }
-    // const { uid, token } = context.auth;
-    // const callerRetailerId = token.retailerId; // From custom claims
-    const callerRetailerId = 'simulated-retailer-id'; // Placeholder for custom claim
-    const actor = 'simulated-user@example.com'; // Placeholder for auth context
-
+    const db = admin.firestore();
     const requestRef = db.collection('bulkQrRequests').doc(requestId);
     const itemRef = requestRef.collection('items').doc(qrCodeId);
 
@@ -107,9 +88,9 @@ const regenerateQrCodeFlow = ai.defineFlow(
     const requestData = requestDoc.data()!;
     const itemData = itemDoc.data()!;
 
-    // Authorization check
-    if (requestData.retailerId !== callerRetailerId) {
-      throw new Error('User is not authorized to regenerate codes for this request.');
+    // 2. Security Check: Enforce tenant isolation
+    if (requestData.retailerId !== authorizedRetailerId) {
+      throw new Error('Access Denied: You are not authorized to regenerate codes for this tenant.');
     }
 
     const updateData = generateQrForItem(itemData, requestData);
@@ -117,18 +98,14 @@ const regenerateQrCodeFlow = ai.defineFlow(
     const auditLogRef = db.collection('auditLogs').doc();
     const batch = db.batch();
 
-    // 1. Update the item document
     batch.update(itemRef, updateData);
 
-    // 2. Log the audit event
     batch.set(auditLogRef, {
         type: 'REGENERATE',
         requestId,
-        retailerId: requestData.retailerId,
+        retailerId: authorizedRetailerId,
         campaignId: requestData.campaignId,
-        actor,
-        ip: '127.0.0.1', // Placeholder from request context
-        userAgent: 'Simulated User Agent', // Placeholder from request context
+        actorUid: actor.uid,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         details: {
             qrCodeId: qrCodeId,
@@ -138,14 +115,12 @@ const regenerateQrCodeFlow = ai.defineFlow(
 
     await batch.commit();
     
-    // We need to re-fetch the document to get the server-generated timestamp
     const updatedItemDoc = await itemRef.get();
     const updatedData = updatedItemDoc.data()!;
 
     return {
       success: true,
       signedUrl: updatedData.signedUrl,
-      // Convert Firestore Timestamp to ISO string for serialization
       regeneratedAt: (updatedData.regeneratedAt as admin.firestore.Timestamp).toDate().toISOString(),
     };
   }

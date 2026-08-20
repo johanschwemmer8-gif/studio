@@ -1,11 +1,13 @@
 'use server';
 /**
  * @fileOverview A Genkit flow to save a bulk QR code generation request as a draft.
+ * Authenticated & Scoped to the caller's retailerId.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db, admin } from '@/lib/firebase-admin';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import { SubmitBulkQrRequestInputSchema } from './submit-bulk-qr-request';
 
 const SaveQrCampaignDraftOutputSchema = z.object({
@@ -26,17 +28,40 @@ const saveQrCampaignDraftFlow = ai.defineFlow(
     outputSchema: SaveQrCampaignDraftOutputSchema,
   },
   async (data) => {
-    // SIMULATION: Bypassing Firestore interaction to prevent auth errors.
-    console.log(`(Simulation) Draft QR request saved for campaign: ${data.campaignId}. The database call was skipped to avoid auth errors.`);
-    const mockRequestId = `sim_draft_${Date.now()}`;
+    // 1. Authorize & Resolve Identity
+    const authorizedRetailerId = await getAuthorizedRetailerId(data.idToken, data.retailerId);
     
-    // NOTE: Because this is a simulation, the saved job will NOT appear in the Request History list below.
-    // This is a temporary measure to avoid the "Could not refresh access token" error.
+    if (!db) {
+        throw new Error('Infrastructure Layer Unavailable.');
+    }
+
+    const requestRef = db.collection('bulkQrRequests').doc();
     
-    return { 
-        success: true, 
-        requestId: mockRequestId, 
-        message: "Campaign saved as draft (simulation)." 
-    };
+    try {
+        await requestRef.set({
+            retailerId: authorizedRetailerId,
+            brandId: data.brandId,
+            campaignId: data.campaignId,
+            productName: data.productName || 'Unnamed Product',
+            totalRequested: data.count,
+            status: 'DRAFT', 
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            options: data.options || {},
+            itemsDone: 0,
+            isGs1Compliant: true,
+            dataStatus: 'VERIFIED'
+        });
+
+        return { 
+            success: true, 
+            requestId: requestRef.id, 
+            message: "Campaign saved as draft in cloud." 
+        };
+
+    } catch (error: any) {
+        console.error(`[QR Management] Draft Persistence Failure:`, error.message);
+        throw new Error("Failed to save campaign draft.");
+    }
   }
 );

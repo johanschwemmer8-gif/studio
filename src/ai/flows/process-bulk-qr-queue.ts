@@ -1,9 +1,7 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow to process queued bulk QR code generation requests.
- *
- * - processBulkQrQueue - A flow that simulates a Cloud Function to process one request from the queue.
+ * Orchestrates background processing of scannable Digital Links.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,7 +12,6 @@ if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-// Output schema for the flow
 const ProcessBulkQrQueueOutputSchema = z.object({
   success: z.boolean(),
   message: z.string(),
@@ -24,7 +21,6 @@ const ProcessBulkQrQueueOutputSchema = z.object({
 });
 export type ProcessBulkQrQueueOutput = z.infer<typeof ProcessBulkQrQueueOutputSchema>;
 
-// The main exported function to be called
 export async function processBulkQrQueue(): Promise<ProcessBulkQrQueueOutput> {
   return processBulkQrQueueFlow();
 }
@@ -55,7 +51,6 @@ const generateQrForItem = (item: any, requestData: any) => {
         error: admin.firestore.FieldValue.delete(), 
     };
 };
-
 
 const processBulkQrQueueFlow = ai.defineFlow(
   {
@@ -102,7 +97,6 @@ const processBulkQrQueueFlow = ai.defineFlow(
                     const updateData = generateQrForItem(itemData, requestData);
                     batch.update(itemDoc.ref, updateData);
 
-                    // Mirror document to the master qrcodes collection
                     const qrMasterRef = db.collection('qrcodes').doc(itemData.qrCodeId);
                     batch.set(qrMasterRef, {
                         retailerId: requestData.retailerId,
@@ -139,10 +133,9 @@ const processBulkQrQueueFlow = ai.defineFlow(
         }
     }
     
-    // --- 2. Process ERRORED items in retry mode ---
+    // --- 2. Process ERRORED items in retry mode (Globally for all tenants) ---
     const erroredItemsQuery = db.collectionGroup('items')
                                 .where('status', '==', 'ERROR')
-                                .where('retailerId', '==', 'interact-test-tenant') // Scoped check example
                                 .where('retryCount', '<', 3)
                                 .limit(50);
                                 

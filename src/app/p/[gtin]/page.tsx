@@ -253,7 +253,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-3">
                             <div className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center shadow-sm"><Sparkles className="text-primary" /></div>
-                            <span className="font-black">Experience Intelligence</span>
+                            <span className="font-black">Expert Sommelier Activated</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">

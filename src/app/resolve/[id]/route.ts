@@ -7,8 +7,10 @@ if (!admin.apps.length) {
 }
 
 /**
- * ARCHITECTURAL FIREWALL:
- * This route is the strictly stateless gateway for GS1-aligned Identity Resolution.
+ * ARCHITECTURAL GATEWAY:
+ * This route is the central resolution point for all iNteract Digital Links.
+ * It prioritizes registered QR identifiers over stateless GS1 parsing to 
+ * support both standard and demonstration/test identifiers.
  */
 export async function GET(
   request: NextRequest,
@@ -17,22 +19,29 @@ export async function GET(
   const { id } = await params;
   const db = admin.firestore();
 
-  // 1. Stateless Identity Resolution
-  const identity = parseGS1(id);
-  if (!identity) {
-    return NextResponse.redirect(new URL('/error?code=invalid_identity', request.url));
-  }
-
-  const { gtin, batchNumber, serialNumber } = identity;
-
   try {
-    // 2. Resolve Retailer Identity from QR Registry
-    // If scanning a direct GS1 link, we may need a global product lookup
+    // 1. Resolve Identity from QR Registry First (Handles registered standard and demo IDs)
     const qrDoc = await db.collection('qrcodes').doc(id).get();
-    let resolvedRetailerId = 'unknown';
     
+    let gtin = '';
+    let batchNumber = '';
+    let serialNumber = '';
+    let resolvedRetailerId = 'unknown';
+
     if (qrDoc.exists) {
-        resolvedRetailerId = qrDoc.data()?.retailerId || 'unknown';
+        const qrData = qrDoc.data()!;
+        gtin = qrData.gtin || '';
+        resolvedRetailerId = qrData.retailerId || 'unknown';
+    } else {
+        // 2. Fallback to Stateless Identity Resolution (for direct GS1 strings)
+        const identity = parseGS1(id);
+        if (!identity) {
+            console.error(`[Resolver] Invalid identity format: ${id}`);
+            return NextResponse.redirect(new URL('/error?code=invalid_identity', request.url));
+        }
+        gtin = identity.gtin;
+        batchNumber = identity.batchNumber || '';
+        serialNumber = identity.serialNumber || '';
     }
 
     // 3. Initialize iNteract Intelligence Session (Anchors all future behavior)
@@ -48,6 +57,7 @@ export async function GET(
         shopperId: 'guest',
         startTime: admin.firestore.FieldValue.serverTimestamp(),
         entryGtin: gtin,
+        entryQrId: id,
         batchNumber,
         serialNumber,
         userAgent: request.headers.get('user-agent') || '',
@@ -65,7 +75,8 @@ export async function GET(
         metadata: {
             batchNumber,
             serialNumber,
-            source: "IDENTITY_RESOLVER"
+            source: "IDENTITY_RESOLVER",
+            qrId: id
         }
     });
 
@@ -78,8 +89,8 @@ export async function GET(
 
     return NextResponse.redirect(new URL(destination, request.url), 302);
 
-  } catch (error) {
-    console.error(`Identity hand-off failure for ${gtin}:`, error);
+  } catch (error: any) {
+    console.error(`[Resolver] Critical failure for ${id}:`, error.message);
     return NextResponse.redirect(new URL('/error?code=500', request.url));
   }
 }

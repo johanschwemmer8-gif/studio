@@ -156,7 +156,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     <div className="flex flex-col h-svh bg-background overflow-hidden">
       <header className="p-4 flex justify-center border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
-            <ShieldCheck className="h-3.5 w-3.5" /> Ari - Intelligence Active
+            <ShieldCheck className="h-3.5 w-3.5" /> Ari - Online
         </Badge>
       </header>
 

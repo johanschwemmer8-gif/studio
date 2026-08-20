@@ -32,11 +32,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-/**
- * RETAILER ROI DASHBOARD
- * VERSION: 1.5.0 (Audit Hardened & Non-Causal)
- * STATUS: Simulation labels strictly enforced for pilot phase.
- */
 export default function RoiPage() {
   const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [attributionReport, setAttributionReport] = useState<AttributionReport | null>(null);
@@ -58,7 +53,7 @@ export default function RoiPage() {
             setAttributionReport(attr);
         });
       } catch (e: any) {
-        setError(e.message || "Could not load factual metrics. Please check connectivity.");
+        setError(e.message || "Could not load metrics. Check your connection.");
       }
     };
     fetchInitialData();
@@ -70,16 +65,13 @@ export default function RoiPage() {
       if (metricsData) {
         setAnalysis(metricsData);
       } else {
-        setError("Intelligence stream is not available for analysis.");
+        setError("Intelligence stream is not available.");
       }
     });
   };
 
   const handleExport = (format: string) => {
-    toast({
-        title: `Generating Factual Report (${format})...`,
-        description: "Your session-based patterns are being prepared.",
-    });
+    toast({ title: `Generating Associated Sales Report (${format})...` });
   };
   
   const funnelData = metricsData ? {
@@ -93,29 +85,29 @@ export default function RoiPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black tracking-tight mb-2">
-            Ecosystem Patterns (v1.5.0)
+          <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">
+            Associated Sales Audit
           </h2>
           <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
-            Factual summaries of session-anchored activities and transactional co-occurrence. 
-            All financial indicators are currently based on <span className="font-bold text-primary italic">simulated transaction data</span>.
+            Factual summaries of sales and sessions associated with digital engagement.
+            Financial indicators are based on <span className="font-bold text-primary italic">simulated transaction data</span> for this pilot.
           </p>
         </div>
         <div className="flex gap-3">
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="gap-2 font-bold text-[10px] uppercase tracking-widest">
-                        <Download className="h-4 w-4" /> Export Report
+                        <Download className="h-4 w-4" /> Export Audit
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Download Summary</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Raw Session Events (CSV)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Associated Revenue</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Matched Journeys (CSV)</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing || !metricsData} className="gap-2 font-bold text-[10px] uppercase tracking-widest">
                 <Sparkles className="h-4 w-4 text-accent" />
-                Summarize Observations
+                Summarize Findings
             </Button>
         </div>
       </div>
@@ -123,16 +115,16 @@ export default function RoiPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Alert className="bg-primary/5 border-primary/20">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Attribution Integrity Guard</AlertTitle>
+            <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Grounded Evidence Guard</AlertTitle>
             <AlertDescription className="text-xs">
-            All financial summaries are based on <strong>verified session-level co-occurrence</strong>. No causal attribution is established.
+            These summaries are based on <strong>matched shopper journeys</strong>. No causal claim is established between chat and sale.
             </AlertDescription>
         </Alert>
         <Alert className="bg-yellow-50 border-yellow-200">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="text-[10px] font-black uppercase tracking-widest text-yellow-800">Launch Configuration Notice</AlertTitle>
+            <AlertTitle className="text-[10px] font-black uppercase tracking-widest text-yellow-800">Pilot Configuration</AlertTitle>
             <AlertDescription className="text-[10px] text-yellow-700">
-                This dashboard is using <strong>Simulated POS Data</strong>. Factual revenue uplift requires production ERP integration.
+                Using <strong>Simulated POS Data</strong>. Factual uplift tracking requires a live ERP connection.
             </AlertDescription>
         </Alert>
       </div>
@@ -147,7 +139,7 @@ export default function RoiPage() {
               <div className="text-3xl font-black">
                 {metricsData ? `R${metricsData.conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-primary-foreground/20" />}
               </div>
-              <p className="text-[10px] opacity-70 mt-2 italic">Total sales value associated with engaged sessions.</p>
+              <p className="text-[10px] opacity-70 mt-2 italic">Sales matched to digital engagement sessions.</p>
             </CardContent>
           </Card>
 
@@ -160,7 +152,7 @@ export default function RoiPage() {
               <div className="text-3xl font-black text-yellow-800">
                 {metricsData ? `R${metricsData.conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <Skeleton className="h-8 w-24 bg-yellow-200" />}
               </div>
-              <p className="text-[10px] text-yellow-600 mt-2 italic">Growth delta based on simulation baseline.</p>
+              <p className="text-[10px] text-yellow-600 mt-2 italic">Observed delta against the baseline.</p>
             </CardContent>
           </Card>
 
@@ -173,7 +165,7 @@ export default function RoiPage() {
               <div className="text-3xl font-black text-primary">
                 {metricsData ? `+${metricsData.conversion.salesUpliftPercentage.toFixed(1)}%` : <Skeleton className="h-8 w-20 bg-muted" />}
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2">Performance trend within engaged segments.</p>
+              <p className="text-[10px] text-muted-foreground mt-2">Conversion trend within engaged segments.</p>
             </CardContent>
           </Card>
       </div>
@@ -186,9 +178,9 @@ export default function RoiPage() {
                 <div>
                     <CardTitle className="text-lg font-black flex items-center gap-2">
                         <History className="h-5 w-5 text-primary" /> 
-                        Session Audit: Transaction Co-occurrence
+                        Activity Audit: Matched Journeys
                     </CardTitle>
-                    <CardDescription>Launch Ready Audit Trace: Temporal relationship between Ari and Checkout.</CardDescription>
+                    <CardDescription>Verified chronological relationship between digital engagement and checkout.</CardDescription>
                 </div>
                 <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-[9px] font-black uppercase tracking-widest px-3 py-1">
                     {attributionReport?.dataStatus || 'PENDING'} SOURCE
@@ -199,21 +191,21 @@ export default function RoiPage() {
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent border-b-2">
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Session ID</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Session</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest">Ari Involvement</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Observed Level</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Identity Status</TableHead>
-                        <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Timestamp</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Journey Stage</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Status</TableHead>
+                        <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Time</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isAttributing ? (
                          <TableRow><TableCell colSpan={5} className="h-24 text-center"><Loader2 className="animate-spin mx-auto h-6 w-6 text-muted-foreground" /></TableCell></TableRow>
                     ) : attributionReport?.records.length === 0 ? (
-                        <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No associations recorded in this window.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No matches recorded.</TableCell></TableRow>
                     ) : attributionReport?.records.map((record, i) => (
                         <TableRow key={i} className="group transition-colors">
-                            <TableCell className="font-mono text-[10px] text-muted-foreground">{record.sessionId.substring(0, 16)}...</TableCell>
+                            <TableCell className="font-mono text-[10px] text-muted-foreground">{record.sessionId.substring(0, 8)}...</TableCell>
                             <TableCell>
                                 {record.ariInteraction ? (
                                     <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] font-bold uppercase">YES</Badge>
@@ -225,7 +217,7 @@ export default function RoiPage() {
                                 </span>
                             </TableCell>
                             <TableCell>
-                                <Badge variant="outline" className="text-[8px] font-black border-primary/5 uppercase">Anonymous Session</Badge>
+                                <Badge variant="outline" className="text-[8px] font-black border-primary/5 uppercase">Anonymous</Badge>
                             </TableCell>
                             <TableCell className="text-right font-mono text-[10px] text-muted-foreground">
                                 {record.transactionTimestamp ? new Date(record.transactionTimestamp).toLocaleTimeString() : '---'}
@@ -235,9 +227,9 @@ export default function RoiPage() {
                 </TableBody>
             </Table>
             <div className="bg-muted/50 p-4 mt-6 rounded-lg border border-primary/5">
-                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Audit Methodology Note</p>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Audit Methodology</p>
                 <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                    * Associations are established strictly by matching Session IDs. "Observed Level" describes journey depth chronologically. No causal force is claimed for these transactions. Transaction data remains <span className="font-black text-primary">Simulated</span> for this launch configuration.
+                    * Results are calculated by matching session identifiers across digital and POS layers. Journey stages describe depth of interaction. Transaction data is currently <span className="font-black text-primary uppercase">Simulated</span>.
                 </p>
             </div>
         </CardContent>
@@ -260,20 +252,12 @@ export default function RoiPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-black">{attributionReport?.ariAssistedPurchases || 0}</div>
-                        <p className="text-[10px] text-muted-foreground mt-1">Confirmed transactions within Ari-active sessions.</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Confirmed transactions in engaged sessions.</p>
                     </CardContent>
                 </Card>
                 <TopProductsTable data={[]} />
             </div>
       </div>
-
-      <Separator />
-
-      <TimeBasedPerformanceChart 
-        data={[]} 
-        title="Infrastructure Adoption Trend"
-        description="Chronologically verified adoption patterns over time."
-      />
     </div>
   );
 }

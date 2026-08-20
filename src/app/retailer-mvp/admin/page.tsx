@@ -1,126 +1,55 @@
-
 'use client';
 
-import BrandSettingsForm from "@/components/dashboard/brand-settings-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import UserManagement from "@/components/dashboard/user-management";
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
-import { Slider } from '@/components/ui/slider';
-import { Save, Image as ImageIcon } from 'lucide-react';
-import { useTheme } from '@/context/theme-context';
+import { ExternalLink, Palette, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 
 export default function RetailerAdminPage() {
-    const { logoUrl, logoWidth, setLogoUrl, setLogoWidth } = useTheme();
-    const [logoPreview, setLogoPreview] = useState<string | null>(logoUrl);
-    const [widthPreview, setWidthPreview] = useState<number>(logoWidth);
-    const { toast } = useToast();
-
-    useEffect(() => {
-        setLogoPreview(logoUrl);
-        setWidthPreview(logoWidth);
-    }, [logoUrl, logoWidth]);
-
-
-    const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setLogoPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleSaveLogo = () => {
-        setLogoUrl(logoPreview);
-        setLogoWidth(widthPreview);
-        toast({
-            title: "Logo Saved",
-            description: "Your new logo and size settings have been saved."
-        });
-    };
-
     return (
         <div className="space-y-8">
             <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2">
-                    Retailer Admin Panel
+                <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">
+                    Admin Panel
                 </h2>
                 <p className="text-muted-foreground max-w-3xl">
-                    Manage users, brand identity, and settings specific to your organization.
+                    Manage your platform identity and organizational settings.
                 </p>
             </div>
             
-            <Card>
+            <Card className="border-accent border-2 bg-accent/5 shadow-xl">
                 <CardHeader>
-                    <CardTitle>MVP Logo Editor</CardTitle>
-                    <CardDescription>Manage the main logo for the MVP dashboard sidebar.</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="text-accent-foreground" />
+                        Authoritative Branding Hub
+                    </CardTitle>
+                    <CardDescription>
+                        Branding, logos, and shopper experiences are now managed centrally in the Brand & Experience hub.
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <div>
-                        <Label htmlFor="logo-upload-mvp">Platform Logo</Label>
-                        <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 p-4 border rounded-lg">
-                            <div className="flex-shrink-0 w-48 h-20 bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                                {logoPreview ? (
-                                    <Image 
-                                        src={logoPreview} 
-                                        alt="Logo Preview" 
-                                        width={widthPreview} 
-                                        height={widthPreview / (128/50)}
-                                        className="h-auto"
-                                        style={{ width: `${widthPreview}px` }}
-                                    />
-                                ) : (
-                                    <div className="text-xs text-muted-foreground flex flex-col items-center gap-1">
-                                        <ImageIcon className="h-6 w-6" />
-                                        <span>Logo Preview</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex-1 w-full space-y-4">
-                                <Input id="logo-upload-mvp" type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
-                                <div>
-                                    <Label htmlFor="logo-size-mvp">Logo Width: {widthPreview}px</Label>
-                                    <Slider
-                                        id="logo-size-mvp"
-                                        min={40}
-                                        max={240}
-                                        step={2}
-                                        value={[widthPreview]}
-                                        onValueChange={(value) => setWidthPreview(value[0])}
-                                    />
-                                </div>
-                                <p className="text-xs text-muted-foreground">Upload a .png, .jpg, or .svg file. Max size: 1MB.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <Button onClick={handleSaveLogo}>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Logo Settings
+                <CardContent className="space-y-4">
+                    <p className="text-sm leading-relaxed">
+                        To ensure your brand appears correctly for both your internal team and your shoppers, please use the dedicated experience editor. Changes made there are automatically synced to the iNteract cloud.
+                    </p>
+                    <Button asChild size="lg" className="gap-2 font-bold uppercase text-[10px] tracking-widest h-12 px-8">
+                        <Link href="/retailer-mvp/ui-management">
+                            <Palette className="h-4 w-4" />
+                            Open Brand & Experience Hub
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                        </Link>
                     </Button>
                 </CardContent>
             </Card>
 
-            <Separator />
-            <Card>
+            <Card className="border-dashed">
                 <CardHeader>
-                    <CardTitle>Global Brand Configuration</CardTitle>
-                    <CardDescription>
-                        Customize the general look and feel of your dashboard, including a default logo and brand colors. This will be used if a specific brand does not have its own styling.
-                    </CardDescription>
+                    <CardTitle className="text-muted-foreground opacity-50">Operational Settings</CardTitle>
+                    <CardDescription>Additional administrative controls will appear here as they are released.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <BrandSettingsForm />
+                <CardContent className="h-40 flex items-center justify-center">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground/30 tracking-widest">Awaiting Pilot Updates</p>
                 </CardContent>
             </Card>
-            <UserManagement />
         </div>
     );
 }

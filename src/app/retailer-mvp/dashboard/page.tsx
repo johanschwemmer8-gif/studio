@@ -14,13 +14,12 @@ import {
 import { 
   UserCheck, TrendingUp, Sparkles, AlertTriangle, 
   ArrowUp, MessageSquare, ShoppingCart, Loader2, Lightbulb, DollarSign,
-  Search, Calendar, Download, Activity, BarChart2
+  Search, Download, BarChart2, CheckCircle2, Circle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { analyzeDecisionIntelligence, DecisionIntelligenceOutput } from '@/ai/flows/analyze-decision-intelligence';
 import { Skeleton } from '@/components/ui/skeleton';
-import theme from '@/config/theme.json';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +30,67 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+function SetupGuide({ retailerId }: { retailerId: string }) {
+  const [status, setStatus] = useState({ network: false, brand: false, qr: false });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (!db || !retailerId) return;
+      try {
+        const [orgSnap, brandSnap] = await Promise.all([
+          getDoc(doc(db, 'configurations', `${retailerId}_org`)),
+          getDoc(doc(db, 'configurations', `${retailerId}_brand`))
+        ]);
+        setStatus({
+          network: orgSnap.exists(),
+          brand: brandSnap.exists(),
+          qr: false // We could check qrcodes collection here if needed
+        });
+      } catch (e) {
+        console.warn("Status check friction.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkStatus();
+  }, [retailerId]);
+
+  if (loading) return <Skeleton className="h-48 w-full rounded-2xl" />;
+
+  const steps = [
+    { label: "My Retail Network", href: "/retailer-mvp/organization", done: status.network, desc: "Define your stores and brands." },
+    { label: "Brand & Experience", href: "/retailer-mvp/ui-management", done: status.brand, desc: "Upload logos and pick a template." },
+    { label: "QR Activation", href: "/retailer-mvp/qr-management", done: status.qr, desc: "Create your first digital link." },
+  ];
+
+  if (status.network && status.brand) return null; // Hide when primary setup is done
+
+  return (
+    <Card className="border-accent bg-accent/5 shadow-lg border-2 overflow-hidden">
+      <CardHeader className="bg-accent/10 py-4">
+        <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-accent-foreground" />
+          Welcome! Let's get started
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-3 gap-6 pt-6">
+        {steps.map((step) => (
+          <Link key={step.label} href={step.href} className="group block space-y-2">
+            <div className="flex items-center gap-3">
+              {step.done ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <Circle className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />}
+              <span className="font-bold text-sm group-hover:underline">{step.label}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-tight pl-8">{step.desc}</p>
+          </Link>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function DashboardPage() {
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
@@ -45,8 +104,8 @@ export default function DashboardPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [intelligenceData, setIntelligenceData] = useState<DecisionIntelligenceOutput | null>(null);
 
-  const { optionalModules } = theme;
   const { toast } = useToast();
+  const retailerId = auth.currentUser?.uid || 'simulated-retailer-id';
 
   const handleStoreChange = (store: string | null) => {
     setSelectedStore(store);
@@ -82,16 +141,13 @@ export default function DashboardPage() {
             const result = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
             setAnalysis(result);
         } catch (e) {
-            setError("Decision Intelligence Engine is temporarily busy. Please try again.");
+            setError("Analysis engine busy. Please retry.");
         }
     });
   };
 
   const handleExport = (format: string) => {
-      toast({
-          title: `Exporting ${format}...`,
-          description: `Your Performance Report is being generated.`,
-      });
+      toast({ title: `Generating ${format} Report...` });
   };
   
   if(!analyticsData || !intelligenceData) {
@@ -108,10 +164,12 @@ export default function DashboardPage() {
   }
 
   const { engagement, conversion } = analyticsData;
+  const isNoData = engagement.totalScans === 0;
 
   return (
     <div className="space-y-8">
-      {/* Performance Intelligence Header */}
+      <SetupGuide retailerId={retailerId} />
+
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-card/50 p-4 rounded-xl border border-primary/10 shadow-sm">
           <div className="flex-1 w-full lg:w-auto">
              <StoreSelector
@@ -126,7 +184,7 @@ export default function DashboardPage() {
              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Search Patterns..." 
+                    placeholder="Find Patterns..." 
                     className="pl-10 h-10" 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -144,14 +202,13 @@ export default function DashboardPage() {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Summary (PDF)</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Raw Events (CSV)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Performance Summary</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Raw Events</DropdownMenuItem>
                 </DropdownMenuContent>
              </DropdownMenu>
           </div>
       </div>
 
-      {/* ECONOMIC IMPACT HERO SUMMARY */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
            <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -159,8 +216,8 @@ export default function DashboardPage() {
               <DollarSign className="h-4 w-4 opacity-70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-black">R{conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-[10px] opacity-70 mt-1 uppercase font-bold tracking-tighter">Factual session-based volume</p>
+              <div className="text-2xl font-black">R{isNoData ? '0' : conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+              <p className="text-[10px] opacity-70 mt-1 uppercase font-bold tracking-tighter">Total in engaged sessions</p>
             </CardContent>
           </Card>
           
@@ -170,19 +227,19 @@ export default function DashboardPage() {
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-black text-green-800">R{conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-[10px] text-green-600 mt-1 uppercase font-bold tracking-tighter">Observed Growth projection</p>
+              <div className="text-2xl font-black text-green-800">R{isNoData ? '0' : conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+              <p className="text-[10px] text-green-600 mt-1 uppercase font-bold tracking-tighter">Growth estimate</p>
             </CardContent>
           </Card>
 
            <Card className="border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Growth Velocity</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Observed Trend</CardTitle>
               <ArrowUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-black text-green-600">+{conversion.salesUpliftPercentage}%</div>
-              <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Engagement performance trend</p>
+              <div className="text-2xl font-black text-green-600">{isNoData ? '--' : `+${conversion.salesUpliftPercentage}%`}</div>
+              <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Engagement performance</p>
             </CardContent>
           </Card>
 
@@ -192,13 +249,12 @@ export default function DashboardPage() {
               <MessageSquare className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-black">{conversion.assistedSales.toLocaleString()}</div>
-              <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Verified Ari interaction count</p>
+              <div className="text-2xl font-black">{isNoData ? '0' : conversion.assistedSales.toLocaleString()}</div>
+              <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Verified Ari interactions</p>
             </CardContent>
           </Card>
       </div>
 
-      {/* Behavioral Patterns Card */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-md">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -207,13 +263,13 @@ export default function DashboardPage() {
                   <Lightbulb className="h-6 w-6" />
               </div>
               <div>
-                <CardTitle className="font-black text-xl uppercase tracking-tighter">Shopper Activity Intelligence</CardTitle>
+                <CardTitle className="font-black text-xl uppercase tracking-tighter">Activity Intelligence</CardTitle>
                 <CardDescription className="text-xs">
-                  Factual behavioral observations for <span className="font-semibold text-primary">{selectedStore || selectedRegion || 'Portfolio'}</span>
+                  Factual observations for your network
                 </CardDescription>
               </div>
             </div>
-            {optionalModules.performanceAnalysis && (
+            {!isNoData && (
               <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing} variant="secondary" className="gap-2 font-bold uppercase text-[10px] tracking-widest h-10 px-6">
                   <Sparkles className="h-4 w-4 text-accent" />
                   Summarize Activity
@@ -223,80 +279,87 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-
-            {isAnalyzing && (
-                <div className="p-8 border rounded-xl border-accent/20 bg-accent/5 flex flex-col items-center gap-4 text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-accent" />
-                    <p className="font-bold text-sm uppercase tracking-widest">Generating grounded summary...</p>
+            {isNoData ? (
+                <div className="p-20 text-center border-2 border-dashed rounded-xl bg-muted/20">
+                    <p className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Awaiting your first scan...</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 italic">When customers start scanning, their behavioral data will appear here.</p>
                 </div>
-            )}
-
-            {analysis && (
-                <Card className="bg-accent/10 border-accent shadow-lg animate-in fade-in zoom-in-95 overflow-hidden">
-                    <CardHeader className="bg-accent/5 py-3">
-                         <CardTitle className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest text-accent-foreground"><Sparkles className="h-4 w-4"/> iNteract Pattern Analytics</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 gap-8 pt-6">
-                        <div>
-                            <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3 border-b pb-1">Factual Observations</h3>
-                            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.conclusions}</p>
+            ) : (
+                <>
+                    {isAnalyzing && (
+                        <div className="p-8 border rounded-xl border-accent/20 bg-accent/5 flex flex-col items-center gap-4 text-center">
+                            <Loader2 className="h-12 w-12 animate-spin text-accent" />
+                            <p className="font-bold text-sm uppercase tracking-widest">Generating grounded summary...</p>
                         </div>
-                         <div>
-                            <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3 border-b pb-1">Identified Indicators</h3>
-                            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.recommendations}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                    )}
+
+                    {analysis && (
+                        <Card className="bg-accent/10 border-accent shadow-lg animate-in fade-in zoom-in-95 overflow-hidden">
+                            <CardHeader className="bg-accent/5 py-3">
+                                <CardTitle className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest text-accent-foreground"><Sparkles className="h-4 w-4"/> iNteract Pattern Analytics</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid md:grid-cols-2 gap-8 pt-6">
+                                <div>
+                                    <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3 border-b pb-1">Factual Observations</h3>
+                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.conclusions}</p>
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground mb-3 border-b pb-1">Identified Indicators</h3>
+                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{analysis.recommendations}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Identified Profiles</CardTitle>
+                        <UserCheck className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                        <div className="text-3xl font-black tracking-tighter">{engagement.identifiedShoppers.toLocaleString()}</div>
+                        <Badge variant="outline" className="mt-2 bg-primary/5 border-primary/20 text-[9px] py-0 font-black uppercase">
+                            {engagement.profileConversionRate.toFixed(1)}% Conversion
+                        </Badge>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Basket Delta</CardTitle>
+                        <ArrowUp className="h-4 w-4 text-green-500" />
+                        </CardHeader>
+                        <CardContent>
+                        <div className="text-3xl font-black text-green-600 tracking-tighter">+{conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
+                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">R{conversion.basketSizeIncreaseRand.toFixed(2)} Avg Increase (SIM)</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Hesitation Index</CardTitle>
+                        <Activity className="h-4 w-4 text-yellow-500" />
+                        </CardHeader>
+                        <CardContent>
+                        <div className="text-3xl font-black tracking-tighter">{intelligenceData.hesitationMetrics.hesitationIndex}%</div>
+                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">Repeat engagement</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Purchased Sessions</CardTitle>
+                        <ShoppingCart className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                        <div className="text-3xl font-black tracking-tighter">{conversion.scanToPurchaseConversion.toFixed(1)}%</div>
+                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">Checkout association</p>
+                        </CardContent>
+                    </Card>
+                    </div>
+                </>
             )}
-
-            {/* Core Pattern KPIs */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-               <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Identified Profiles</CardTitle>
-                  <UserCheck className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-black tracking-tighter">{engagement.identifiedShoppers.toLocaleString()}</div>
-                  <Badge variant="outline" className="mt-2 bg-primary/5 border-primary/20 text-[9px] py-0 font-black uppercase">
-                    {engagement.profileConversionRate.toFixed(1)}% Conversion
-                  </Badge>
-                </CardContent>
-              </Card>
-
-              <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Basket Size Delta</CardTitle>
-                  <ArrowUp className="h-4 w-4 text-green-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-black text-green-600 tracking-tighter">+{conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
-                  <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">R{conversion.basketSizeIncreaseRand.toFixed(2)} Avg Increase (SIM)</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Hesitation Index</CardTitle>
-                  <Activity className="h-4 w-4 text-yellow-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-black tracking-tighter">{intelligenceData.hesitationMetrics.hesitationIndex}%</div>
-                  <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">Observed repeat engagement</p>
-                </CardContent>
-              </Card>
-
-               <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Purchased Sessions</CardTitle>
-                  <ShoppingCart className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-black tracking-tighter">{conversion.scanToPurchaseConversion.toFixed(1)}%</div>
-                  <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">Verified checkout association</p>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </CardContent>
       </Card>

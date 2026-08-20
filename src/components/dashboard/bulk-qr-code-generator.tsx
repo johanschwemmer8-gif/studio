@@ -22,16 +22,23 @@ import {
   Sparkles,
   ShieldCheck,
   Barcode,
-  ExternalLink
+  ExternalLink,
+  Info
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
 import { Badge } from '../ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useAuth } from '@/context/auth-context';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const styleSchema = z.object({
-  gtin: z.string().length(14, "GTIN must be exactly 14 digits.").optional().or(z.literal('')),
+  gtin: z.string().length(14, "Product Identifier must be exactly 14 digits. Check the barcode packaging.").optional().or(z.literal('')),
   batchNumber: z.string().optional().or(z.literal('')),
   serialNumber: z.string().optional().or(z.literal('')),
   colorHex: z.string().optional().default('#000000'),
@@ -46,7 +53,7 @@ const styleSchema = z.object({
 const formSchema = z.object({
   retailerId: z.string().min(1, 'Retailer ID is required'),
   brandId: z.string().min(1, 'Brand ID is required'),
-  campaignId: z.string().min(1, 'Campaign ID is required'),
+  campaignId: z.string().min(1, 'Campaign name is required'),
   count: z.number().int().min(1).max(5000),
   options: styleSchema.optional(),
 });
@@ -63,10 +70,10 @@ export default function BulkQRCodeGenerator() {
         defaultValues: {
             retailerId: user?.retailerId || '',
             brandId: 'default',
-            campaignId: `gs1-batch-${Date.now()}`,
-            count: 50,
+            campaignId: '',
+            count: 10,
             options: {
-              gtin: '06009188000332',
+              gtin: '',
               batchNumber: '',
               serialNumber: '',
               colorHex: '#000000',
@@ -77,7 +84,6 @@ export default function BulkQRCodeGenerator() {
         },
     });
 
-    // Update retailerId in form if user context changes
     useEffect(() => {
         if (user?.retailerId) {
             form.setValue('retailerId', user.retailerId);
@@ -86,10 +92,9 @@ export default function BulkQRCodeGenerator() {
 
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
-        
         try {
             const idToken = await user?.getIdToken();
-            if (!idToken) throw new Error("Authentication token unavailable.");
+            if (!idToken) throw new Error("Please log in again to continue.");
 
             const result = await submitBulkQrRequest({
                 ...data,
@@ -98,19 +103,19 @@ export default function BulkQRCodeGenerator() {
 
             if (result.success) {
                 toast({ 
-                    title: 'GS1 Batch Created!', 
-                    description: `Request ${result.requestId} is being processed by the infrastructure layer.` 
+                    title: 'QR Activation Created!', 
+                    description: `Batch ${data.campaignId} has been successfully added to your network.` 
                 });
                 form.reset({
                     ...form.getValues(),
-                    campaignId: `gs1-batch-${Date.now()}`
+                    campaignId: ''
                 });
             } else {
-                throw new Error('Request submission failed.');
+                throw new Error('Could not create batch. Please check your network connection.');
             }
         } catch (error: any) {
             toast({ 
-                title: "Security & Queue Error", 
+                title: "Setup Error", 
                 description: error.message, 
                 variant: 'destructive' 
             });
@@ -124,42 +129,51 @@ export default function BulkQRCodeGenerator() {
     return (
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3 text-primary">
+                <h2 className="text-2xl font-black tracking-tight flex items-center gap-3 text-primary uppercase">
                     <Barcode className="h-8 w-8" />
-                    GS1 Digital Link Generator
+                    QR Activation
                 </h2>
                 <div className="flex items-center gap-3">
                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
-                        <ShieldCheck className="h-3.5 w-3.5" /> Compliance Active
+                        <ShieldCheck className="h-3.5 w-3.5" /> Verified Standards
                     </Badge>
-                    <div className="text-[10px] font-black uppercase text-muted-foreground bg-muted px-2 py-1 rounded">
-                        Tenant: {user?.retailerId || 'Unknown'}
-                    </div>
                 </div>
             </div>
 
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <Card className="border-primary/10 shadow-lg">
                     <CardHeader className="bg-muted/30">
-                        <CardTitle className="text-lg">Product Identity (Immutable)</CardTitle>
-                        <CardDescription>Establish global product identification and campaign metadata.</CardDescription>
+                        <CardTitle className="text-lg">Activate a Product</CardTitle>
+                        <CardDescription>Enter the product details to generate scannable digital experiences.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
                          <div className="space-y-2">
-                            <Label htmlFor="gtin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">GTIN-14 (Authoritative)</Label>
+                            <Label htmlFor="gtin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                                Product Barcode (GTIN)
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Info className="h-3 w-3 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                            <p>The 14-digit barcode number (GTIN). If your barcode is 13 digits, add a zero to the front.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </Label>
                             <Input id="gtin" {...form.register('options.gtin')} placeholder="e.g., 06009188000332" className="font-mono bg-white h-11" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="batch" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Batch (Optional)</Label>
-                            <Input id="batch" {...form.register('options.batchNumber')} placeholder="AI 10" className="font-mono bg-white h-11" />
+                            <Label htmlFor="campaignId" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Promotion / Batch Name</Label>
+                            <Input id="campaignId" {...form.register('campaignId')} placeholder="e.g. Summer Sale 2024" className="bg-white h-11" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="campaignId" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Campaign Name</Label>
-                            <Input id="campaignId" {...form.register('campaignId')} className="bg-white h-11" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="count" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Quantity (Max 5000)</Label>
+                            <Label htmlFor="count" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Stickers Needed</Label>
                             <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} className="bg-white h-11" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="batch" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Batch Code (Optional)</Label>
+                            <Input id="batch" {...form.register('options.batchNumber')} placeholder="e.g. LOT-A1" className="font-mono bg-white h-11" />
                         </div>
                     </CardContent>
 
@@ -167,16 +181,16 @@ export default function BulkQRCodeGenerator() {
                         <AccordionItem value="gs1-advanced" className="border-none">
                             <AccordionTrigger className="text-xs font-black uppercase tracking-widest text-primary/60 hover:no-underline py-4">
                                 <Sparkles className="h-3.5 w-3.5 mr-2 text-accent" />
-                                Infrastructure & Ari Experience
+                                Custom Assistant & Destination
                             </AccordionTrigger>
                             <AccordionContent className="pt-4 grid md:grid-cols-2 gap-8 border-t">
                                 <div className="space-y-4 pt-4">
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase">Ari Guidance Persona</Label>
-                                        <Input {...form.register('options.aiPersona')} placeholder="e.g., Brand Specialist" className="bg-white" />
+                                        <Label className="text-[10px] font-black uppercase">Assistant Persona</Label>
+                                        <Input {...form.register('options.aiPersona')} placeholder="e.g., Wine Specialist" className="bg-white" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase">Scan Resolver Action</Label>
+                                        <Label className="text-[10px] font-black uppercase">Where shoppers land</Label>
                                         <Controller
                                             control={form.control}
                                             name="options.scanDestination"
@@ -184,8 +198,8 @@ export default function BulkQRCodeGenerator() {
                                                 <Select onValueChange={field.onChange} value={field.value}>
                                                     <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="ai">Intelligence Layer (Ari Guidance)</SelectItem>
-                                                        <SelectItem value="url">Direct Website (Bypass Guidance)</SelectItem>
+                                                        <SelectItem value="ai">Ari Guidance (Interactive)</SelectItem>
+                                                        <SelectItem value="url">My Website (Direct)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
@@ -193,24 +207,24 @@ export default function BulkQRCodeGenerator() {
                                     </div>
                                 </div>
                                 <div className="p-6 bg-slate-900 rounded-2xl text-center space-y-4 border-2 border-primary/20 shadow-inner mt-4">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">GS1 Digital Link URI Preview</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Digital Link Preview</p>
                                     <div className="bg-white/5 p-3 rounded-lg flex items-center justify-between gap-3 group border border-white/10">
                                         <code className="text-xs break-all text-white font-mono opacity-80 text-left">
                                             {typeof window !== 'undefined' ? window.location.origin : ''}/01/{currentGtin || '...'}
                                         </code>
                                         <ExternalLink className="h-4 w-4 text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
                                     </div>
-                                    <p className="text-[8px] text-slate-400 uppercase font-black">Interoperable Identity Resolution Layer</p>
+                                    <p className="text-[8px] text-slate-400 uppercase font-black">Interoperable Standard Identity</p>
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
 
                     <CardFooter className="bg-muted/20 p-6 flex justify-end gap-3 border-t border-black/5">
-                        <Button type="button" variant="ghost" className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest">Discard</Button>
-                        <Button type="submit" disabled={isSubmitting} className="h-12 px-8 font-black gap-2 bg-primary text-white shadow-xl hover:shadow-2xl transition-all">
+                        <Button type="button" variant="ghost" className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest">Clear Form</Button>
+                        <Button type="submit" disabled={isSubmitting} className="h-12 px-8 font-black gap-2 bg-primary text-white shadow-xl hover:shadow-2xl transition-all uppercase tracking-tighter">
                             {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
-                            Execute GS1 Batch Creation
+                            Execute Activation
                         </Button>
                     </CardFooter>
                 </Card>

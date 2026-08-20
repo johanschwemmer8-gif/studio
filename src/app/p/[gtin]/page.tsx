@@ -1,13 +1,12 @@
 'use client';
 
-import { findProductByGtin } from '@/lib/data';
 import { notFound, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
 import Link from 'next/link';
 import { 
-    Sparkles, Star, ShoppingCart, Loader2, Barcode, ShieldCheck, Info
+    Sparkles, Star, ShoppingCart, Loader2, Barcode, ShieldCheck, Info, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -22,52 +21,113 @@ import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment,
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, use } from 'react';
 import { BackButton } from '@/components/ui/back-button';
+import { getCanonicalProduct } from '@/services/product-service';
+import type { Product } from '@/lib/data';
 
 export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin: string }> }) {
   const { gtin } = use(params);
   const searchParams = useSearchParams();
-  const product = findProductByGtin(gtin);
   const sessionId = searchParams.get('session');
   
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isAdding, setIsAdding] = useState(false);
+  
+  const [product, setProduct] = useState<Product | null>(null);
   const [retailerConfig, setRetailerConfig] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
-    if (!db || !sessionId) return;
-
-    // 1. Fetch Session to resolve Retailer context
-    getDoc(doc(db, 'sessions', sessionId)).then(sessSnap => {
-        if (docSnap.exists()) {
-            const rid = sessSnap.data().retailerId;
-            if (rid && rid !== 'unknown') {
-                // 2. Fetch Published Brand Configuration
-                const configRef = doc(db, 'configurations', `${rid}_brand`);
-                return onSnapshot(configRef, (configSnap) => {
-                    if (configSnap.exists()) {
-                        setRetailerConfig(configSnap.data().data);
-                    }
-                });
+    async function resolveIdentityAndProduct() {
+        setLoading(true);
+        try {
+            // 1. Fetch Canonical Product
+            const canonicalProduct = await getCanonicalProduct(gtin);
+            if (!canonicalProduct) {
+                setError("PRODUCT_NOT_FOUND");
+                setLoading(false);
+                return;
             }
+
+            // 2. If session is provided, verify tenant anchoring
+            if (sessionId && db) {
+                const sessSnap = await getDoc(doc(db, 'sessions', sessionId));
+                if (sessSnap.exists()) {
+                    const sessionData = sessSnap.data();
+                    const rid = sessionData.retailerId;
+
+                    // SECURITY GATE: Product must belong to the session retailer
+                    if (rid && rid !== 'unknown' && canonicalProduct.retailerId && canonicalProduct.retailerId !== rid) {
+                        console.error("[Security] Tenant Mismatch. Product:", canonicalProduct.retailerId, "Session:", rid);
+                        setError("TENANT_MISMATCH");
+                        setLoading(false);
+                        return;
+                    }
+
+                    // 3. Resolve Branded Experience
+                    if (rid && rid !== 'unknown') {
+                        const configRef = doc(db, 'configurations', `${rid}_brand`);
+                        const configSnap = await getDoc(configRef);
+                        if (configSnap.exists()) {
+                            setRetailerConfig(configSnap.data().data);
+                        }
+                    }
+
+                    // 4. Log View Event
+                    const eventId = `view_${Date.now()}`;
+                    setDoc(doc(db, 'events', eventId), {
+                        eventId,
+                        sessionId,
+                        gtin: canonicalProduct.gtin,
+                        retailerId: rid,
+                        eventType: 'view',
+                        timestamp: serverTimestamp(),
+                        metadata: { source: "experience_layer" }
+                    }).catch(() => {});
+                }
+            }
+
+            setProduct(canonicalProduct);
+        } catch (e: any) {
+            console.error("Resolution failure:", e);
+            setError("SYSTEM_ERROR");
+        } finally {
+            setLoading(false);
         }
-    });
-
-    if (product) {
-        const eventId = `view_${Date.now()}`;
-        setDoc(doc(db, 'events', eventId), {
-            eventId,
-            sessionId,
-            gtin: product.gtin,
-            eventType: 'view',
-            timestamp: serverTimestamp(),
-            metadata: { source: "experience_layer" }
-        }).catch(() => {});
     }
-  }, [sessionId, product]);
 
-  if (!product) {
-    notFound();
+    resolveIdentityAndProduct();
+  }, [gtin, sessionId]);
+
+  if (loading) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Resolving Identity...</p>
+        </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background p-8 text-center space-y-6">
+            <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-10 w-10 text-destructive" />
+            </div>
+            <div className="space-y-2">
+                <h1 className="text-2xl font-black tracking-tight">Product Unavailable</h1>
+                <p className="text-muted-foreground max-w-xs mx-auto">
+                    {error === 'TENANT_MISMATCH' 
+                        ? "This product does not belong to the retailer associated with your session." 
+                        : "We couldn't find the product details you're looking for. Please try scanning again."}
+                </p>
+            </div>
+            <Button asChild variant="outline" className="rounded-xl px-8 font-bold">
+                <Link href="/">Back to Scan</Link>
+            </Button>
+        </div>
+    );
   }
 
   const theme = retailerConfig || defaultTheme;
@@ -116,7 +176,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
               eventId,
               sessionId,
               gtin: product.gtin,
-              retailerId: retailerConfig?.retailerId || 'unknown',
+              retailerId: retailerConfig?.retailerId || product.retailerId || 'unknown',
               eventType: 'add_to_cart',
               timestamp: serverTimestamp(),
           });
@@ -145,8 +205,12 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
         </header>
 
         <div className="space-y-8">
-          <div className="aspect-square relative rounded-3xl overflow-hidden border-4 border-card shadow-2xl">
-              <Image src={product.image.src} alt={product.name} fill className="object-cover" priority />
+          <div className="aspect-square relative rounded-3xl overflow-hidden border-4 border-card shadow-2xl bg-muted">
+              {product.image?.src ? (
+                  <Image src={product.image.src} alt={product.name} fill className="object-cover" priority />
+              ) : (
+                  <div className="w-full h-full flex items-center justify-center"><Info className="h-12 w-12 text-muted-foreground/20" /></div>
+              )}
           </div>
 
           <div className="flex flex-col gap-4">

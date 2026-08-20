@@ -23,7 +23,9 @@ import {
   ShieldCheck,
   Barcode,
   ExternalLink,
-  Info
+  Info,
+  ChevronRight,
+  ShoppingBasket
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
@@ -36,9 +38,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const styleSchema = z.object({
-  gtin: z.string().length(14, "Product Identifier must be exactly 14 digits. Check the barcode packaging.").optional().or(z.literal('')),
+  gtin: z.string().length(14, "Product Identifier must be exactly 14 digits.").optional().or(z.literal('')),
   batchNumber: z.string().optional().or(z.literal('')),
   serialNumber: z.string().optional().or(z.literal('')),
   colorHex: z.string().optional().default('#000000'),
@@ -64,6 +68,8 @@ export default function BulkQRCodeGenerator() {
     const { user } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [products, setProducts] = useState<any[]>([]);
+    const [loadingProducts, setLoadingProducts] = useState(true);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -85,10 +91,25 @@ export default function BulkQRCodeGenerator() {
     });
 
     useEffect(() => {
-        if (user?.retailerId) {
-            form.setValue('retailerId', user.retailerId);
+        if (!user?.retailerId || !db) return;
+        
+        async function fetchRetailerProducts() {
+            setLoadingProducts(true);
+            try {
+                const q = query(collection(db, 'products'), where('retailerId', '==', user?.retailerId));
+                const snap = await getDocs(q);
+                const fetched = snap.docs.map(doc => doc.data());
+                setProducts(fetched);
+            } catch (e) {
+                console.error("Failed to fetch products:", e);
+            } finally {
+                setLoadingProducts(false);
+            }
         }
-    }, [user, form]);
+
+        fetchRetailerProducts();
+        form.setValue('retailerId', user.retailerId);
+    }, [user?.retailerId, form]);
 
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
@@ -111,7 +132,7 @@ export default function BulkQRCodeGenerator() {
                     campaignId: ''
                 });
             } else {
-                throw new Error('Could not create batch. Please check your network connection.');
+                throw new Error('Could not create batch.');
             }
         } catch (error: any) {
             toast({ 
@@ -122,6 +143,10 @@ export default function BulkQRCodeGenerator() {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleProductSelect = (gtin: string) => {
+        form.setValue('options.gtin', gtin, { shouldValidate: true });
     };
 
     const currentGtin = form.watch('options.gtin');
@@ -142,38 +167,54 @@ export default function BulkQRCodeGenerator() {
 
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <Card className="border-primary/10 shadow-lg">
-                    <CardHeader className="bg-muted/30">
+                    <CardHeader className="bg-muted/30 border-b">
                         <CardTitle className="text-lg">Activate a Product</CardTitle>
-                        <CardDescription>Enter the product details to generate scannable digital experiences.</CardDescription>
+                        <CardDescription>Link a product from your catalog to a new digital activation batch.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-6">
+                        <div className="space-y-2 lg:col-span-1">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Product</Label>
+                            {loadingProducts ? (
+                                <div className="h-11 w-full bg-muted animate-pulse rounded-md"></div>
+                            ) : (
+                                <Select onValueChange={handleProductSelect} value={currentGtin}>
+                                    <SelectTrigger className="h-11 bg-white">
+                                        <SelectValue placeholder="Choose product..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {products.map(p => (
+                                            <SelectItem key={p.gtin} value={p.gtin}>
+                                                {p.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+
                          <div className="space-y-2">
                             <Label htmlFor="gtin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                                Product Barcode (GTIN)
+                                Product Barcode
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Info className="h-3 w-3 cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent className="max-w-xs">
-                                            <p>The 14-digit barcode number (GTIN). If your barcode is 13 digits, add a zero to the front.</p>
+                                            <p>The unique identifier used for Digital Link resolution.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
                             </Label>
-                            <Input id="gtin" {...form.register('options.gtin')} placeholder="e.g., 06009188000332" className="font-mono bg-white h-11" />
+                            <Input id="gtin" {...form.register('options.gtin')} readOnly placeholder="Select product above" className="font-mono bg-muted/30 h-11" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="campaignId" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Promotion / Batch Name</Label>
-                            <Input id="campaignId" {...form.register('campaignId')} placeholder="e.g. Summer Sale 2024" className="bg-white h-11" />
+                            <Label htmlFor="campaignId" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Promotion Name</Label>
+                            <Input id="campaignId" {...form.register('campaignId')} placeholder="e.g. In-Store Launch" className="bg-white h-11" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="count" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Stickers Needed</Label>
+                            <Label htmlFor="count" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sticker Count</Label>
                             <Input id="count" type="number" {...form.register('count', { valueAsNumber: true })} className="bg-white h-11" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="batch" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Batch Code (Optional)</Label>
-                            <Input id="batch" {...form.register('options.batchNumber')} placeholder="e.g. LOT-A1" className="font-mono bg-white h-11" />
                         </div>
                     </CardContent>
 
@@ -187,10 +228,10 @@ export default function BulkQRCodeGenerator() {
                                 <div className="space-y-4 pt-4">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase">Assistant Persona</Label>
-                                        <Input {...form.register('options.aiPersona')} placeholder="e.g., Wine Specialist" className="bg-white" />
+                                        <Input {...form.register('options.aiPersona')} placeholder="e.g., Expert Sommelier" className="bg-white" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase">Where shoppers land</Label>
+                                        <Label className="text-[10px] font-black uppercase">Shopper Destination</Label>
                                         <Controller
                                             control={form.control}
                                             name="options.scanDestination"
@@ -199,7 +240,7 @@ export default function BulkQRCodeGenerator() {
                                                     <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="ai">Ari Guidance (Interactive)</SelectItem>
-                                                        <SelectItem value="url">My Website (Direct)</SelectItem>
+                                                        <SelectItem value="url">Direct to Website</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
@@ -207,22 +248,21 @@ export default function BulkQRCodeGenerator() {
                                     </div>
                                 </div>
                                 <div className="p-6 bg-slate-900 rounded-2xl text-center space-y-4 border-2 border-primary/20 shadow-inner mt-4">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Digital Link Preview</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Standard Resolution URI</p>
                                     <div className="bg-white/5 p-3 rounded-lg flex items-center justify-between gap-3 group border border-white/10">
                                         <code className="text-xs break-all text-white font-mono opacity-80 text-left">
                                             {typeof window !== 'undefined' ? window.location.origin : ''}/01/{currentGtin || '...'}
                                         </code>
-                                        <ExternalLink className="h-4 w-4 text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
+                                        <ExternalLink className="h-4 w-4 text-blue-400 shrink-0" />
                                     </div>
-                                    <p className="text-[8px] text-slate-400 uppercase font-black">Interoperable Standard Identity</p>
+                                    <p className="text-[8px] text-slate-400 uppercase font-black">Interoperable Identity Link</p>
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
 
                     <CardFooter className="bg-muted/20 p-6 flex justify-end gap-3 border-t border-black/5">
-                        <Button type="button" variant="ghost" className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest">Clear Form</Button>
-                        <Button type="submit" disabled={isSubmitting} className="h-12 px-8 font-black gap-2 bg-primary text-white shadow-xl hover:shadow-2xl transition-all uppercase tracking-tighter">
+                        <Button type="submit" disabled={isSubmitting || !currentGtin} className="h-12 px-12 font-black gap-2 bg-primary text-white shadow-xl hover:shadow-2xl transition-all uppercase tracking-tighter">
                             {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
                             Execute Activation
                         </Button>

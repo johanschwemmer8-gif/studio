@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
     PlusCircle, ShoppingBasket, Loader2, Trash2, 
-    Barcode, Info, CheckCircle2, QrCode, AlertTriangle 
+    Barcode, Info, CheckCircle2, QrCode, AlertTriangle, Pencil, Save
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -55,9 +55,10 @@ export default function ProductCatalogPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-    // Form State
+    // Form State for Add
     const [formData, setFormData] = useState({
         gtin: '',
         name: '',
@@ -86,13 +87,12 @@ export default function ProductCatalogPage() {
         });
 
         return () => unsubscribe();
-    }, [retailerId]);
+    }, [retailerId, toast]);
 
     const handleAddProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!db || retailerId === 'unknown') return;
 
-        // Normalization: Pad EAN-13 or shorter to 14 digits
         let normalizedGtin = formData.gtin.replace(/\s+/g, '');
         if (normalizedGtin.length < 14) {
             normalizedGtin = normalizedGtin.padStart(14, '0');
@@ -106,11 +106,10 @@ export default function ProductCatalogPage() {
         setIsSaving(true);
         try {
             const productRef = doc(db, 'products', normalizedGtin);
-            
-            // Check for duplicates
             const existing = await getDoc(productRef);
+            
             if (existing.exists() && existing.data()?.retailerId === retailerId) {
-                toast({ title: "Already in Catalog", description: "This barcode is already associated with a product in your catalog.", variant: "destructive" });
+                toast({ title: "Duplicate Entry", description: "This barcode is already in your catalog.", variant: "destructive" });
                 setIsSaving(false);
                 return;
             }
@@ -124,11 +123,36 @@ export default function ProductCatalogPage() {
                 updatedAt: serverTimestamp()
             });
 
-            toast({ title: "Product Added", description: `"${formData.name}" is now ready to activate.` });
-            setIsModalOpen(false);
+            toast({ title: "Product Added", description: `"${formData.name}" added successfully.` });
+            setIsAddModalOpen(false);
             setFormData({ gtin: '', name: '', description: '', category: 'General', price: '', imageUrl: '' });
         } catch (error: any) {
             toast({ title: "Save Failed", description: error.message, variant: "destructive" });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleUpdateProduct = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!db || !editingProduct) return;
+
+        setIsSaving(true);
+        try {
+            const productRef = doc(db, 'products', editingProduct.gtin);
+            await updateDoc(productRef, {
+                name: editingProduct.name,
+                description: editingProduct.description,
+                category: editingProduct.category,
+                price: parseFloat(editingProduct.price.toString()) || 0,
+                imageUrl: editingProduct.imageUrl,
+                updatedAt: serverTimestamp()
+            });
+
+            toast({ title: "Product Updated", description: "Changes saved to Firestore." });
+            setEditingProduct(null);
+        } catch (error: any) {
+            toast({ title: "Update Failed", description: error.message, variant: "destructive" });
         } finally {
             setIsSaving(false);
         }
@@ -138,7 +162,7 @@ export default function ProductCatalogPage() {
         if (!db) return;
         try {
             await deleteDoc(doc(db, 'products', gtin));
-            toast({ title: "Product Removed", description: "Catalog updated." });
+            toast({ title: "Product Removed", description: "Record deleted." });
         } catch (e: any) {
             toast({ title: "Error", description: e.message, variant: "destructive" });
         }
@@ -148,7 +172,7 @@ export default function ProductCatalogPage() {
         return (
             <div className="flex flex-col items-center justify-center p-20 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading Catalog...</p>
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Retrieving Catalog...</p>
             </div>
         );
     }
@@ -162,11 +186,11 @@ export default function ProductCatalogPage() {
                         Product Catalog
                     </h2>
                     <p className="text-muted-foreground max-w-2xl text-sm">
-                        Manage the products participating in your digital iNteract pilot. These products will be available for QR Activation.
+                        Manage your participating pilot inventory. Products listed here are available for immediate QR Activation.
                     </p>
                 </div>
 
-                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                     <DialogTrigger asChild>
                         <Button className="gap-2 font-black uppercase text-[10px] tracking-widest h-12 px-8 shadow-xl">
                             <PlusCircle className="h-4 w-4" /> Add Product
@@ -176,36 +200,15 @@ export default function ProductCatalogPage() {
                         <form onSubmit={handleAddProduct}>
                             <DialogHeader>
                                 <DialogTitle>Add New Product</DialogTitle>
-                                <DialogDescription>
-                                    Enter the product details as they appear in your inventory.
-                                </DialogDescription>
+                                <DialogDescription>Register a new item in your digital catalog.</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-5 py-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="gtin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                                        Product Barcode (GTIN)
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Info className="h-3 w-3 cursor-help" />
-                                                </TooltipTrigger>
-                                                <TooltipContent className="max-w-xs">
-                                                    <p>The barcode number on the package. 13-digit codes will be auto-formatted.</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </Label>
-                                    <Input 
-                                        id="gtin" 
-                                        placeholder="e.g. 6001234567890" 
-                                        value={formData.gtin} 
-                                        onChange={e => setFormData({...formData, gtin: e.target.value})} 
-                                        required 
-                                        className="font-mono h-11"
-                                    />
+                                    <Label htmlFor="gtin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product Barcode</Label>
+                                    <Input id="gtin" placeholder="e.g. 6001234567890" value={formData.gtin} onChange={e => setFormData({...formData, gtin: e.target.value})} required className="h-11 font-mono" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product Name</Label>
+                                    <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Name</Label>
                                     <Input id="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required className="h-11" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -220,16 +223,12 @@ export default function ProductCatalogPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="desc" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description</Label>
-                                    <Textarea id="desc" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="How would Ari describe this to a shopper?" rows={3} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="image" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Image URL (Optional)</Label>
-                                    <Input id="image" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} placeholder="https://..." className="h-11" />
+                                    <Textarea id="desc" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} />
                                 </div>
                             </div>
                             <DialogFooter>
                                 <Button type="submit" disabled={isSaving} className="w-full h-12 font-black uppercase text-[10px] tracking-widest">
-                                    {isSaving ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <PlusCircle className="h-4 w-4 mr-2" />}
+                                    {isSaving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
                                     Save to Catalog
                                 </Button>
                             </DialogFooter>
@@ -238,17 +237,59 @@ export default function ProductCatalogPage() {
                 </Dialog>
             </div>
 
+            {/* Edit Dialog */}
+            <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <form onSubmit={handleUpdateProduct}>
+                        <DialogHeader>
+                            <DialogTitle>Edit Product</DialogTitle>
+                            <DialogDescription>Modify details for barcode: <span className="font-mono text-primary">{editingProduct?.gtin}</span></DialogDescription>
+                        </DialogHeader>
+                        {editingProduct && (
+                            <div className="grid gap-5 py-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Name</Label>
+                                    <Input id="edit-name" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} required className="h-11" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit-price" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Price (R)</Label>
+                                        <Input id="edit-price" type="number" step="0.01" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})} required className="h-11" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="edit-category" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Category</Label>
+                                        <Input id="edit-category" value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="h-11" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-desc" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description</Label>
+                                    <Textarea id="edit-desc" value={editingProduct.description} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} rows={3} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-image" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Image URL</Label>
+                                    <Input id="edit-image" value={editingProduct.imageUrl} onChange={e => setEditingProduct({...editingProduct, imageUrl: e.target.value})} placeholder="https://..." className="h-11" />
+                                </div>
+                            </div>
+                        )}
+                        <DialogFooter>
+                            <Button type="submit" disabled={isSaving} className="w-full h-12 font-black uppercase text-[10px] tracking-widest">
+                                {isSaving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />}
+                                Save Changes
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
             {products.length === 0 ? (
                 <Card className="border-dashed border-2 bg-muted/20">
                     <CardContent className="flex flex-col items-center justify-center py-24 text-center gap-4">
-                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                            <ShoppingBasket className="h-8 w-8 text-muted-foreground" />
-                        </div>
+                        <ShoppingBasket className="h-12 w-12 text-muted-foreground/30" />
                         <div className="space-y-1">
-                            <h3 className="text-xl font-bold uppercase tracking-tight">Your product catalog is empty</h3>
-                            <p className="text-sm text-muted-foreground">Add products to start creating iNteract QR activations.</p>
+                            <h3 className="text-xl font-bold uppercase tracking-tight">Your catalog is empty</h3>
+                            <p className="text-sm text-muted-foreground">Add products to begin generating digital links.</p>
                         </div>
-                        <Button onClick={() => setIsModalOpen(true)} variant="secondary" className="mt-4 font-bold px-8">Add Your First Product</Button>
+                        <Button onClick={() => setIsAddModalOpen(true)} variant="secondary" className="mt-4 font-bold px-8">Add First Product</Button>
                     </CardContent>
                 </Card>
             ) : (
@@ -257,7 +298,7 @@ export default function ProductCatalogPage() {
                         <TableHeader className="bg-muted/50">
                             <TableRow className="text-[10px] font-black uppercase tracking-widest">
                                 <TableHead className="w-[300px]">Product</TableHead>
-                                <TableHead>Barcode (GTIN)</TableHead>
+                                <TableHead>Barcode</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -284,6 +325,9 @@ export default function ProductCatalogPage() {
                                                     <QrCode className="h-3.5 w-3.5 mr-1.5" /> Activate
                                                 </Link>
                                             </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setEditingProduct(p)}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteProduct(p.gtin)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -293,12 +337,6 @@ export default function ProductCatalogPage() {
                             ))}
                         </TableBody>
                     </Table>
-                    <div className="p-4 bg-muted/20 border-t">
-                        <p className="text-[10px] text-muted-foreground italic flex items-center gap-2">
-                            <Info className="h-3 w-3" />
-                            To ensure session continuity, product barcodes (GTINs) are immutable once saved.
-                        </p>
-                    </div>
                 </div>
             )}
         </div>

@@ -11,7 +11,7 @@ import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShoppingBasket, Loader2, PlusCircle } from 'lucide-react';
+import { ShoppingBasket, Loader2, PlusCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function QrManagementPage() {
@@ -51,23 +51,26 @@ export default function QrManagementPage() {
 
     if (hasProducts === false) {
         return (
-            <div className="flex flex-col gap-8 items-center justify-center p-12 text-center min-h-[400px]">
-                <Card className="max-w-md border-primary/20 bg-primary/5">
-                    <CardContent className="pt-10 space-y-6">
-                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary">
-                            <ShoppingBasket className="h-8 w-8" />
+            <div className="flex flex-col gap-8 items-center justify-center p-12 text-center min-h-[500px]">
+                <Card className="max-w-md border-primary/20 bg-primary/5 shadow-2xl">
+                    <CardContent className="pt-12 pb-10 space-y-8">
+                        <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto text-primary rotate-3">
+                            <ShoppingBasket className="h-10 w-10" />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <h3 className="text-2xl font-black uppercase tracking-tighter">Add a Product First</h3>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                                Your product catalog is currently empty. You must add the products you want to activate before generating QR codes.
+                            <p className="text-sm text-muted-foreground leading-relaxed px-4">
+                                You haven't added any products to your catalog yet. You need at least one product before you can create scannable digital activations.
                             </p>
                         </div>
-                        <Button asChild size="lg" className="w-full h-12 font-black uppercase text-[10px] tracking-widest">
-                            <Link href="/retailer-mvp/products">
-                                <PlusCircle className="mr-2 h-4 w-4" /> Go to Product Catalog
-                            </Link>
-                        </Button>
+                        <div className="px-4">
+                            <Button asChild size="lg" className="w-full h-14 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg group">
+                                <Link href="/retailer-mvp/products" className="flex items-center justify-center gap-2">
+                                    Open Product Catalog
+                                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -76,9 +79,9 @@ export default function QrManagementPage() {
 
     return (
         <div className="space-y-8">
-            <SingleQrTestGenerator />
-            <Separator />
             <BulkQRCodeGenerator />
+            <Separator />
+            <SingleQrTestGenerator />
             <Separator />
             <div id="job-dashboard">
                 <QrCampaignDashboard />

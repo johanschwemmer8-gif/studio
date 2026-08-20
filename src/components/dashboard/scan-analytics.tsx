@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -120,7 +119,7 @@ export default function ScanAnalytics() {
                 </div>
                 <Badge className="bg-green-500 text-white border-none gap-1.5 animate-pulse py-1">
                     <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                    Live
+                    Live Feed
                 </Badge>
             </div>
         </CardHeader>
@@ -136,7 +135,7 @@ export default function ScanAnalytics() {
                     title="Total Activity" 
                     value={totalEvents.toLocaleString()} 
                     icon={Activity} 
-                    description="Raw behavioural nodes."
+                    description="Raw behavioural signals."
                 />
                 <AnalyticsCard 
                     title="Engagement Density" 
@@ -149,15 +148,15 @@ export default function ScanAnalytics() {
             <div className="space-y-4">
                 <h3 className="font-black text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-accent" /> 
-                    Product Sentiment (Unique Sessions)
+                    Engagement Breakdown (Unique Sessions)
                 </h3>
                 <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
                     {topEngagedProducts.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-center gap-4 bg-muted/10">
                             <QrCode className="h-12 w-12 text-muted-foreground/20" />
                             <div className="space-y-1">
-                                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Waiting for your first scan</p>
-                                <p className="text-[10px] text-muted-foreground italic px-8">Physical shopper interactions will appear here in real-time as they occur in-store.</p>
+                                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Awaiting Live Engagement</p>
+                                <p className="text-[10px] text-muted-foreground italic px-8 max-w-sm mx-auto">This dashboard is listening for factual shopper events. When customers scan your deployed QR codes, their interactions will appear here in real-time.</p>
                             </div>
                         </div>
                     ) : (
@@ -182,7 +181,7 @@ export default function ScanAnalytics() {
                     )}
                 </div>
                 <p className="text-[9px] italic text-muted-foreground">
-                    * Metrics update in real-time. Factual aggregation is anchored to the session identifier.
+                    * Metrics are grounded in chronologically verified Firestore events. Factual aggregation is anchored to the session identifier.
                 </p>
             </div>
         </CardContent>

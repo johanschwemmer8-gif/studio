@@ -39,8 +39,6 @@ export default function RetailerSidebar({
 }: {
     children?: React.ReactNode;
 }) {
-  const { optionalModules } = theme;
-
   return (
       <Sidebar>
         {children}
@@ -64,8 +62,8 @@ export default function RetailerSidebar({
                       <DollarSign className="h-4 w-4" />
                       <span>Profit & ROI</span>
                     </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                  </SidebarMenuItem>
+                </SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Shopper Behavior Patterns">
                     <Link href="/retailer-mvp/decision-intelligence">
@@ -99,8 +97,8 @@ export default function RetailerSidebar({
                       <Palette className="h-4 w-4" />
                       <span>Brand & Experience</span>
                     </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                  </SidebarMenuItem>
+                </SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Ari (AI) Assistant Settings">
                     <Link href="/retailer-mvp/ai-configuration">

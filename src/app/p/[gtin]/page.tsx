@@ -1,3 +1,4 @@
+
 'use client';
 
 import { notFound, useSearchParams } from 'next/navigation';
@@ -53,6 +54,8 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
             // 2. If session is provided, verify tenant anchoring
             if (sessionId && db) {
                 const sessSnap = await getDoc(doc(db, 'sessions', sessionId));
+                
+                // If session exists, use it to resolve branding and verify tenant
                 if (sessSnap.exists()) {
                     const sessionData = sessSnap.data();
                     const rid = sessionData.retailerId;
@@ -85,6 +88,9 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
                         timestamp: serverTimestamp(),
                         metadata: { source: "experience_layer" }
                     }).catch(() => {});
+                } else {
+                    // Stale session ID (common after a reset). We proceed without session-anchored branding.
+                    console.warn("[Session] Stale or missing session ID detected. Proceeding as anonymous.");
                 }
             }
 
@@ -253,7 +259,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center gap-3">
                             <div className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center shadow-sm"><Sparkles className="text-primary" /></div>
-                            <span className="font-black">Expert Sommelier Activated</span>
+                            <span className="font-black">Expert Sommelier Guidance Active</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">

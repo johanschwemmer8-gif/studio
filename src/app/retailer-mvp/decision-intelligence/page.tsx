@@ -7,10 +7,8 @@ import { Separator } from '@/components/ui/separator';
 import { 
   BrainCircuit, 
   Activity, Download,
-  ShieldCheck, HelpCircle, Sparkles,
-  ArrowRight, ListChecks, History, 
-  Barcode, Search, Filter, Loader2,
-  TrendingUp, ShoppingCart, AlertCircle, Ban
+  ShieldCheck, ArrowRight, 
+  Barcode, Loader2, TrendingUp, ShoppingCart, Ban
 } from 'lucide-react';
 import { getDecisionJourneyIntelligence } from '@/ai/flows/decision-journey-intelligence';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -87,7 +85,6 @@ export default function DecisionIntelligencePage() {
             
             try {
                 const idToken = await auth.currentUser?.getIdToken();
-                // Pass authorized ID or placeholder which will be verified against token claim on server
                 const res = await getDecisionJourneyIntelligence(idToken, 'simulated-retailer-id', 30, gtinArg);
                 setData(res);
             } catch (err: any) {
@@ -117,12 +114,12 @@ export default function DecisionIntelligencePage() {
         <div className="space-y-8">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-card p-6 rounded-2xl border border-primary/10 shadow-sm">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight mb-2 flex items-center gap-3">
+                    <h1 className="text-3xl font-black tracking-tight mb-2 flex items-center gap-3 uppercase leading-none">
                         <BrainCircuit className="text-primary h-8 w-8" />
-                        Shopper Decision Intelligence
+                        Shopper Behavior
                     </h1>
-                    <p className="text-muted-foreground max-w-2xl text-sm">
-                        Factual, chronologically verified decision patterns. Every metric is joined at the session level to ensure identity isolation.
+                    <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+                        Factual, chronologically verified decision patterns. Every metric is anchored at the session level to ensure high-fidelity intent mapping.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -143,32 +140,31 @@ export default function DecisionIntelligencePage() {
                         </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleExport} className="h-11 gap-2 font-bold uppercase text-[10px] tracking-widest px-6 shadow-md">
+                  <Button onClick={handleExport} variant="outline" className="h-11 gap-2 font-bold uppercase text-[10px] tracking-widest px-6 shadow-sm">
                       <Download className="h-4 w-4" /> Export Audit
                   </Button>
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 w-fit px-3 py-1.5 rounded-full border border-green-100">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Chronological Sequence Verified
+            {loading ? (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                    <Card className="border-primary/5">
+                      <CardHeader className="pb-2"><Skeleton className="h-4 w-1/4" /></CardHeader>
+                      <CardContent className="h-40 flex items-center justify-center border-t border-primary/5">
+                        <div className="flex flex-col items-center gap-4">
+                          <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
+                          <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 animate-pulse">Authenticating & Aggregating...</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+                    </div>
                 </div>
-                {data && (
-                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 gap-1.5 font-black uppercase text-[10px] py-1.5">
-                        {data.metadata.dataStatus} TRANSACTIONS
-                    </Badge>
-                )}
-            </div>
-
-            {loading || !data ? (
-                <div className="space-y-8">
-                    <Card><CardContent className="h-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></CardContent></Card>
-                    <div className="grid grid-cols-3 gap-8"><Skeleton className="h-48" /><Skeleton className="h-48" /><Skeleton className="h-48" /></div>
-                </div>
+            ) : !data ? (
+                <Card className="border-dashed"><CardContent className="py-20 text-center"><p className="text-muted-foreground italic">Intelligence stream unavailable.</p></CardContent></Card>
             ) : (
                 <>
-                    {/* Funnel Visualization */}
                     <Card className="border-primary/10 bg-muted/5 shadow-inner overflow-hidden">
                         <CardHeader className="bg-muted/10 border-b">
                             <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -194,7 +190,6 @@ export default function DecisionIntelligencePage() {
                     </Card>
 
                     <div className="grid gap-8 lg:grid-cols-3">
-                        {/* Executive Insights */}
                         <div className="lg:col-span-1 space-y-6">
                             <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
                                 <Sparkles className="h-5 w-5 text-accent" />
@@ -213,17 +208,6 @@ export default function DecisionIntelligencePage() {
                                                 "font-black text-[10px] px-3",
                                                 data.metadata.evidenceStrength === 'HIGHER' ? "bg-green-500" : "bg-yellow-500"
                                             )}>{data.metadata.evidenceStrength}</Badge>
-                                        </div>
-                                        <div className="flex items-start gap-2 pt-2">
-                                            <History className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                                            <div>
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase">Aggregation Method</p>
-                                                <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">
-                                                    {data.metadata.methodology}
-                                                    <br/>
-                                                    Version: {data.metadata.aggregationVersion}
-                                                </p>
-                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -247,10 +231,8 @@ export default function DecisionIntelligencePage() {
                             </Card>
                         </div>
 
-                        {/* Rejection & Barrier Intelligence */}
                         <div className="lg:col-span-2 space-y-8">
                             <div className="grid sm:grid-cols-2 gap-6">
-                                {/* Explicit Rejection Audit */}
                                 <div className="space-y-4">
                                     <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
                                         <Ban className="h-5 w-5 text-destructive" />
@@ -278,16 +260,11 @@ export default function DecisionIntelligencePage() {
                                             ))
                                         )}
                                     </div>
-                                    <div className="flex justify-between items-center px-2 py-1 bg-muted/50 rounded-lg">
-                                        <span className="text-[9px] font-bold text-muted-foreground uppercase">Reason Captured Rate</span>
-                                        <span className="text-[11px] font-black text-primary">{Math.round((data.stats.rejectionsWithReason / (data.stats.rejectionsWithReason + data.stats.rejectionsWithoutReason || 1)) * 100)}%</span>
-                                    </div>
                                 </div>
 
-                                {/* Observed Barrier Intelligence */}
                                 <div className="space-y-4">
                                     <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                        <AlertCircle className="h-5 w-5 text-yellow-500" />
+                                        <AlertTriangle className="h-5 w-5 text-yellow-500" />
                                         Observed Barrier Reach
                                     </h2>
                                     <div className="space-y-3">
@@ -301,7 +278,7 @@ export default function DecisionIntelligencePage() {
                                                     <CardContent className="p-4">
                                                         <div className="flex justify-between items-center mb-2">
                                                             <span className="text-xs font-black uppercase tracking-tight">{item.barrier}</span>
-                                                            <Badge variant="outline" className="text-[9px] font-black border-yellow-200 bg-yellow-50 text-yellow-700">{item.share}% of Exposed</Badge>
+                                                            <Badge variant="outline" className="text-[9px] font-black border-yellow-200 bg-yellow-50 text-yellow-700">{item.share}% Reach</Badge>
                                                         </div>
                                                         <div className="flex items-baseline gap-2">
                                                             <p className="text-2xl font-black text-primary">{item.count}</p>
@@ -312,58 +289,8 @@ export default function DecisionIntelligencePage() {
                                             ))
                                         )}
                                     </div>
-                                    <p className="text-[9px] italic text-muted-foreground px-2">
-                                        * Barriers are factors explicitly cited by shoppers that may impede decision progress, regardless of final rejection.
-                                    </p>
                                 </div>
                             </div>
-
-                            {/* Movement Audit */}
-                            {selectedGtin !== 'all' && (
-                                <div className="space-y-4 pt-4">
-                                    <h2 className="text-xl font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                        <TrendingUp className="h-5 w-5" />
-                                        Subsequent Product Movement
-                                    </h2>
-                                    <Card className="border-primary/10 overflow-hidden shadow-sm">
-                                        <Table>
-                                            <TableHeader className="bg-muted/50">
-                                                <TableRow>
-                                                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Alternative GTIN</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Sessions</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">% Reach</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-right">Subsequent Purchases</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {data.altProductBreakdown.length === 0 ? (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic text-xs">
-                                                            No subsequent movement recorded.
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ) : (
-                                                    data.altProductBreakdown.map((alt) => (
-                                                        <TableRow key={alt.gtin}>
-                                                            <TableCell className="font-mono text-xs font-bold">{alt.gtin}</TableCell>
-                                                            <TableCell className="text-center font-bold">{alt.uniqueSessions}</TableCell>
-                                                            <TableCell className="text-center">
-                                                                <Badge variant="secondary" className="text-[9px] font-black">{alt.rate}%</Badge>
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <div className="flex items-center justify-end gap-1.5 font-black text-primary">
-                                                                    <ShoppingCart className="h-3 w-3 opacity-50" />
-                                                                    {alt.purchaseCount}
-                                                                </div>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </Card>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </>
@@ -371,3 +298,5 @@ export default function DecisionIntelligencePage() {
         </div>
     );
 }
+
+import { Sparkles } from 'lucide-react';

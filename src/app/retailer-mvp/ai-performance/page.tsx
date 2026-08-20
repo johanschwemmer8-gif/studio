@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
@@ -25,14 +25,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
-  BarChart, BrainCircuit, CheckCircle, Clock, Cog, MessageSquare, Percent, PieChart, 
-  Send, Smile, Sparkles, Star, TrendingUp, XCircle, Users, BarChart2, AlertCircle, TrendingDown, Save
+  CheckCircle, Clock, MessageSquare, Send, Smile, Star, TrendingUp, Users, AlertTriangle, TrendingDown
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { HubNav } from '@/components/dashboard/hub-nav';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const responseTimeData = [
   { time: '10:00', avg: 1.2, p95: 2.5 },
@@ -49,7 +48,6 @@ const queryCategoriesData = [
     { name: 'Shipping', value: 200 },
 ];
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
 
 function MetricCard({ title, value, trend, icon: Icon, trendDirection = 'up' }: { title: string, value: string, trend?: string, icon: React.ElementType, trendDirection?: 'up' | 'down' }) {
     return (
@@ -75,7 +73,13 @@ export default function AIPerformanceMonitor() {
   const [testPrompt, setTestPrompt] = useState('');
   const [testResponse, setTestResponse] = useState('');
   const [isTesting, setIsTesting] = useState(false);
-  const { toast } = useToast();
+
+  const aiHubItems = [
+    { label: "Settings", href: "/retailer-mvp/ai-configuration" },
+    { label: "Welcome & Content", href: "/retailer-mvp/ai-content" },
+    { label: "Performance Audit", href: "/retailer-mvp/ai-performance" },
+    { label: "Ethics & Policy", href: "/retailer-mvp/ai-policy" },
+  ];
 
   const mockConversations = [
       { id: 1, customerId: 4381, rating: 5, query: "Is this waterproof?", response: "Yes, it's fully waterproof!" },
@@ -97,26 +101,34 @@ export default function AIPerformanceMonitor() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">AI Performance Monitor</h1>
+        <h1 className="text-3xl font-black tracking-tight uppercase">Ari Experience</h1>
         <p className="text-muted-foreground mt-2">Monitor AI interactions, model performance, and optimization insights.</p>
       </div>
+
+      <HubNav items={aiHubItems} />
+
+      <Alert className="bg-primary/5 border-primary/10">
+        <AlertTriangle className="h-4 w-4 text-primary" />
+        <AlertTitle className="text-xs font-black uppercase tracking-widest">Performance Simulation Active</AlertTitle>
+        <AlertDescription className="text-xs">
+          The metrics displayed below are based on <strong>Infrastructure Benchmarks</strong> for the pilot phase. Real-time conversation aggregation is pending high-volume production traffic.
+        </AlertDescription>
+      </Alert>
       
-      {/* Header Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <MetricCard title="Total Conversations" value="1,823" trend="+20.1% from last month" icon={MessageSquare} />
-        <MetricCard title="Avg. Response Time" value="1.3s" trend="+5.2% from last month" trendDirection="down" icon={Clock} />
-        <MetricCard title="Success Rate" value="92.4%" trend="+2.1% from last month" icon={CheckCircle} />
-        <MetricCard title="Customer Satisfaction" value="4.6/5" trend="+0.2 from last month" icon={Smile} />
-        <MetricCard title="Upsell Success" value="12.8%" trend="+1.5% from last month" icon={TrendingUp} />
+        <MetricCard title="Conversations" value="1,823" trend="+20.1% (SIM)" icon={MessageSquare} />
+        <MetricCard title="Response Time" value="1.3s" trendDirection="down" icon={Clock} />
+        <MetricCard title="Success Rate" value="92.4%" icon={CheckCircle} />
+        <MetricCard title="Satisfaction" value="4.6/5" icon={Smile} />
+        <MetricCard title="Upsell Yield" value="12.8%" icon={TrendingUp} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Left Column */}
         <div className="lg:col-span-2 space-y-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Conversation Analytics</CardTitle>
-                    <CardDescription>Real-time feed of AI interactions with customers.</CardDescription>
+                    <CardTitle>Recent Interactive Feed</CardTitle>
+                    <CardDescription>Grounded audit of recent Ari interactions.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-96">
@@ -126,13 +138,13 @@ export default function AIPerformanceMonitor() {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Users className="h-4 w-4 text-muted-foreground"/>
-                                            <p className="text-sm font-medium">Customer #{convo.customerId}</p>
+                                            <p className="text-sm font-medium">Shopper #{convo.customerId}</p>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-yellow-500">
                                             {[...Array(5)].map((_, j) => <Star key={j} className={`h-4 w-4 ${j < convo.rating ? 'fill-current' : ''}`} />)}
                                         </div>
                                     </div>
-                                    <p className="text-xs text-muted-foreground ml-6">"{convo.query}" &rarr; AI: "{convo.response}" ({new Date(Date.now() - Math.random() * 100000).toLocaleTimeString()})</p>
+                                    <p className="text-xs text-muted-foreground ml-6">"{convo.query}" &rarr; Ari: "{convo.response}"</p>
                                 </div>
                             ))}
                         </div>
@@ -142,46 +154,28 @@ export default function AIPerformanceMonitor() {
 
              <Card>
                 <CardHeader>
-                    <CardTitle>Optimization Insights</CardTitle>
-                    <CardDescription>Automated recommendations to improve AI performance and reduce costs.</CardDescription>
+                    <CardTitle>Optimization Hub</CardTitle>
+                    <CardDescription>Actionable indicators based on behavioural patterns.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Insight</TableHead>
-                                <TableHead>Recommendation</TableHead>
-                                <TableHead>Action</TableHead>
+                                <TableHead>Pattern</TableHead>
+                                <TableHead>Indicator</TableHead>
+                                <TableHead className="text-right">Action</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             <TableRow>
-                                <TableCell><Badge variant="outline" className="text-yellow-600 border-yellow-500/50">High Response Time</Badge></TableCell>
-                                <TableCell className="text-sm">Response time for 'shipping' queries is 25% above average. Consider adding a specific FAQ.</TableCell>
-                                <TableCell><Button size="sm" variant="outline">Create FAQ</Button></TableCell>
+                                <TableCell><Badge variant="outline" className="text-yellow-600 border-yellow-500/50 uppercase text-[9px] font-black">Latency</Badge></TableCell>
+                                <TableCell className="text-xs">Response time for 'shipping' queries is above benchmark.</TableCell>
+                                <TableCell className="text-right"><Button size="sm" variant="ghost" className="text-[10px] font-bold uppercase">Update FAQ</Button></TableCell>
                             </TableRow>
                             <TableRow>
-                                <TableCell><Badge variant="outline" className="text-blue-600 border-blue-500/50">Cost Optimization</Badge></TableCell>
-                                <TableCell className="text-sm">Switching 'pricing' queries to a faster model could save ~R200/month with no impact on quality.</TableCell>
-                                <TableCell>
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button size="sm" variant="outline">Adjust Model</Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Adjust AI Model</DialogTitle>
-                                                <DialogDescription>
-                                                    This is a placeholder for the model adjustment UI.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <DialogFooter>
-                                                <Button type="button" variant="secondary">Cancel</Button>
-                                                <Button type="button">Confirm</Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                </TableCell>
+                                <TableCell><Badge variant="outline" className="text-blue-600 border-blue-500/50 uppercase text-[9px] font-black">Context</Badge></TableCell>
+                                <TableCell className="text-xs">Frequent questions detected for 'pricing' outside of verified facts.</TableCell>
+                                <TableCell className="text-right"><Button size="sm" variant="ghost" className="text-[10px] font-bold uppercase">View Logs</Button></TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
@@ -189,39 +183,26 @@ export default function AIPerformanceMonitor() {
             </Card>
         </div>
 
-        {/* Right Column */}
         <div className="space-y-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Model Performance</CardTitle>
+                    <CardTitle>Model Latency (SIM)</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="h-[150px] w-full">
                         <LineChart data={responseTimeData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="time" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis fontSize={12} tickLine={false} axisLine={false} unit="s"/>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="time" fontSize={10} tickLine={false} axisLine={false} />
+                            <YAxis fontSize={10} tickLine={false} axisLine={false} unit="s"/>
                             <Tooltip content={<ChartTooltipContent />} />
-                            <Legend />
-                            <Line type="monotone" dataKey="avg" stroke="#8884d8" name="Avg Time"/>
-                            <Line type="monotone" dataKey="p95" stroke="#82ca9d" name="95th Percentile"/>
+                            <Line type="monotone" dataKey="avg" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} name="Avg Time"/>
                         </LineChart>
                     </ChartContainer>
-                    <div className="grid grid-cols-2 gap-4 text-center text-sm mt-4">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                            <p className="font-semibold text-green-800">API Uptime</p>
-                            <p className="text-lg font-bold text-green-900">99.98%</p>
-                        </div>
-                         <div className="p-2 bg-red-100 rounded-lg">
-                            <p className="font-semibold text-red-800">Error Rate</p>
-                            <p className="text-lg font-bold text-red-900">0.3%</p>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
              <Card>
                 <CardHeader>
-                    <CardTitle>Common Query Categories</CardTitle>
+                    <CardTitle>Topic Density</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="h-[200px] w-full flex items-center justify-center">
@@ -230,42 +211,12 @@ export default function AIPerformanceMonitor() {
                                 {queryCategoriesData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                             </Pie>
                             <Tooltip content={<ChartTooltipContent />} />
-                            <Legend iconSize={10} />
                         </RechartsPieChart>
                     </ChartContainer>
                 </CardContent>
             </Card>
         </div>
       </div>
-
-       <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Cog className="text-primary"/> AI Configuration Testing</CardTitle>
-                <CardDescription>Test prompts and settings in a live environment before deploying.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid lg:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Textarea 
-                            placeholder="Enter a test prompt... e.g., 'What is this made of?'" 
-                            value={testPrompt} 
-                            onChange={e => setTestPrompt(e.target.value)}
-                            rows={4}
-                        />
-                        <Button onClick={handleTestPrompt} disabled={isTesting}>
-                            {isTesting ? 'Simulating...' : <><Send className="mr-2 h-4 w-4"/> Test Prompt</>}
-                        </Button>
-                    </div>
-                    <div className="p-4 bg-muted rounded-md min-h-[120px]">
-                        <h4 className="font-semibold text-sm mb-2">Simulated AI Response:</h4>
-                        <p className="text-sm text-muted-foreground italic">
-                            {testResponse || 'Response will appear here...'}
-                        </p>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
     </div>
   );
 }

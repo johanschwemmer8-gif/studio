@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,17 +14,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Image as ImageIcon, Palette, LayoutTemplate, Sparkles, Link2, Loader2 } from 'lucide-react';
+import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Palette, LayoutTemplate, Loader2 } from 'lucide-react';
 import PhoneMockup from '@/components/dashboard/phone-mockup';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Template1, Template2, Template3, Template4, Template5, Template6, Template7, Template8, Template9 } from '@/components/dashboard/ui-templates';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { HubNav } from '@/components/dashboard/hub-nav';
 
 function MobileLandingPagePreview({ settings }: { settings: any }) {
     const { logoUrl, logoWidth, logoAlign, logoPadding, selectedTemplate } = settings;
@@ -62,6 +63,11 @@ export default function UiManagementPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
+  const brandHubItems = [
+    { label: "Brand & Landing Page", href: "/retailer-mvp/ui-management" },
+    { label: "Supplier Media", href: "/retailer-mvp/brands" },
+  ];
+
   const [settings, setSettings] = useState({
       logoUrl: '',
       logoWidth: 128,
@@ -79,17 +85,6 @@ export default function UiManagementPage() {
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
             setSettings(docSnap.data().data);
-        } else {
-            // Migration fallback
-            const savedLogo = localStorage.getItem('landing-page-logo');
-            const savedTemplate = localStorage.getItem('selected-ui-template');
-            if (savedLogo || savedTemplate) {
-                setSettings(prev => ({
-                    ...prev,
-                    logoUrl: savedLogo || '',
-                    selectedTemplate: savedTemplate || 'template1'
-                }));
-            }
         }
         setIsFetching(false);
     });
@@ -120,12 +115,7 @@ export default function UiManagementPage() {
               data: settings,
               updatedAt: serverTimestamp()
           });
-
-          // Clean up legacy
-          localStorage.removeItem('landing-page-logo');
-          localStorage.removeItem('selected-ui-template');
-
-          toast({ title: "UI Settings Saved", description: "Authoritative branding synchronized." });
+          toast({ title: "Experience Settings Saved", description: "Authoritative branding synchronized." });
       } catch (e: any) {
           toast({ title: "Save Failed", description: e.message, variant: "destructive" });
       } finally {
@@ -137,7 +127,7 @@ export default function UiManagementPage() {
       return (
           <div className="flex flex-col items-center justify-center p-12 gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading Brand Assets...</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Retrieving Brand Assets...</p>
           </div>
       );
   }
@@ -157,12 +147,13 @@ export default function UiManagementPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">UI Management</h2>
-        <p className="text-muted-foreground max-w-3xl">
-            Customize the look and feel of the customer-facing mobile experience.
+        <h2 className="text-3xl font-black tracking-tight uppercase leading-none">Brand & Experience</h2>
+        <p className="text-muted-foreground mt-2">
+            Customize the global look and feel of the customer-facing mobile experience.
         </p>
       </div>
 
+       <HubNav items={brandHubItems} />
        <Separator />
        
       <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -170,8 +161,8 @@ export default function UiManagementPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <LayoutTemplate className="text-primary"/>
-                        Layout Templates
+                        <LayoutTemplate className="text-primary h-5 w-5"/>
+                        Template Gallery
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -183,7 +174,7 @@ export default function UiManagementPage() {
                             )}>
                                 <template.component logoPreview={settings.logoUrl} logoWidth={settings.logoWidth} logoAlign={settings.logoAlign} logoPadding={settings.logoPadding} isThumbnail={true} />
                             </div>
-                            <p className="text-center text-sm font-medium mt-2">{template.name}</p>
+                            <p className="text-center text-[10px] font-black uppercase mt-2">{template.name}</p>
                         </div>
                     ))}
                 </CardContent>
@@ -192,81 +183,50 @@ export default function UiManagementPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Palette className="text-primary"/>
-                        Landing Page Customization
+                        <Palette className="text-primary h-5 w-5"/>
+                        Branding Controls
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                     <div className="space-y-2">
-                        <Label>On-Scan Destination</Label>
-                        <RadioGroup value={settings.scanDestination} onValueChange={(v) => setSettings(p => ({ ...p, scanDestination: v as 'url' | 'ai' }))} className="flex gap-4">
-                            <Label htmlFor="dest-url" className="flex items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
-                                <RadioGroupItem value="url" id="dest-url" />
-                                <span>Landing Page</span>
-                            </Label>
-                            <Label htmlFor="dest-ai" className="flex items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
-                                <RadioGroupItem value="ai" id="dest-ai" />
-                                <span>AI Assistant</span>
-                            </Label>
-                        </RadioGroup>
-                    </div>
-
-                    {settings.scanDestination === 'url' && (
-                        <div>
-                            <Label htmlFor="landing-page-url">Landing Page URL</Label>
-                            <Input
-                                id="landing-page-url"
-                                type="url"
-                                value={settings.landingPageUrl}
-                                onChange={(e) => setSettings(p => ({ ...p, landingPageUrl: e.target.value }))}
-                                className="mt-2"
-                            />
-                        </div>
-                    )}
-
                     <div>
-                        <Label htmlFor="logo-upload-landing">Landing Page Logo</Label>
+                        <Label htmlFor="logo-upload-landing" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Brand Logo</Label>
                         <Input id="logo-upload-landing" type="file" accept="image/*" onChange={handleLogoUpload} className="mt-2" />
                     </div>
                     
                      <div className="space-y-4">
-                        <Label>Logo Sizing & Spacing</Label>
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Logo Scaling</Label>
                         <div className="p-4 border rounded-lg space-y-4">
                             <div>
-                                <Label>Width: {settings.logoWidth}px</Label>
+                                <Label className="text-[10px] font-bold">Width: {settings.logoWidth}px</Label>
                                 <Slider value={[settings.logoWidth]} onValueChange={(v) => setSettings(p => ({ ...p, logoWidth: v[0] }))} min={50} max={250} step={1} />
-                            </div>
-                             <div>
-                                <Label>Vertical Padding: {settings.logoPadding}px</Label>
-                                <Slider value={[settings.logoPadding]} onValueChange={(v) => setSettings(p => ({ ...p, logoPadding: v[0] }))} min={0} max={100} step={1} />
                             </div>
                         </div>
                     </div>
                      <div className="space-y-2">
-                        <Label>Logo Alignment</Label>
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Logo Alignment</Label>
                         <RadioGroup value={settings.logoAlign} onValueChange={(v) => setSettings(p => ({ ...p, logoAlign: v }))} className="flex gap-4">
                              <RadioGroupItem value="flex-start" id="align-start" className="sr-only" />
                              <Label htmlFor="align-start" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
-                                <AlignHorizontalJustifyStart />
-                                <span>Left</span>
+                                <AlignHorizontalJustifyStart className="h-4 w-4" />
+                                <span className="text-[10px] font-black uppercase">Left</span>
                             </Label>
                              <RadioGroupItem value="center" id="align-center" className="sr-only" />
                              <Label htmlFor="align-center" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
-                                <AlignHorizontalJustifyCenter />
-                                <span>Center</span>
+                                <AlignHorizontalJustifyCenter className="h-4 w-4" />
+                                <span className="text-[10px] font-black uppercase">Center</span>
                             </Label>
                              <RadioGroupItem value="flex-end" id="align-end" className="sr-only" />
                              <Label htmlFor="align-end" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
-                                <AlignHorizontalJustifyEnd />
-                                <span>Right</span>
+                                <AlignHorizontalJustifyEnd className="h-4 w-4" />
+                                <span className="text-[10px] font-black uppercase">Right</span>
                             </Label>
                         </RadioGroup>
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleSaveSettings} disabled={isSaving}>
+                    <Button onClick={handleSaveSettings} disabled={isSaving} className="font-bold uppercase text-[10px] tracking-widest h-10 px-8">
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />} 
-                        Save UI Settings
+                        Apply Branding
                     </Button>
                 </CardFooter>
             </Card>
@@ -275,7 +235,9 @@ export default function UiManagementPage() {
         <div className="lg:col-span-1">
             <Card className="sticky top-6">
                 <CardHeader>
-                    <CardTitle>Mobile Preview</CardTitle>
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <PhoneMockup className="h-4 w-4" /> Shopper Preview
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="flex justify-center">
                     <PhoneMockup>

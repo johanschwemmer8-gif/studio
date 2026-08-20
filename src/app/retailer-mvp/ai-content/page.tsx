@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { HubNav } from '@/components/dashboard/hub-nav';
 
 const AI_CONTENT_HEADLINE_KEY = 'ai-content-headline';
 const AI_CONTENT_SUBHEADING_KEY = 'ai-content-subheading';
@@ -19,8 +20,14 @@ export default function AiContentManagerPage() {
   const [subheading, setSubheading] = useState('');
   const { toast } = useToast();
 
+  const aiHubItems = [
+    { label: "Settings", href: "/retailer-mvp/ai-configuration" },
+    { label: "Welcome & Content", href: "/retailer-mvp/ai-content" },
+    { label: "Performance Audit", href: "/retailer-mvp/ai-performance" },
+    { label: "Ethics & Policy", href: "/retailer-mvp/ai-policy" },
+  ];
+
   useEffect(() => {
-    // Load saved content from localStorage on component mount
     const savedHeadline = localStorage.getItem(AI_CONTENT_HEADLINE_KEY);
     const savedSubheading = localStorage.getItem(AI_CONTENT_SUBHEADING_KEY);
     if (savedHeadline) setHeadline(savedHeadline);
@@ -39,25 +46,26 @@ export default function AiContentManagerPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">AI Assistant Content Manager</h2>
-        <p className="text-muted-foreground max-w-3xl">
-          Customize the default welcome messages and information your AI assistant provides to customers.
+        <h2 className="text-3xl font-black tracking-tight uppercase">Ari Experience</h2>
+        <p className="text-muted-foreground mt-2">
+          Customize the welcome messages and product-level information provided by Ari.
         </p>
       </div>
 
+      <HubNav items={aiHubItems} />
       <Separator />
 
       <div className="grid md:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>Content Editor</CardTitle>
+            <CardTitle>Welcome Content Editor</CardTitle>
             <CardDescription>
-              This content will be shown above the AI chat when a customer scans a QR code if no campaign-specific content is set.
+              This content appears when a shopper first engages with Ari.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="headline">Default Headline</Label>
+              <Label htmlFor="headline">Headline</Label>
               <Input
                 id="headline"
                 placeholder="e.g., Welcome to Our Store!"
@@ -66,10 +74,10 @@ export default function AiContentManagerPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="subheading">Default Subheading / Welcome Text</Label>
+              <Label htmlFor="subheading">Welcome Message</Label>
               <Textarea
                 id="subheading"
-                placeholder="Add a brief welcome message or some useful information for your customers."
+                placeholder="Add a brief welcome message or instructions for your customers."
                 value={subheading}
                 onChange={(e) => setSubheading(e.target.value)}
                 rows={5}
@@ -77,7 +85,7 @@ export default function AiContentManagerPage() {
             </div>
             <Button onClick={handleSave}>
               <Save className="mr-2 h-4 w-4" />
-              Save Default Content
+              Save Content
             </Button>
           </CardContent>
         </Card>
@@ -86,11 +94,11 @@ export default function AiContentManagerPage() {
           <CardHeader>
             <CardTitle>Live Preview</CardTitle>
             <CardDescription>
-              How the default content will appear on the interaction screen.
+              A snapshot of the current message content.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="w-full max-w-sm mx-auto p-4 border rounded-lg bg-muted/50 text-center">
+            <div className="w-full max-w-sm mx-auto p-4 border rounded-lg bg-muted/50 text-center min-h-[150px] flex flex-col justify-center">
               {headline ? (
                 <h1 className="text-xl font-bold">{headline}</h1>
               ) : (

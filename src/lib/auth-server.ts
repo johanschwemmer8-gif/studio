@@ -2,7 +2,7 @@
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * Enforces tenant isolation and role-based access control.
- * VERSION: 1.2.0 (Fail-Closed Enforcement)
+ * VERSION: 1.3.0 (Security Hardened - No Bypass)
  */
 
 import { admin } from "./firebase-admin";
@@ -52,11 +52,11 @@ export async function getAuthorizedRetailerId(idToken: string | undefined, reque
     throw new Error('User has no associated retailer identity.');
   }
   
-  // Strict Tenant Isolation Gate
-  if (auth.retailerId !== requestedRetailerId && requestedRetailerId !== 'simulated-retailer-id') {
-     throw new Error(`Access Denied: Unauthorized tenant access attempt for ${requestedRetailerId}.`);
+  // STRICT TENANT ISOLATION
+  // The authenticated claim is the source of truth.
+  if (requestedRetailerId && auth.retailerId !== requestedRetailerId) {
+     throw new Error(`Access Denied: Unauthorized tenant access attempt.`);
   }
   
-  // Use the verified claim as the primary identity
   return auth.retailerId;
 }

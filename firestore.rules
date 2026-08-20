@@ -3,30 +3,40 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // --- INTEGRITY HELPERS ---
+    // --- AUTHENTICATION HELPERS ---
     
-    function validateGtin(gtin) {
-      return gtin.size() == 14 && gtin.matches('^[0-9]+$');
-    }
-
-    function isPlatformAdmin() {
-      return request.auth != null && request.auth.token.role == 'admin';
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
     function getRetailerId() {
       return request.auth.token.retailerId;
     }
 
+    function isPlatformAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'admin';
+    }
+
+    function isTenantOwner(retailerId) {
+      return isAuthenticated() && getRetailerId() == retailerId;
+    }
+
+    // --- INTEGRITY HELPERS ---
+    
+    function validateGtin(gtin) {
+      return gtin.size() == 14 && gtin.matches('^[0-9]+$');
+    }
+
     // --- CONFIGURATION HUB ---
 
     match /configurations/{configId} {
       // Branding is public read for shoppers, but restricted write
-      // Org is restricted read/write
-      allow read: if (configId.endsWith('_brand')) || (request.auth != null && getRetailerId() != null && configId == getRetailerId() + '_org');
-      allow write: if request.auth != null && getRetailerId() != null && (configId == getRetailerId() + '_brand' || configId == getRetailerId() + '_org');
+      // Org is restricted read/write to the specific tenant
+      allow read: if (configId.endsWith('_brand')) || (isTenantOwner(configId.replace('_org', '')) || isPlatformAdmin());
+      allow write: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(configId.replace('_brand', '').replace('_org', '')));
     }
 
-    // --- IDENTITY LAYER (GS1) ---
+    // --- IDENTITY & QR LAYER ---
 
     match /products/{gtin} {
       allow read: if true;
@@ -34,46 +44,60 @@ service cloud.firestore {
     }
 
     match /qrcodes/{qrId} {
+      // Shoppers need to read QR metadata to resolve retailerId for branding/sessions
       allow read: if true;
-      allow write: if request.auth != null && (getRetailerId() == request.resource.data.retailerId || isPlatformAdmin());
+      // Write/Create limited to the authorized tenant or platform admin
+      allow write: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
+    }
+
+    match /bulkQrRequests/{requestId} {
+      // Restricted to the specific retailer or platform admin
+      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
+      allow create: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
+      allow update, delete: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
+
+      // Recursive protection for item subcollections
+      match /items/{itemId} {
+        allow read, write: if isPlatformAdmin() || isTenantOwner(get(/databases/$(database)/documents/bulkQrRequests/$(requestId)).data.retailerId);
+      }
     }
 
     // --- INTELLIGENCE LAYER (iNteract) ---
 
     match /sessions/{sessionId} {
       allow create: if true;
-      allow read, update: if true; // Shoppers need to read session to resolve retailerId for branding
+      allow read, update: if true; 
     }
 
     match /events/{eventId} {
       allow create: if true;
-      allow read: if request.auth != null && (getRetailerId() == resource.data.retailerId || isPlatformAdmin());
+      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
     }
 
     match /ai_conversations/{id} {
       allow create: if true;
-      allow read: if request.auth != null && (getRetailerId() == resource.data.retailerId || isPlatformAdmin());
+      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
     }
 
     // --- TRANSACTION LAYER ---
 
     match /baskets/{id} {
-      allow read, write: if request.auth != null && (resource == null || resource.data.shopperId == request.auth.uid || request.resource.data.shopperId == request.auth.uid);
+      allow read, write: if isAuthenticated() && (resource == null || resource.data.shopperId == request.auth.uid || request.resource.data.shopperId == request.auth.uid);
     }
 
     match /shoppers/{shopperId} {
-      allow read, write: if request.auth != null && request.auth.uid == shopperId;
+      allow read, write: if isAuthenticated() && request.auth.uid == shopperId;
     }
 
     match /saved_products/{id} {
-      allow read: if request.auth != null && (resource.data.shopperId == request.auth.uid);
-      allow write: if request.auth != null && (request.resource.data.shopperId == request.auth.uid);
+      allow read: if isAuthenticated() && (resource.data.shopperId == request.auth.uid);
+      allow write: if isAuthenticated() && (request.resource.data.shopperId == request.auth.uid);
     }
 
     // --- PLATFORM GOVERNANCE ---
 
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isPlatformAdmin());
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isPlatformAdmin());
       allow write: if isPlatformAdmin();
     }
 

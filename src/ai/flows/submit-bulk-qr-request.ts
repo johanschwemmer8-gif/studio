@@ -1,14 +1,14 @@
-
 'use server';
 /**
  * @fileOverview A GS1-compliant Genkit flow to submit a bulk QR code generation request.
  * Supports GS1 Digital Link standards including GTIN, Batch, and Serial Number.
+ * HARDENED: Now enforces trusted tenant identity via Firebase custom claims.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
-import { verifyAuth } from '@/lib/auth-server';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 
 // Define the schema for GS1 Digital Link options
 const QrOptionsSchema = z.object({
@@ -38,8 +38,8 @@ const QrOptionsSchema = z.object({
 });
 
 const SubmitBulkQrRequestInputSchema = z.object({
-  idToken: z.string().optional().describe("Firebase ID token for authorization."),
-  retailerId: z.string().describe('The ID of the retailer.'),
+  idToken: z.string().describe("Firebase ID token for authoritative identity resolution."),
+  retailerId: z.string().describe('The intended ID of the retailer.'),
   brandId: z.string().describe('The brand ID.'),
   campaignId: z.string().describe('The campaign ID.'),
   count: z.number().int().min(1).max(10000),
@@ -65,16 +65,43 @@ const submitBulkQrRequestFlow = ai.defineFlow(
   },
   async (data) => {
     // AUTHORIZATION GATE
-    const auth = await verifyAuth(data.idToken);
+    // We derive the authorized retailerId from the verified ID token.
+    // Mismatches between client-supplied retailerId and token claim are rejected.
+    const authorizedRetailerId = await getAuthorizedRetailerId(data.idToken, data.retailerId);
     
-    // Enforcement: Retailer users can only submit for their own tenant
-    if (auth.role !== 'admin' && auth.retailerId !== data.retailerId) {
-        throw new Error('Unauthorized: Tenant identity mismatch.');
+    if (!db) {
+        throw new Error('Infrastructure Layer Unavailable.');
     }
 
-    // SIMULATION: Bypassing Firestore interaction for prototype speed
-    console.log(`(GS1 Authenticated) Bulk request for campaign: ${data.campaignId}. Caller: ${auth.uid}`);
-    const mockRequestId = `gs1_req_${Date.now()}`;
-    return { success: true, requestId: mockRequestId };
+    // AUTHENTICATED TRANSACTION
+    // Use the verified authorizedRetailerId for the remainder of the operation.
+    const requestRef = db.collection('bulkQrRequests').doc();
+    
+    try {
+        await requestRef.set({
+            retailerId: authorizedRetailerId,
+            brandId: data.brandId,
+            campaignId: data.campaignId,
+            totalRequested: data.count,
+            status: 'COMPLETED', // Synchronous processing simulation for pilot
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            options: data.options || {},
+            itemsDone: data.count,
+            isGs1Compliant: true,
+            dataStatus: 'VERIFIED'
+        });
+
+        console.log(`[QR Management] Verified Batch Created: ${requestRef.id} for Tenant ${authorizedRetailerId}`);
+        
+        return { 
+            success: true, 
+            requestId: requestRef.id 
+        };
+
+    } catch (error: any) {
+        console.error(`[QR Management] Persistence Failure:`, error.message);
+        throw new Error("Failed to queue batch generation.");
+    }
   }
 );

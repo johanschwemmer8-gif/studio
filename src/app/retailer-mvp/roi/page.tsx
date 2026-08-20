@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -24,6 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import SalesFunnelChart from '@/components/dashboard/sales-funnel-chart';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/auth-context';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +34,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function RoiPage() {
+  const { user } = useAuth();
   const [metricsData, setMetricsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [attributionReport, setAttributionReport] = useState<AttributionReport | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
@@ -44,26 +45,30 @@ export default function RoiPage() {
 
   useEffect(() => {
     const fetchInitialData = async () => {
+      if (!user) return;
       try {
-        const idToken = await auth.currentUser?.getIdToken();
-        const result = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
+        const idToken = await user.getIdToken();
+        const retailerId = user.retailerId || 'unknown';
+        
+        const result = await analyzeEngagementMetrics({ idToken, retailerId });
         setMetricsData(result);
         
         startAttribution(async () => {
-            const attr = await attributeTransactions(idToken, 'simulated-retailer-id');
+            const attr = await attributeTransactions(idToken, retailerId);
             setAttributionReport(attr);
         });
       } catch (e: any) {
+        console.error(e);
         setError(e.message || "Could not load metrics. Check your connection.");
       }
     };
     fetchInitialData();
-  }, []);
+  }, [user]);
 
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
-      if (metricsData) {
+      if (metricsData && user) {
         setAnalysis(metricsData);
       } else {
         setError("Intelligence stream is not available.");
@@ -277,4 +282,3 @@ export default function RoiPage() {
     </div>
   );
 }
-

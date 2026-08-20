@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -33,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '@/context/auth-context';
 
 function SetupGuide({ retailerId }: { retailerId: string }) {
   const [status, setStatus] = useState({ network: false, brand: false, qr: false });
@@ -94,6 +94,7 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,7 +107,7 @@ export default function DashboardPage() {
   const [intelligenceData, setIntelligenceData] = useState<DecisionIntelligenceOutput | null>(null);
 
   const { toast } = useToast();
-  const retailerId = auth.currentUser?.uid || 'simulated-retailer-id';
+  const retailerId = user?.retailerId || 'unknown';
 
   const handleStoreChange = (store: string | null) => {
     setSelectedStore(store);
@@ -119,27 +120,29 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+        if (!user) return;
         try {
-            const idToken = await auth.currentUser?.getIdToken();
+            const idToken = await user.getIdToken();
             const [engData, intelData] = await Promise.all([
-                analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' }),
+                analyzeEngagementMetrics({ idToken, retailerId }),
                 analyzeDecisionIntelligence()
             ]);
             setAnalyticsData(engData);
             setIntelligenceData(intelData);
-        } catch (e) {
+        } catch (e: any) {
+            console.error(e);
             setError("Friction in intelligence stream. Simulation fallback active.");
         }
     };
     fetchData();
-  }, []);
+  }, [user, retailerId]);
 
   const handleAnalyzeMetrics = () => {
     setError(null);
     startAnalyzing(async () => {
         try {
-            const idToken = await auth.currentUser?.getIdToken();
-            const result = await analyzeEngagementMetrics({ idToken, retailerId: 'simulated-retailer-id' });
+            const idToken = await user?.getIdToken();
+            const result = await analyzeEngagementMetrics({ idToken, retailerId });
             setAnalysis(result);
         } catch (e) {
             setError("Analysis engine busy. Please retry.");
@@ -172,7 +175,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <SetupGuide retailerId={retailerId} />
+      {retailerId !== 'unknown' && <SetupGuide retailerId={retailerId} />}
 
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-card/50 p-4 rounded-xl border border-primary/10 shadow-sm">
           <div className="flex-1 w-full lg:w-auto">
@@ -370,4 +373,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

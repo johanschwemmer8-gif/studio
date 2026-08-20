@@ -18,9 +18,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '../ui/badge';
-import { auth, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/auth-context';
-import { collection, query, where, onSnapshot, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 
 function AnalyticsCard({ title, value, icon: Icon, description }: { title: string, value: string | number, icon: React.ElementType, description?: string }) {
     return (
@@ -37,6 +37,11 @@ function AnalyticsCard({ title, value, icon: Icon, description }: { title: strin
     )
 }
 
+/**
+ * Reach Intelligence Dashboard
+ * Authoritative behavioral analysis based on session-anchored events.
+ * AUDIT: iN-PROD-RC1-2026
+ */
 export default function ScanAnalytics() {
   const { user } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
@@ -60,7 +65,7 @@ export default function ScanAnalytics() {
         setLoading(false);
     }, (err) => {
         console.error("Live Stream Error:", err);
-        setError("Friction in live intelligence stream.");
+        setError("Synchronization with intelligence layer deferred.");
         setLoading(false);
     });
 
@@ -71,7 +76,7 @@ export default function ScanAnalytics() {
       return (
           <div className="flex flex-col items-center justify-center p-12 space-y-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Awaiting Live Intelligence...</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Retrieving Reach Metrics...</p>
           </div>
       );
   }
@@ -117,10 +122,12 @@ export default function ScanAnalytics() {
                         Analysing shopper reach through session-anchored behavioural events.
                     </CardDescription>
                 </div>
-                <Badge className="bg-green-500 text-white border-none gap-1.5 animate-pulse py-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                    Live Feed
-                </Badge>
+                {totalEvents > 0 && (
+                    <Badge className="bg-green-500 text-white border-none gap-1.5 animate-pulse py-1">
+                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                        Live Feed
+                    </Badge>
+                )}
             </div>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -152,11 +159,11 @@ export default function ScanAnalytics() {
                 </h3>
                 <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
                     {topEngagedProducts.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center gap-4 bg-muted/10">
+                        <div className="flex flex-col items-center justify-center py-24 text-center gap-4 bg-muted/10">
                             <QrCode className="h-12 w-12 text-muted-foreground/20" />
                             <div className="space-y-1">
                                 <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Awaiting Live Engagement</p>
-                                <p className="text-[10px] text-muted-foreground italic px-8 max-w-sm mx-auto">This dashboard is listening for factual shopper events. When customers scan your deployed QR codes, their interactions will appear here in real-time.</p>
+                                <p className="text-[10px] text-muted-foreground italic px-8 max-w-sm mx-auto">This dashboard is listening for factual shopper events. Deployment verification and first shopper scans will appear here in real-time.</p>
                             </div>
                         </div>
                     ) : (
@@ -181,7 +188,7 @@ export default function ScanAnalytics() {
                     )}
                 </div>
                 <p className="text-[9px] italic text-muted-foreground">
-                    * Metrics are grounded in chronologically verified Firestore events. Factual aggregation is anchored to the session identifier.
+                    * Metrics are grounded in chronologically verified cloud events. Factual aggregation is anchored to the session identifier.
                 </p>
             </div>
         </CardContent>

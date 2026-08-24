@@ -1,8 +1,9 @@
+
 'use server';
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Aggressive Retry & Jitter.
- * VERSION: 1.7.0 (High-Availability Loop)
+ * VERSION: 1.8.0 (Ultra-Resilient Identity Loop)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -20,11 +21,11 @@ export type AuthorizedContext = {
  */
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   if (!idToken || idToken === '') {
-    throw new Error('Authentication required.');
+    throw new Error('Authentication required: No security token provided. Please refresh the page and sign in again.');
   }
 
   let lastError: any;
-  const maxRetries = 3; // Increased retries
+  const maxRetries = 5; // Increased to 5 attempts for extreme resilience
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -43,7 +44,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
                   const userData = userDoc.data();
                   role = role || userData?.role;
                   retailerId = retailerId || userData?.retailerId;
-                  console.log(`[Auth] Handshake verified via database fallback for ${decodedToken.uid}`);
+                  console.log(`[Auth] Identity verified via Database Fallback for ${decodedToken.uid}`);
               }
           }
       }
@@ -56,17 +57,20 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
     } catch (error: any) {
       lastError = error;
       
-      // Identify transient cloud errors (Metadata/Refresh 500)
-      const isTransient = error.message.includes('metadata') || 
-                          error.message.includes('refresh') || 
-                          error.message.includes('500') ||
-                          error.message.includes('UNKNOWN') ||
-                          error.code === 'auth/internal-error';
+      // Identify transient cloud errors (Metadata/Refresh 500, Socket Hangup, etc.)
+      const isTransient = 
+        error.message.includes('metadata') || 
+        error.message.includes('refresh') || 
+        error.message.includes('500') ||
+        error.message.includes('UNKNOWN') ||
+        error.message.includes('socket') ||
+        error.message.includes('timeout') ||
+        error.code === 'auth/internal-error';
 
       if (isTransient && attempt < maxRetries) {
-        // Exponential backoff with jitter
-        const delay = Math.floor(Math.random() * 500) + (1000 * Math.pow(2, attempt));
-        console.warn(`[Auth] Transient cloud handshake error (Attempt ${attempt + 1}/${maxRetries}). Retrying in ${delay}ms...`);
+        // Exponential backoff with jitter: 1s, 2s, 4s, 8s, 16s...
+        const delay = Math.floor(Math.random() * 1000) + (1000 * Math.pow(2, attempt));
+        console.warn(`[Auth] Cloud Handshake Delayed (Attempt ${attempt + 1}/${maxRetries}). Retrying in ${delay}ms... Details: ${error.message}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -75,15 +79,11 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
       console.error('[Auth] Verification Failure:', error.code || 'NO_CODE', error.message);
       
       if (isTransient) {
-          throw new Error('Identity Service Temporary Unavailable: The cloud handshake timed out after multiple attempts. This is a transient cloud issue. Please refresh the page and try again.');
+          throw new Error(`Identity Service Unavailable: The security handshake timed out after ${maxRetries} attempts. This is usually a transient cloud connectivity issue. Please refresh the page and try again. Internal Trace: ${error.message.substring(0, 50)}...`);
       }
 
       if (error.code === 'auth/id-token-expired') {
         throw new Error('Your security session has expired. Please refresh the page to log in again.');
-      }
-      
-      if (error.message.includes('payload') || error.message.includes('object')) {
-          throw new Error('Identity Handshake Error: The security payload was malformed. This is usually transient; please refresh and try again.');
       }
       
       throw new Error(`Authentication Error: ${error.message || 'Invalid session.'}`);
@@ -108,7 +108,7 @@ export async function getAuthorizedRetailerId(idToken: string | undefined, reque
   }
   
   if (requestedRetailerId && requestedRetailerId !== 'unknown' && auth.retailerId !== requestedRetailerId) {
-     throw new Error(`ACCESS_DENIED: Identity mismatch.`);
+     throw new Error(`ACCESS_DENIED: You are not authorized to perform operations for this tenant.`);
   }
   
   return auth.retailerId;

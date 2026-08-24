@@ -1,8 +1,8 @@
 'use server';
 /**
  * @fileOverview Secure administrative tool for assigning trusted identity claims.
- * IMPLEMENTATION: Optimistic Dual-Path Provisioning (DB First).
- * VERSION: 1.5.0 (Resilience Hardened)
+ * DESIGN: Ultra-Resilient "No-Throw" Server Action.
+ * VERSION: 1.6.0 (Success-First Persistence)
  */
 
 import { ai } from '@/ai/genkit';
@@ -23,7 +23,16 @@ const AssignUserClaimsOutputSchema = z.object({
 });
 
 export async function assignUserClaims(input: z.infer<typeof AssignUserClaimsInputSchema>) {
-    return assignUserClaimsFlow(input);
+    // Top-level catch to prevent "Unexpected response from server" NextJS 15 error
+    try {
+        return await assignUserClaimsFlow(input);
+    } catch (e: any) {
+        console.error("[Server Action] Fatal Boundary Error:", e.message);
+        return {
+            success: false,
+            message: `System Error: ${e.message || "An unexpected error occurred during provisioning."}`
+        };
+    }
 }
 
 const assignUserClaimsFlow = ai.defineFlow(
@@ -34,19 +43,24 @@ const assignUserClaimsFlow = ai.defineFlow(
   },
   async ({ idToken, targetUid, role, retailerId }) => {
     // 1. Authorize Caller (The Admin)
-    // verifyAuth now has aggressive retry logic for transient cloud 500s
     const caller = await verifyAuth(idToken);
     
-    if (!caller.uid) {
-        throw new Error("Unauthorized: Invalid session.");
+    if (caller.error) {
+        return { success: false, message: caller.error };
+    }
+
+    if (caller.role !== 'admin') {
+        return { success: false, message: "Unauthorized: Only platform administrators can provision access." };
     }
 
     const db = getDb();
-    if (!db) throw new Error("Infrastructure Layer Unavailable.");
+    if (!db) {
+        return { success: false, message: "Infrastructure Layer Unavailable (Firestore)." };
+    }
 
     try {
-        // 2. PATH A: Firestore Persistence (PRIMARY SOURCE OF TRUTH)
-        // We write this first because it's the most reliable and doesn't rely on the cloud metadata server.
+        // 2. PRIMARY PATH: Firestore Persistence
+        // We write to the database first because the client-side 'verifyAuth' uses this as a fallback.
         await db.collection('users').doc(targetUid).set({
             uid: targetUid,
             role,
@@ -59,8 +73,8 @@ const assignUserClaimsFlow = ai.defineFlow(
 
         console.log(`[Admin] Database Identity Updated for ${targetUid}`);
 
-        // 3. PATH B: Auth Custom Claims (SECONDARY / BEST EFFORT)
-        // We attempt this, but we don't let a timeout here crash the success of Path A.
+        // 3. SECONDARY PATH: Auth Custom Claims
+        // We attempt this for better performance in the long run, but we don't let cloud latency fail the action.
         let cloudClaimStatus = "Ready";
         try {
             const auth = admin.auth();
@@ -69,24 +83,29 @@ const assignUserClaimsFlow = ai.defineFlow(
                 retailerId: retailerId || 'unknown'
             };
             
-            await auth.setCustomUserClaims(targetUid, claims);
+            // Set a timeout for the cloud handshake to avoid killing the whole action
+            await Promise.race([
+                auth.setCustomUserClaims(targetUid, claims),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Cloud timeout')), 8000))
+            ]);
+            
             console.log(`[Admin] Cloud Claims Assigned: ${targetUid}`);
         } catch (authError: any) {
-            console.warn("[Admin] Cloud Handshake Delayed:", authError.message);
+            console.warn("[Admin] Cloud Sync Deferred (Non-Fatal):", authError.message);
             cloudClaimStatus = "Sync Pending";
         }
 
         return {
             success: true,
             message: cloudClaimStatus === "Ready" 
-                ? `Permissions updated for ${targetUid}. Access is now active.`
-                : `Permissions saved to database for ${targetUid}. Access is active, but a cloud sync delay was detected. User should log in to verify.`
+                ? `Permissions updated. Access is now active.`
+                : `Permissions saved to database. Access is active, but cloud sync is pending. User should re-login.`
         };
     } catch (error: any) {
         console.error("[Admin] Provisioning Failure:", error.message);
         return {
             success: false,
-            message: `Provisioning failed: ${error.message}`
+            message: `Persistence Failure: ${error.message}`
         };
     }
   }

@@ -1,8 +1,8 @@
 'use server';
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
- * IMPLEMENTATION: Hardened Identity Resolution with Transient Error Retry.
- * VERSION: 1.6.0 (Resilience Loop Active)
+ * IMPLEMENTATION: Hardened Identity Resolution with Aggressive Retry & Jitter.
+ * VERSION: 1.7.0 (High-Availability Loop)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -15,8 +15,8 @@ export type AuthorizedContext = {
 
 /**
  * Validates the ID token and returns the authorized context.
- * RESILIENCE: Implements a retry loop for transient cloud handshake errors (500s).
- * FALLBACK: Checks Firestore 'users' if token claims are missing.
+ * RESILIENCE: Implements an aggressive retry loop for transient cloud handshake errors.
+ * FALLBACK: Checks Firestore 'users' if token claims are missing or if the handshake is delayed.
  */
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   if (!idToken || idToken === '') {
@@ -24,7 +24,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   }
 
   let lastError: any;
-  const maxRetries = 2;
+  const maxRetries = 3; // Increased retries
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -43,7 +43,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
                   const userData = userDoc.data();
                   role = role || userData?.role;
                   retailerId = retailerId || userData?.retailerId;
-                  console.log(`[Auth] Using database fallback for ${decodedToken.uid}`);
+                  console.log(`[Auth] Handshake verified via database fallback for ${decodedToken.uid}`);
               }
           }
       }
@@ -60,11 +60,14 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
       const isTransient = error.message.includes('metadata') || 
                           error.message.includes('refresh') || 
                           error.message.includes('500') ||
-                          error.message.includes('UNKNOWN');
+                          error.message.includes('UNKNOWN') ||
+                          error.code === 'auth/internal-error';
 
       if (isTransient && attempt < maxRetries) {
-        console.warn(`[Auth] Transient cloud error (Retry ${attempt + 1}/${maxRetries})...`);
-        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        // Exponential backoff with jitter
+        const delay = Math.floor(Math.random() * 500) + (1000 * Math.pow(2, attempt));
+        console.warn(`[Auth] Transient cloud handshake error (Attempt ${attempt + 1}/${maxRetries}). Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
 
@@ -72,7 +75,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
       console.error('[Auth] Verification Failure:', error.code || 'NO_CODE', error.message);
       
       if (isTransient) {
-          throw new Error('Identity Service Temporary Unavailable: The cloud handshake timed out. Access can still be granted via database fallback. Please refresh the page and try again.');
+          throw new Error('Identity Service Temporary Unavailable: The cloud handshake timed out after multiple attempts. This is a transient cloud issue. Please refresh the page and try again.');
       }
 
       if (error.code === 'auth/id-token-expired') {

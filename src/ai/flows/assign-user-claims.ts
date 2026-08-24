@@ -1,8 +1,8 @@
 'use server';
 /**
  * @fileOverview Secure administrative tool for assigning trusted identity claims.
- * IMPLEMENTATION: Dual-Path Provisioning (Auth Claims + Firestore Fallback).
- * VERSION: 1.4.1 (Hardened Payload Handling)
+ * IMPLEMENTATION: Optimistic Dual-Path Provisioning (DB First).
+ * VERSION: 1.5.0 (Resilience Hardened)
  */
 
 import { ai } from '@/ai/genkit';
@@ -33,7 +33,8 @@ const assignUserClaimsFlow = ai.defineFlow(
     outputSchema: AssignUserClaimsOutputSchema,
   },
   async ({ idToken, targetUid, role, retailerId }) => {
-    // 1. Authorize Caller
+    // 1. Authorize Caller (The Admin)
+    // verifyAuth now has aggressive retry logic for transient cloud 500s
     const caller = await verifyAuth(idToken);
     
     if (!caller.uid) {
@@ -44,21 +45,23 @@ const assignUserClaimsFlow = ai.defineFlow(
     if (!db) throw new Error("Infrastructure Layer Unavailable.");
 
     try {
-        // 2. PATH A: Firestore Persistence (Immediate Fallback)
-        // This is highly reliable and provides immediate access via auth-server.ts fallback.
+        // 2. PATH A: Firestore Persistence (PRIMARY SOURCE OF TRUTH)
+        // We write this first because it's the most reliable and doesn't rely on the cloud metadata server.
         await db.collection('users').doc(targetUid).set({
             uid: targetUid,
             role,
             retailerId,
             isActive: true,
             provisionedAt: admin.firestore.FieldValue.serverTimestamp(),
-            provisionedBy: caller.uid
+            provisionedBy: caller.uid,
+            dataStatus: 'VERIFIED'
         }, { merge: true });
 
-        console.log(`[Admin] Firestore Identity Updated for ${targetUid}`);
+        console.log(`[Admin] Database Identity Updated for ${targetUid}`);
 
-        // 3. PATH B: Auth Custom Claims
-        // We attempt this, but we use a non-null claims object to avoid payload errors.
+        // 3. PATH B: Auth Custom Claims (SECONDARY / BEST EFFORT)
+        // We attempt this, but we don't let a timeout here crash the success of Path A.
+        let cloudClaimStatus = "Ready";
         try {
             const auth = admin.auth();
             const claims = {
@@ -67,26 +70,20 @@ const assignUserClaimsFlow = ai.defineFlow(
             };
             
             await auth.setCustomUserClaims(targetUid, claims);
-            console.log(`[Admin] Auth Claims Assigned: ${targetUid}`);
+            console.log(`[Admin] Cloud Claims Assigned: ${targetUid}`);
         } catch (authError: any) {
-            console.warn("[Admin] Auth Service Handshake Friction:", authError.message);
-            // We do NOT throw here because Path A succeeded, and the user is unblocked.
+            console.warn("[Admin] Cloud Handshake Delayed:", authError.message);
+            cloudClaimStatus = "Sync Pending";
         }
 
         return {
             success: true,
-            message: `Permissions updated for ${targetUid}. Access is active via database fallback. (Note: User must re-login to refresh their token).`
+            message: cloudClaimStatus === "Ready" 
+                ? `Permissions updated for ${targetUid}. Access is now active.`
+                : `Permissions saved to database for ${targetUid}. Access is active, but a cloud sync delay was detected. User should log in to verify.`
         };
     } catch (error: any) {
         console.error("[Admin] Provisioning Failure:", error.message);
-        
-        if (error.message.includes('payload') || error.message.includes('object')) {
-            return {
-                success: false,
-                message: "Identity Server Busy: The cloud handshake timed out. However, permissions may have been saved to the database. Please try logging in as the target user to verify."
-            };
-        }
-
         return {
             success: false,
             message: `Provisioning failed: ${error.message}`

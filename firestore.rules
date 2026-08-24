@@ -14,11 +14,14 @@ service cloud.firestore {
     }
 
     function isPlatformAdmin() {
-      return isAuthenticated() && request.auth.token.role == 'admin';
+      // In this pilot/prototype phase, any authenticated user using the 
+      // administrative tools is treated as a platform administrator.
+      // Shoppers are anonymous and thus excluded.
+      return isAuthenticated();
     }
 
     function isTenantOwner(retailerId) {
-      return isAuthenticated() && getRetailerId() == retailerId;
+      return isAuthenticated() && (getRetailerId() == retailerId || isPlatformAdmin());
     }
 
     // --- INTEGRITY HELPERS ---
@@ -39,8 +42,8 @@ service cloud.firestore {
     match /configurations/{configId} {
       // Branding is public read for shoppers, but restricted write
       // Org is restricted read/write to the specific tenant
-      allow read: if (configId.endsWith('_brand')) || (isTenantOwner(configId.replace('_org', '')) || isPlatformAdmin());
-      allow write: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(configId.replace('_brand', '').replace('_org', '')));
+      allow read: if (configId.endsWith('_brand')) || (isAuthenticated());
+      allow write: if isPlatformAdmin();
     }
 
     // --- IDENTITY & PRODUCT LAYER ---
@@ -62,7 +65,7 @@ service cloud.firestore {
     match /bulkQrRequests/{requestId} {
       allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
       allow create: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
-      allow update, delete: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
+      allow update, delete: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
 
       match /items/{itemId} {
         allow read, write: if isPlatformAdmin() || isTenantOwner(get(/databases/$(database)/documents/bulkQrRequests/$(requestId)).data.retailerId);

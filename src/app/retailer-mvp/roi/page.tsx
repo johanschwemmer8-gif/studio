@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -12,12 +11,11 @@ import {
 import { 
   Clock, TrendingUp, ShoppingCart, Percent, 
   Sparkles, AlertTriangle, ArrowUp, DollarSign,
-  Download, Loader2, ShieldCheck, History, BarChart3
+  Download, Loader2, ShieldCheck, History, BarChart3, ShieldAlert
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import TopProductsTable from '@/components/dashboard/top-products-table';
 import { Separator } from '@/components/ui/separator';
-import TimeBasedPerformanceChart from '@/components/dashboard/time-based-performance-chart';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, attributeTransactions, type AnalyzeEngagementMetricsOutput, type AttributionReport } from '@/ai/flows';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -32,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import Link from 'next/link';
 
 export default function RoiPage() {
   const { user } = useAuth();
@@ -47,8 +46,6 @@ export default function RoiPage() {
     const fetchInitialData = async () => {
       if (!user) return;
       try {
-        // Force refresh the token to avoid "Invalid or expired token" errors 
-        // that can occur if the tab was left idle for more than an hour.
         const idToken = await user.getIdToken(true);
         const retailerId = user.retailerId || 'unknown';
         
@@ -61,19 +58,15 @@ export default function RoiPage() {
         });
       } catch (e: any) {
         console.error('Initial data fetch failed:', e);
-        setError(e.message || "Could not load metrics. Please try refreshing the page.");
-        
-        if (e.message?.includes('authentication token')) {
-            toast({
-                title: "Session Expired",
-                description: "Your session has timed out. Please log in again.",
-                variant: "destructive"
-            });
+        if (e.message?.includes('IDENTITY_NOT_PROVISIONED')) {
+            setError("PROVISIONING_REQUIRED");
+        } else {
+            setError(e.message || "Could not load metrics. Please try refreshing the page.");
         }
       }
     };
     fetchInitialData();
-  }, [user, toast]);
+  }, [user]);
 
   const handleAnalyzeMetrics = () => {
     setError(null);
@@ -85,6 +78,25 @@ export default function RoiPage() {
       }
     });
   };
+
+  if (error === "PROVISIONING_REQUIRED") {
+      return (
+          <div className="flex flex-col items-center justify-center p-12 text-center space-y-6">
+              <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <ShieldAlert className="h-10 w-10 text-destructive" />
+              </div>
+              <div className="space-y-2">
+                  <h1 className="text-2xl font-black uppercase tracking-tight">Identity Provisioning Required</h1>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                      Your account has not yet been associated with a specific retailer. Please contact your Platform Administrator to assign your <code className="text-xs">retailerId</code>.
+                  </p>
+              </div>
+              <Button asChild variant="outline">
+                  <Link href="/create-admin">Open User Management</Link>
+              </Button>
+          </div>
+      );
+  }
 
   const handleExport = (format: string) => {
     toast({ title: `Generating Associated Sales Report (${format})...` });

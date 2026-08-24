@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -15,7 +14,7 @@ import {
 import { 
   UserCheck, TrendingUp, Sparkles, AlertTriangle, 
   ArrowUp, MessageSquare, ShoppingCart, Loader2, Lightbulb, DollarSign,
-  Search, Download, BarChart2, CheckCircle2, Circle, BookOpen
+  Search, Download, BarChart2, CheckCircle2, Circle, ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
@@ -35,6 +34,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function SetupGuide({ retailerId }: { retailerId: string }) {
   const [status, setStatus] = useState({ network: false, brand: false, catalog: false, qr: false });
@@ -76,7 +76,6 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
     { label: "Learn the Platform", href: "/retailer-mvp/documentation", done: true, desc: "Review metrics and training guides.", optional: true },
   ];
 
-  // Hide guide if all essential setup is done (excluding the optional training step)
   const isComplete = status.network && status.brand && status.catalog && status.qr;
   if (isComplete) return null;
 
@@ -119,51 +118,50 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const retailerId = user?.retailerId || 'unknown';
 
-  const handleStoreChange = (store: string | null) => {
-    setSelectedStore(store);
-  };
-  
-  const handleRegionChange = (region: string | null) => {
-    setSelectedRegion(region);
-    setSelectedStore(null); 
-  };
-
   useEffect(() => {
     const fetchData = async () => {
-        if (!user || !user.retailerId) return;
+        if (!user) return;
+        
         try {
-            const idToken = await user.getIdToken();
+            // Attempt to refresh token to ensure claims are up to date
+            const idToken = await user.getIdToken(true);
             const [engData, intelData] = await Promise.all([
-                analyzeEngagementMetrics({ idToken, retailerId: user.retailerId }),
+                analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' }),
                 analyzeDecisionIntelligence()
             ]);
             setAnalyticsData(engData);
             setIntelligenceData(intelData);
         } catch (e: any) {
             console.error(e);
-            setError("Friction in intelligence stream. Simulation fallback active.");
+            if (e.message?.includes('IDENTITY_NOT_PROVISIONED')) {
+                setError("PROVISIONING_REQUIRED");
+            } else {
+                setError("SYNC_ERROR");
+            }
         }
     };
     fetchData();
   }, [user]);
 
-  const handleAnalyzeMetrics = () => {
-    setError(null);
-    startAnalyzing(async () => {
-        try {
-            const idToken = await user?.getIdToken();
-            const result = await analyzeEngagementMetrics({ idToken, retailerId: user?.retailerId });
-            setAnalysis(result);
-        } catch (e) {
-            setError("Analysis engine busy. Please retry.");
-        }
-    });
-  };
+  if (error === "PROVISIONING_REQUIRED") {
+      return (
+          <div className="flex flex-col items-center justify-center p-12 text-center space-y-6">
+              <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <ShieldAlert className="h-10 w-10 text-destructive" />
+              </div>
+              <div className="space-y-2">
+                  <h1 className="text-2xl font-black uppercase tracking-tight">Identity Provisioning Required</h1>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                      Your account has not yet been associated with a specific retailer. Please contact your Platform Administrator to assign your <code className="text-xs">retailerId</code>.
+                  </p>
+              </div>
+              <Button asChild variant="outline">
+                  <Link href="/create-admin">Open User Management</Link>
+              </Button>
+          </div>
+      );
+  }
 
-  const handleExport = (format: string) => {
-      toast({ title: `Generating ${format} Report...` });
-  };
-  
   if(!analyticsData || !intelligenceData) {
     return (
       <div className="space-y-8">
@@ -192,9 +190,9 @@ export default function DashboardPage() {
              <StoreSelector
                 regions={storesByRegion}
                 selectedRegion={selectedRegion}
-                onRegionChange={handleRegionChange}
+                onRegionChange={setSelectedRegion}
                 selectedStore={selectedStore}
-                onStoreChange={handleStoreChange}
+                onStoreChange={setSelectedStore}
             />
           </div>
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -212,17 +210,6 @@ export default function DashboardPage() {
                   <BarChart2 className="h-4 w-4 text-primary" /> Scan Stats
                 </Link>
              </Button>
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button className="h-10 gap-2 font-bold text-[10px] uppercase tracking-widest">
-                        <Download className="h-4 w-4" /> Export
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleExport('PDF')}>Performance Summary</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('CSV')}>Raw Events</DropdownMenuItem>
-                </DropdownMenuContent>
-             </DropdownMenu>
           </div>
       </div>
 

@@ -7,14 +7,13 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { getDb } from '@/lib/firebase-admin';
+import { getDb, admin } from '@/lib/firebase-admin';
 import { buildFactContext } from '@/ai/fact-context';
 import { 
   InteractionSignalSchema, 
   ShopperContextSchema, 
   RecommendationRationaleSchema 
 } from '@/lib/schemas/interaction-signals';
-import { Timestamp } from 'firebase-admin/firestore';
 
 const ARI_CORE_VERSION = '1.6.0';
 
@@ -139,7 +138,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
               retailerId,
               transcript: [...input.history, { role: 'model', content: output.message }],
               shopperContext: output.shopperContext,
-              timestamp: Timestamp.now(),
+              timestamp: admin.firestore.Timestamp.now(),
               ariVersion: ARI_CORE_VERSION,
               dataStatus: 'VERIFIED'
           }).catch(console.warn);
@@ -159,7 +158,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
                       gtin,
                       retailerId,
                       eventType: 'interaction_signal',
-                      timestamp: Timestamp.now(),
+                      timestamp: admin.firestore.Timestamp.now(),
                       metadata: {
                           ...signal,
                           statedReason: signal.statedReason ? "[PII REDACTED]" : null,
@@ -179,7 +178,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
                   gtin,
                   retailerId,
                   eventType: 'recommendation_event',
-                  timestamp: Timestamp.now(),
+                  timestamp: admin.firestore.Timestamp.now(),
                   metadata: {
                       ...output.rationale,
                       ariVersion: ARI_CORE_VERSION

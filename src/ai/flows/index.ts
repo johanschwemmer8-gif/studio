@@ -38,6 +38,7 @@ import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledPro
 import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from './sync-products';
 import { aggregateIntelligence } from './aggregate-intelligence';
 import { attributeTransactions } from './attribute-transactions';
+import { type AttributionReport, type AttributionRecord } from '@/lib/schemas/attribution';
 import { getDecisionJourneyIntelligence } from './decision-journey-intelligence';
 import { assignUserClaims } from './assign-user-claims';
 import { resetTestRetailer } from './reset-test-retailer';
@@ -113,5 +114,6 @@ export type {
     SaveRetailerApiKeyInput, SaveRetailerApiKeyOutput,
     ScanAnalyticsInput, ScanAnalyticsOutput,
     ScheduledProductSyncInput, ScheduledProductSyncOutput,
-    SyncProductsInput, SyncProductsOutput
+    SyncProductsInput, SyncProductsOutput,
+    AttributionReport, AttributionRecord
 };

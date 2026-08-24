@@ -7,7 +7,11 @@ import admin from 'firebase-admin';
 // Initialize the Admin SDK only once
 if (!admin.apps.length) {
   try {
-    admin.initializeApp();
+    // Explicitly set the project ID from environment variables to ensure
+    // that the Admin SDK is anchored to the correct Firebase project for token verification.
+    admin.initializeApp({
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
+    });
   } catch (e) {
     console.warn("Firebase Admin initialization skipped or already initialized.");
   }

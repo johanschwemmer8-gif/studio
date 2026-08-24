@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -46,7 +47,9 @@ export default function RoiPage() {
     const fetchInitialData = async () => {
       if (!user) return;
       try {
-        const idToken = await user.getIdToken();
+        // Force refresh the token to avoid "Invalid or expired token" errors 
+        // that can occur if the tab was left idle for more than an hour.
+        const idToken = await user.getIdToken(true);
         const retailerId = user.retailerId || 'unknown';
         
         const result = await analyzeEngagementMetrics({ idToken, retailerId });
@@ -57,12 +60,20 @@ export default function RoiPage() {
             setAttributionReport(attr);
         });
       } catch (e: any) {
-        console.error(e);
-        setError(e.message || "Could not load metrics. Check your connection.");
+        console.error('Initial data fetch failed:', e);
+        setError(e.message || "Could not load metrics. Please try refreshing the page.");
+        
+        if (e.message?.includes('authentication token')) {
+            toast({
+                title: "Session Expired",
+                description: "Your session has timed out. Please log in again.",
+                variant: "destructive"
+            });
+        }
       }
     };
     fetchInitialData();
-  }, [user]);
+  }, [user, toast]);
 
   const handleAnalyzeMetrics = () => {
     setError(null);
@@ -86,7 +97,7 @@ export default function RoiPage() {
     sales: metricsData.conversion.aoeTransactions,
   } : null;
 
-  if (!metricsData) {
+  if (!metricsData && !error) {
     return (
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -97,6 +108,23 @@ export default function RoiPage() {
                 {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
             </div>
             <Skeleton className="h-96 w-full rounded-2xl" />
+        </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <div className="p-8">
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error Loading Dashboard</AlertTitle>
+                <AlertDescription>
+                    {error}
+                    <Button variant="outline" className="mt-4 block" onClick={() => window.location.reload()}>
+                        Retry Connection
+                    </Button>
+                </AlertDescription>
+            </Alert>
         </div>
     );
   }
@@ -157,7 +185,7 @@ export default function RoiPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-black">
-                R{metricsData.conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                R{metricsData!.conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
               <p className="text-[10px] opacity-70 mt-2 italic">Sales matched to digital engagement sessions.</p>
             </CardContent>
@@ -170,7 +198,7 @@ export default function RoiPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-yellow-800">
-                R{metricsData.conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                R{metricsData!.conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
               <p className="text-[10px] text-yellow-600 mt-2 italic">Observed delta against the baseline.</p>
             </CardContent>
@@ -183,7 +211,7 @@ export default function RoiPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-primary">
-                +{metricsData.conversion.salesUpliftPercentage.toFixed(1)}%
+                +{metricsData!.conversion.salesUpliftPercentage.toFixed(1)}%
               </div>
               <p className="text-[10px] text-muted-foreground mt-2">Conversion trend within engaged segments.</p>
             </CardContent>

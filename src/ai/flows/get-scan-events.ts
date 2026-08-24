@@ -7,7 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { getDb } from '@/lib/firebase-admin';
+import { getDb, admin } from '@/lib/firebase-admin';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import {
   GetScanEventsInputSchema,
@@ -15,7 +15,6 @@ import {
   GetScanEventsOutputSchema,
   type GetScanEventsOutput,
 } from '@/lib/schemas/scan-events';
-import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getScanEvents(input: GetScanEventsInput): Promise<GetScanEventsOutput> {
   return getScanEventsFlow(input);
@@ -45,11 +44,11 @@ const getScanEventsFlow = ai.defineFlow(
     }
 
     if (filters.startDate) {
-        query = query.where('timestamp', '>=', Timestamp.fromDate(new Date(filters.startDate)));
+        query = query.where('timestamp', '>=', admin.firestore.Timestamp.fromDate(new Date(filters.startDate)));
     }
 
     if (filters.endDate) {
-        query = query.where('timestamp', '<=', Timestamp.fromDate(new Date(filters.endDate)));
+        query = query.where('timestamp', '<=', admin.firestore.Timestamp.fromDate(new Date(filters.endDate)));
     }
 
     const snapshot = await query.orderBy('timestamp', 'desc').limit(filters.limit || 100).get();
@@ -67,7 +66,7 @@ const getScanEventsFlow = ai.defineFlow(
             gtin: data.gtin || '00000000000000',
             retailerId: data.retailerId,
             campaignId: data.campaignId || 'unassigned',
-            timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString(),
+            timestamp: data.timestamp instanceof admin.firestore.Timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString(),
             userAgent: data.userAgent || 'unknown',
             referrer: data.referrer || '',
         };

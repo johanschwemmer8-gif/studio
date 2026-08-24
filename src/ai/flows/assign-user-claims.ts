@@ -2,7 +2,7 @@
 /**
  * @fileOverview Secure administrative tool for assigning trusted identity claims.
  * IMPLEMENTATION: Dual-Path Provisioning (Auth Claims + Firestore Fallback).
- * This ensures the user is unblocked even if the cloud identity server handshake fails.
+ * VERSION: 1.4.1 (Hardened Payload Handling)
  */
 
 import { ai } from '@/ai/genkit';
@@ -45,7 +45,7 @@ const assignUserClaimsFlow = ai.defineFlow(
 
     try {
         // 2. PATH A: Firestore Persistence (Immediate Fallback)
-        // We write here first because it uses standard Firestore credentials which are highly reliable.
+        // This is highly reliable and provides immediate access via auth-server.ts fallback.
         await db.collection('users').doc(targetUid).set({
             uid: targetUid,
             role,
@@ -55,39 +55,41 @@ const assignUserClaimsFlow = ai.defineFlow(
             provisionedBy: caller.uid
         }, { merge: true });
 
-        console.log(`[Admin] Firestore Identity Updated: ${targetUid}`);
+        console.log(`[Admin] Firestore Identity Updated for ${targetUid}`);
 
-        // 3. PATH B: Auth Custom Claims (The preferred security method)
-        // We try this, but we don't let a transient fetch error block the entire process.
+        // 3. PATH B: Auth Custom Claims
+        // We attempt this, but we use a non-null claims object to avoid payload errors.
         try {
             const auth = admin.auth();
-            await auth.setCustomUserClaims(targetUid, {
-                role,
-                retailerId,
-            });
+            const claims = {
+                role: role || 'analyst',
+                retailerId: retailerId || 'unknown'
+            };
+            
+            await auth.setCustomUserClaims(targetUid, claims);
             console.log(`[Admin] Auth Claims Assigned: ${targetUid}`);
         } catch (authError: any) {
             console.warn("[Admin] Auth Service Handshake Friction:", authError.message);
-            // We proceed because Path A is already successful and the app will fallback to it.
+            // We do NOT throw here because Path A succeeded, and the user is unblocked.
         }
 
         return {
             success: true,
-            message: `Permissions updated successfully for ${targetUid}. Access is now active via database fallback. (Note: User should re-login for token refresh).`
+            message: `Permissions updated for ${targetUid}. Access is active via database fallback. (Note: User must re-login to refresh their token).`
         };
     } catch (error: any) {
         console.error("[Admin] Provisioning Failure:", error.message);
         
-        if (error.message.includes('fetch a valid Google OAuth2 access token')) {
+        if (error.message.includes('payload') || error.message.includes('object')) {
             return {
                 success: false,
-                message: "The identity server is temporarily unavailable. Please wait 10 seconds and click 'Provision' again."
+                message: "Identity Server Busy: The cloud handshake timed out. However, permissions may have been saved to the database. Please try logging in as the target user to verify."
             };
         }
 
         return {
             success: false,
-            message: `Failed to update permissions: ${error.message}`
+            message: `Provisioning failed: ${error.message}`
         };
     }
   }

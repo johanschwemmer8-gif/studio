@@ -2,11 +2,10 @@
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Firestore Fallback.
- * VERSION: 1.4.0 (Metadata Server Resilience)
+ * VERSION: 1.4.1 (Standardized Admin Auth)
  */
 
 import { admin, getDb } from "./firebase-admin";
-import { getAuth } from "firebase-admin/auth";
 
 export type AuthorizedContext = {
   uid: string;
@@ -19,16 +18,19 @@ export type AuthorizedContext = {
  * FALLBACK: If custom claims are missing from the token, checks the Firestore 'users' collection.
  */
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
-  if (!idToken) {
+  if (!idToken || idToken === '') {
     throw new Error('Authentication required.');
   }
 
   try {
-    const decodedToken = await getAuth().verifyIdToken(idToken);
+    // Use the primary admin instance to ensure shared project configuration
+    const auth = admin.auth();
+    const decodedToken = await auth.verifyIdToken(idToken);
+    
     let role = decodedToken.role as any;
     let retailerId = decodedToken.retailerId as string;
 
-    // FALLBACK LOGIC: If claims are missing, check Firestore directly
+    // FALLBACK LOGIC: If claims are missing from JWT, check Firestore secondary source
     if (!role || !retailerId) {
         const db = getDb();
         if (db) {
@@ -47,8 +49,13 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
       role: role || 'analyst',
       retailerId,
     };
-  } catch (error) {
-    console.error('Auth verification failed:', error);
+  } catch (error: any) {
+    console.error('[Auth] Verification Failure:', error.message);
+    
+    if (error.message.includes('payload') || error.message.includes('object')) {
+        throw new Error('Identity Server Handshake Error: The security token payload could not be parsed. Please refresh and try again.');
+    }
+    
     throw new Error('Invalid or expired authentication token.');
   }
 }

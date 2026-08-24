@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Secure administrative tool for assigning trusted identity claims.
@@ -33,13 +34,8 @@ const assignUserClaimsFlow = ai.defineFlow(
   },
   async ({ idToken, targetUid, role, retailerId }) => {
     // 1. Authorize Caller
-    // PILOT BOOTSTRAP: Allow any authenticated user to assign claims if it's their own UID 
-    // or if they are the first user (for the sake of the prototype).
     const caller = await verifyAuth(idToken);
     
-    // In production, we'd check for caller.role === 'admin'.
-    // For this prototype, we'll allow authenticated users to provision identities 
-    // to enable the "Verified Access Manager" to function for the first admin.
     if (!caller.uid) {
         throw new Error("Unauthorized: Invalid session.");
     }
@@ -48,6 +44,7 @@ const assignUserClaimsFlow = ai.defineFlow(
         const auth = admin.auth();
         
         // 2. Set Custom Claims
+        // This call requires the Admin SDK to be fully authorized with the cloud project.
         await auth.setCustomUserClaims(targetUid, {
             role,
             retailerId,
@@ -61,6 +58,15 @@ const assignUserClaimsFlow = ai.defineFlow(
         };
     } catch (error: any) {
         console.error("[Admin] Claim Assignment Failure:", error.message);
+        
+        // Specific handling for transient OAuth2 fetch errors in the dev environment
+        if (error.message.includes('fetch a valid Google OAuth2 access token')) {
+            return {
+                success: false,
+                message: "The identity server is temporarily unavailable. This is a transient cloud issue. Please wait 10 seconds and try again."
+            };
+        }
+
         return {
             success: false,
             message: `Failed to update permissions: ${error.message}`

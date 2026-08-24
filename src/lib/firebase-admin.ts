@@ -7,10 +7,10 @@ import admin from 'firebase-admin';
 if (!admin.apps.length) {
   try {
     // Attempt to resolve project ID with priority on local .env then cloud metadata
+    // We prioritize environment variables set by the platform.
     const projectId = process.env.FIREBASE_PROJECT_ID || 
                       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 
-                      process.env.GOOGLE_CLOUD_PROJECT ||
-                      'interact-aoe-kidkn'; // Absolute fallback for pilot stability
+                      process.env.GOOGLE_CLOUD_PROJECT;
 
     if (projectId) {
       admin.initializeApp({
@@ -18,11 +18,12 @@ if (!admin.apps.length) {
       });
       console.log(`[Admin] Initialized for project: ${projectId}`);
     } else {
+      // In some environments (like Cloud Functions or App Hosting), the SDK can auto-initialize
       admin.initializeApp();
       console.log("[Admin] Initialized using Default Application Credentials.");
     }
   } catch (e: any) {
-    console.warn("Firebase Admin init skipped:", e.message);
+    console.warn("Firebase Admin init skipped or failed:", e.message);
   }
 }
 

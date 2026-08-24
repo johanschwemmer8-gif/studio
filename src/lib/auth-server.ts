@@ -1,9 +1,8 @@
-
 'use server';
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Firestore Fallback.
- * VERSION: 1.4.2 (Enhanced Error Reporting)
+ * VERSION: 1.4.3 (Handshake Resilience)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -24,7 +23,6 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   }
 
   try {
-    // Use the primary admin instance to ensure shared project configuration
     const auth = admin.auth();
     const decodedToken = await auth.verifyIdToken(idToken);
     
@@ -53,7 +51,16 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   } catch (error: any) {
     console.error('[Auth] Verification Failure:', error.code || 'NO_CODE', error.message);
     
-    // Provide specific guidance for common token errors
+    // Check for transient cloud errors (Metadata 500)
+    const isTransient = error.message.includes('metadata') || 
+                        error.message.includes('refresh') || 
+                        error.message.includes('500') ||
+                        error.message.includes('UNKNOWN');
+
+    if (isTransient) {
+        throw new Error('Identity Service Temporary Unavailable: The cloud security handshake timed out (Error 500). Access can still be granted via database fallback. Please refresh the page and try again.');
+    }
+
     if (error.code === 'auth/id-token-expired') {
       throw new Error('Your security session has expired. Please refresh the page and try again.');
     }

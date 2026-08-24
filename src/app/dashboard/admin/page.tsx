@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -78,9 +77,11 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
             }
         } catch (e: any) {
             console.error("Provisioning Error:", e);
+            // Handle raw server errors (HTTP 500) more gracefully
+            const errorMsg = e.message || "The cloud identity server timed out. Access may have been saved to the database anyway. Please refresh and check user access.";
             toast({ 
-                title: "Provisioning Failed", 
-                description: e.message || "A transient connection error occurred. Please refresh the page.", 
+                title: "System Handshake Error", 
+                description: errorMsg, 
                 variant: "destructive" 
             });
         } finally {

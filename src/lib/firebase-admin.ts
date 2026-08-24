@@ -9,7 +9,8 @@ if (!admin.apps.length) {
     // Attempt to resolve project ID with priority on local .env then cloud metadata
     const projectId = process.env.FIREBASE_PROJECT_ID || 
                       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 
-                      process.env.GOOGLE_CLOUD_PROJECT;
+                      process.env.GOOGLE_CLOUD_PROJECT ||
+                      'interact-aoe-kidkn'; // Absolute fallback for pilot stability
 
     if (projectId) {
       admin.initializeApp({

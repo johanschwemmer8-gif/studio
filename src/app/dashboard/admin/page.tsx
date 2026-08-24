@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -58,7 +59,9 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
         if (!targetUid || !selectedRetailerId) return;
         setIsLoading(true);
         try {
-            const idToken = await auth.currentUser?.getIdToken();
+            // Force token refresh to ensure we don't send an expired token to the server
+            const idToken = await auth.currentUser?.getIdToken(true);
+            
             const result = await assignUserClaims({
                 idToken: idToken || '',
                 targetUid,
@@ -70,10 +73,16 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
                 toast({ title: "Identity Verified", description: result.message });
                 setTargetUid('');
             } else {
+                // If result is success: false, the message contains a user-friendly error
                 throw new Error(result.message);
             }
         } catch (e: any) {
-            toast({ title: "Provisioning Failed", description: e.message, variant: "destructive" });
+            console.error("Provisioning Error:", e);
+            toast({ 
+                title: "Provisioning Failed", 
+                description: e.message || "A transient connection error occurred. Please refresh the page.", 
+                variant: "destructive" 
+            });
         } finally {
             setIsLoading(false);
         }

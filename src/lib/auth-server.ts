@@ -1,8 +1,9 @@
+
 'use server';
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Firestore Fallback.
- * VERSION: 1.4.1 (Standardized Admin Auth)
+ * VERSION: 1.4.2 (Enhanced Error Reporting)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -50,13 +51,18 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
       retailerId,
     };
   } catch (error: any) {
-    console.error('[Auth] Verification Failure:', error.message);
+    console.error('[Auth] Verification Failure:', error.code || 'NO_CODE', error.message);
     
-    if (error.message.includes('payload') || error.message.includes('object')) {
-        throw new Error('Identity Server Handshake Error: The security token payload could not be parsed. Please refresh and try again.');
+    // Provide specific guidance for common token errors
+    if (error.code === 'auth/id-token-expired') {
+      throw new Error('Your security session has expired. Please refresh the page and try again.');
     }
     
-    throw new Error('Invalid or expired authentication token.');
+    if (error.message.includes('payload') || error.message.includes('object')) {
+        throw new Error('Identity Server Handshake Error: The cloud security payload is temporarily unavailable. Please refresh the page and try again.');
+    }
+    
+    throw new Error(`Authentication Error: ${error.message || 'Invalid or expired token.'}`);
   }
 }
 

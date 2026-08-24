@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -123,8 +124,7 @@ export default function DashboardPage() {
         if (!user) return;
         
         try {
-            // Attempt to refresh token to ensure claims are up to date
-            const idToken = await user.getIdToken(true);
+            const idToken = await user.getIdToken();
             const [engData, intelData] = await Promise.all([
                 analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' }),
                 analyzeDecisionIntelligence()
@@ -132,35 +132,12 @@ export default function DashboardPage() {
             setAnalyticsData(engData);
             setIntelligenceData(intelData);
         } catch (e: any) {
-            console.error(e);
-            if (e.message?.includes('IDENTITY_NOT_PROVISIONED')) {
-                setError("PROVISIONING_REQUIRED");
-            } else {
-                setError("SYNC_ERROR");
-            }
+            console.error('Intelligence sync deferred:', e.message);
+            setError("SYNC_ERROR");
         }
     };
     fetchData();
   }, [user]);
-
-  if (error === "PROVISIONING_REQUIRED") {
-      return (
-          <div className="flex flex-col items-center justify-center p-12 text-center space-y-6">
-              <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <ShieldAlert className="h-10 w-10 text-destructive" />
-              </div>
-              <div className="space-y-2">
-                  <h1 className="text-2xl font-black uppercase tracking-tight">Identity Provisioning Required</h1>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                      Your account has not yet been associated with a specific retailer. Please contact your Platform Administrator to assign your <code className="text-xs">retailerId</code>.
-                  </p>
-              </div>
-              <Button asChild variant="outline">
-                  <Link href="/create-admin">Open User Management</Link>
-              </Button>
-          </div>
-      );
-  }
 
   if(!analyticsData || !intelligenceData) {
     return (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -46,7 +47,7 @@ export default function RoiPage() {
     const fetchInitialData = async () => {
       if (!user) return;
       try {
-        const idToken = await user.getIdToken(true);
+        const idToken = await user.getIdToken();
         const retailerId = user.retailerId || 'unknown';
         
         const result = await analyzeEngagementMetrics({ idToken, retailerId });
@@ -57,12 +58,8 @@ export default function RoiPage() {
             setAttributionReport(attr);
         });
       } catch (e: any) {
-        console.error('Initial data fetch failed:', e);
-        if (e.message?.includes('IDENTITY_NOT_PROVISIONED')) {
-            setError("PROVISIONING_REQUIRED");
-        } else {
-            setError(e.message || "Could not load metrics. Please try refreshing the page.");
-        }
+        console.error('Initial data fetch failed:', e.message);
+        setError("SYNC_ERROR");
       }
     };
     fetchInitialData();
@@ -78,25 +75,6 @@ export default function RoiPage() {
       }
     });
   };
-
-  if (error === "PROVISIONING_REQUIRED") {
-      return (
-          <div className="flex flex-col items-center justify-center p-12 text-center space-y-6">
-              <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <ShieldAlert className="h-10 w-10 text-destructive" />
-              </div>
-              <div className="space-y-2">
-                  <h1 className="text-2xl font-black uppercase tracking-tight">Identity Provisioning Required</h1>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                      Your account has not yet been associated with a specific retailer. Please contact your Platform Administrator to assign your <code className="text-xs">retailerId</code>.
-                  </p>
-              </div>
-              <Button asChild variant="outline">
-                  <Link href="/create-admin">Open User Management</Link>
-              </Button>
-          </div>
-      );
-  }
 
   const handleExport = (format: string) => {
     toast({ title: `Generating Associated Sales Report (${format})...` });
@@ -124,14 +102,14 @@ export default function RoiPage() {
     );
   }
 
-  if (error) {
+  if (error && error !== "PROVISIONING_REQUIRED") {
     return (
         <div className="p-8">
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Error Loading Dashboard</AlertTitle>
                 <AlertDescription>
-                    {error}
+                    We couldn't establish a secure connection to your retail data.
                     <Button variant="outline" className="mt-4 block" onClick={() => window.location.reload()}>
                         Retry Connection
                     </Button>

@@ -1,8 +1,8 @@
 'use server';
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
- * IMPLEMENTATION: Hardened Identity Resolution with Firestore Fallback.
- * VERSION: 1.5.0 (Transient Error Retry & Handshake Resilience)
+ * IMPLEMENTATION: Hardened Identity Resolution with Transient Error Retry.
+ * VERSION: 1.6.0 (Resilience Loop Active)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -15,8 +15,8 @@ export type AuthorizedContext = {
 
 /**
  * Validates the ID token and returns the authorized context.
- * FALLBACK: If custom claims are missing from the token, checks the Firestore 'users' collection.
- * RESILIENCE: Implements a retry for transient cloud handshake errors (500s).
+ * RESILIENCE: Implements a retry loop for transient cloud handshake errors (500s).
+ * FALLBACK: Checks Firestore 'users' if token claims are missing.
  */
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   if (!idToken || idToken === '') {
@@ -26,7 +26,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   let lastError: any;
   const maxRetries = 2;
 
-  for (let attempt = 0; i <= maxRetries; attempt++) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const auth = admin.auth();
       const decodedToken = await auth.verifyIdToken(idToken);
@@ -34,7 +34,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
       let role = decodedToken.role as any;
       let retailerId = decodedToken.retailerId as string;
 
-      // FALLBACK LOGIC: If claims are missing from JWT, check Firestore secondary source
+      // FALLBACK: If token lacks claims, check Firestore authoritative record
       if (!role || !retailerId) {
           const db = getDb();
           if (db) {
@@ -43,7 +43,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
                   const userData = userDoc.data();
                   role = role || userData?.role;
                   retailerId = retailerId || userData?.retailerId;
-                  console.log(`[Auth] Using Firestore Identity Fallback for ${decodedToken.uid}`);
+                  console.log(`[Auth] Using database fallback for ${decodedToken.uid}`);
               }
           }
       }
@@ -56,35 +56,34 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
     } catch (error: any) {
       lastError = error;
       
-      // Check for transient cloud errors (Metadata 500)
+      // Identify transient cloud errors (Metadata/Refresh 500)
       const isTransient = error.message.includes('metadata') || 
                           error.message.includes('refresh') || 
                           error.message.includes('500') ||
                           error.message.includes('UNKNOWN');
 
       if (isTransient && attempt < maxRetries) {
-        console.warn(`[Auth] Transient handshake error (Attempt ${attempt + 1}). Retrying...`);
-        // Wait a small amount before retry
+        console.warn(`[Auth] Transient cloud error (Retry ${attempt + 1}/${maxRetries})...`);
         await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
         continue;
       }
 
-      // If we reach here, it's either a non-transient error or we're out of retries
+      // Handle non-transient or exhausted retries
       console.error('[Auth] Verification Failure:', error.code || 'NO_CODE', error.message);
       
       if (isTransient) {
-          throw new Error('Identity Service Temporary Unavailable: The cloud security handshake timed out (Error 500). Please refresh the page and try again.');
+          throw new Error('Identity Service Temporary Unavailable: The cloud handshake timed out. Access can still be granted via database fallback. Please refresh the page and try again.');
       }
 
       if (error.code === 'auth/id-token-expired') {
-        throw new Error('Your security session has expired. Please refresh the page and try again.');
+        throw new Error('Your security session has expired. Please refresh the page to log in again.');
       }
       
       if (error.message.includes('payload') || error.message.includes('object')) {
-          throw new Error('Identity Server Handshake Error: The cloud security payload is temporarily unavailable. Please refresh the page and try again.');
+          throw new Error('Identity Handshake Error: The security payload was malformed. This is usually transient; please refresh and try again.');
       }
       
-      throw new Error(`Authentication Error: ${error.message || 'Invalid or expired token.'}`);
+      throw new Error(`Authentication Error: ${error.message || 'Invalid session.'}`);
     }
   }
   
@@ -102,11 +101,11 @@ export async function getAuthorizedRetailerId(idToken: string | undefined, reque
   }
   
   if (!auth.retailerId) {
-    throw new Error('IDENTITY_NOT_PROVISIONED');
+    throw new Error('IDENTITY_NOT_PROVISIONED: Your account has not been associated with a retailer identity. Please contact a platform administrator.');
   }
   
   if (requestedRetailerId && requestedRetailerId !== 'unknown' && auth.retailerId !== requestedRetailerId) {
-     throw new Error(`ACCESS_DENIED`);
+     throw new Error(`ACCESS_DENIED: Identity mismatch.`);
   }
   
   return auth.retailerId;

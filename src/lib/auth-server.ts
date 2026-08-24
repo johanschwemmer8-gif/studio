@@ -1,11 +1,11 @@
 'use server';
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
- * Enforces tenant isolation and role-based access control.
- * VERSION: 1.3.1 (Identity Logic Hardened)
+ * IMPLEMENTATION: Hardened Identity Resolution with Firestore Fallback.
+ * VERSION: 1.4.0 (Metadata Server Resilience)
  */
 
-import { admin } from "./firebase-admin";
+import { admin, getDb } from "./firebase-admin";
 import { getAuth } from "firebase-admin/auth";
 
 export type AuthorizedContext = {
@@ -16,7 +16,7 @@ export type AuthorizedContext = {
 
 /**
  * Validates the ID token and returns the authorized context.
- * Fails closed if token is invalid or missing.
+ * FALLBACK: If custom claims are missing from the token, checks the Firestore 'users' collection.
  */
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   if (!idToken) {
@@ -25,10 +25,27 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
 
   try {
     const decodedToken = await getAuth().verifyIdToken(idToken);
+    let role = decodedToken.role as any;
+    let retailerId = decodedToken.retailerId as string;
+
+    // FALLBACK LOGIC: If claims are missing, check Firestore directly
+    if (!role || !retailerId) {
+        const db = getDb();
+        if (db) {
+            const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                role = role || userData?.role;
+                retailerId = retailerId || userData?.retailerId;
+                console.log(`[Auth] Using Firestore Identity Fallback for ${decodedToken.uid}`);
+            }
+        }
+    }
+
     return {
       uid: decodedToken.uid,
-      role: (decodedToken.role as any) || 'analyst',
-      retailerId: decodedToken.retailerId as string,
+      role: role || 'analyst',
+      retailerId,
     };
   } catch (error) {
     console.error('Auth verification failed:', error);
@@ -38,25 +55,20 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
 
 /**
  * Resolves the authoritative retailerId for a requested operation.
- * If user is platform admin, they can access any requested retailer.
- * If user is a retailer user, they can ONLY access their claimed retailer.
  */
 export async function getAuthorizedRetailerId(idToken: string | undefined, requestedRetailerId: string): Promise<string> {
   const auth = await verifyAuth(idToken);
   
   if (auth.role === 'admin') {
-    // Platform Admins can override and request any tenant ID
     return requestedRetailerId || 'unknown';
   }
   
   if (!auth.retailerId) {
-    throw new Error('IDENTITY_NOT_PROVISIONED: Your account has not been associated with a retailer identity. Please contact a platform administrator.');
+    throw new Error('IDENTITY_NOT_PROVISIONED');
   }
   
-  // STRICT TENANT ISOLATION
-  // For non-admins, the authenticated claim is the absolute source of truth.
   if (requestedRetailerId && requestedRetailerId !== 'unknown' && auth.retailerId !== requestedRetailerId) {
-     throw new Error(`ACCESS_DENIED: Unauthorized tenant access attempt.`);
+     throw new Error(`ACCESS_DENIED`);
   }
   
   return auth.retailerId;

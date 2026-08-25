@@ -26,8 +26,6 @@ export type Product = {
 
 /**
  * TEST FIXTURES: Mathematically Verified GS1 Identifiers
- * 06009188000332 - Valid GTIN-14 (Normalized from standard GTIN-13)
- * 00012345678905 - Valid GTIN-14 (Normalized from standard GTIN-12)
  */
 export const products: Product[] = [
   {
@@ -57,11 +55,6 @@ export const findProductByGtin = (gtin: string) => {
   return products.find((p) => p.gtin === gtin);
 };
 
-/**
- * COMPATIBILITY WRAPPER:
- * Maintained for legacy URL resolution but performs 
- * exclusively GTIN-based lookups.
- */
 export const findProductById = (id: string | number) => {
     return products.find((p) => p.gtin === String(id).padStart(14, '0'));
 };

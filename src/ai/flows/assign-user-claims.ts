@@ -2,7 +2,7 @@
 /**
  * @fileOverview Secure administrative tool for assigning trusted identity claims.
  * DESIGN: Ultra-Resilient "No-Throw" Server Action.
- * VERSION: 1.6.0 (Success-First Persistence)
+ * VERSION: 1.7.0 (Clean Exports & Serialized Response)
  */
 
 import { ai } from '@/ai/genkit';
@@ -22,10 +22,18 @@ const AssignUserClaimsOutputSchema = z.object({
   message: z.string(),
 });
 
+/**
+ * PRIMARY SERVER ACTION
+ * Only the wrapper function is exported to ensure clean RSC serialization.
+ */
 export async function assignUserClaims(input: z.infer<typeof AssignUserClaimsInputSchema>) {
-    // Top-level catch to prevent "Unexpected response from server" NextJS 15 error
     try {
-        return await assignUserClaimsFlow(input);
+        const result = await assignUserClaimsFlow(input);
+        // Explicitly return a plain object to guarantee serialization
+        return {
+            success: !!result?.success,
+            message: result?.message || "Operation completed."
+        };
     } catch (e: any) {
         console.error("[Server Action] Fatal Boundary Error:", e.message);
         return {
@@ -35,6 +43,10 @@ export async function assignUserClaims(input: z.infer<typeof AssignUserClaimsInp
     }
 }
 
+/**
+ * INTERNAL GENKIT FLOW
+ * Registered with 'ai' instance but not exported to avoid Next.js bundling conflicts.
+ */
 const assignUserClaimsFlow = ai.defineFlow(
   {
     name: 'assignUserClaimsFlow',
@@ -74,7 +86,6 @@ const assignUserClaimsFlow = ai.defineFlow(
         console.log(`[Admin] Database Identity Updated for ${targetUid}`);
 
         // 3. SECONDARY PATH: Auth Custom Claims
-        // We attempt this for better performance in the long run, but we don't let cloud latency fail the action.
         let cloudClaimStatus = "Ready";
         try {
             const auth = admin.auth();
@@ -83,10 +94,10 @@ const assignUserClaimsFlow = ai.defineFlow(
                 retailerId: retailerId || 'unknown'
             };
             
-            // Set a timeout for the cloud handshake to avoid killing the whole action
+            // Set a timeout for the cloud handshake
             await Promise.race([
                 auth.setCustomUserClaims(targetUid, claims),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Cloud timeout')), 8000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Cloud timeout')), 6000))
             ]);
             
             console.log(`[Admin] Cloud Claims Assigned: ${targetUid}`);

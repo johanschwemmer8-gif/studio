@@ -2,7 +2,7 @@
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Structured Error Handling.
- * VERSION: 2.0.0 (Ultra-Resilient Gateway)
+ * VERSION: 2.1.0 (Latency Optimized)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -16,7 +16,7 @@ export type AuthorizedContext = {
 
 /**
  * Validates the ID token and returns the authorized context.
- * RESILIENCE: Implements an aggressive retry loop for transient cloud handshake errors.
+ * LATENCY OPTIMIZED: Reduced retries to ensure response within server action window.
  * DESIGN: Returns a context object with an 'error' field instead of throwing.
  */
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
@@ -24,12 +24,12 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
     return { uid: '', role: 'analyst', error: 'Authentication required: No session token provided.' };
   }
 
-  const maxRetries = 4; // Total 5 attempts
+  // Reduced from 4 to 2 retries (Total 3 attempts) to prevent infrastructure timeout (Error 504/HTML).
+  const maxRetries = 2; 
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const auth = admin.auth();
-      // Verifying the token can trigger a metadata server fetch which often 500s in serverless environments
       const decodedToken = await auth.verifyIdToken(idToken);
       
       let role = decodedToken.role as any;
@@ -55,7 +55,6 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
         retailerId,
       };
     } catch (error: any) {
-      // Identify transient cloud errors (Metadata/Refresh 500, Socket Hangup, etc.)
       const isTransient = 
         error.message.includes('metadata') || 
         error.message.includes('refresh') || 
@@ -64,14 +63,13 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
         error.code === 'auth/internal-error';
 
       if (isTransient && attempt < maxRetries) {
-        // Fast exponential backoff with jitter
-        const delay = (500 * Math.pow(2, attempt)) + (Math.random() * 200);
-        console.warn(`[Auth] Handshake Friction (Attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${Math.round(delay)}ms...`);
+        // Faster backoff for Server Action compatibility
+        const delay = (400 * Math.pow(2, attempt)) + (Math.random() * 100);
+        console.warn(`[Auth] Handshake Friction (Attempt ${attempt + 1}/${maxRetries + 1}). Retrying...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
 
-      // Exhausted retries or non-transient error
       console.error('[Auth] Verification Failure:', error.code || 'ERR', error.message);
       
       let message = "Authentication failed.";

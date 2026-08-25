@@ -1,3 +1,4 @@
+
 import placeholderImages from '@/app/lib/placeholder-images.json';
 
 /**

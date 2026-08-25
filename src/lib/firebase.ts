@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
@@ -20,22 +21,17 @@ let app: FirebaseApp;
 
 // Robust initialization for both local and deployed environments (including build-time)
 if (!getApps().length) {
+  // If we have minimal config, initialize the default app
   if (firebaseConfig.apiKey && firebaseConfig.projectId) {
     app = initializeApp(firebaseConfig);
   } else {
     // During Next.js build/SSG in CI environments, env vars may be missing.
-    // We provide a fallback to prevent build-time crashes.
-    try {
-      // Attempt to pick up injected config if available
-      app = initializeApp({});
-    } catch (e) {
-      console.warn("[Firebase] Initializing with placeholder for build-time safety.");
-      app = initializeApp({
-        apiKey: "build-placeholder",
-        projectId: "interact-aoe-kidkn", // Fallback for build phase
-        appId: "build-placeholder"
-      }, "BUILD_TIME_APP");
-    }
+    // We provide a stable fallback with the expected project ID to prevent build crashes.
+    app = initializeApp({
+      apiKey: "build-placeholder",
+      projectId: "interact-aoe-kidkn",
+      appId: "build-placeholder"
+    });
   }
 } else {
   app = getApp();
@@ -48,8 +44,8 @@ let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
 // Only initialize browser-only services on the client side with valid config
-if (typeof window !== 'undefined' && app.options?.apiKey && app.name !== "BUILD_TIME_APP") {
-    if (app.options.measurementId) {
+if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.projectId) {
+    if (firebaseConfig.measurementId) {
         analytics = (async () => {
             if (await isSupported()) {
                 return getAnalytics(app);
@@ -58,11 +54,15 @@ if (typeof window !== 'undefined' && app.options?.apiKey && app.name !== "BUILD_
         })();
     }
     
-    remoteConfig = getRemoteConfig(app);
-    remoteConfig.settings.minimumFetchIntervalMillis = 3600000;
-    remoteConfig.defaultConfig = {
-        'in_store_greeting_message': 'Welcome to our store!',
-    };
+    try {
+        remoteConfig = getRemoteConfig(app);
+        remoteConfig.settings.minimumFetchIntervalMillis = 3600000;
+        remoteConfig.defaultConfig = {
+            'in_store_greeting_message': 'Welcome to our store!',
+        };
+    } catch (e) {
+        console.warn("[Firebase] Remote Config initialization deferred.");
+    }
 }
 
 export { db, auth, analytics, remoteConfig };

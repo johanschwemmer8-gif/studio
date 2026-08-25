@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview Initializes the Firebase Admin SDK for server-side operations.
  * HARDENED: Prioritizes explicit environment project resolution for the iNteract platform.
@@ -25,7 +26,7 @@ if (!admin.apps.length) {
   }
 }
 
-// Ensure db is exported consistently
+// Ensure db is exported consistently for server-side flows
 export const db = admin.apps.length > 0 ? admin.firestore() : null as any;
 
 export const getDb = () => {

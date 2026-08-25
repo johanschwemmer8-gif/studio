@@ -1,13 +1,12 @@
-
 /**
  * @fileoverview Initializes the Firebase Admin SDK for server-side operations.
  * HARDENED: Prioritizes explicit environment project resolution for the iNteract platform.
  */
 import admin from 'firebase-admin';
 
+// Initialize the app if no apps exist
 if (!admin.apps.length) {
   try {
-    // Attempt to resolve project ID from multiple sources
     const projectId = process.env.FIREBASE_PROJECT_ID || 
                       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 
                       process.env.GOOGLE_CLOUD_PROJECT;
@@ -18,7 +17,6 @@ if (!admin.apps.length) {
       });
       console.log(`[Admin] Initialized for project: ${projectId}`);
     } else {
-      // Automatic detection for App Hosting / Cloud Run environments
       admin.initializeApp();
       console.log("[Admin] Initialized using Default Application Credentials.");
     }
@@ -26,6 +24,9 @@ if (!admin.apps.length) {
     console.warn("[Admin] Initialization Friction:", e.message);
   }
 }
+
+// Ensure db is exported only if an app is initialized
+export const db = admin.apps.length > 0 ? admin.firestore() : null as any;
 
 export const getDb = () => {
     try {
@@ -35,7 +36,5 @@ export const getDb = () => {
         return null;
     }
 };
-
-export const db = admin.firestore();
 
 export { admin };

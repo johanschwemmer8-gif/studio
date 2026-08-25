@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
@@ -19,31 +18,27 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 
-// This pattern prevents re-initialization on hot reloads. It's robust for both
-// local development (which uses the .env file) and deployed environments on
-// Firebase App Hosting, which auto-injects the configuration.
+// Robust initialization for both local and deployed environments (including build-time)
 if (!getApps().length) {
-    // If the API key is available as an environment variable, we're likely in a local
-    // development environment. Use the config from .env.
-    if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-        app = initializeApp(firebaseConfig);
-    } else {
-        // Otherwise, we're likely in a deployed Firebase environment or build step.
-        // During Next.js static prerendering, environment variables are often missing.
-        // We use a try-catch and a fallback to avoid breaking the build.
-        try {
-            app = initializeApp({});
-        } catch (e) {
-            // Build-time fallback to prevent "projectId not provided" error
-            app = initializeApp({
-                apiKey: "build-placeholder",
-                projectId: "build-placeholder",
-                appId: "build-placeholder"
-            }, "BUILD_TIME_APP");
-        }
+  if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    // During Next.js build/SSG, env vars are often missing.
+    // We attempt a generic init or a named fallback to prevent build crashes.
+    try {
+      // If running on GCP (like App Hosting), this might pick up environment defaults
+      app = initializeApp({});
+    } catch (e) {
+      console.warn("[Firebase] Using build-time placeholder project ID.");
+      app = initializeApp({
+        apiKey: "build-placeholder",
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "interact-aoe-kidkn",
+        appId: "build-placeholder"
+      }, "BUILD_TIME_APP");
     }
+  }
 } else {
-    app = getApp();
+  app = getApp();
 }
 
 const db: Firestore = getFirestore(app);
@@ -52,8 +47,8 @@ const auth: Auth = getAuth(app);
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
 
+// Only initialize browser-only services on the client side with valid config
 if (typeof window !== 'undefined' && app.options?.apiKey && app.name !== "BUILD_TIME_APP") {
-    // Conditionally initialize analytics only if a measurementId is present
     if (app.options.measurementId) {
         analytics = (async () => {
             if (await isSupported()) {
@@ -64,7 +59,7 @@ if (typeof window !== 'undefined' && app.options?.apiKey && app.name !== "BUILD_
     }
     
     remoteConfig = getRemoteConfig(app);
-    remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // 1 hour
+    remoteConfig.settings.minimumFetchIntervalMillis = 3600000;
     remoteConfig.defaultConfig = {
         'in_store_greeting_message': 'Welcome to our store!',
     };

@@ -23,16 +23,16 @@ if (!getApps().length) {
   if (firebaseConfig.apiKey && firebaseConfig.projectId) {
     app = initializeApp(firebaseConfig);
   } else {
-    // During Next.js build/SSG, env vars are often missing.
-    // We attempt a generic init or a named fallback to prevent build crashes.
+    // During Next.js build/SSG in CI environments, env vars may be missing.
+    // We provide a fallback to prevent build-time crashes.
     try {
-      // If running on GCP (like App Hosting), this might pick up environment defaults
+      // Attempt to pick up injected config if available
       app = initializeApp({});
     } catch (e) {
-      console.warn("[Firebase] Using build-time placeholder project ID.");
+      console.warn("[Firebase] Initializing with placeholder for build-time safety.");
       app = initializeApp({
         apiKey: "build-placeholder",
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "interact-aoe-kidkn",
+        projectId: "interact-aoe-kidkn", // Fallback for build phase
         appId: "build-placeholder"
       }, "BUILD_TIME_APP");
     }

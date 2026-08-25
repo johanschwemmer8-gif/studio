@@ -25,7 +25,7 @@ if (!admin.apps.length) {
   }
 }
 
-// Ensure db is exported only if an app is initialized
+// Ensure db is exported consistently
 export const db = admin.apps.length > 0 ? admin.firestore() : null as any;
 
 export const getDb = () => {

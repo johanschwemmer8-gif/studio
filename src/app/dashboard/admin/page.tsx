@@ -72,13 +72,16 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
                 toast({ title: "Identity Verified", description: result.message });
                 setTargetUid('');
             } else {
-                // If result is success: false, the message contains a user-friendly error
-                throw new Error(result.message);
+                // Do NOT throw Error here. Handle visual feedback directly.
+                toast({ 
+                    title: "Provisioning Notice", 
+                    description: result.message, 
+                    variant: "destructive" 
+                });
             }
         } catch (e: any) {
             console.error("Provisioning Error:", e);
-            // Handle raw server errors (HTTP 500) more gracefully
-            const errorMsg = e.message || "The cloud identity server timed out. Access may have been saved to the database anyway. Please refresh and check user access.";
+            const errorMsg = e.message || "A network error occurred. Please refresh and check user access.";
             toast({ 
                 title: "System Handshake Error", 
                 description: errorMsg, 

@@ -2,7 +2,7 @@
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Structured Error Handling.
- * VERSION: 1.9.0 (No-Throw Identity Gateway)
+ * VERSION: 2.0.0 (Ultra-Resilient Gateway)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -11,25 +11,25 @@ export type AuthorizedContext = {
   uid: string;
   role: 'admin' | 'retailerAdmin' | 'storeManager' | 'analyst';
   retailerId?: string;
-  error?: string; // NEW: Structured error field to prevent throwing
+  error?: string;
 };
 
 /**
  * Validates the ID token and returns the authorized context.
- * RESILIENCE: Implements a concise retry loop for transient cloud handshake errors.
- * DESIGN: Returns a context object with an 'error' field instead of throwing where possible,
- * ensuring Next.js server actions receive valid serializable responses.
+ * RESILIENCE: Implements an aggressive retry loop for transient cloud handshake errors.
+ * DESIGN: Returns a context object with an 'error' field instead of throwing.
  */
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   if (!idToken || idToken === '') {
     return { uid: '', role: 'analyst', error: 'Authentication required: No session token provided.' };
   }
 
-  const maxRetries = 2; // Total 3 attempts (Reduced to stay within 15s server action window)
+  const maxRetries = 4; // Total 5 attempts
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const auth = admin.auth();
+      // Verifying the token can trigger a metadata server fetch which often 500s in serverless environments
       const decodedToken = await auth.verifyIdToken(idToken);
       
       let role = decodedToken.role as any;
@@ -64,9 +64,9 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
         error.code === 'auth/internal-error';
 
       if (isTransient && attempt < maxRetries) {
-        // Fast exponential backoff: 500ms, 1000ms
-        const delay = 500 * Math.pow(2, attempt);
-        console.warn(`[Auth] Handshake Delay (Attempt ${attempt + 1}). Retrying in ${delay}ms...`);
+        // Fast exponential backoff with jitter
+        const delay = (500 * Math.pow(2, attempt)) + (Math.random() * 200);
+        console.warn(`[Auth] Handshake Friction (Attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${Math.round(delay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -82,7 +82,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
     }
   }
   
-  return { uid: '', role: 'analyst', error: "Identity Service Unavailable after retries." };
+  return { uid: '', role: 'analyst', error: "Identity Service Unavailable: Maximum retries exceeded." };
 }
 
 /**
@@ -92,7 +92,7 @@ export async function getAuthorizedRetailerId(idToken: string | undefined, reque
   const auth = await verifyAuth(idToken);
   
   if (auth.error) {
-      throw new Error(auth.error); // Re-throw for internal Genkit flow catchers
+      throw new Error(auth.error); 
   }
 
   if (auth.role === 'admin') {

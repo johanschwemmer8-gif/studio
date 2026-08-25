@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A GS1-compliant Genkit flow to submit a bulk QR code generation request.
@@ -11,7 +12,7 @@ import { db } from '@/lib/firebase-admin';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
 
 // Define the schema for GS1 Digital Link options
-const QrOptionsSchema = z.object({
+export const QrOptionsSchema = z.object({
   colorHex: z.string().optional(),
   bgColorHex: z.string().optional(),
   logoPath: z.string().url().optional(),
@@ -37,7 +38,7 @@ const QrOptionsSchema = z.object({
   landingPageUrl: z.string().url().optional().or(z.literal('')),
 });
 
-const SubmitBulkQrRequestInputSchema = z.object({
+export const SubmitBulkQrRequestInputSchema = z.object({
   idToken: z.string().describe("Firebase ID token for authoritative identity resolution."),
   retailerId: z.string().describe('The intended ID of the retailer.'),
   brandId: z.string().describe('The brand ID.'),

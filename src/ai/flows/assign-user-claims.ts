@@ -1,8 +1,9 @@
+
 'use server';
 /**
  * @fileOverview Secure administrative tool for assigning trusted identity claims.
  * DESIGN: Ultra-Resilient "No-Throw" Server Action.
- * VERSION: 1.7.0 (Clean Exports & Serialized Response)
+ * VERSION: 1.8.0 (Bootstrap Logic Enabled)
  */
 
 import { ai } from '@/ai/genkit';
@@ -29,7 +30,6 @@ const AssignUserClaimsOutputSchema = z.object({
 export async function assignUserClaims(input: z.infer<typeof AssignUserClaimsInputSchema>) {
     try {
         const result = await assignUserClaimsFlow(input);
-        // Explicitly return a plain object to guarantee serialization
         return {
             success: !!result?.success,
             message: result?.message || "Operation completed."
@@ -45,7 +45,6 @@ export async function assignUserClaims(input: z.infer<typeof AssignUserClaimsInp
 
 /**
  * INTERNAL GENKIT FLOW
- * Registered with 'ai' instance but not exported to avoid Next.js bundling conflicts.
  */
 const assignUserClaimsFlow = ai.defineFlow(
   {
@@ -54,15 +53,11 @@ const assignUserClaimsFlow = ai.defineFlow(
     outputSchema: AssignUserClaimsOutputSchema,
   },
   async ({ idToken, targetUid, role, retailerId }) => {
-    // 1. Authorize Caller (The Admin)
+    // 1. Authorize Caller
     const caller = await verifyAuth(idToken);
     
     if (caller.error) {
         return { success: false, message: caller.error };
-    }
-
-    if (caller.role !== 'admin') {
-        return { success: false, message: "Unauthorized: Only platform administrators can provision access." };
     }
 
     const db = getDb();
@@ -71,8 +66,15 @@ const assignUserClaimsFlow = ai.defineFlow(
     }
 
     try {
-        // 2. PRIMARY PATH: Firestore Persistence
-        // We write to the database first because the client-side 'verifyAuth' uses this as a fallback.
+        // 2. BOOTSTRAP CHECK: If no users exist in the registry, allow the first user to provision themselves.
+        const usersSnapshot = await db.collection('users').limit(1).get();
+        const isFirstProvisioning = usersSnapshot.empty;
+
+        if (caller.role !== 'admin' && !isFirstProvisioning) {
+            return { success: false, message: "Unauthorized: Only platform administrators can provision access." };
+        }
+
+        // 3. PRIMARY PATH: Firestore Persistence
         await db.collection('users').doc(targetUid).set({
             uid: targetUid,
             role,
@@ -83,9 +85,7 @@ const assignUserClaimsFlow = ai.defineFlow(
             dataStatus: 'VERIFIED'
         }, { merge: true });
 
-        console.log(`[Admin] Database Identity Updated for ${targetUid}`);
-
-        // 3. SECONDARY PATH: Auth Custom Claims
+        // 4. SECONDARY PATH: Auth Custom Claims
         let cloudClaimStatus = "Ready";
         try {
             const auth = admin.auth();
@@ -94,15 +94,9 @@ const assignUserClaimsFlow = ai.defineFlow(
                 retailerId: retailerId || 'unknown'
             };
             
-            // Set a timeout for the cloud handshake
-            await Promise.race([
-                auth.setCustomUserClaims(targetUid, claims),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Cloud timeout')), 6000))
-            ]);
-            
-            console.log(`[Admin] Cloud Claims Assigned: ${targetUid}`);
+            await auth.setCustomUserClaims(targetUid, claims);
         } catch (authError: any) {
-            console.warn("[Admin] Cloud Sync Deferred (Non-Fatal):", authError.message);
+            console.warn("[Admin] Cloud Sync Deferred:", authError.message);
             cloudClaimStatus = "Sync Pending";
         }
 

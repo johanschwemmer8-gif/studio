@@ -21,17 +21,27 @@ let app: FirebaseApp;
 
 // Robust initialization for both local and deployed environments (including build-time)
 if (!getApps().length) {
-  // If we have minimal config, initialize the default app
-  if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-    app = initializeApp(firebaseConfig);
+  // App Hosting automatically injects FIREBASE_WEBAPP_CONFIG during build
+  let finalConfig = firebaseConfig;
+  if (!finalConfig.apiKey && typeof process !== 'undefined' && process.env.FIREBASE_WEBAPP_CONFIG) {
+    try {
+      finalConfig = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG);
+    } catch (e) {
+      console.warn("[Firebase] Failed to parse injected webapp config.");
+    }
+  }
+
+  // If we still don't have a config, use a fallback to prevent build crashes
+  if (finalConfig.apiKey && finalConfig.projectId) {
+    app = initializeApp(finalConfig);
   } else {
-    // During Next.js build/SSG in CI environments, env vars may be missing.
-    // We provide a stable fallback with the expected project ID to prevent build crashes.
+    // Stable fallback for static page generation in CI environments
     app = initializeApp({
       apiKey: "build-placeholder",
       projectId: "interact-aoe-kidkn",
       appId: "build-placeholder"
     });
+    console.log("[Firebase] Initialized with build-time placeholder.");
   }
 } else {
   app = getApp();

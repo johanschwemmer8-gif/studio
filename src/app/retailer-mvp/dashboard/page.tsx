@@ -157,6 +157,20 @@ export default function DashboardPage() {
   const { engagement, conversion } = analyticsData;
   const isNoData = engagement.totalScans === 0;
 
+  const handleAnalyzeMetrics = () => {
+    setError(null);
+    startAnalyzing(async () => {
+        if (!user?.retailerId) return;
+        try {
+            const idToken = await user.getIdToken();
+            const result = await analyzeEngagementMetrics({ idToken, retailerId: user.retailerId });
+            setAnalysis(result);
+        } catch (e: any) {
+            setError(e.message || "We couldn't generate the analysis at this time.");
+        }
+    });
+  };
+
   return (
     <div className="space-y-8">
       {retailerId !== 'unknown' && <SetupGuide retailerId={retailerId} />}

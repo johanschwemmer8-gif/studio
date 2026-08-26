@@ -17,7 +17,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { DecisionJourneyOutput } from '@/lib/schemas/decision-journey';
 import { products as localProducts } from '@/lib/data';
-import { auth } from '@/lib/firebase';
 import { useAuth } from '@/context/auth-context';
 import {
   Select,

@@ -29,10 +29,10 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { assignUserClaims } from '@/ai/flows/assign-user-claims';
+import { createUser } from '@/ai/flows/create-user';
 import { Badge } from '@/components/ui/badge';
 import { collection, onSnapshot, doc, setDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
@@ -151,7 +151,7 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
     const [formError, setFormError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [createdUid, setCreatedUid] = useState<string | null>(null);
+    const [selectedRole, setSelectedRole] = useState<'retailerAdmin' | 'storeManager' | 'analyst'>('retailerAdmin');
     const { toast } = useToast();
 
     const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -171,15 +171,28 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
         }
 
         try {
-            const result = await createUserWithEmailAndPassword(auth, email, password);
-            setCreatedUid(result.user.uid);
-            toast({
-                title: "Authentication Created",
-                description: `UID: ${result.user.uid}. Next: Provision Claims.`,
-            });
-            form.reset();
-        } catch (error: any) {
-            setFormError(error.message);
+            const idToken = await auth.currentUser?.getIdToken(true);
+
+            const result = await createUser({
+                idToken: idToken || '',
+                email,
+                password,
+                displayName: name,
+                role: selectedRole,
+                retailerId: retailer.id
+            } as any);
+
+            if (result?.success) {
+                toast({ title: "User Provisioned", description: result.message });
+                form.reset();
+                setIsDialogOpen(false);
+            } else {
+                // Show safe server-provided message
+                setFormError(result?.message || 'Provisioning failed.');
+            }
+        } catch (e: any) {
+            console.error("Provisioning Error:", e);
+            setFormError("A network or system error occurred while provisioning the user.");
         } finally {
             setIsLoading(false);
         }
@@ -194,45 +207,46 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-                {!createdUid ? (
-                    <form onSubmit={handleCreateUser}>
-                        <DialogHeader>
-                            <DialogTitle>Setup User for {retailer.name}</DialogTitle>
-                            <DialogDescription>Step 1: Create Firebase Authentication account.</DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            {formError && <Alert variant="destructive"><AlertDescription>{formError}</AlertDescription></Alert>}
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase">Full Name</Label>
-                                <Input name="name" required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase">Email</Label>
-                                <Input name="email" type="email" required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase">Password</Label>
-                                <div className="relative">
-                                    <Input name="password" type={showPassword ? 'text' : 'password'} required className="pr-10" />
-                                </div>
+                <form onSubmit={handleCreateUser}>
+                    <DialogHeader>
+                        <DialogTitle>Setup User for {retailer.name}</DialogTitle>
+                        <DialogDescription>Create a new user and bind them to this retailer.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        {formError && <Alert variant="destructive"><AlertDescription>{formError}</AlertDescription></Alert>}
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase">Full Name</Label>
+                            <Input name="name" required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase">Email</Label>
+                            <Input name="email" type="email" required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase">Temporary Password</Label>
+                            <div className="relative">
+                                <Input name="password" type={showPassword ? 'text' : 'password'} required className="pr-10" />
                             </div>
                         </div>
-                        <DialogFooter>
-                            <Button type="submit" disabled={isLoading} className="w-full">
-                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create Auth Account"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                ) : (
-                    <div className="space-y-6">
-                        <DialogHeader>
-                            <DialogTitle>Provision Access</DialogTitle>
-                            <DialogDescription>Step 2: Assign custom claims to UID: <code className="text-xs">{createdUid}</code></DialogDescription>
-                        </DialogHeader>
-                        <VerifiedAccessManager retailers={[retailer]} />
-                        <Button variant="outline" className="w-full" onClick={() => setCreatedUid(null)}>Add Another</Button>
+
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase">Role</Label>
+                            <Select onValueChange={(v: any) => setSelectedRole(v)} value={selectedRole}>
+                                <SelectTrigger className="bg-white h-9 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="retailerAdmin">Retailer Admin</SelectItem>
+                                    <SelectItem value="storeManager">Store Manager</SelectItem>
+                                    <SelectItem value="analyst">Analyst</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                )}
+                    <DialogFooter>
+                        <Button type="submit" disabled={isLoading} className="w-full">
+                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create User"}
+                        </Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     );

@@ -26,8 +26,11 @@ if (!admin.apps.length) {
   }
 }
 
-// Ensure db is exported consistently for server-side flows
-export const db = admin.apps.length > 0 ? admin.firestore() : null as any;
+/**
+ * AUTHORITATIVE DATABASE INSTANCE
+ * Exported specifically to satisfy server-side Genkit flow imports.
+ */
+export const db = admin.firestore();
 
 export const getDb = () => {
     try {

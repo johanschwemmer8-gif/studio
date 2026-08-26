@@ -31,14 +31,14 @@ if (!getApps().length) {
     }
   }
 
-  // If we still don't have a config, use a fallback to prevent build crashes
+  // If we still don't have a config (e.g. during CI build step), use a fallback to prevent build crashes
   if (finalConfig.apiKey && finalConfig.projectId) {
     app = initializeApp(finalConfig);
   } else {
-    // Stable fallback for static page generation in CI environments
+    // Stable fallback for static page generation in CI environments (prevents projectId error)
     app = initializeApp({
       apiKey: "build-placeholder",
-      projectId: "interact-aoe-kidkn",
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "interact-aoe-kidkn",
       appId: "build-placeholder"
     });
     console.log("[Firebase] Initialized with build-time placeholder.");

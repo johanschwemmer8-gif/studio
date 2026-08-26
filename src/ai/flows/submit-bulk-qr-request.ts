@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A GS1-compliant Genkit flow to submit a bulk QR code generation request.
@@ -42,7 +43,7 @@ export const SubmitBulkQrRequestInputSchema = z.object({
   idToken: z.string().describe("Firebase ID token for authoritative identity resolution."),
   retailerId: z.string().describe('The intended ID of the retailer.'),
   brandId: z.string().describe('The brand ID.'),
-  campaignId: z.string().describe('The campaign ID.'),
+  campaignId: z.string().min(1, "Campaign name is required").describe('The campaign ID.'),
   productName: z.string().optional().describe("Friendly name of the product for the manifest."),
   count: z.number().int().min(1).max(10000),
   options: QrOptionsSchema.optional(),

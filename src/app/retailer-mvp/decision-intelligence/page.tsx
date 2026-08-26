@@ -7,7 +7,7 @@ import {
   BrainCircuit, 
   Activity, Download,
   ShieldCheck, ArrowRight, 
-  Barcode, Loader2, TrendingUp, ShoppingCart, Ban
+  Barcode, Loader2, TrendingUp, ShoppingCart, Ban, AlertTriangle, Sparkles
 } from 'lucide-react';
 import { getDecisionJourneyIntelligence } from '@/ai/flows/decision-journey-intelligence';
 import { Skeleton } from '@/components/ui/skeleton';

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,8 +36,9 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 type UserAccount = {
   uid: string;
@@ -91,7 +91,7 @@ export default function CreateAdminPage() {
     const email = (form.elements.namedItem('email') as HTMLInputElement).value;
     const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
-    if (!auth) {
+    if (!auth || !db) {
         setFormError("Infrastructure Logic Error.");
         setIsCreating(false);
         return;
@@ -99,6 +99,17 @@ export default function CreateAdminPage() {
 
     try {
         const result = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Ensure user doc is stubbed in Firestore so they appear in the registry list
+        await setDoc(doc(db, 'users', result.user.uid), {
+            uid: result.user.uid,
+            name,
+            email,
+            role: 'analyst', // Default safe role
+            isActive: true,
+            createdAt: serverTimestamp()
+        }, { merge: true });
+
         toast({
             title: "Account Created",
             description: `Authentication successful for ${email}. Next step: Provision claims in Admin Panel.`,

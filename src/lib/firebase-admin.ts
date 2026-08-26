@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Initializes the Firebase Admin SDK for server-side operations.
  * HARDENED: Prioritizes explicit environment project resolution for the iNteract platform.

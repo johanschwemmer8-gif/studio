@@ -1,4 +1,3 @@
-
 'use server';
 
 // This file exports all the Genkit flows for easy access from the client.
@@ -44,6 +43,7 @@ import { assignUserClaims } from './assign-user-claims';
 import { resetTestRetailer } from './reset-test-retailer';
 import { seedTestRetailerDemo } from './seed-test-retailer-demo';
 import { saveAiConfig } from './save-ai-config';
+import { listAuthUsers, type AuthUser } from './list-auth-users';
 
 export {
     analyzeBehavioralInsights,
@@ -83,6 +83,7 @@ export {
     resetTestRetailer,
     seedTestRetailerDemo,
     saveAiConfig,
+    listAuthUsers,
 };
 
 export type {
@@ -115,5 +116,6 @@ export type {
     ScanAnalyticsInput, ScanAnalyticsOutput,
     ScheduledProductSyncInput, ScheduledProductSyncOutput,
     SyncProductsInput, SyncProductsOutput,
-    AttributionReport, AttributionRecord
+    AttributionReport, AttributionRecord,
+    AuthUser
 };

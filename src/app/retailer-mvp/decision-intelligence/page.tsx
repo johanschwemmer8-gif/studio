@@ -147,7 +147,7 @@ export default function DecisionIntelligencePage() {
                         <BrainCircuit className="text-primary h-8 w-8" />
                         Shopper Behavior
                     </h1>
-                    <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+                    <p className="text-muted-foreground max-2xl text-sm leading-relaxed">
                         Factual, chronologically verified decision patterns. Every metric is anchored at the session level to ensure high-fidelity intent mapping.
                     </p>
                 </div>

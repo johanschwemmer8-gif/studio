@@ -8,7 +8,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db, admin } from '@/lib/firebase-admin';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
-import { SubmitBulkQrRequestInputSchema } from './submit-bulk-qr-request';
+import { SubmitBulkQrRequestInputSchema } from '@/lib/schemas/bulk-qr-request';
 
 const SaveQrCampaignDraftOutputSchema = z.object({
   success: z.boolean(),

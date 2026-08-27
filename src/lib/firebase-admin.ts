@@ -13,12 +13,15 @@ if (!admin.apps.length) {
 
     if (projectId) {
       admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
         projectId: projectId,
       });
-      console.log(`[Admin] Initialized for project: ${projectId}`);
+      console.log(`[Admin] Initialized for project: ${projectId} with explicit ADC.`);
     } else {
-      admin.initializeApp();
-      console.log("[Admin] Initialized using Default Application Credentials.");
+      admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+      });
+      console.log("[Admin] Initialized using explicit Application Default Credentials.");
     }
   } catch (e: any) {
     console.warn("[Admin] Initialization Friction:", e.message);

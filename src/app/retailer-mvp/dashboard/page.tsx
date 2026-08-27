@@ -14,7 +14,7 @@ import {
 import { 
   UserCheck, TrendingUp, Sparkles, AlertTriangle, 
   ArrowUp, MessageSquare, ShoppingCart, Loader2, Lightbulb, DollarSign,
-  Search, Download, BarChart2, CheckCircle2, Circle, ShieldAlert, Activity
+  Search, Download, BarChart2, CheckCircle2, Circle, ShieldCheck, Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
@@ -118,45 +118,63 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const retailerId = user?.retailerId || 'unknown';
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchData = async (retryCount = 0) => {
-        if (!user || !isMounted) return;
+  const fetchData = async (retryCount = 0) => {
+    if (!user) return;
+    
+    try {
+        const idToken = await user.getIdToken();
+        const [engData, intelData] = await Promise.all([
+            analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' }),
+            analyzeDecisionIntelligence()
+        ]);
         
-        try {
-            const idToken = await user.getIdToken();
-            const [engData, intelData] = await Promise.all([
-                analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' }),
-                analyzeDecisionIntelligence()
-            ]);
-            
-            if (isMounted) {
-                setAnalyticsData(engData);
-                setIntelligenceData(intelData);
-                setError(null);
-            }
-        } catch (e: any) {
-            const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('refresh');
-            
-            if (isTransient && retryCount < 3 && isMounted) {
-                console.warn(`[Dashboard] Intelligence sync retry ${retryCount + 1}/3...`);
-                setTimeout(() => fetchData(retryCount + 1), 1500 * (retryCount + 1));
-                return;
-            }
-
-            if (isMounted) {
-                console.warn('Intelligence sync deferred (infrastructure handshake):', e.message);
-                setError("SYNC_ERROR");
-            }
+        setAnalyticsData(engData);
+        setIntelligenceData(intelData);
+        setError(null);
+    } catch (e: any) {
+        const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('refresh');
+        
+        if (isTransient && retryCount < 3) {
+            console.warn(`[Dashboard] Intelligence sync retry ${retryCount + 1}/3...`);
+            setTimeout(() => fetchData(retryCount + 1), 1500 * (retryCount + 1));
+            return;
         }
-    };
+
+        console.warn('Intelligence sync deferred (infrastructure handshake):', e.message);
+        setError("SYNC_ERROR");
+    }
+  };
+
+  useEffect(() => {
     fetchData();
-    return () => { isMounted = false; };
   }, [user]);
+
+  if (error === "SYNC_ERROR") {
+    return (
+        <div className="p-8 space-y-4">
+            <Alert variant="destructive" className="max-w-2xl mx-auto border-2">
+                <AlertTriangle className="h-5 w-5" />
+                <AlertTitle className="font-black uppercase tracking-tight">Intelligence Stream Interrupted</AlertTitle>
+                <AlertDescription className="text-sm leading-relaxed pt-2">
+                    We are currently experiencing higher than normal latency while synchronizing with the Google Cloud metadata service. 
+                    Your session is still active, but live engagement analytics are temporarily deferred.
+                </AlertDescription>
+                <div className="mt-4 flex gap-3">
+                    <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="font-bold">
+                        Retry Connection
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild className="font-bold">
+                        <Link href="/retailer-mvp/documentation">Help Center</Link>
+                    </Button>
+                </div>
+            </Alert>
+        </div>
+    );
+  }
 
   if(!analyticsData || !intelligenceData) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 animate-in fade-in duration-500">
          <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
             <Skeleton className="h-10 w-full max-w-md" />
             <Skeleton className="h-10 w-full max-w-xs" />
@@ -182,13 +200,14 @@ export default function DashboardPage() {
             const result = await analyzeEngagementMetrics({ idToken, retailerId: user.retailerId });
             setAnalysis(result);
         } catch (e: any) {
-            setError(e.message || "We couldn't generate the analysis at this time.");
+            setError("ANALYZE_ERROR");
+            toast({ title: "Analysis Failed", description: e.message, variant: "destructive" });
         }
     });
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-700">
       {retailerId !== 'unknown' && <SetupGuide retailerId={retailerId} />}
 
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-card/50 p-4 rounded-xl border border-primary/10 shadow-sm">

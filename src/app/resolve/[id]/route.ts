@@ -20,6 +20,11 @@ export async function GET(
   const { id } = await params;
   const db = admin.firestore();
 
+  // Construct safe origin for redirects to avoid internal localhost leaks
+  const host = request.headers.get('host') || 'localhost';
+  const protocol = request.headers.get('x-forwarded-proto') || 'https';
+  const origin = `${protocol}://${host}`;
+
   try {
     // 1. Resolve Identity from QR Registry First (Handles registered standard and demo IDs)
     const qrDoc = await db.collection('qrcodes').doc(id).get();
@@ -38,7 +43,7 @@ export async function GET(
         const identity = parseGS1(id);
         if (!identity) {
             console.error(`[Resolver] Invalid identity format: ${id}`);
-            return NextResponse.redirect(new URL('/error?code=invalid_identity', request.url));
+            return NextResponse.redirect(new URL('/error?code=invalid_identity', origin));
         }
         gtin = identity.gtin;
         batchNumber = identity.batchNumber || '';
@@ -89,10 +94,10 @@ export async function GET(
     if (batchNumber) destination += `&batch=${batchNumber}`;
     if (serialNumber) destination += `&serial=${serialNumber}`;
 
-    return NextResponse.redirect(new URL(destination, request.url), 302);
+    return NextResponse.redirect(new URL(destination, origin), 302);
 
   } catch (error: any) {
     console.error(`[Resolver] Critical failure for ${id}:`, error.message);
-    return NextResponse.redirect(new URL('/error?code=500', request.url));
+    return NextResponse.redirect(new URL('/error?code=500', origin));
   }
 }

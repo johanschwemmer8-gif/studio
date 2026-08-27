@@ -2,7 +2,7 @@
 /**
  * @fileOverview Transactional Journey Attribution Flow.
  * DETERMINISTIC JOIN: Links real /events and /transactions by sessionId.
- * AUDIT VERSION: 2.0.0 (Live Attribution Active)
+ * AUDIT VERSION: 2.1.0 (Infrastructure Resilience Optimized)
  */
 
 import { ai } from '@/ai/genkit';
@@ -20,7 +20,7 @@ import { subDays } from 'date-fns';
  * Targets transient Google Cloud Metadata/Auth errors (500, UNKNOWN).
  */
 async function fetchWithRetry(query: any, label: string) {
-  const maxRetries = 3;
+  const maxRetries = 5; // Increased for high-latency environments
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await query.get();
@@ -32,7 +32,7 @@ async function fetchWithRetry(query: any, label: string) {
         error.message.includes('UNKNOWN');
 
       if (isTransient && attempt < maxRetries) {
-        const delay = (500 * Math.pow(2, attempt)) + (Math.random() * 200);
+        const delay = (1000 * Math.pow(2, attempt)) + (Math.random() * 500);
         console.warn(`[Firestore Retry] ${label} attempt ${attempt + 1}/${maxRetries + 1} failed: ${error.message.substring(0, 100)}. Retrying in ${Math.round(delay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
@@ -166,14 +166,7 @@ const attributeTransactionsFlow = ai.defineFlow(
         };
     } catch (error: any) {
         console.warn("[Attribution] Persistence Friction:", error.message);
-        return {
-            retailerId: authorizedRetailerId,
-            totalSessions: 0,
-            ariAssistedSessions: 0,
-            ariAssistedPurchases: 0,
-            records: [],
-            dataStatus: 'VERIFIED'
-        };
+        throw error; // Propagate to allow client-side handling
     }
   }
 );

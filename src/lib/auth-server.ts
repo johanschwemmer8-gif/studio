@@ -2,7 +2,7 @@
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Structured Error Handling.
- * VERSION: 2.2.0 (High-Availability Retries)
+ * VERSION: 2.3.0 (Infrastructure Resilience Optimized)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -24,8 +24,8 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
     return { uid: '', role: 'analyst', error: 'Authentication required: No session token provided.' };
   }
 
-  // Increased retries to handle transient metadata service failures in GCP environments.
-  const maxRetries = 3; 
+  // Increased retries to handle persistent transient metadata service failures in high-latency GCP regions.
+  const maxRetries = 5; 
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -63,8 +63,8 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
         error.code === 'auth/internal-error';
 
       if (isTransient && attempt < maxRetries) {
-        // Incremental backoff with jitter to recover from metadata service hiccups
-        const delay = (500 * Math.pow(2, attempt)) + (Math.random() * 200);
+        // Increased base delay to give metadata server more recovery room
+        const delay = (1000 * Math.pow(2, attempt)) + (Math.random() * 500);
         console.warn(`[Auth] Handshake Friction (Attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${Math.round(delay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;

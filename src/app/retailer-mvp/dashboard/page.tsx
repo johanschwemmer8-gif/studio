@@ -108,91 +108,74 @@ export default function DashboardPage() {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Analytics states
+  const [analyticsData, setAnalyticsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState<boolean>(false);
+
+  // Intelligence states
+  const [intelligenceData, setIntelligenceData] = useState<DecisionIntelligenceOutput | null>(null);
+  const [isIntelLoading, setIsIntelLoading] = useState(true);
+  const [intelError, setIntelError] = useState<boolean>(false);
+
+  // Manual summary transition
   const [analysis, setAnalysis] = useState<AnalyzeEngagementMetricsOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  
-  const [analyticsData, setAnalyticsData] = useState<AnalyzeEngagementMetricsOutput | null>(null);
-  const [intelligenceData, setIntelligenceData] = useState<DecisionIntelligenceOutput | null>(null);
 
   const { toast } = useToast();
   const retailerId = user?.retailerId || 'unknown';
 
-  const fetchData = async (retryCount = 0) => {
+  const fetchAnalytics = async (retryCount = 0) => {
     if (!user) return;
-    
+    setIsAnalyticsLoading(true);
+    setAnalyticsError(false);
     try {
         const idToken = await user.getIdToken();
-        const [engData, intelData] = await Promise.all([
-            analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' }),
-            analyzeDecisionIntelligence()
-        ]);
-        
-        setAnalyticsData(engData);
-        setIntelligenceData(intelData);
-        setError(null);
+        const data = await analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' });
+        setAnalyticsData(data);
     } catch (e: any) {
-        const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('refresh');
-        
+        const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('500');
         if (isTransient && retryCount < 3) {
-            console.warn(`[Dashboard] Intelligence sync retry ${retryCount + 1}/3...`);
-            setTimeout(() => fetchData(retryCount + 1), 1500 * (retryCount + 1));
-            return;
+            console.warn(`[Analytics] Sync retry ${retryCount + 1}/3...`);
+            setTimeout(() => fetchAnalytics(retryCount + 1), 1500 * (retryCount + 1));
+        } else {
+            console.error('Analytics sync failed:', e.message);
+            setAnalyticsError(true);
         }
+    } finally {
+        setIsAnalyticsLoading(false);
+    }
+  };
 
-        console.warn('Intelligence sync deferred (infrastructure handshake):', e.message);
-        setError("SYNC_ERROR");
+  const fetchIntelligence = async (retryCount = 0) => {
+    if (!user) return;
+    setIsIntelLoading(true);
+    setIntelError(false);
+    try {
+        const data = await analyzeDecisionIntelligence();
+        setIntelligenceData(data);
+    } catch (e: any) {
+        const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('500');
+        if (isTransient && retryCount < 3) {
+            console.warn(`[Intelligence] Sync retry ${retryCount + 1}/3...`);
+            setTimeout(() => fetchIntelligence(retryCount + 1), 1500 * (retryCount + 1));
+        } else {
+            console.error('Intelligence sync failed:', e.message);
+            setIntelError(true);
+        }
+    } finally {
+        setIsIntelLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    if (user) {
+        fetchAnalytics();
+        fetchIntelligence();
+    }
   }, [user]);
 
-  if (error === "SYNC_ERROR") {
-    return (
-        <div className="p-8 space-y-4">
-            <Alert variant="destructive" className="max-w-2xl mx-auto border-2">
-                <AlertTriangle className="h-5 w-5" />
-                <AlertTitle className="font-black uppercase tracking-tight">Intelligence Stream Interrupted</AlertTitle>
-                <AlertDescription className="text-sm leading-relaxed pt-2">
-                    We are currently experiencing higher than normal latency while synchronizing with the Google Cloud metadata service. 
-                    Your session is still active, but live engagement analytics are temporarily deferred.
-                </AlertDescription>
-                <div className="mt-4 flex gap-3">
-                    <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="font-bold">
-                        Retry Connection
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild className="font-bold">
-                        <Link href="/retailer-mvp/documentation">Help Center</Link>
-                    </Button>
-                </div>
-            </Alert>
-        </div>
-    );
-  }
-
-  if(!analyticsData || !intelligenceData) {
-    return (
-      <div className="space-y-8 animate-in fade-in duration-500">
-         <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
-            <Skeleton className="h-10 w-full max-w-md" />
-            <Skeleton className="h-10 w-full max-w-xs" />
-         </div>
-         <Separator />
-         <div className="grid gap-4 md:grid-cols-4">
-             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-         </div>
-         <Skeleton className="h-96 w-full rounded-2xl" />
-      </div>
-    );
-  }
-
-  const { engagement, conversion } = analyticsData;
-  const isNoData = engagement.totalScans === 0;
-
   const handleAnalyzeMetrics = () => {
-    setError(null);
     startAnalyzing(async () => {
         if (!user?.retailerId) return;
         try {
@@ -200,7 +183,6 @@ export default function DashboardPage() {
             const result = await analyzeEngagementMetrics({ idToken, retailerId: user.retailerId });
             setAnalysis(result);
         } catch (e: any) {
-            setError("ANALYZE_ERROR");
             toast({ title: "Analysis Failed", description: e.message, variant: "destructive" });
         }
     });
@@ -239,49 +221,66 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-           <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Associated Revenue (SIM)</CardTitle>
-              <DollarSign className="h-4 w-4 opacity-70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-black">R{isNoData ? '0' : conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-[10px] opacity-70 mt-1 uppercase font-bold tracking-tighter">Total in engaged sessions</p>
-            </CardContent>
-          </Card>
-          
-           <Card className="border-green-200 bg-green-50 shadow-sm border-2">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-green-700 tracking-widest">Calculated Uplift (SIM)</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-black text-green-800">R{isNoData ? '0' : conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              <p className="text-[10px] text-green-600 mt-1 uppercase font-bold tracking-tighter">Growth estimate</p>
-            </CardContent>
-          </Card>
+           {isAnalyticsLoading ? (
+               [...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+           ) : analyticsError ? (
+               <div className="lg:col-span-4">
+                  <Alert variant="destructive" className="border-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="text-[10px] font-black uppercase tracking-tight">Financial Stream Sync Deferred</AlertTitle>
+                    <AlertDescription className="text-xs flex items-center justify-between mt-2">
+                        <span>Associated revenue and uplift indicators are temporarily unavailable due to network latency.</span>
+                        <Button variant="outline" size="sm" onClick={() => fetchAnalytics()} className="h-8 font-bold uppercase text-[9px] tracking-widest">Retry Connection</Button>
+                    </AlertDescription>
+                  </Alert>
+               </div>
+           ) : analyticsData ? (
+               <>
+                <Card className="border-primary/20 bg-primary shadow-sm text-primary-foreground">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-[10px] font-black uppercase opacity-70 tracking-widest">Associated Revenue (SIM)</CardTitle>
+                    <DollarSign className="h-4 w-4 opacity-70" />
+                    </CardHeader>
+                    <CardContent>
+                    <div className="text-2xl font-black">R{analyticsData.conversion.associatedRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <p className="text-[10px] opacity-70 mt-1 uppercase font-bold tracking-tighter">Total in engaged sessions</p>
+                    </CardContent>
+                </Card>
+                
+                <Card className="border-green-200 bg-green-50 shadow-sm border-2">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-[10px] font-black uppercase text-green-700 tracking-widest">Calculated Uplift (SIM)</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                    <div className="text-2xl font-black text-green-800">R{analyticsData.conversion.calculatedUplift.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <p className="text-[10px] text-green-600 mt-1 uppercase font-bold tracking-tighter">Growth estimate</p>
+                    </CardContent>
+                </Card>
 
-           <Card className="border-primary/10">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Observed Trend</CardTitle>
-              <ArrowUp className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-black text-green-600">{isNoData ? '--' : `+${conversion.salesUpliftPercentage}%`}</div>
-              <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Engagement performance</p>
-            </CardContent>
-          </Card>
+                <Card className="border-primary/10">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Observed Trend</CardTitle>
+                    <ArrowUp className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                    <div className="text-2xl font-black text-green-600">{`+${analyticsData.conversion.salesUpliftPercentage}%`}</div>
+                    <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Engagement performance</p>
+                    </CardContent>
+                </Card>
 
-          <Card className="border-primary/10">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assisted Journeys</CardTitle>
-              <MessageSquare className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-black">{isNoData ? '0' : conversion.assistedSales.toLocaleString()}</div>
-              <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Verified Ari interactions</p>
-            </CardContent>
-          </Card>
+                <Card className="border-primary/10">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assisted Journeys</CardTitle>
+                    <MessageSquare className="h-4 w-4 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                    <div className="text-2xl font-black">{analyticsData.conversion.assistedSales.toLocaleString()}</div>
+                    <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Verified Ari interactions</p>
+                    </CardContent>
+                </Card>
+               </>
+           ) : null}
       </div>
 
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-transparent shadow-md">
@@ -298,7 +297,7 @@ export default function DashboardPage() {
                 </CardDescription>
               </div>
             </div>
-            {!isNoData && (
+            {analyticsData && (
               <Button onClick={handleAnalyzeMetrics} disabled={isAnalyzing} variant="secondary" className="gap-2 font-bold uppercase text-[10px] tracking-widest h-10 px-6">
                   <Sparkles className="h-4 w-4 text-accent" />
                   Summarize Activity
@@ -308,10 +307,18 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {isNoData ? (
+            {isAnalyticsLoading || isIntelLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-40 w-full rounded-xl" />
+                    <div className="grid md:grid-cols-4 gap-4">
+                        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+                    </div>
+                </div>
+            ) : (analyticsError && intelError) ? (
                 <div className="p-20 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                    <p className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Awaiting your first scan...</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 italic">When customers start scanning, their behavioral data will appear here.</p>
+                    <p className="text-muted-foreground font-bold uppercase text-xs tracking-widest">Intelligence Stream Syncing</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 italic">Handshake with cloud infrastructure is taking longer than expected. Navigation remains active.</p>
+                    <Button variant="outline" size="sm" onClick={() => { fetchAnalytics(); fetchIntelligence(); }} className="mt-4 font-bold">Retry Sync</Button>
                 </div>
             ) : (
                 <>
@@ -323,7 +330,7 @@ export default function DashboardPage() {
                     )}
 
                     {analysis && (
-                        <Card className="bg-accent/10 border-accent shadow-lg animate-in fade-in zoom-in-95 overflow-hidden">
+                        <Card className="bg-accent/10 border-accent shadow-lg animate-in fade-in zoom-in-95 overflow-hidden mb-6">
                             <CardHeader className="bg-accent/5 py-3">
                                 <CardTitle className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest text-accent-foreground"><Sparkles className="h-4 w-4"/> iNteract Pattern Analytics</CardTitle>
                             </CardHeader>
@@ -341,51 +348,77 @@ export default function DashboardPage() {
                     )}
 
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Identified Profiles</CardTitle>
-                        <UserCheck className="h-4 w-4 text-primary" />
-                        </CardHeader>
-                        <CardContent>
-                        <div className="text-3xl font-black tracking-tighter">{engagement.identifiedShoppers.toLocaleString()}</div>
-                        <Badge variant="outline" className="mt-2 bg-primary/5 border-primary/20 text-[9px] py-0 font-black uppercase">
-                            {engagement.profileConversionRate.toFixed(1)}% Conversion
-                        </Badge>
-                        </CardContent>
-                    </Card>
+                        <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Identified Profiles</CardTitle>
+                            <UserCheck className="h-4 w-4 text-primary" />
+                            </CardHeader>
+                            <CardContent>
+                                {analyticsData ? (
+                                    <>
+                                        <div className="text-3xl font-black tracking-tighter">{analyticsData.engagement.identifiedShoppers.toLocaleString()}</div>
+                                        <Badge variant="outline" className="mt-2 bg-primary/5 border-primary/20 text-[9px] py-0 font-black uppercase">
+                                            {analyticsData.engagement.profileConversionRate.toFixed(1)}% Conversion
+                                        </Badge>
+                                    </>
+                                ) : analyticsError ? (
+                                    <div className="flex flex-col gap-2">
+                                        <p className="text-[10px] text-destructive font-bold">Unavailable</p>
+                                        <Button variant="ghost" size="sm" onClick={() => fetchAnalytics()} className="h-6 text-[8px] p-0 font-black uppercase">Retry</Button>
+                                    </div>
+                                ) : <p className="text-[10px] text-muted-foreground italic">Sync pending...</p>}
+                            </CardContent>
+                        </Card>
 
-                    <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Basket Delta</CardTitle>
-                        <ArrowUp className="h-4 w-4 text-green-500" />
-                        </CardHeader>
-                        <CardContent>
-                        <div className="text-3xl font-black text-green-600 tracking-tighter">+{conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
-                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">R{conversion.basketSizeIncreaseRand.toFixed(2)} Avg Increase (SIM)</p>
-                        </CardContent>
-                    </Card>
+                        <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Basket Delta</CardTitle>
+                            <ArrowUp className="h-4 w-4 text-green-500" />
+                            </CardHeader>
+                            <CardContent>
+                                {analyticsData ? (
+                                    <>
+                                        <div className="text-3xl font-black text-green-600 tracking-tighter">+{analyticsData.conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
+                                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">R{analyticsData.conversion.basketSizeIncreaseRand.toFixed(2)} Avg Increase (SIM)</p>
+                                    </>
+                                ) : <p className="text-[10px] text-muted-foreground italic">Data deferred.</p>}
+                            </CardContent>
+                        </Card>
 
-                    <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Hesitation Index</CardTitle>
-                        <Activity className="h-4 w-4 text-yellow-500" />
-                        </CardHeader>
-                        <CardContent>
-                        <div className="text-3xl font-black tracking-tighter">{intelligenceData.hesitationMetrics.hesitationIndex}%</div>
-                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">Repeat engagement</p>
-                        </CardContent>
-                    </Card>
+                        <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Hesitation Index</CardTitle>
+                            <Activity className="h-4 w-4 text-yellow-500" />
+                            </CardHeader>
+                            <CardContent>
+                                {intelligenceData ? (
+                                    <>
+                                        <div className="text-3xl font-black tracking-tighter">{intelligenceData.hesitationMetrics.hesitationIndex}%</div>
+                                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">Repeat engagement</p>
+                                    </>
+                                ) : intelError ? (
+                                    <div className="flex flex-col gap-2">
+                                        <p className="text-[10px] text-yellow-600 font-bold uppercase">Intel deferred</p>
+                                        <Button variant="ghost" size="sm" onClick={() => fetchIntelligence()} className="h-6 text-[8px] p-0 font-black uppercase text-primary">Retry</Button>
+                                    </div>
+                                ) : <p className="text-[10px] text-muted-foreground italic">Sync pending...</p>}
+                            </CardContent>
+                        </Card>
 
-                    <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Purchased Sessions</CardTitle>
-                        <ShoppingCart className="h-4 w-4 text-primary" />
-                        </CardHeader>
-                        <CardContent>
-                        <div className="text-3xl font-black tracking-tighter">{conversion.scanToPurchaseConversion.toFixed(1)}%</div>
-                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">Checkout association</p>
-                        </CardContent>
-                    </Card>
+                        <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Purchased Sessions</CardTitle>
+                            <ShoppingCart className="h-4 w-4 text-primary" />
+                            </CardHeader>
+                            <CardContent>
+                                {analyticsData ? (
+                                    <>
+                                        <div className="text-3xl font-black tracking-tighter">{analyticsData.conversion.scanToPurchaseConversion.toFixed(1)}%</div>
+                                        <p className="text-[10px] font-bold text-muted-foreground mt-2 uppercase tracking-tighter">Checkout association</p>
+                                    </>
+                                ) : <p className="text-[10px] text-muted-foreground italic">Data deferred.</p>}
+                            </CardContent>
+                        </Card>
                     </div>
                 </>
             )}

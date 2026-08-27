@@ -78,7 +78,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
                     }
 
                     // 4. Log View Event
-                    const eventId = `view_${Date.now()}`;
+                    const eventId = `view_${crypto.randomUUID()}`;
                     setDoc(doc(db, 'events', eventId), {
                         eventId,
                         sessionId,
@@ -144,12 +144,16 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
           toast({ title: "Identification Required", description: "Please identify yourself to build your digital trolley." });
           return;
       }
-      if (!db || !sessionId) return;
+      if (!db || !sessionId) {
+          toast({ title: "Session Error", description: "Missing authoritative session lineage.", variant: "destructive" });
+          return;
+      }
 
       setIsAdding(true);
       try {
           const basketId = `basket_${user.uid}`;
           const basketRef = doc(db, 'baskets', basketId);
+          const activeRetailerId = retailerConfig?.retailerId || product.retailerId || 'unknown';
           
           const item = {
               gtin: product.gtin,
@@ -163,6 +167,8 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
           if (!basketDoc.exists()) {
               await setDoc(basketRef, {
                   basketId,
+                  sessionId,
+                  retailerId: activeRetailerId,
                   shopperId: user.uid,
                   items: [item],
                   total: product.price,
@@ -171,18 +177,20 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
               });
           } else {
               await updateDoc(basketRef, {
+                  sessionId,
+                  retailerId: activeRetailerId,
                   items: arrayUnion(item),
                   total: increment(product.price),
                   updatedAt: serverTimestamp(),
               });
           }
 
-          const eventId = `cart_${Date.now()}`;
+          const eventId = `cart_${crypto.randomUUID()}`;
           await setDoc(doc(db, 'events', eventId), {
               eventId,
               sessionId,
               gtin: product.gtin,
-              retailerId: retailerConfig?.retailerId || product.retailerId || 'unknown',
+              retailerId: activeRetailerId,
               eventType: 'add_to_cart',
               timestamp: serverTimestamp(),
           });
@@ -205,7 +213,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
             )}
              <div className="flex items-center gap-2">
                 <Button asChild variant="ghost" size="icon" className="rounded-full h-10 w-10 relative">
-                    <Link href="/shopper/basket"><ShoppingCart className="h-5 w-5"/></Link>
+                    <Link href={`/shopper/basket${sessionId ? `?session=${sessionId}` : ''}`}><ShoppingCart className="h-5 w-5"/></Link>
                 </Button>
             </div>
         </header>

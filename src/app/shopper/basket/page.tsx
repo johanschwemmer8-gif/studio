@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { 
     ShoppingCart, Trash2, Plus, Minus, QrCode, CreditCard, 
-    Loader2, Sparkles, ShieldCheck, CheckCircle2, Barcode
+    Loader2, Sparkles, ShieldCheck, CheckCircle2, Barcode, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import QrScannerCamera from '@/components/qr-scanner-camera';
 import { BackButton } from '@/components/ui/back-button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 /**
  * ARCHITECTURAL RULE (TRANSACTION LAYER):
@@ -32,6 +34,8 @@ type BasketItem = {
 
 type Basket = {
     basketId: string;
+    sessionId: string; // Mandatory authoritative journey anchor
+    retailerId: string;
     shopperId: string;
     items: BasketItem[];
     total: number;
@@ -45,6 +49,7 @@ export default function VirtualSmartTrolleyPage() {
     const [isScanning, setIsScanning] = useState(false);
     const [isPaying, setIsPaying] = useState(false);
     const [isPaid, setIsPaid] = useState(false);
+    const [integrityError, setIntegrityError] = useState<string | null>(null);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -56,7 +61,14 @@ export default function VirtualSmartTrolleyPage() {
         const basketRef = doc(db, 'baskets', `basket_${user.uid}`);
         const unsubscribe = onSnapshot(basketRef, (doc) => {
             if (doc.exists()) {
-                setBasket(doc.data() as Basket);
+                const data = doc.data() as Basket;
+                // Architecture check: Does the basket have the authoritative sessionId?
+                if (!data.sessionId || !data.retailerId) {
+                    setIntegrityError("Journey lineage missing. Please scan a product to re-initialize your session.");
+                } else {
+                    setIntegrityError(null);
+                }
+                setBasket(data);
             } else {
                 setBasket(null);
             }
@@ -119,27 +131,39 @@ export default function VirtualSmartTrolleyPage() {
 
         toast({
             title: "Basket Synced with POS",
-            description: "Global identifiers transferred to physical terminal.",
+            description: "Global identifiers and sessionId transferred to physical terminal.",
         });
     };
 
     const handleSimulatePayment = async () => {
+        if (!user || !basket || !db) return;
+        
+        // Data Integrity Gate
+        if (!basket.sessionId || !basket.retailerId) {
+            toast({ 
+                title: "Data Integrity Error", 
+                description: "Cannot archive transaction without authoritative journey sessionId.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setIsPaying(true);
         setTimeout(async () => {
-            if (!user || !basket || !db) return;
-            
-            const transactionId = `gs1_txn_${Date.now()}`;
+            const transactionId = `gs1_txn_${crypto.randomUUID()}`;
             const txnRef = doc(db, 'transactions', transactionId);
             
             await setDoc(txnRef, {
                 transactionId,
+                sessionId: basket.sessionId, // Inherited from authoritative journey
+                basketId: basket.basketId,
+                retailerId: basket.retailerId, // Inherited from authoritative context
                 shopperId: user.uid,
-                retailerId: 'simulated-retailer-id',
                 amount: basket.total,
                 paymentMethod: 'In-App Mobile POS',
-                basketId: basket.basketId,
                 items: basket.items,
-                timestamp: serverTimestamp()
+                timestamp: serverTimestamp(),
+                dataStatus: 'VERIFIED' // Lineage exists
             });
 
             const basketRef = doc(db, 'baskets', basket.basketId);
@@ -147,7 +171,7 @@ export default function VirtualSmartTrolleyPage() {
 
             setIsPaying(false);
             setIsPaid(true);
-            toast({ title: "Payment Successful", description: "Transaction finalized and archived via GTIN." });
+            toast({ title: "Payment Successful", description: "Transaction finalized and archived via sessionId lineage." });
         }, 2000);
     };
 
@@ -229,6 +253,14 @@ export default function VirtualSmartTrolleyPage() {
             </header>
 
             <main className="flex-1 p-4 space-y-4 pb-48">
+                {integrityError && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Lineage Error</AlertTitle>
+                        <AlertDescription>{integrityError}</AlertDescription>
+                    </Alert>
+                )}
+
                 {isScanning && (
                     <Card className="border-accent bg-accent/5">
                         <CardHeader>
@@ -304,13 +336,14 @@ export default function VirtualSmartTrolleyPage() {
                             variant="outline" 
                             className="h-14 rounded-2xl flex-1 font-bold gap-2"
                             onClick={() => setIsScanning(true)}
+                            disabled={!!integrityError}
                         >
                             <QrCode className="h-5 w-5" /> Sync Terminal
                         </Button>
                         <Button 
                             className="h-14 rounded-2xl flex-[2] font-black text-lg gap-2 shadow-xl"
                             onClick={handleSimulatePayment}
-                            disabled={isPaying}
+                            disabled={isPaying || !!integrityError}
                         >
                             {isPaying ? <Loader2 className="h-6 w-6 animate-spin" /> : <CreditCard className="h-6 w-6" />}
                             Checkout

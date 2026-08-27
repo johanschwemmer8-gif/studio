@@ -13,6 +13,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
+import { useSearchParams } from 'next/navigation';
 
 type Message = {
     role: 'user' | 'model';
@@ -31,6 +32,9 @@ function TypingIndicator() {
 
 export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const sessionIdFromUrl = searchParams.get('session');
+  
   const [data, setData] = useState<GetScanInteractionOutput | null>(null);
   const [clientDestinationUrl, setClientDestinationUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,15 +66,18 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         // 2. Call the Genkit flow for the AI greeting
         const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
         
-        if (db) {
-            const sessionId = `sess_${Date.now()}`;
-            setDoc(doc(db, 'sessions', sessionId), {
-                sessionId,
-                shopperId: user?.uid || 'guest',
-                startTime: serverTimestamp(),
-                entryQrId: qrId,
-                retailerId: resolvedRetailerId
-            }).catch(() => {});
+        // REUSE authoritative session if provided, otherwise fail safely
+        // Duplicate session creation removed per architectural fix requirements
+        if (db && sessionIdFromUrl) {
+            // Update the session with shopper mapping if newly identified
+            if (user?.uid) {
+                setDoc(doc(db, 'sessions', sessionIdFromUrl), {
+                    shopperId: user.uid,
+                    updatedAt: serverTimestamp()
+                }, { merge: true }).catch(() => {});
+            }
+        } else if (!sessionIdFromUrl) {
+            console.warn("[Continuity] No authoritative sessionId found in URL.");
         }
 
         if (result) {
@@ -97,7 +104,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     };
     
     if (qrId) fetchInteraction();
-  }, [qrId, user]);
+  }, [qrId, user, sessionIdFromUrl]);
 
   useEffect(() => {
       if (scrollRef.current) {
@@ -122,7 +129,8 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             const res = await productChat({
                 url: destination,
                 history: [...messages, { role: 'user', content: userMessage }],
-                shopperUid: user?.uid
+                shopperUid: user?.uid,
+                sessionId: sessionIdFromUrl || undefined
             });
             setMessages(prev => [...prev, { role: 'model', content: res.message }]);
         } catch (e) {
@@ -135,7 +143,10 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
   const handleContinue = () => {
     const destination = clientDestinationUrl || data?.destinationUrl || 'https://interactaoe.co.za';
-    window.location.href = destination;
+    // Preserve session during redirect if it's an internal path
+    const url = new URL(destination, window.location.origin);
+    if (sessionIdFromUrl) url.searchParams.set('session', sessionIdFromUrl);
+    window.location.href = url.toString();
   };
 
   if (loading) {

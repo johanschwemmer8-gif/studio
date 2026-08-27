@@ -1,8 +1,9 @@
+
 'use server';
 /**
  * @fileOverview Transactional Journey Attribution Flow.
  * DETERMINISTIC JOIN: Links real /events and /transactions by sessionId.
- * AUDIT VERSION: 2.1.0 (Infrastructure Resilience Optimized)
+ * AUDIT VERSION: 3.0.0 (Lineage Integrity Enforced)
  */
 
 import { ai } from '@/ai/genkit';
@@ -17,10 +18,9 @@ import { subDays } from 'date-fns';
 
 /**
  * RESILIENCE HELPER: Wraps Firestore read operations in a jittered retry loop.
- * Targets transient Google Cloud Metadata/Auth errors (500, UNKNOWN).
  */
 async function fetchWithRetry(query: any, label: string) {
-  const maxRetries = 5; // Increased for high-latency environments
+  const maxRetries = 5;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await query.get();
@@ -33,11 +33,10 @@ async function fetchWithRetry(query: any, label: string) {
 
       if (isTransient && attempt < maxRetries) {
         const delay = (1000 * Math.pow(2, attempt)) + (Math.random() * 500);
-        console.warn(`[Firestore Retry] ${label} attempt ${attempt + 1}/${maxRetries + 1} failed: ${error.message.substring(0, 100)}. Retrying in ${Math.round(delay)}ms...`);
+        console.warn(`[Firestore Retry] ${label} attempt ${attempt + 1} failed. Retrying...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
-      // Permanent error or retries exhausted
       throw error;
     }
   }
@@ -66,107 +65,114 @@ const attributeTransactionsFlow = ai.defineFlow(
     const startTime = subDays(new Date(), daysLookback);
 
     try {
-        // 2. Fetch all unique sessions for the retailer in period
-        const sessionQuery = db.collection('sessions')
+        // 2. Fetch recent transactions for the retailer
+        // Lineage Fix: We now prioritize transactions that HAVE a sessionId.
+        const txnQuery = db.collection('transactions')
             .where('retailerId', '==', authorizedRetailerId)
-            .where('startTime', '>=', startTime);
+            .where('timestamp', '>=', startTime);
             
-        const sessionSnapshot = await fetchWithRetry(sessionQuery, 'Sessions Fetch');
+        const txnSnapshot = await fetchWithRetry(txnQuery, 'Transactions Fetch');
+        const allTransactions = txnSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        const sessionIds = sessionSnapshot.docs.map(doc => doc.id);
-        
-        if (sessionIds.length === 0) {
+        if (allTransactions.length === 0) {
             return {
                 retailerId: authorizedRetailerId,
                 totalSessions: 0,
                 ariAssistedSessions: 0,
                 ariAssistedPurchases: 0,
                 records: [],
-                dataStatus: 'VERIFIED' as const
+                dataStatus: 'VERIFIED'
             };
         }
 
         const records: AttributionRecord[] = [];
+        const uniqueSessionsAttributed = new Set<string>();
         let ariAssistedPurchasesCount = 0;
 
-        // 3. Factual Join Pipeline (Scaled for Pilot Volume)
-        for (const sessionId of sessionIds) {
-            const eventQuery = db.collection('events').where('sessionId', '==', sessionId).orderBy('timestamp', 'asc');
-            const txnQuery = db.collection('transactions').where('sessionId', '==', sessionId);
+        // 3. Factual Join Pipeline
+        for (const txn of allTransactions) {
+            const sessionId = txn.sessionId;
+            
+            // INTEGRITY CHECK: Handle orphan/legacy records
+            if (!sessionId) {
+                records.push({
+                    attributionId: `legacy_${txn.id}`,
+                    retailerId: authorizedRetailerId,
+                    sessionId: 'legacy_orphan',
+                    transactionId: txn.id,
+                    ariInteraction: false,
+                    attributionLevel: 'NONE',
+                    journeyNodes: [],
+                    dataStatus: 'SIMULATED', // Cannot verify without lineage
+                    generatedAt: new Date().toISOString()
+                } as AttributionRecord);
+                continue;
+            }
 
-            const [eventSnapshot, txnSnapshot] = await Promise.all([
-                fetchWithRetry(eventQuery, `Events Fetch [${sessionId}]`),
-                fetchWithRetry(txnQuery, `Transactions Fetch [${sessionId}]`)
-            ]);
+            // 4. Trace the Lineage
+            const sessionDoc = await db.collection('sessions').doc(sessionId).get();
+            const eventQuery = db.collection('events').where('sessionId', '==', sessionId).orderBy('timestamp', 'asc');
+            const eventSnapshot = await fetchWithRetry(eventQuery, `Events [${sessionId}]`);
             
             const events = eventSnapshot.docs.map(d => ({ 
-                id: d.id, 
-                ...d.data(),
-                timestamp: d.data().timestamp?.toDate().toISOString() || new Date().toISOString()
+                type: d.data().eventType, 
+                timestamp: d.data().timestamp?.toDate().toISOString() || '',
+                gtin: d.data().gtin 
             }));
 
-            const transactions = txnSnapshot.docs.map(d => ({
-                id: d.id,
-                ...d.data(),
-                timestamp: d.data().timestamp?.toDate().toISOString() || new Date().toISOString()
-            }));
-
-            const ariEvents = events.filter(e => e.eventType === 'interaction_signal' || e.eventType === 'recommendation_event');
+            const ariEvents = events.filter(e => e.type === 'interaction_signal' || e.type === 'recommendation_event');
             const hasAriInteraction = ariEvents.length > 0;
+            
+            let level: AttributionRecord['attributionLevel'] = 'NONE';
+            let status: 'VERIFIED' | 'SIMULATED' = 'SIMULATED';
 
-            const baseRecord = {
-                attributionId: `attr_${sessionId}`,
-                retailerId: authorizedRetailerId,
-                sessionId,
-                ariInteraction: hasAriInteraction,
-                journeyNodes: events.map(e => ({ type: e.eventType as string, timestamp: e.timestamp, gtin: e.gtin as string })),
-                dataStatus: 'VERIFIED' as const, 
-                attributionVersion: '2.0.0',
-                generatedAt: new Date().toISOString()
-            };
-
-            if (transactions.length > 0) {
-                for (const txn of transactions) {
-                    const purchasedGtin = txn.gtin || '00000000000000';
-                    const precedingAriEvents = ariEvents.filter(e => e.timestamp < txn.timestamp);
-                    let level: AttributionRecord['attributionLevel'] = 'NONE';
+            if (sessionDoc.exists && sessionDoc.data()?.retailerId === authorizedRetailerId) {
+                status = 'VERIFIED';
+                if (hasAriInteraction) {
+                    level = 'CONVERSATION';
+                    uniqueSessionsAttributed.add(sessionId);
                     
-                    if (precedingAriEvents.length > 0) {
-                        level = 'CONVERSATION';
-                        const recommendations = precedingAriEvents.filter(e => 
-                            e.eventType === 'recommendation_event' && 
-                            e.gtin === purchasedGtin
-                        );
-                        if (recommendations.length > 0) {
-                            level = 'RECOMMENDATION_TO_PURCHASE';
-                        }
+                    // Recommendation logic
+                    const purchasedItems = txn.items || [];
+                    const hasPurchasedRecommendation = ariEvents.some(ae => 
+                        ae.type === 'recommendation_event' && 
+                        purchasedItems.some((pi: any) => pi.gtin === ae.gtin)
+                    );
+
+                    if (hasPurchasedRecommendation) {
+                        level = 'RECOMMENDATION_TO_PURCHASE';
                         ariAssistedPurchasesCount++;
                     }
-
-                    records.push({
-                        ...baseRecord,
-                        transactionId: txn.id,
-                        purchasedGtin,
-                        transactionTimestamp: txn.timestamp,
-                        attributionLevel: level
-                    });
                 }
-            } else if (hasAriInteraction) {
-                records.push({ ...baseRecord, attributionLevel: 'CONVERSATION' });
             }
+
+            records.push({
+                attributionId: `attr_${txn.id}`,
+                retailerId: authorizedRetailerId,
+                sessionId,
+                transactionId: txn.id,
+                purchasedGtin: txn.items?.[0]?.gtin,
+                transactionTimestamp: txn.timestamp?.toDate().toISOString(),
+                ariInteraction: hasAriInteraction,
+                attributionLevel: level,
+                journeyNodes: events,
+                dataStatus: status,
+                attributionVersion: '3.0.0',
+                generatedAt: new Date().toISOString()
+            });
         }
 
         return {
             retailerId: authorizedRetailerId,
-            totalSessions: sessionIds.length,
-            ariAssistedSessions: sessionIds.filter(id => records.some(r => r.sessionId === id && r.ariInteraction)).length,
+            totalSessions: new Set(records.map(r => r.sessionId)).size,
+            ariAssistedSessions: uniqueSessionsAttributed.size,
             ariAssistedPurchases: ariAssistedPurchasesCount,
             records,
             dataStatus: 'VERIFIED'
         };
     } catch (error: any) {
-        console.warn("[Attribution] Persistence Friction:", error.message);
-        throw error; // Propagate to allow client-side handling
+        console.error("[Attribution] Critical failure:", error.message);
+        throw error;
     }
   }
 );

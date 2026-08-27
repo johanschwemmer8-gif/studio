@@ -45,8 +45,9 @@ export async function GET(
     }
 
     // 3. Initialize iNteract Intelligence Session (Anchors all future behavior)
-    const sessionId = `sess_${Date.now()}`;
-    const eventId = `ev_${Date.now()}`;
+    // UUID generation for collision resistance and security
+    const sessionId = `sess_${crypto.randomUUID()}`;
+    const eventId = `ev_${crypto.randomUUID()}`;
     
     const batch = db.batch();
     

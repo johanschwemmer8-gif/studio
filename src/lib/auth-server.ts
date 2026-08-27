@@ -2,7 +2,7 @@
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Structured Error Handling.
- * VERSION: 2.3.0 (Infrastructure Resilience Optimized)
+ * VERSION: 2.4.0 (Auth Cache & Multi-Action Resilience)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -15,6 +15,13 @@ export type AuthorizedContext = {
 };
 
 /**
+ * AUTH CACHE: Alleviates "Thundering Herd" pressure on the Google Metadata Bridge.
+ * Server Actions fired in parallel on the same page load hit the server simultaneously.
+ * We cache the verified context for a short window (15s) to deduplicate identity probes.
+ */
+const VERIFY_CACHE = new Map<string, { context: AuthorizedContext; expiry: number }>();
+
+/**
  * Validates the ID token and returns the authorized context.
  * LATENCY OPTIMIZED: Uses exponential backoff for transient cloud failures.
  * DESIGN: Returns a context object with an 'error' field instead of throwing.
@@ -22,6 +29,13 @@ export type AuthorizedContext = {
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
   if (!idToken || idToken === '') {
     return { uid: '', role: 'analyst', error: 'Authentication required: No session token provided.' };
+  }
+
+  // 1. Check Short-lived Memory Cache
+  const now = Date.now();
+  const cached = VERIFY_CACHE.get(idToken);
+  if (cached && now < cached.expiry) {
+      return cached.context;
   }
 
   // Increased retries to handle persistent transient metadata service failures in high-latency GCP regions.
@@ -49,11 +63,16 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
           }
       }
 
-      return {
+      const result: AuthorizedContext = {
         uid: decodedToken.uid,
         role: role || 'analyst',
         retailerId,
       };
+
+      // 2. Update Cache for 15 seconds to deduplicate parallel Server Action dispatches
+      VERIFY_CACHE.set(idToken, { context: result, expiry: Date.now() + 15000 });
+
+      return result;
     } catch (error: any) {
       const isTransient = 
         error.message.includes('metadata') || 

@@ -11,7 +11,7 @@ import {
 import { 
   Clock, TrendingUp, ShoppingCart, Percent, 
   Sparkles, AlertTriangle, ArrowUp, DollarSign,
-  Download, Loader2, ShieldCheck, History, BarChart3, ShieldAlert,
+  Download, Loader2, ShieldCheck, History, BarChart3,
   RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import Link from 'next/link';
 
 /**
  * PROFIT & ROI DASHBOARD
@@ -99,10 +98,14 @@ export default function RoiPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-        fetchMetrics();
-        fetchAttribution();
-    }
+    const sequenceLoad = async () => {
+      if (!user) return;
+      // REDUCING METADATA PRESSURE: Chaining the heavy analytical fetches instead of 
+      // parallelizing them prevents "Thundering Herd" 500 errors on the App Hosting identity bridge.
+      await fetchMetrics();
+      await fetchAttribution();
+    };
+    sequenceLoad();
   }, [user, fetchMetrics, fetchAttribution]);
 
   const handleAnalyzeMetrics = () => {

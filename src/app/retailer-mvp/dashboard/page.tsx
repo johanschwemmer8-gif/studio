@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useCallback } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { storesByRegion } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
@@ -14,18 +14,12 @@ import {
 import { 
   UserCheck, TrendingUp, Sparkles, AlertTriangle, 
   ArrowUp, MessageSquare, ShoppingCart, Loader2, Lightbulb, DollarSign,
-  Search, Download, BarChart2, CheckCircle2, Circle, ShieldCheck, Activity
+  Search, BarChart2, CheckCircle2, Circle, Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { analyzeDecisionIntelligence, DecisionIntelligenceOutput } from '@/ai/flows/analyze-decision-intelligence';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -125,7 +119,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const retailerId = user?.retailerId || 'unknown';
 
-  const fetchAnalytics = async (retryCount = 0) => {
+  const fetchAnalytics = useCallback(async (retryCount = 0) => {
     if (!user) return;
     setIsAnalyticsLoading(true);
     setAnalyticsError(false);
@@ -145,9 +139,9 @@ export default function DashboardPage() {
     } finally {
         setIsAnalyticsLoading(false);
     }
-  };
+  }, [user]);
 
-  const fetchIntelligence = async (retryCount = 0) => {
+  const fetchIntelligence = useCallback(async (retryCount = 0) => {
     if (!user) return;
     setIsIntelLoading(true);
     setIntelError(false);
@@ -166,14 +160,18 @@ export default function DashboardPage() {
     } finally {
         setIsIntelLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    if (user) {
-        fetchAnalytics();
-        fetchIntelligence();
-    }
-  }, [user]);
+    const sequenceLoad = async () => {
+        if (!user) return;
+        // REDUCING METADATA PRESSURE: Chaining the heavy analytical fetches instead of 
+        // parallelizing them prevents "Thundering Herd" 500 errors on the App Hosting identity bridge.
+        await fetchAnalytics();
+        await fetchIntelligence();
+    };
+    sequenceLoad();
+  }, [user, fetchAnalytics, fetchIntelligence]);
 
   const handleAnalyzeMetrics = () => {
     startAnalyzing(async () => {
@@ -373,7 +371,7 @@ export default function DashboardPage() {
                         <Card className="border-primary/10 hover:border-primary/30 transition-colors shadow-sm">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Basket Delta</CardTitle>
-                            <ArrowUp className="h-4 w-4 text-green-500" />
+                            <Activity className="h-4 w-4 text-green-500" />
                             </CardHeader>
                             <CardContent>
                                 {analyticsData ? (

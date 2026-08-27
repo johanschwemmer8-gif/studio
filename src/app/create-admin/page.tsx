@@ -8,11 +8,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import { 
     UserPlus, Search, Loader2, AlertTriangle, 
-    Eye, EyeOff, ShieldCheck, RefreshCw, KeyRound, CheckCircle2, UserCheck
+    Eye, EyeOff, ShieldCheck, KeyRound, CheckCircle2, UserCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -35,6 +34,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { 
+    Select, 
+    SelectContent, 
+    SelectItem, 
+    SelectTrigger, 
+    SelectValue 
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
@@ -42,6 +48,7 @@ import { collection, onSnapshot, query, orderBy, doc, setDoc, serverTimestamp } 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { listAuthUsers, type AuthUser } from '@/ai/flows/list-auth-users';
+import { assignUserClaims } from '@/ai/flows/assign-user-claims';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type UserAccount = {
@@ -58,6 +65,11 @@ export default function UserAccessControlPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [firestoreUsers, setFirestoreUsers] = useState<UserAccount[]>([]);
   const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
+  const [retailers, setRetailers] = useState<{id: string, name: string}[]>([]);
+  
+  const [selectedRetailer, setSelectedRetailer] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<'retailerAdmin' | 'storeManager' | 'analyst'>('analyst');
+  
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isDiscovering, startDiscovery] = useTransition();
@@ -65,12 +77,14 @@ export default function UserAccessControlPage() {
 
   const { toast } = useToast();
 
-  // 1. Live Firestore Subscription (Provisioned Users)
+  // 1. Live Subscriptions (Users & Retailers)
   useEffect(() => {
     if (!db) return;
     setLoading(true);
+    
+    // Users stream
     const q = query(collection(db, 'users'), orderBy('email', 'asc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeUsers = onSnapshot(q, (snapshot) => {
       const fetchedUsers = snapshot.docs.map(doc => ({
         uid: doc.id,
         ...doc.data()
@@ -82,10 +96,20 @@ export default function UserAccessControlPage() {
       toast({ title: "Sync Error", description: "Could not retrieve user registry.", variant: "destructive" });
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    // Tenants stream for onboarding Select
+    const rq = query(collection(db, 'tenants'), orderBy('name', 'asc'));
+    const unsubscribeTenants = onSnapshot(rq, (snapshot) => {
+        setRetailers(snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name })));
+    });
+
+    return () => {
+        unsubscribeUsers();
+        unsubscribeTenants();
+    };
   }, [toast]);
 
-  // 2. Discover Auth Accounts (Unprovisioned Users)
+  // 2. Discover Auth Accounts
   const handleDiscoverUsers = () => {
     startDiscovery(async () => {
         try {
@@ -116,19 +140,42 @@ export default function UserAccessControlPage() {
         return;
     }
 
+    if (!selectedRetailer) {
+        setFormError("A Tenant Anchor must be selected to provision access.");
+        setIsCreating(false);
+        return;
+    }
+
     try {
+        // A. Create Firebase Auth account
         const result = await createUserWithEmailAndPassword(auth, email, password);
+        const targetUid = result.user.uid;
         
-        await setDoc(doc(db, 'users', result.user.uid), {
-            uid: result.user.uid,
+        // B. Provision Factual Firestore Record
+        await setDoc(doc(db, 'users', targetUid), {
+            uid: targetUid,
             name,
             email,
-            role: 'analyst',
+            role: selectedRole,
+            retailerId: selectedRetailer,
             isActive: true,
             createdAt: serverTimestamp()
         }, { merge: true });
 
-        toast({ title: "Account Created", description: `Identification successful for ${email}.` });
+        // C. Assign Trusted Identity Claims (PREVENTING FALLBACK BOTTLENECKS)
+        // By assigning claims immediately, we remove the need for every Server Action 
+        // to perform a Firestore identity lookup, significantly reducing metadata bridge load.
+        const idToken = await auth.currentUser?.getIdToken();
+        if (idToken) {
+            await assignUserClaims({
+                idToken,
+                targetUid,
+                role: selectedRole,
+                retailerId: selectedRetailer
+            });
+        }
+
+        toast({ title: "Account Provisioned", description: `Trusted identity established for ${email}.` });
         form.reset();
         setIsCreateDialogOpen(false);
     } catch (error: any) {
@@ -142,7 +189,6 @@ export default function UserAccessControlPage() {
     }
   };
 
-  // Merge discovery results with provisioned state
   const unprovisionedAuthUsers = authUsers.filter(au => !firestoreUsers.some(fu => fu.uid === au.uid));
 
   return (
@@ -180,7 +226,7 @@ export default function UserAccessControlPage() {
                         <form onSubmit={handleCreateUser}>
                             <DialogHeader>
                                 <DialogTitle>Setup User Account</DialogTitle>
-                                <DialogDescription>Create a fresh Firebase Authentication record.</DialogDescription>
+                                <DialogDescription>Create a fresh, provisioned Firebase Authentication record.</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
                                 {formError && (
@@ -207,10 +253,32 @@ export default function UserAccessControlPage() {
                                         </Button>
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase">Tenant Anchor</Label>
+                                        <Select value={selectedRetailer} onValueChange={setSelectedRetailer} required>
+                                            <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {retailers.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase">Access Level</Label>
+                                        <Select value={selectedRole} onValueChange={(v: any) => setSelectedRole(v)}>
+                                            <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="retailerAdmin">Admin</SelectItem>
+                                                <SelectItem value="storeManager">Manager</SelectItem>
+                                                <SelectItem value="analyst">Analyst</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button type="submit" disabled={isCreating} className="w-full h-12 font-black uppercase tracking-widest text-xs">
-                                    {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Verify Identity"}
+                                    {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Verify & Provision"}
                                 </Button>
                             </DialogFooter>
                         </form>

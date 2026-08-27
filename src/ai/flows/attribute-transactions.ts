@@ -15,6 +15,34 @@ import {
 } from '@/lib/schemas/attribution';
 import { subDays } from 'date-fns';
 
+/**
+ * RESILIENCE HELPER: Wraps Firestore read operations in a jittered retry loop.
+ * Targets transient Google Cloud Metadata/Auth errors (500, UNKNOWN).
+ */
+async function fetchWithRetry(query: any, label: string) {
+  const maxRetries = 3;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await query.get();
+    } catch (error: any) {
+      const isTransient = 
+        error.message.includes('metadata') || 
+        error.message.includes('refresh') || 
+        error.message.includes('500') ||
+        error.message.includes('UNKNOWN');
+
+      if (isTransient && attempt < maxRetries) {
+        const delay = (500 * Math.pow(2, attempt)) + (Math.random() * 200);
+        console.warn(`[Firestore Retry] ${label} attempt ${attempt + 1}/${maxRetries + 1} failed: ${error.message.substring(0, 100)}. Retrying in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      // Permanent error or retries exhausted
+      throw error;
+    }
+  }
+}
+
 export async function attributeTransactions(idToken: string | undefined, retailerId: string, daysLookback: number = 30) {
     return attributeTransactionsFlow({ idToken, retailerId, daysLookback });
 }
@@ -39,10 +67,11 @@ const attributeTransactionsFlow = ai.defineFlow(
 
     try {
         // 2. Fetch all unique sessions for the retailer in period
-        const sessionSnapshot = await db.collection('sessions')
+        const sessionQuery = db.collection('sessions')
             .where('retailerId', '==', authorizedRetailerId)
-            .where('startTime', '>=', startTime)
-            .get();
+            .where('startTime', '>=', startTime);
+            
+        const sessionSnapshot = await fetchWithRetry(sessionQuery, 'Sessions Fetch');
 
         const sessionIds = sessionSnapshot.docs.map(doc => doc.id);
         
@@ -62,9 +91,12 @@ const attributeTransactionsFlow = ai.defineFlow(
 
         // 3. Factual Join Pipeline (Scaled for Pilot Volume)
         for (const sessionId of sessionIds) {
+            const eventQuery = db.collection('events').where('sessionId', '==', sessionId).orderBy('timestamp', 'asc');
+            const txnQuery = db.collection('transactions').where('sessionId', '==', sessionId);
+
             const [eventSnapshot, txnSnapshot] = await Promise.all([
-                db.collection('events').where('sessionId', '==', sessionId).orderBy('timestamp', 'asc').get(),
-                db.collection('transactions').where('sessionId', '==', sessionId).get()
+                fetchWithRetry(eventQuery, `Events Fetch [${sessionId}]`),
+                fetchWithRetry(txnQuery, `Transactions Fetch [${sessionId}]`)
             ]);
             
             const events = eventSnapshot.docs.map(d => ({ 

@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview Infrastructure Engagement Analysis Flow.
- * AUDIT VERSION: 2.1.0 (Server-Side Resilience Hardened)
+ * AUDIT VERSION: 2.1.1 (Forensic Diagnostics Added)
  */
 
 import { ai } from '@/ai/genkit';
@@ -94,87 +94,127 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     outputSchema: AnalyzeEngagementMetricsOutputSchema,
   },
   async ({ idToken, retailerId }) => {
+    const startTimeOverall = Date.now();
+    console.log('[ANALYZE_METRICS_START]');
+
     const db = getDb();
-    if (!db) throw new Error("Infrastructure Layer Unavailable.");
+    if (!db) {
+        console.error('[ANALYZE_METRICS_FAILURE] Stage: DB_INIT | Error: Infrastructure Layer Unavailable.');
+        throw new Error("Infrastructure Layer Unavailable.");
+    }
 
     // 1. Authorize & Resolve Identity
-    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId || '');
-    const startTime = subDays(new Date(), 30);
+    let authorizedRetailerId: string;
+    try {
+        const authStart = Date.now();
+        console.log('[AUTH_START]');
+        authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId || '');
+        console.log(`[AUTH_SUCCESS] Latency: ${Date.now() - authStart}ms`);
+    } catch (e: any) {
+        console.error(`[AUTH_FAILURE] Error: ${e.message}`);
+        throw e;
+    }
 
-    // 2. Fetch Real Events (Hardened with Retry)
-    const eventQuery = db.collection('events')
-        .where('retailerId', '==', authorizedRetailerId)
-        .where('timestamp', '>=', startTime);
-    
-    const eventSnapshot = await fetchWithRetry(eventQuery, 'Events Fetch');
-    const events = eventSnapshot.docs.map((d: any) => d.data());
-    
-    // 3. Fetch Real Transactions (Hardened with Retry)
-    const txnQuery = db.collection('transactions')
-        .where('retailerId', '==', authorizedRetailerId)
-        .where('timestamp', '>=', startTime);
-    
-    const txnSnapshot = await fetchWithRetry(txnQuery, 'Transactions Fetch');
-    const transactions = txnSnapshot.docs.map((d: any) => d.data());
+    const startTimeData = subDays(new Date(), 30);
 
-    // 4. Calculate Live Metrics
-    const scans = events.filter((e: any) => e.eventType === 'scan');
-    const interactions = events.filter((e: any) => e.eventType === 'interaction_signal');
-    const sessions = new Set(events.map((e: any) => e.sessionId));
-    const identifiedShoppers = new Set(events.filter((e: any) => e.shopperId && e.shopperId !== 'guest').map((e: any) => e.shopperId));
+    try {
+        // 2. Fetch Real Events (Hardened with Retry)
+        console.log('[FIRESTORE_START] Collection: events');
+        const fsStartEvents = Date.now();
+        const eventQuery = db.collection('events')
+            .where('retailerId', '==', authorizedRetailerId)
+            .where('timestamp', '>=', startTimeData);
+        
+        const eventSnapshot = await fetchWithRetry(eventQuery, 'Events Fetch');
+        const events = eventSnapshot.docs.map((d: any) => d.data());
+        console.log(`[FIRESTORE_SUCCESS] Collection: events | Docs: ${events.length} | Latency: ${Date.now() - fsStartEvents}ms`);
+        
+        // 3. Fetch Real Transactions (Hardened with Retry)
+        console.log('[FIRESTORE_START] Collection: transactions');
+        const fsStartTxns = Date.now();
+        const txnQuery = db.collection('transactions')
+            .where('retailerId', '==', authorizedRetailerId)
+            .where('timestamp', '>=', startTimeData);
+        
+        const txnSnapshot = await fetchWithRetry(txnQuery, 'Transactions Fetch');
+        const transactions = txnSnapshot.docs.map((d: any) => d.data());
+        console.log(`[FIRESTORE_SUCCESS] Collection: transactions | Docs: ${transactions.length} | Latency: ${Date.now() - fsStartTxns}ms`);
 
-    const totalScans = scans.length;
-    const uniqueScans = sessions.size;
-    const identifiedCount = identifiedShoppers.size;
+        // 4. Calculate Live Metrics
+        console.log('[ANALYTICS_CALCULATION_START]');
+        const calcStart = Date.now();
 
-    // Associated Sales (Factual Join)
-    const aoeSessions = new Set(interactions.map((i: any) => i.sessionId));
-    const aoeTxns = transactions.filter((t: any) => aoeSessions.has(t.sessionId));
-    const nonAoeTxns = transactions.filter((t: any) => !aoeSessions.has(t.sessionId));
+        const scans = events.filter((e: any) => e.eventType === 'scan');
+        const interactions = events.filter((e: any) => e.eventType === 'interaction_signal');
+        const sessions = new Set(events.map((e: any) => e.sessionId));
+        const identifiedShoppers = new Set(events.filter((e: any) => e.shopperId && e.shopperId !== 'guest').map((e: any) => e.shopperId));
 
-    const associatedRevenue = aoeTxns.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
-    const avgBasketSizeAoe = aoeTxns.length > 0 ? associatedRevenue / aoeTxns.length : 0;
-    const avgBasketSizeNonAoe = nonAoeTxns.length > 0 ? nonAoeTxns.reduce((acc: number, t: any) => acc + (t.amount || 0), 0) / nonAoeTxns.length : 185.50; // Use baseline if no txns
+        const totalScans = scans.length;
+        const uniqueScans = sessions.size;
+        const identifiedCount = identifiedShoppers.size;
 
-    const basketSizeIncreaseRand = avgBasketSizeAoe > 0 ? avgBasketSizeAoe - avgBasketSizeNonAoe : 0;
-    const basketUpliftPercentage = avgBasketSizeNonAoe > 0 ? (basketSizeIncreaseRand / avgBasketSizeNonAoe) * 100 : 0;
+        // Associated Sales (Factual Join)
+        const aoeSessions = new Set(interactions.map((i: any) => i.sessionId));
+        const aoeTxns = transactions.filter((t: any) => aoeSessions.has(t.sessionId));
+        const nonAoeTxns = transactions.filter((t: any) => !aoeSessions.has(t.sessionId));
 
-    const engagement = {
-        totalScans,
-        uniqueScans,
-        identifiedShoppers: identifiedCount,
-        profileConversionRate: uniqueScans > 0 ? (identifiedCount / uniqueScans) * 100 : 0,
-        engagementDuration: 32, // Placeholder for dwell calculation
-        scanRate: 5.4, // Baseline
-        authMethodBreakdown: { phone: 45, google: 32, apple: 15, email: 8 }
-    };
+        const associatedRevenue = aoeTxns.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+        const avgBasketSizeAoe = aoeTxns.length > 0 ? associatedRevenue / aoeTxns.length : 0;
+        const avgBasketSizeNonAoe = nonAoeTxns.length > 0 ? nonAoeTxns.reduce((acc: number, t: any) => acc + (t.amount || 0), 0) / nonAoeTxns.length : 185.50; // Use baseline if no txns
 
-    const conversion = {
-        avgBasketSizeAoe,
-        avgBasketSizeNonAoe,
-        basketSizeIncreaseRand,
-        basketSizeIncreasePercent: basketUpliftPercentage,
-        associatedRevenue,
-        calculatedUplift: aoeTxns.length * basketSizeIncreaseRand,
-        salesUpliftPercentage: 14.8,
-        conversionRate: 22.4,
-        scanToPurchaseConversion: uniqueScans > 0 ? (aoeTxns.length / uniqueScans) * 100 : 0,
-        assistedSales: interactions.length,
-        offerRedemptionRate: 18.2,
-        totalRedeemedValue: 0,
-        aoeTransactions: aoeTxns.length
-    };
-    
-    return {
-        engagement,
-        conversion,
-        overallPerformance: totalScans > 0 
+        const basketSizeIncreaseRand = avgBasketSizeAoe > 0 ? avgBasketSizeAoe - avgBasketSizeNonAoe : 0;
+        const basketUpliftPercentage = avgBasketSizeNonAoe > 0 ? (basketSizeIncreaseRand / avgBasketSizeNonAoe) * 100 : 0;
+
+        const engagement = {
+            totalScans,
+            uniqueScans,
+            identifiedShoppers: identifiedCount,
+            profileConversionRate: uniqueScans > 0 ? (identifiedCount / uniqueScans) * 100 : 0,
+            engagementDuration: 32, // Placeholder for dwell calculation
+            scanRate: 5.4, // Baseline
+            authMethodBreakdown: { phone: 45, google: 32, apple: 15, email: 8 }
+        };
+
+        const conversion = {
+            avgBasketSizeAoe,
+            avgBasketSizeNonAoe,
+            basketSizeIncreaseRand,
+            basketSizeIncreasePercent: basketUpliftPercentage,
+            associatedRevenue,
+            calculatedUplift: aoeTxns.length * basketSizeIncreaseRand,
+            salesUpliftPercentage: 14.8,
+            conversionRate: 22.4,
+            scanToPurchaseConversion: uniqueScans > 0 ? (aoeTxns.length / uniqueScans) * 100 : 0,
+            assistedSales: interactions.length,
+            offerRedemptionRate: 18.2,
+            totalRedeemedValue: 0,
+            aoeTransactions: aoeTxns.length
+        };
+        
+        const overallPerformance = totalScans > 0 
             ? `Observed data indicates ${engagement.identifiedShoppers.toLocaleString()} shoppers have established smart profiles. Associated sales represent R${associatedRevenue.toLocaleString()} in volume during this period.`
-            : "Awaiting pilot activity. When shoppers scan products, behavioral trends will populate here.",
-        conclusions: totalScans > 0
+            : "Awaiting pilot activity. When shoppers scan products, behavioral trends will populate here.";
+
+        const conclusions = totalScans > 0
             ? `- Ari Guidance is associated with an observed increase of R${basketSizeIncreaseRand.toFixed(2)} in average basket size.\n- ${interactions.length} interactions recorded across ${uniqueScans} unique sessions.\n- Identity capture is active for ${engagement.profileConversionRate.toFixed(1)}% of scanners.`
-            : "Factual aggregation is active. Connect your products and deploy QR codes to begin gathering evidence.",
-        recommendations: "- Review low-stock alerts for top-engaged items to ensure product availability.\n- Compare shopper questions in low-conversion categories against verified product facts.\n- Test different Ari welcome messages to observe variations in profile establishment rates."
-    };
+            : "Factual aggregation is active. Connect your products and deploy QR codes to begin gathering evidence.";
+
+        const recommendations = "- Review low-stock alerts for top-engaged items to ensure product availability.\n- Compare shopper questions in low-conversion categories against verified product facts.\n- Test different Ari welcome messages to observe variations in profile establishment rates.";
+
+        console.log(`[ANALYTICS_CALCULATION_SUCCESS] Latency: ${Date.now() - calcStart}ms`);
+        console.log(`[RETURN_SERIALIZATION_CHECK] Total Duration: ${Date.now() - startTimeOverall}ms`);
+
+        return {
+            engagement,
+            conversion,
+            overallPerformance,
+            conclusions,
+            recommendations,
+        };
+
+    } catch (error: any) {
+        console.error(`[FIRESTORE_FAILURE] Error: ${error.message}`);
+        throw error;
+    }
   }
 );

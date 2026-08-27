@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { admin } from '@/lib/firebase-admin';
 import { parseGS1 } from '@/lib/gs1-parser';
+import { randomUUID } from 'node:crypto';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -46,8 +47,8 @@ export async function GET(
 
     // 3. Initialize iNteract Intelligence Session (Anchors all future behavior)
     // UUID generation for collision resistance and security
-    const sessionId = `sess_${crypto.randomUUID()}`;
-    const eventId = `ev_${crypto.randomUUID()}`;
+    const sessionId = `sess_${randomUUID()}`;
+    const eventId = `ev_${randomUUID()}`;
     
     const batch = db.batch();
     

@@ -5,14 +5,11 @@ import { analyzeBehavioralInsights, type AnalyzeBehavioralInsightsInput, type An
 import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
 import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
 import { analyzeDecisionIntelligence, type DecisionIntelligenceOutput } from './analyze-decision-intelligence';
-import { assignDisplayConfig } from './assign-display-config';
 import { deleteBulkQrRequest, type DeleteBulkQrRequestInput, type DeleteBulkQrRequestOutput } from './delete-bulk-qr-request';
 import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './generate-bulk-qr-codes';
 import { generateCampaignAI, type GenerateCampaignAIInput, type GenerateCampaignAIOutput } from './generate-campaign-ai';
 import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
 import { generateZipForRequest, type GenerateZipForRequestInput, type GenerateZipForRequestOutput } from './generate-zip-for-request';
-import { getDisplays, type Display } from './get-displays';
-import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
 import { getQrTemplates } from './get-qr-templates';
 import { type GetQrTemplatesInput, type QrTemplate } from '@/lib/schemas/qr-templates';
 import { getScanEvents } from './get-scan-events';
@@ -26,7 +23,6 @@ import { logPurchaseConversion, type LogPurchaseConversionInput } from './log-pu
 import { processBulkQrQueue, type ProcessBulkQrQueueOutput } from './process-bulk-qr-queue';
 import { productChat, type ProductChatInput, type ProductChatOutput } from './product-chat-flow';
 import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutput } from './regenerate-qr-code';
-import { registerDisplay } from './register-display';
 import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDisplayCommandOutput } from './remote-display-command';
 import { saveQrCampaignDraft, type SaveQrCampaignDraftOutput } from './save-qr-campaign-draft';
 import { saveQrTemplate } from './save-qr-template';
@@ -50,14 +46,11 @@ export {
     analyzeCampaignPerformance,
     analyzeEngagementMetrics,
     analyzeDecisionIntelligence,
-    assignDisplayConfig,
     deleteBulkQrRequest,
     submitBulkQrRequest,
     generateCampaignAI,
     generateCrossSellRecommendations,
     generateZipForRequest,
-    getDisplays,
-    getExecutiveRoiMetrics,
     getQrTemplates,
     getScanEvents,
     getScanInteraction,
@@ -68,7 +61,6 @@ export {
     processBulkQrQueue,
     productChat,
     regenerateQrCode,
-    registerDisplay,
     remoteDisplayCommand,
     saveQrCampaignDraft,
     saveQrTemplate,

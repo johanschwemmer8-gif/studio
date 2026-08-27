@@ -23,7 +23,7 @@ const SeedTestRetailerDemoOutputSchema = z.object({
 
 const DEMO_PRODUCTS = [
   {
-    gtin: '06000000000018',
+    gtin: '06009188000332',
     name: 'Estate Reserve Pinotage',
     brand: 'Heritage Vineyards',
     description: 'Our flagship red. Bold, complex, and aged for 18 months in French oak. Notes of dark chocolate and roasted coffee. Best served at 16-18°C.',

@@ -2,7 +2,7 @@
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Structured Error Handling.
- * VERSION: 2.1.0 (Latency Optimized)
+ * VERSION: 2.2.0 (High-Availability Retries)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -16,7 +16,7 @@ export type AuthorizedContext = {
 
 /**
  * Validates the ID token and returns the authorized context.
- * LATENCY OPTIMIZED: Reduced retries to ensure response within server action window.
+ * LATENCY OPTIMIZED: Uses exponential backoff for transient cloud failures.
  * DESIGN: Returns a context object with an 'error' field instead of throwing.
  */
 export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
@@ -24,8 +24,8 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
     return { uid: '', role: 'analyst', error: 'Authentication required: No session token provided.' };
   }
 
-  // Reduced from 4 to 2 retries (Total 3 attempts) to prevent infrastructure timeout (Error 504/HTML).
-  const maxRetries = 2; 
+  // Increased retries to handle transient metadata service failures in GCP environments.
+  const maxRetries = 3; 
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -63,9 +63,9 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
         error.code === 'auth/internal-error';
 
       if (isTransient && attempt < maxRetries) {
-        // Faster backoff for Server Action compatibility
-        const delay = (400 * Math.pow(2, attempt)) + (Math.random() * 100);
-        console.warn(`[Auth] Handshake Friction (Attempt ${attempt + 1}/${maxRetries + 1}). Retrying...`);
+        // Incremental backoff with jitter to recover from metadata service hiccups
+        const delay = (500 * Math.pow(2, attempt)) + (Math.random() * 200);
+        console.warn(`[Auth] Handshake Friction (Attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${Math.round(delay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }

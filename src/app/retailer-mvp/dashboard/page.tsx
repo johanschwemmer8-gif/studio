@@ -119,8 +119,9 @@ export default function DashboardPage() {
   const retailerId = user?.retailerId || 'unknown';
 
   useEffect(() => {
-    const fetchData = async () => {
-        if (!user) return;
+    let isMounted = true;
+    const fetchData = async (retryCount = 0) => {
+        if (!user || !isMounted) return;
         
         try {
             const idToken = await user.getIdToken();
@@ -128,14 +129,29 @@ export default function DashboardPage() {
                 analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' }),
                 analyzeDecisionIntelligence()
             ]);
-            setAnalyticsData(engData);
-            setIntelligenceData(intelData);
+            
+            if (isMounted) {
+                setAnalyticsData(engData);
+                setIntelligenceData(intelData);
+                setError(null);
+            }
         } catch (e: any) {
-            console.error('Intelligence sync deferred:', e.message);
-            setError("SYNC_ERROR");
+            const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('refresh');
+            
+            if (isTransient && retryCount < 3 && isMounted) {
+                console.warn(`[Dashboard] Intelligence sync retry ${retryCount + 1}/3...`);
+                setTimeout(() => fetchData(retryCount + 1), 1500 * (retryCount + 1));
+                return;
+            }
+
+            if (isMounted) {
+                console.warn('Intelligence sync deferred (infrastructure handshake):', e.message);
+                setError("SYNC_ERROR");
+            }
         }
     };
     fetchData();
+    return () => { isMounted = false; };
   }, [user]);
 
   if(!analyticsData || !intelligenceData) {

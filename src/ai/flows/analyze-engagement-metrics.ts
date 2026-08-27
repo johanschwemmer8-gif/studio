@@ -156,7 +156,7 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
         // Associated Sales (Factual Join)
         const aoeSessions = new Set(interactions.map((i: any) => i.sessionId));
         const aoeTxns = transactions.filter((t: any) => aoeSessions.has(t.sessionId));
-        const nonAoeTxns = transactions.filter((t: any) => !aoeSessions.has(t.sessionId));
+        const nonAoeTxns = transactions.filter((t: any) => !aoessions.has(t.sessionId));
 
         const associatedRevenue = aoeTxns.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
         const avgBasketSizeAoe = aoeTxns.length > 0 ? associatedRevenue / aoeTxns.length : 0;

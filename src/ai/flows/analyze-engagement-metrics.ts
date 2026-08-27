@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview Infrastructure Engagement Analysis Flow.
- * AUDIT VERSION: 2.0.0 (Live Data Integration)
+ * AUDIT VERSION: 2.1.0 (Server-Side Resilience Hardened)
  */
 
 import { ai } from '@/ai/genkit';
@@ -9,6 +9,34 @@ import { z } from 'genkit';
 import { getDb } from '@/lib/firebase-admin';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import { subDays } from 'date-fns';
+
+/**
+ * RESILIENCE HELPER: Wraps Firestore read operations in a jittered retry loop.
+ * Targets transient Google Cloud Metadata/Auth errors (500, UNKNOWN).
+ */
+async function fetchWithRetry(query: any, label: string) {
+  const maxRetries = 3;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await query.get();
+    } catch (error: any) {
+      const isTransient = 
+        error.message.includes('metadata') || 
+        error.message.includes('refresh') || 
+        error.message.includes('500') ||
+        error.message.includes('UNKNOWN');
+
+      if (isTransient && attempt < maxRetries) {
+        const delay = (500 * Math.pow(2, attempt)) + (Math.random() * 200);
+        console.warn(`[Firestore Retry] ${label} attempt ${attempt + 1}/${maxRetries + 1} failed: ${error.message.substring(0, 100)}. Retrying in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      // Permanent error or retries exhausted
+      throw error;
+    }
+  }
+}
 
 const AnalyzeEngagementMetricsInputSchema = z.object({
   idToken: z.string().optional(),
@@ -73,40 +101,40 @@ const analyzeEngagementMetricsFlow = ai.defineFlow(
     const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId || '');
     const startTime = subDays(new Date(), 30);
 
-    // 2. Fetch Real Events
-    const eventSnapshot = await db.collection('events')
+    // 2. Fetch Real Events (Hardened with Retry)
+    const eventQuery = db.collection('events')
         .where('retailerId', '==', authorizedRetailerId)
-        .where('timestamp', '>=', startTime)
-        .get();
+        .where('timestamp', '>=', startTime);
     
-    const events = eventSnapshot.docs.map(d => d.data());
+    const eventSnapshot = await fetchWithRetry(eventQuery, 'Events Fetch');
+    const events = eventSnapshot.docs.map((d: any) => d.data());
     
-    // 3. Fetch Real Transactions
-    const txnSnapshot = await db.collection('transactions')
+    // 3. Fetch Real Transactions (Hardened with Retry)
+    const txnQuery = db.collection('transactions')
         .where('retailerId', '==', authorizedRetailerId)
-        .where('timestamp', '>=', startTime)
-        .get();
+        .where('timestamp', '>=', startTime);
     
-    const transactions = txnSnapshot.docs.map(d => d.data());
+    const txnSnapshot = await fetchWithRetry(txnQuery, 'Transactions Fetch');
+    const transactions = txnSnapshot.docs.map((d: any) => d.data());
 
     // 4. Calculate Live Metrics
-    const scans = events.filter(e => e.eventType === 'scan');
-    const interactions = events.filter(e => e.eventType === 'interaction_signal');
-    const sessions = new Set(events.map(e => e.sessionId));
-    const identifiedShoppers = new Set(events.filter(e => e.shopperId && e.shopperId !== 'guest').map(e => e.shopperId));
+    const scans = events.filter((e: any) => e.eventType === 'scan');
+    const interactions = events.filter((e: any) => e.eventType === 'interaction_signal');
+    const sessions = new Set(events.map((e: any) => e.sessionId));
+    const identifiedShoppers = new Set(events.filter((e: any) => e.shopperId && e.shopperId !== 'guest').map((e: any) => e.shopperId));
 
     const totalScans = scans.length;
     const uniqueScans = sessions.size;
     const identifiedCount = identifiedShoppers.size;
 
     // Associated Sales (Factual Join)
-    const aoeSessions = new Set(interactions.map(i => i.sessionId));
-    const aoeTxns = transactions.filter(t => aoeSessions.has(t.sessionId));
-    const nonAoeTxns = transactions.filter(t => !aoeSessions.has(t.sessionId));
+    const aoeSessions = new Set(interactions.map((i: any) => i.sessionId));
+    const aoeTxns = transactions.filter((t: any) => aoeSessions.has(t.sessionId));
+    const nonAoeTxns = transactions.filter((t: any) => !aoeSessions.has(t.sessionId));
 
-    const associatedRevenue = aoeTxns.reduce((acc, t) => acc + (t.amount || 0), 0);
+    const associatedRevenue = aoeTxns.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
     const avgBasketSizeAoe = aoeTxns.length > 0 ? associatedRevenue / aoeTxns.length : 0;
-    const avgBasketSizeNonAoe = nonAoeTxns.length > 0 ? nonAoeTxns.reduce((acc, t) => acc + (t.amount || 0), 0) / nonAoeTxns.length : 185.50; // Use baseline if no txns
+    const avgBasketSizeNonAoe = nonAoeTxns.length > 0 ? nonAoeTxns.reduce((acc: number, t: any) => acc + (t.amount || 0), 0) / nonAoeTxns.length : 185.50; // Use baseline if no txns
 
     const basketSizeIncreaseRand = avgBasketSizeAoe > 0 ? avgBasketSizeAoe - avgBasketSizeNonAoe : 0;
     const basketUpliftPercentage = avgBasketSizeNonAoe > 0 ? (basketSizeIncreaseRand / avgBasketSizeNonAoe) * 100 : 0;

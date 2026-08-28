@@ -117,6 +117,15 @@ const seedTestRetailerDemoFlow = ai.defineFlow(
     try {
         const batch = db.batch();
 
+        // Provision Test Tenant
+        batch.set(db.collection('tenants').doc(TEST_RETAILER_ID), {
+            name: 'Heritage Vineyards',
+            status: 'active',
+            type: 'test',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
         // 1. Provision Configurations
         batch.set(db.collection('configurations').doc(`${TEST_RETAILER_ID}_org`), {
             retailerId: TEST_RETAILER_ID,

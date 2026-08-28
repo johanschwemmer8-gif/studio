@@ -21,7 +21,8 @@ export async function GET(
   const db = admin.firestore();
 
   // Construct safe origin for redirects to avoid internal localhost leaks
-  const host = request.headers.get('host') || 'localhost';
+  // Prioritize x-forwarded-host as App Hosting uses an internal 'host' header
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || 'localhost';
   const protocol = request.headers.get('x-forwarded-proto') || 'https';
   const origin = `${protocol}://${host}`;
 

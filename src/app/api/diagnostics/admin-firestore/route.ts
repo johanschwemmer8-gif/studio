@@ -16,15 +16,17 @@ export async function GET() {
   const start = performance.now();
 
   try {
-    // Perform exactly ONE harmless Firestore operation
-    // This probes the gRPC connection and service-account token validity
-    await db.collection('users').limit(1).get();
+    // Targeted verification: check whether the demo tenant exists
+    const tenantDoc = await db.collection('tenants').doc('interact-test-tenant').get();
     
     const latencyMs = Math.round(performance.now() - start);
 
     return NextResponse.json({
       success: true,
       firestoreStatus: "success",
+      tenantExists: tenantDoc.exists,
+      tenantId: tenantDoc.exists ? tenantDoc.id : null,
+      tenantData: tenantDoc.exists ? tenantDoc.data() : null,
       latencyMs,
       errorCode: null,
       errorMessage: null,

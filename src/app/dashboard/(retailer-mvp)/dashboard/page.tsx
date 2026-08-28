@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useTransition, useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
@@ -11,15 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { User, TrendingUp, Sparkles, AlertTriangle, Tag, Percent, ArrowUp, Clock, UserCheck, ShieldCheck, Loader2 } from 'lucide-react';
+import { TrendingUp, Sparkles, AlertTriangle, ArrowUp, Clock, UserCheck, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { auth } from '@/lib/firebase';
 import { useAuth } from '@/context/auth-context';
 import theme from '@/config/theme.json';
-
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -214,7 +211,7 @@ export default function DashboardPage() {
                   <ArrowUp className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">+{conversion.basketUpliftPercentage.toFixed(1)}%</div>
+                  <div className="text-3xl font-bold">+{conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
                   <p className="text-xs text-muted-foreground">
                     Spend increase for shoppers using AI guidance.
                   </p>
@@ -235,7 +232,7 @@ export default function DashboardPage() {
                <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-                  <Percent className="h-4 w-4 text-muted-foreground" />
+                  <ArrowUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{((conversion.aoeTransactions / engagement.uniqueScans) * 100 || 0).toFixed(1)}%</div>

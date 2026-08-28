@@ -11,7 +11,8 @@ import { getDb } from '@/lib/firebase-admin';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import { 
   AttributionReportSchema, 
-  type AttributionReport 
+  type AttributionReport,
+  type AttributionRecord
 } from '@/lib/schemas/attribution';
 import { subDays } from 'date-fns';
 
@@ -65,7 +66,6 @@ const attributeTransactionsFlow = ai.defineFlow(
 
     try {
         // 2. Fetch recent transactions for the retailer
-        // Lineage Fix: We now prioritize transactions that HAVE a sessionId.
         const txnQuery = db.collection('transactions')
             .where('retailerId', '==', authorizedRetailerId)
             .where('timestamp', '>=', startTime);
@@ -80,7 +80,7 @@ const attributeTransactionsFlow = ai.defineFlow(
                 ariAssistedSessions: 0,
                 ariAssistedPurchases: 0,
                 records: [],
-                dataStatus: 'VERIFIED'
+                dataStatus: 'VERIFIED' as const
             };
         }
 
@@ -102,9 +102,10 @@ const attributeTransactionsFlow = ai.defineFlow(
                     ariInteraction: false,
                     attributionLevel: 'NONE',
                     journeyNodes: [],
-                    dataStatus: 'SIMULATED', // Cannot verify without lineage
-                    generatedAt: new Date().toISOString()
-                } as any);
+                    dataStatus: 'SIMULATED' as const,
+                    generatedAt: new Date().toISOString(),
+                    attributionVersion: '3.0.0'
+                });
                 continue;
             }
 
@@ -113,16 +114,19 @@ const attributeTransactionsFlow = ai.defineFlow(
             const eventQuery = db.collection('events').where('sessionId', '==', sessionId).orderBy('timestamp', 'asc');
             const eventSnapshot = await fetchWithRetry(eventQuery, `Events [${sessionId}]`);
             
-            const events = eventSnapshot.docs.map(d => ({ 
-                type: d.data().eventType, 
-                timestamp: d.data().timestamp?.toDate().toISOString() || '',
-                gtin: d.data().gtin 
-            }));
+            const events = eventSnapshot.docs.map(d => {
+                const data = d.data();
+                return { 
+                    type: data.eventType, 
+                    timestamp: data.timestamp?.toDate().toISOString() || '',
+                    gtin: data.gtin 
+                };
+            });
 
             const ariEvents = events.filter(e => e.type === 'interaction_signal' || e.type === 'recommendation_event');
             const hasAriInteraction = ariEvents.length > 0;
             
-            let level: any = 'NONE';
+            let level: AttributionRecord['attributionLevel'] = 'NONE';
             let status: 'VERIFIED' | 'SIMULATED' = 'SIMULATED';
 
             if (sessionDoc.exists && sessionDoc.data()?.retailerId === authorizedRetailerId) {
@@ -158,7 +162,7 @@ const attributeTransactionsFlow = ai.defineFlow(
                 dataStatus: status,
                 attributionVersion: '3.0.0',
                 generatedAt: new Date().toISOString()
-            } as any);
+            });
         }
 
         return {
@@ -167,7 +171,7 @@ const attributeTransactionsFlow = ai.defineFlow(
             ariAssistedSessions: uniqueSessionsAttributed.size,
             ariAssistedPurchases: ariAssistedPurchasesCount,
             records,
-            dataStatus: 'VERIFIED'
+            dataStatus: 'VERIFIED' as const
         };
     } catch (error: any) {
         console.error("[Attribution] Critical failure:", error.message);

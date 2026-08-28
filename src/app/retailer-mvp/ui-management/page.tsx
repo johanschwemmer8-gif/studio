@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Palette, LayoutTemplate, Loader2 } from 'lucide-react';
+import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Palette, LayoutTemplate, Loader2, Smartphone } from 'lucide-react';
 import PhoneMockup from '@/components/dashboard/phone-mockup';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -236,7 +235,7 @@ export default function UiManagementPage() {
             <Card className="sticky top-6">
                 <CardHeader>
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <PhoneMockup className="h-4 w-4" /> Shopper Preview
+                      <Smartphone className="h-4 w-4" /> Shopper Preview
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex justify-center">

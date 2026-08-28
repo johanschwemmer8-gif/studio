@@ -48,7 +48,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     const fetchInteraction = async () => {
       try {
         let finalDest = 'https://interactaoe.co.za';
-        let resolvedRetailerId = 'unknown';
         
         // 1. Client-side fetch for the destination URL and retailer identity
         if (db) {
@@ -59,15 +58,12 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                     setClientDestinationUrl(qrData.redirectUrl);
                     finalDest = qrData.redirectUrl;
                 }
-                resolvedRetailerId = qrData.retailerId || 'unknown';
             }
         }
 
         // 2. Call the Genkit flow for the AI greeting
         const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
         
-        // REUSE authoritative session if provided, otherwise fail safely
-        // Duplicate session creation removed per architectural fix requirements
         if (db && sessionIdFromUrl) {
             // Update the session with shopper mapping if newly identified
             if (user?.uid) {
@@ -76,8 +72,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                     updatedAt: serverTimestamp()
                 }, { merge: true }).catch(() => {});
             }
-        } else if (!sessionIdFromUrl) {
-            console.warn("[Continuity] No authoritative sessionId found in URL.");
         }
 
         if (result) {
@@ -130,7 +124,8 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                 url: destination,
                 history: [...messages, { role: 'user', content: userMessage }],
                 shopperUid: user?.uid,
-                sessionId: sessionIdFromUrl || undefined
+                sessionId: sessionIdFromUrl || undefined,
+                hasConsent: true,
             });
             setMessages(prev => [...prev, { role: 'model', content: res.message }]);
         } catch (e) {
@@ -179,7 +174,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                         <video src={data.mediaUrl} autoPlay muted loop className="w-full rounded-2xl shadow-xl aspect-video object-cover border" />
                     ) : data?.mediaUrl ? (
                         <div className="relative w-full rounded-2xl shadow-xl overflow-hidden aspect-video border bg-muted">
-                            <Image src={data.mediaUrl} alt={data.headline || 'Content'} fill className="object-cover" />
+                            <Image src={data.mediaUrl} alt={data.headline || 'Content'} fill style={{ objectFit: 'cover' }} />
                         </div>
                     ) : null}
                     {data?.headline && <h1 className="text-2xl font-black mt-4 leading-tight tracking-tight">{data.headline}</h1>}

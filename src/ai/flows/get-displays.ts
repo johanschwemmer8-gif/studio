@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow to retrieve registered display devices from Firestore.
@@ -55,7 +54,7 @@ export const getDisplays = ai.defineFlow(
                 retailerId: data.retailerId,
                 storeId: data.storeId,
                 contentConfigId: data.contentConfigId,
-                status: data.status,
+                status: (data.status as "online" | "offline" | "error") || 'offline',
                 lastPing: (data.lastPing as admin.firestore.Timestamp).toDate().toISOString(),
             });
         });
@@ -69,7 +68,7 @@ export const getDisplays = ai.defineFlow(
                 retailerId: authorizedRetailerId,
                 storeId: 'Sandton City',
                 contentConfigId: 'config_summer_sale',
-                status: 'online',
+                status: 'online' as const,
                 lastPing: new Date().toISOString(),
             },
             {
@@ -77,7 +76,7 @@ export const getDisplays = ai.defineFlow(
                 retailerId: authorizedRetailerId,
                 storeId: 'Menlyn Park',
                 contentConfigId: '',
-                status: 'offline',
+                status: 'offline' as const,
                 lastPing: new Date(Date.now() - 3600000).toISOString(),
             }
         ];

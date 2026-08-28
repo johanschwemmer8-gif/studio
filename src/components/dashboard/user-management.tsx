@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -37,8 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { type FormValues as BrandFormValues } from './brand-management-form';
 import Papa from 'papaparse';
+
+type Store = { name: string; code?: string; address?: string };
+type Area = { name: string; stores: Store[] };
+type Region = { name: string; areas: Area[] };
+type Division = { name: string; regions: Region[] };
+type Brand = { name: string; divisions: Division[] };
 
 const permissionsSchema = z.object({
   dashboard: z.boolean().default(false),
@@ -78,7 +82,7 @@ const permissionLabels: { id: keyof z.infer<typeof permissionsSchema>; label: st
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
-  const [brandData, setBrandData] = useState<BrandFormValues | null>(null);
+  const [brandData, setBrandData] = useState<{ brands: Brand[] } | null>(null);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,7 +90,7 @@ export default function UserManagement() {
 
   useEffect(() => {
     try {
-      const savedBrandData = localStorage.getItem('brandManagement');
+      const savedBrandData = localStorage.getItem('retail-organization-structure');
       if (savedBrandData) {
         setBrandData(JSON.parse(savedBrandData));
       }
@@ -299,7 +303,6 @@ export default function UserManagement() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid md:grid-cols-2 gap-6 py-4 max-h-[70vh] overflow-y-auto pr-2">
-                     {/* User Details & Scope */}
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="fullName">Name & Surname</Label>
@@ -405,8 +408,7 @@ export default function UserManagement() {
                                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                                 <SelectTrigger><SelectValue placeholder="All Stores" /></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="all-stores">All Stores</SelectItem>
-                                                    {stores.map(s => <SelectItem key={s.code} value={s.name}>{s.name}</SelectItem>)}
+                                                    {stores.map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         )}
@@ -415,7 +417,6 @@ export default function UserManagement() {
                             )}
                         </div>
                     </div>
-                     {/* Permissions */}
                      <div className="space-y-4">
                         <Label className="flex items-center gap-2"><ShieldCheck className="text-primary"/> Permissions</Label>
                          <div className="space-y-2 p-4 border rounded-md max-h-96 overflow-y-auto">

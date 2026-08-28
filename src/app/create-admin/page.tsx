@@ -115,7 +115,7 @@ export default function UserAccessControlPage() {
         try {
             const idToken = await auth.currentUser?.getIdToken(true);
             if (!idToken) throw new Error("Auth session expired.");
-            const users = await listAuthUsers({ idToken });
+            const users = await listAuthUsers({ idToken, maxResults: 100 });
             setAuthUsers(users);
             toast({ title: "Auth Discovery Complete", description: `Identified ${users.length} accounts in project.` });
         } catch (e: any) {
@@ -163,8 +163,6 @@ export default function UserAccessControlPage() {
         }, { merge: true });
 
         // C. Assign Trusted Identity Claims (PREVENTING FALLBACK BOTTLENECKS)
-        // By assigning claims immediately, we remove the need for every Server Action 
-        // to perform a Firestore identity lookup, significantly reducing metadata bridge load.
         const idToken = await auth.currentUser?.getIdToken();
         if (idToken) {
             await assignUserClaims({

@@ -14,6 +14,24 @@ import { subDays } from 'date-fns';
 
 const AGGREGATION_VERSION = '1.5.1';
 
+type FirestoreEvent = {
+    sessionId: string;
+    gtin?: string;
+    eventType: string;
+    timestamp: number;
+    metadata?: any;
+    id: string;
+};
+
+type FirestoreTransaction = {
+    sessionId: string;
+    gtin?: string;
+    retailerId: string;
+    amount?: number;
+    timestamp: number;
+    items?: Array<{ gtin: string }>;
+};
+
 const summaryPrompt = ai.definePrompt({
     name: 'journeySummaryPrompt',
     input: { schema: z.object({ metrics: z.any() }) },
@@ -58,11 +76,11 @@ export async function getDecisionJourneyIntelligence(idToken: string | undefined
             .limit(5000)
             .get();
         
-        const allEvents = eventSnapshot.docs.map(d => ({ 
+        const allEvents: FirestoreEvent[] = eventSnapshot.docs.map(d => ({ 
             id: d.id, 
             ...d.data(),
-            timestamp: d.data().timestamp?.toDate().getTime() || 0
-        }));
+            timestamp: (d.data().timestamp as any)?.toDate().getTime() || 0
+        } as any));
 
         const txnSnapshot = await db.collection('transactions')
             .where('retailerId', '==', authorizedRetailerId)
@@ -70,10 +88,10 @@ export async function getDecisionJourneyIntelligence(idToken: string | undefined
             .limit(2500)
             .get();
         
-        const allTransactions = txnSnapshot.docs.map(d => ({
+        const allTransactions: FirestoreTransaction[] = txnSnapshot.docs.map(d => ({
             ...d.data(),
-            timestamp: d.data().timestamp?.toDate().getTime() || 0
-        }));
+            timestamp: (d.data().timestamp as any)?.toDate().getTime() || 0
+        } as any));
 
         const sessionsMap: Record<string, any[]> = {};
         allEvents.forEach(e => {
@@ -190,7 +208,7 @@ export async function getDecisionJourneyIntelligence(idToken: string | undefined
         const totalUniqueSessions = sessionsExposed.size || 0;
         if (totalUniqueSessions === 0) return getSimulatedJourney(authorizedRetailerId, targetGtin, startTime, endTime);
 
-        // Deduplicate rejection reasons: remove 'Reason not stated' if session has a specific reason
+        // Deduplicate rejection reasons
         if (rejectionReasons['Reason not stated']) {
             const specificReasonSessions = new Set(
                 Object.entries(rejectionReasons)
@@ -269,8 +287,8 @@ export async function getDecisionJourneyIntelligence(idToken: string | undefined
             },
             metadata: {
                 aggregationVersion: AGGREGATION_VERSION,
-                dataStatus: 'VERIFIED',
-                evidenceStrength: totalUniqueSessions >= 30 ? 'HIGHER' : totalUniqueSessions >= 10 ? 'MODERATE' : 'LOW',
+                dataStatus: 'VERIFIED' as const,
+                evidenceStrength: totalUniqueSessions >= 30 ? 'HIGHER' as const : totalUniqueSessions >= 10 ? 'MODERATE' as const : 'LOW' as const,
                 methodology: 'Launch Ready: Deterministic chronological walk with scale limiting.'
             }
         };
@@ -319,8 +337,8 @@ function getSimulatedJourney(retailerId: string, gtin: string | undefined, start
         },
         metadata: {
             aggregationVersion: AGGREGATION_VERSION,
-            dataStatus: 'SIMULATED',
-            evidenceStrength: 'MODERATE',
+            dataStatus: 'SIMULATED' as const,
+            evidenceStrength: 'MODERATE' as const,
             methodology: 'Simulation: High-fidelity pattern fallback.'
         }
     };

@@ -21,6 +21,7 @@ export type Product = {
   'data-ai-hint': string;
   batchNumber?: string;
   serialNumber?: string;
+  retailerId?: string;
 };
 
 /**

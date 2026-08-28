@@ -52,6 +52,7 @@ const styleSchema = z.object({
   aiTone: z.string().optional(),
   aiGoal: z.string().optional(),
   scanDestination: z.enum(['url', 'ai']).default('ai'),
+  isGs1DigitalLink: z.boolean().default(true),
 });
 
 const formSchema = z.object({
@@ -87,6 +88,7 @@ export default function BulkQRCodeGenerator() {
               bgColorHex: '#FFFFFF',
               errorCorrection: 'M',
               scanDestination: 'ai',
+              isGs1DigitalLink: true,
             }
         },
     });

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -44,9 +43,11 @@ type ContentType = 'static_image' | 'dynamic_ai_prompt' | 'promotional_video' | 
 
 type InStoreConfig = {
     id: string;
+    configId: string;
     configName: string;
     contentSlot: any;
     lastUpdated: Timestamp;
+    isActive?: boolean;
 };
 
 function LivePreview({ config }: { config: any }) {
@@ -59,7 +60,7 @@ function LivePreview({ config }: { config: any }) {
         <CardContent>
             <div className="aspect-video w-full bg-slate-900 rounded-lg flex items-center justify-center p-4 text-center text-white overflow-hidden relative">
                 {config.type === 'static_image' && config.imageUrl && (
-                    <Image src={config.imageUrl} alt="Preview" fill objectFit="contain" />
+                    <Image src={config.imageUrl} alt="Preview" fill style={{ objectFit: 'contain' }} />
                 )}
                 {config.type === 'dynamic_ai_prompt' && (
                     <div className="space-y-4">
@@ -251,7 +252,7 @@ export default function InStoreDisplayPage() {
                                     <CardContent className="space-y-4">
                                         <div>
                                             <Label htmlFor="content-type" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</Label>
-                                            <Select onValueChange={handleContentTypeChange} value={contentType}>
+                                            <Select onValueChange={(v) => handleContentTypeChange(v as ContentType)} value={contentType}>
                                                 <SelectTrigger id="content-type"><SelectValue placeholder="Select a content type" /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="dynamic_ai_prompt">Dynamic AI Prompt</SelectItem>

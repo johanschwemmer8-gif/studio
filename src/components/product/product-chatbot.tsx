@@ -68,6 +68,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
         url: typeof window !== 'undefined' ? window.location.href : '',
         history: newMessages,
         shopperUid: user?.uid,
+        hasConsent: true,
       };
       
       try {
@@ -116,7 +117,7 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
                           timestamp: serverTimestamp(),
                           metadata: {
                               ...signal,
-                              sourceMessage: "[PII REDACTED]",
+                              statedReason: signal.statedReason ? "[PII REDACTED]" : null,
                           }
                       }).catch(() => {});
                   });

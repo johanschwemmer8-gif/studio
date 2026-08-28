@@ -57,6 +57,7 @@ export async function GET(
     const eventId = `ev_${randomUUID()}`;
     
     const batch = db.batch();
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '';
     
     // Create Session with Retailer Anchor
     batch.set(db.collection('sessions').doc(sessionId), {
@@ -69,7 +70,7 @@ export async function GET(
         batchNumber,
         serialNumber,
         userAgent: request.headers.get('user-agent') || '',
-        ip: request.ip || ''
+        ip: ip
     });
 
     // 4. Log Atomic Behavioral Event (Scan)

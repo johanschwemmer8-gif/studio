@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2, CheckCircle2, ListChecks, Printer, MapPin, Scan, Info } from 'lucide-react';
+import { Eye, Loader2, Download, RefreshCw, Sparkles, AlertTriangle, CheckCircle2, ListChecks, Printer, MapPin, Scan, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
@@ -21,10 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '../ui/skeleton';
-import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 
@@ -67,12 +64,10 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     const [items, setItems] = useState<QrItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('ALL');
-    const [regeneratingIds, setRegeneratingIds] = useState<string[]>([]);
     const [downloading, setDownloading] = useState(false);
     const { toast } = useToast();
     
     const [currentRequest, setCurrentRequest] = useState(request);
-    const [isAiRegenerating, startAiRegenerating] = useTransition();
 
     useEffect(() => {
         if (!db) return;
@@ -101,9 +96,11 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     }, [request.id]);
 
     const handleRegenerate = async (qrCodeId: string) => {
-        setRegeneratingIds(prev => [...prev, qrCodeId]);
         try {
-            const result = await regenerateQrCode({ requestId: request.id, qrCodeId });
+            const idToken = await user?.getIdToken();
+            if (!idToken || !user?.retailerId) throw new Error("Authentication required.");
+            
+            const result = await regenerateQrCode({ requestId: request.id, qrCodeId, idToken, retailerId: user.retailerId });
             if (result.success) {
                 toast({ title: "QR Code Regenerated" });
             } else {
@@ -111,8 +108,6 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             }
         } catch (error: any) {
              toast({ title: "Regeneration Failed", description: error.message, variant: 'destructive' });
-        } finally {
-            setRegeneratingIds(prev => prev.filter(id => id !== qrCodeId));
         }
     }
 

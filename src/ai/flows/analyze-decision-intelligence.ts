@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Decision Intelligence Engine Flow.
@@ -55,9 +54,9 @@ const analyzeDecisionIntelligenceFlow = ai.defineFlow(
 
         return {
             intentGaps: [
-                { productId: '1', productName: 'Eco-Friendly Water Bottle', engagementScore: 88, conversionRate: 12, gapIndicator: 'Price Sensitivity' },
-                { productId: '2', productName: 'Wireless Charging Pad', engagementScore: 94, conversionRate: 8, gapIndicator: 'Missing Information' },
-                { productId: '3', productName: 'Smart Notebook', engagementScore: 45, conversionRate: 32, gapIndicator: 'Low Availability' },
+                { productId: '1', productName: 'Eco-Friendly Water Bottle', engagementScore: 88, conversionRate: 12, gapIndicator: 'Price Sensitivity' as const },
+                { productId: '2', productName: 'Wireless Charging Pad', engagementScore: 94, conversionRate: 8, gapIndicator: 'Missing Information' as const },
+                { productId: '3', productName: 'Smart Notebook', engagementScore: 45, conversionRate: 32, gapIndicator: 'Low Availability' as const },
             ],
             hesitationMetrics: {
                 avgDwellBeforeDecision: 42,

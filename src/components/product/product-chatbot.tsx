@@ -63,66 +63,25 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
     setInput('');
 
     startTransition(async () => {
+      // Dynamic Consent Check: Pull from local storage to respect privacy settings
+      const hasConsent = typeof window !== 'undefined' ? localStorage.getItem('consent-behavioral-analysis') !== 'false' : true;
+
       const chatInput: ProductChatInput = {
         gtin: product.gtin,
         url: typeof window !== 'undefined' ? window.location.href : '',
         history: newMessages,
         shopperUid: user?.uid,
-        hasConsent: true,
+        hasConsent: hasConsent,
+        sessionId: sessionId || undefined,
+        retailerId: product.retailerId
       };
       
       try {
           const result = await productChat(chatInput);
           setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
 
-          if (db && sessionId) {
-              const conversationId = `convo_${Date.now()}`;
-              setDoc(doc(db, 'ai_conversations', conversationId), {
-                  conversationId,
-                  sessionId,
-                  shopperId: user?.uid || 'guest',
-                  gtin: product.gtin,
-                  transcript: [...newMessages, { role: 'model', content: result.message }],
-                  shopperContext: result.shopperContext,
-                  timestamp: serverTimestamp(),
-                  aiModel: 'gemini-2.5-flash',
-              }).catch(() => {});
-
-              if (result.rationale && result.rationale.confidence !== 'NONE') {
-                  const recId = `rec_${Date.now()}`;
-                  setDoc(doc(db, 'events', recId), {
-                      eventId: recId,
-                      sessionId,
-                      gtin: product.gtin,
-                      eventType: 'recommendation_event',
-                      timestamp: serverTimestamp(),
-                      metadata: result.rationale
-                  }).catch(() => {});
-              }
-
-              const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
-              
-              if (hasConsent && result.signals && result.signals.length > 0) {
-                  result.signals.forEach((signal) => {
-                      if (signal.evidenceType === 'inferred' && signal.confidence === 'HIGH') {
-                          signal.confidence = 'INFERRED';
-                      }
-
-                      const eventId = `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-                      setDoc(doc(db, 'events', eventId), {
-                          eventId,
-                          sessionId,
-                          gtin: product.gtin,
-                          eventType: 'interaction_signal',
-                          timestamp: serverTimestamp(),
-                          metadata: {
-                              ...signal,
-                              statedReason: signal.statedReason ? "[PII REDACTED]" : null,
-                          }
-                      }).catch(() => {});
-                  });
-              }
-          }
+          // Persistence happens inside the server flow (Intelligence Layer), 
+          // but we provide the local state update for UX responsiveness.
       } catch (err) {
           setMessages((prev) => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to ask another question or continue viewing product details." }]);
       }

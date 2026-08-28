@@ -7,7 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { getDb } from '@/lib/firebase-admin';
+import { getDb, admin } from '@/lib/firebase-admin';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import { 
   AttributionReportSchema, 
@@ -17,9 +17,29 @@ import {
 import { subDays } from 'date-fns';
 
 /**
+ * INTERNAL DATA INTERFACES
+ */
+interface TransactionItem {
+  gtin: string;
+}
+
+interface TransactionData {
+  sessionId?: string;
+  retailerId?: string;
+  items?: TransactionItem[];
+  timestamp?: admin.firestore.Timestamp;
+}
+
+interface FirestoreEvent {
+  type: string;
+  timestamp: string;
+  gtin?: string;
+}
+
+/**
  * RESILIENCE HELPER: Wraps Firestore read operations in a jittered retry loop.
  */
-async function fetchWithRetry(query: any, label: string) {
+async function fetchWithRetry(query: admin.firestore.Query | admin.firestore.DocumentReference, label: string) {
   const maxRetries = 5;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -70,8 +90,11 @@ const attributeTransactionsFlow = ai.defineFlow(
             .where('retailerId', '==', authorizedRetailerId)
             .where('timestamp', '>=', startTime);
             
-        const txnSnapshot = await fetchWithRetry(txnQuery, 'Transactions Fetch');
-        const allTransactions = txnSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const txnSnapshot = await fetchWithRetry(txnQuery, 'Transactions Fetch') as admin.firestore.QuerySnapshot;
+        const allTransactions = txnSnapshot.docs.map((d: admin.firestore.QueryDocumentSnapshot) => ({ 
+            id: d.id, 
+            ...(d.data() as TransactionData) 
+        }));
 
         if (allTransactions.length === 0) {
             return {
@@ -90,7 +113,7 @@ const attributeTransactionsFlow = ai.defineFlow(
 
         // 3. Factual Join Pipeline
         for (const txn of allTransactions) {
-            const sessionId = (txn as any).sessionId;
+            const sessionId = txn.sessionId;
             
             // INTEGRITY CHECK: Handle orphan/legacy records
             if (!sessionId) {
@@ -112,14 +135,14 @@ const attributeTransactionsFlow = ai.defineFlow(
             // 4. Trace the Lineage
             const sessionDoc = await db.collection('sessions').doc(sessionId).get();
             const eventQuery = db.collection('events').where('sessionId', '==', sessionId).orderBy('timestamp', 'asc');
-            const eventSnapshot = await fetchWithRetry(eventQuery, `Events [${sessionId}]`);
+            const eventSnapshot = await fetchWithRetry(eventQuery, `Events [${sessionId}]`) as admin.firestore.QuerySnapshot;
             
-            const events = eventSnapshot.docs.map(d => {
+            const events: FirestoreEvent[] = eventSnapshot.docs.map((d: admin.firestore.QueryDocumentSnapshot) => {
                 const data = d.data();
                 return { 
-                    type: data.eventType, 
-                    timestamp: data.timestamp?.toDate().toISOString() || '',
-                    gtin: data.gtin 
+                    type: data.eventType as string, 
+                    timestamp: (data.timestamp as admin.firestore.Timestamp)?.toDate().toISOString() || '',
+                    gtin: data.gtin as string
                 };
             });
 
@@ -136,10 +159,10 @@ const attributeTransactionsFlow = ai.defineFlow(
                     uniqueSessionsAttributed.add(sessionId);
                     
                     // Recommendation logic
-                    const purchasedItems = (txn as any).items || [];
-                    const hasPurchasedRecommendation = ariEvents.some(ae => 
+                    const purchasedItems = txn.items || [];
+                    const hasPurchasedRecommendation = ariEvents.some((ae: FirestoreEvent) => 
                         ae.type === 'recommendation_event' && 
-                        purchasedItems.some((pi: any) => pi.gtin === ae.gtin)
+                        purchasedItems.some((pi: TransactionItem) => pi.gtin === ae.gtin)
                     );
 
                     if (hasPurchasedRecommendation) {
@@ -154,8 +177,8 @@ const attributeTransactionsFlow = ai.defineFlow(
                 retailerId: authorizedRetailerId,
                 sessionId,
                 transactionId: txn.id,
-                purchasedGtin: (txn as any).items?.[0]?.gtin,
-                transactionTimestamp: (txn as any).timestamp?.toDate().toISOString(),
+                purchasedGtin: txn.items?.[0]?.gtin,
+                transactionTimestamp: txn.timestamp?.toDate().toISOString(),
                 ariInteraction: hasAriInteraction,
                 attributionLevel: level,
                 journeyNodes: events,

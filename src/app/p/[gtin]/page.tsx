@@ -42,55 +42,58 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
     async function resolveIdentityAndProduct() {
         setLoading(true);
         try {
-            // 1. Fetch Canonical Product
-            const canonicalProduct = await getCanonicalProduct(gtin);
-            if (!canonicalProduct) {
-                setError("PRODUCT_NOT_FOUND");
-                setLoading(false);
-                return;
-            }
+            let rid = 'unknown';
 
-            // 2. If session is provided, verify tenant anchoring
+            // 1. Resolve Authoritative Retailer Identity from Session FIRST
             if (sessionId && db) {
                 const sessSnap = await getDoc(doc(db, 'sessions', sessionId));
                 
-                // If session exists, use it to resolve branding and verify tenant
                 if (sessSnap.exists()) {
                     const sessionData = sessSnap.data();
-                    const rid = sessionData.retailerId;
+                    rid = sessionData.retailerId || 'unknown';
 
-                    // SECURITY GATE: Product must belong to the session retailer
-                    if (rid && rid !== 'unknown' && canonicalProduct.retailerId && canonicalProduct.retailerId !== rid) {
-                        console.error("[Security] Tenant Mismatch. Product:", canonicalProduct.retailerId, "Session:", rid);
-                        setError("TENANT_MISMATCH");
-                        setLoading(false);
-                        return;
-                    }
-
-                    // 3. Resolve Branded Experience
-                    if (rid && rid !== 'unknown') {
+                    // Resolve Branded Experience
+                    if (rid !== 'unknown') {
                         const configRef = doc(db, 'configurations', `${rid}_brand`);
                         const configSnap = await getDoc(configRef);
                         if (configSnap.exists()) {
                             setRetailerConfig(configSnap.data().data);
                         }
                     }
-
-                    // 4. Log View Event
-                    const eventId = `view_${crypto.randomUUID()}`;
-                    setDoc(doc(db, 'events', eventId), {
-                        eventId,
-                        sessionId,
-                        gtin: canonicalProduct.gtin,
-                        retailerId: rid,
-                        eventType: 'view',
-                        timestamp: serverTimestamp(),
-                        metadata: { source: "experience_layer" }
-                    }).catch(() => {});
                 } else {
-                    // Stale session ID (common after a reset). We proceed without session-anchored branding.
-                    console.warn("[Session] Stale or missing session ID detected. Proceeding as anonymous.");
+                    console.warn("[Session] Stale or missing session ID detected.");
                 }
+            }
+
+            // 2. Fetch Canonical Product (Now with mandatory retailer scoping)
+            const canonicalProduct = await getCanonicalProduct(gtin, rid);
+            
+            if (!canonicalProduct) {
+                setError("PRODUCT_NOT_FOUND");
+                setLoading(false);
+                return;
+            }
+
+            // 3. Defense-in-depth: Verify tenant alignment
+            if (rid !== 'unknown' && canonicalProduct.retailerId && canonicalProduct.retailerId !== rid) {
+                console.error("[Security] Tenant Mismatch. Product:", canonicalProduct.retailerId, "Session:", rid);
+                setError("TENANT_MISMATCH");
+                setLoading(false);
+                return;
+            }
+
+            // 4. Log View Event (Authoritative rid used)
+            if (db && sessionId && rid !== 'unknown') {
+                const eventId = `view_${crypto.randomUUID()}`;
+                setDoc(doc(db, 'events', eventId), {
+                    eventId,
+                    sessionId,
+                    gtin: canonicalProduct.gtin,
+                    retailerId: rid,
+                    eventType: 'view',
+                    timestamp: serverTimestamp(),
+                    metadata: { source: "experience_layer" }
+                }).catch(() => {});
             }
 
             setProduct(canonicalProduct);
@@ -122,7 +125,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
             </div>
             <div className="space-y-2">
                 <h1 className="text-2xl font-black tracking-tight">Product Unavailable</h1>
-                <p className="text-muted-foreground max-w-xs mx-auto">
+                <p className="text-muted-foreground max-xs mx-auto">
                     {error === 'TENANT_MISMATCH' 
                         ? "This product does not belong to the retailer associated with your session." 
                         : "We couldn't find the product details you're looking for. Please try scanning again."}

@@ -99,8 +99,8 @@ export const salesData = [
 
 export const hourlyPerformanceData = [
   { time: '8am', uniqueScans: 50, engagementRate: 4.1, offerRedemption: 15.2, basketUplift: 8.1, conversionRate: 20.5, dwellTime: 25 },
-  { time: '9am', uniqueScans: 120, engagementRate: 4.5, address: '9am', offerRedemption: 16.0, basketUplift: 9.2, conversionRate: 22.1, dwellTime: 28 },
-  { time: '10am', uniqueScans: 180, engagementRate: 5.1, address: '10am', offerRedemption: 17.5, basketUplift: 10.5, conversionRate: 24.3, dwellTime: 31 },
+  { time: '9am', uniqueScans: 120, engagementRate: 4.5, offerRedemption: 16.0, basketUplift: 9.2, conversionRate: 22.1, dwellTime: 28 },
+  { time: '10am', uniqueScans: 180, engagementRate: 5.1, offerRedemption: 17.5, basketUplift: 10.5, conversionRate: 24.3, dwellTime: 31 },
 ];
 
 export const systemUptime = {

@@ -2,6 +2,7 @@
 /**
  * @fileOverview Fact Context utility for Ari Grounding.
  * Transforms raw Firestore data into a structured "Fact Context" for AI consumption.
+ * HARDENED: Enforces retailerId for tenant-isolated retrieval.
  */
 
 import { getCanonicalProduct } from '@/services/product-service';
@@ -21,11 +22,12 @@ export type FactContext = {
 };
 
 /**
- * Constructs a structured Fact Context for a specific GTIN.
- * Ensures that Ari only sees facts that are actually present in the authoritative source.
+ * Constructs a structured Fact Context for a specific GTIN and Retailer.
+ * Ensures that Ari only sees facts that are actually present in the authoritative source
+ * and belong to the correct tenant.
  */
-export async function buildFactContext(gtin: string): Promise<FactContext> {
-  const product = await getCanonicalProduct(gtin);
+export async function buildFactContext(gtin: string, retailerId: string): Promise<FactContext> {
+  const product = await getCanonicalProduct(gtin, retailerId);
   const now = new Date().toISOString();
 
   if (!product) {
@@ -50,7 +52,8 @@ export async function buildFactContext(gtin: string): Promise<FactContext> {
     category: product.category,
     price: product.price,
     batchNumber: product.batchNumber,
-    serialNumber: product.serialNumber
+    serialNumber: product.serialNumber,
+    retailerId: product.retailerId
   };
 
   return {

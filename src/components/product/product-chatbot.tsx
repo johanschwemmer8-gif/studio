@@ -15,19 +15,18 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, Send, Sparkles, QrCode, X, Loader2, ShieldCheck, Info } from 'lucide-react';
 import type { Product } from '@/lib/data';
-import { productChat, type ProductChatInput } from '@/ai/flows';
+import { productChat, type ProductChatInput, type ProductChatOutput } from '@/ai/flows';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import QrScannerCamera from '../qr-scanner-camera';
 import { useAuth } from '@/context/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { type ShopperContext } from '@/lib/schemas/interaction-signals';
 
 type ChatMessage = {
   role: 'user' | 'model';
@@ -47,6 +46,11 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  
+  // STATE FEEDBACK LOOP
+  const [currentContext, setCurrentContext] = useState<ShopperContext | null>(null);
+  const [turnCount, setTurnCount] = useState(1);
+
   const [isPending, startTransition] = useTransition();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -63,13 +67,14 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
     setInput('');
 
     startTransition(async () => {
-      // Dynamic Consent Check: Pull from local storage to respect privacy settings
-      const hasConsent = typeof window !== 'undefined' ? localStorage.getItem('consent-behavioral-analysis') !== 'false' : true;
+      // Privacy-Safe Default: Consent is FALSE unless explicitly TRUE in local storage
+      const hasConsent = typeof window !== 'undefined' ? localStorage.getItem('consent-behavioral-analysis') === 'true' : false;
 
       const chatInput: ProductChatInput = {
         gtin: product.gtin,
         url: typeof window !== 'undefined' ? window.location.href : '',
         history: newMessages,
+        previousContext: currentContext || undefined,
         shopperUid: user?.uid,
         hasConsent: hasConsent,
         sessionId: sessionId || undefined,
@@ -79,9 +84,16 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
       try {
           const result = await productChat(chatInput);
           setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
-
-          // Persistence happens inside the server flow (Intelligence Layer), 
-          // but we provide the local state update for UX responsiveness.
+          
+          // Update State Feedback Loop
+          if (result.shopperContext) {
+              const updatedContext = {
+                  ...result.shopperContext,
+                  turnCount: turnCount + 1
+              };
+              setCurrentContext(updatedContext);
+              setTurnCount(prev => prev + 1);
+          }
       } catch (err) {
           setMessages((prev) => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to ask another question or continue viewing product details." }]);
       }

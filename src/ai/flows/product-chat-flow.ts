@@ -1,8 +1,8 @@
 'use server';
 /**
  * @fileOverview Ari - Intelligence Layer Continuity Assistant.
- * ARI_SYSTEM_VERSION: 1.6.0 (Audit Hardened & Resilience Handled)
- * EVIDENCE_CONTRACT: v1.1 (Strictly Grounded, Non-Causal & PII Scrubbed)
+ * ARI_SYSTEM_VERSION: 1.7.0 (State Feedback Loop & Tenant Isolation Hardened)
+ * EVIDENCE_CONTRACT: v1.2 (Strictly Grounded, Stateless to Stateful Loop)
  */
 
 import { ai } from '@/ai/genkit';
@@ -15,7 +15,7 @@ import {
   RecommendationRationaleSchema 
 } from '@/lib/schemas/interaction-signals';
 
-const ARI_CORE_VERSION = '1.6.0';
+const ARI_CORE_VERSION = '1.7.0';
 
 const ChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -26,10 +26,11 @@ const ProductChatInputSchema = z.object({
   gtin: z.string().optional().describe('The canonical GS1 product identifier used for grounding.'),
   url: z.string().optional().describe("The destination URL associated with the scan."),
   history: z.array(ChatMessageSchema).describe("The chat history."),
+  previousContext: ShopperContextSchema.optional().describe("The previous conversational state feedback."),
   shopperUid: z.string().optional().describe("The persistent ID of the shopper."),
-  hasConsent: z.boolean().default(true).describe("Whether behavioural analysis consent is granted."),
+  hasConsent: z.boolean().default(false).describe("Whether behavioural analysis and transcript consent is granted."),
   sessionId: z.string().optional().describe("The active session ID for event anchoring."),
-  retailerId: z.string().optional().describe("The retailer ID for tenant isolation."),
+  retailerId: z.string().optional().describe("The retailer ID for tenant verification."),
 });
 export type ProductChatInput = z.infer<typeof ProductChatInputSchema>;
 
@@ -42,14 +43,39 @@ const ProductChatOutputSchema = z.object({
 export type ProductChatOutput = z.infer<typeof ProductChatOutputSchema>;
 
 export async function productChat(input: ProductChatInput): Promise<ProductChatOutput> {
+  const db = getDb();
+  
+  // 1. Authoritative Identity Resolution (Tenant Isolation)
+  let authorizedRetailerId = input.retailerId || 'unknown';
+  if (db && input.sessionId) {
+    try {
+      const sessionDoc = await db.collection('sessions').doc(input.sessionId).get();
+      if (sessionDoc.exists) {
+        const sessionData = sessionDoc.data();
+        const authoritativeRetailerId = sessionData?.retailerId;
+        
+        if (authoritativeRetailerId) {
+          // Security Gate: Reject client-side spoofing attempt
+          if (input.retailerId && input.retailerId !== 'unknown' && input.retailerId !== authoritativeRetailerId) {
+            console.error(`[Security] Tenant mismatch! Client: ${input.retailerId}, Session: ${authoritativeRetailerId}`);
+            throw new Error("ACCESS_DENIED: Request parameters do not match authorized session tenant.");
+          }
+          authorizedRetailerId = authoritativeRetailerId;
+        }
+      }
+    } catch (e: any) {
+      if (e.message.startsWith("ACCESS_DENIED")) throw e;
+      console.warn("[Auth] Session validation deferred due to infrastructure friction:", e.message);
+    }
+  }
+
   let shopperProfileContext = "";
   let factContextStr = "NO VERIFIED PRODUCT DATA AVAILABLE.";
-  const db = getDb();
 
-  // 1. Fact Context Retrieval (Authoritative Source)
+  // 2. Fact Context Retrieval (Authoritative & Scoped)
   if (input.gtin) {
       try {
-          const factContext = await buildFactContext(input.gtin);
+          const factContext = await buildFactContext(input.gtin, authorizedRetailerId);
           if (factContext.exists) {
               factContextStr = `
               VERIFIED PRODUCT FACTS (Authoritative Source: ${factContext.provenance.source}):
@@ -61,14 +87,14 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
               - Description: ${factContext.verifiedFacts.description}
               `;
           } else {
-              factContextStr = "PRODUCT IDENTITY UNVERIFIED: No canonical record found for GTIN " + input.gtin + ". Do not provide specifications.";
+              factContextStr = `PRODUCT IDENTITY UNVERIFIED: No canonical record found for GTIN ${input.gtin} within Retailer ${authorizedRetailerId}. Do not provide specifications.`;
           }
       } catch (e) {
           factContextStr = "SYSTEM LATENCY: Authoritative product data unavailable. Do not manufacture details.";
       }
   }
 
-  // 2. Identity Retrieval (Minimised Context)
+  // 3. Identity Retrieval (Minimised Context)
   if (input.shopperUid && db) {
     try {
       const shopperDoc = await db.collection('shoppers').doc(input.shopperUid).get();
@@ -84,9 +110,13 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     content: [{ text: msg.content }],
   }));
 
+  const turnCount = input.previousContext?.turnCount || 1;
+
   const systemPrompt = `You are Ari (v${ARI_CORE_VERSION}), the grounded Shopping Assistant for iNteract Decision Intelligence.
     
-    ARI EVIDENCE CONTRACT (v1.1):
+    CURRENT TURN: ${turnCount}
+
+    ARI EVIDENCE CONTRACT (v1.2):
     1. EVIDENCE HIERARCHY: Authoritative Product Data > Explicit Shopper Evidence > AI Interpretation.
     2. NO MANUFACTURING: Never manufacture intent, evidence, or product facts.
     3. NO CAUSALITY: Never claim causality (e.g., "The price caused abandonment"). Use "observed", "associated", or "preceded".
@@ -95,6 +125,15 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     6. PII EXCLUSION: Strictly scrub names, emails, phones, and addresses from structured signals.
     7. MISSING DATA: If information is not in the VERIFIED PRODUCT FACTS, state: "I don't have verified information on that currently." Do not assume or fill gaps.
     8. SILENCE: Do not interpret silence or lack of response as acceptance or interest.
+
+    CONVERSATIONAL STRATEGY:
+    - Turn 1: Warm greeting and introduction. Briefly mention the product.
+    - Turn 2+: DO NOT re-introduce yourself. Maintain a direct, contextual conversation.
+    - DISCOVERY: If requirements are vague, ask ONE targeted clarifying question. Avoid premature recommendations.
+    - EVALUATION: Answer product questions using verified facts.
+    - EVOLUTION: Acknowledge requirement changes (e.g., new budget). Newer explicit statements supersede older ones.
+    - REJECTION: If a product or trait is rejected, add to dislikes/rejectionSet and pivot. Never repeatedly recommend a rejected item.
+    - COMPARISON: Use seenGtins from the state to resolve references like "the first one".
 
     STRICT DECISION-STATE DEFINITIONS:
     1. SEEN: Product was presented.
@@ -106,7 +145,14 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     ${factContextStr}
     ${shopperProfileContext}
 
-    ${input.hasConsent ? '' : 'PRIVACY MODE ACTIVE: Do not extract interaction signals for this turn.'}
+    ${input.previousContext ? `PREVIOUS SHOPPER CONTEXT:
+    - Requirements: ${input.previousContext.requirements.join(', ') || 'None'}
+    - Dislikes: ${input.previousContext.dislikes.join(', ') || 'None'}
+    - Budget: ${input.previousContext.budget?.limit || 'Not stated'}
+    - Rejected Items: ${input.previousContext.rejectionSet?.join(', ') || 'None'}
+    - Encountered GTINs: ${input.previousContext.seenGtins.join(', ') || 'None'}` : ''}
+
+    ${input.hasConsent ? '' : 'PRIVACY MODE ACTIVE: Do not extract interaction signals or persist transcript for this turn.'}
     
     PERSONALITY: Intelligent, grounded, non-manipulative. The shopper is always in control.`;
 
@@ -122,11 +168,11 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
 
       if (!output) throw new Error("Empty model response.");
       
-      // 3. PERSISTENCE LAYER: Only if database, session, and consent are available
-      if (db && input.sessionId) {
+      // 4. PERSISTENCE LAYER: Only if database, session, and consent are available
+      if (db && input.sessionId && input.hasConsent) {
           const sessionId = input.sessionId;
           const gtin = input.gtin || '00000000000000';
-          const retailerId = input.retailerId || 'unknown';
+          const retailerId = authorizedRetailerId;
 
           // A. Log Conversation Node
           const conversationId = `convo_${Date.now()}`;
@@ -143,10 +189,9 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
               dataStatus: 'VERIFIED'
           }).catch(console.warn);
 
-          // B. Extract and Log Signals (If Consent)
-          if (input.hasConsent && output.signals && output.signals.length > 0) {
+          // B. Extract and Log Signals
+          if (output.signals && output.signals.length > 0) {
               output.signals.forEach((signal) => {
-                  // Hardened Validation: Cap inferred signals at INFERRED confidence
                   if (signal.evidenceType === 'inferred') {
                       signal.confidence = 'INFERRED';
                   }
@@ -192,7 +237,8 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
           metadata: {
               ariVersion: ARI_CORE_VERSION,
               modelVersion: 'gemini-2.5-flash',
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              authorizedRetailerId
           }
       } as any;
   } catch (error: any) {
@@ -200,7 +246,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
       return {
           message: "I'm currently synchronizing with the network. Please feel free to check the product details while I reconnect.",
           signals: [],
-          shopperContext: { requirements: [], preferences: [], dislikes: [], consideredGtins: [], seenGtins: [], unresolvedQuestions: ["System sync pending"] },
+          shopperContext: input.previousContext || { turnCount: turnCount + 1, requirements: [], preferences: [], dislikes: [], consideredGtins: [], seenGtins: [], rejectionSet: [], unresolvedQuestions: ["System sync pending"] },
           metadata: { ariVersion: ARI_CORE_VERSION, modelVersion: 'none', timestamp: new Date().toISOString() }
       } as any;
   }

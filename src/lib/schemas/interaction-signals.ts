@@ -3,7 +3,7 @@ import { z } from 'genkit';
 /**
  * @fileOverview Controlled Taxonomy for Structured Interaction Signals & Shopper Context.
  * Defines the evidence layer for customer-expressed information and working session memory.
- * VERSION: 1.3.1 (PII Hardened)
+ * VERSION: 1.4.0 (State Loop Support)
  */
 
 export const EvidenceTypeSchema = z.enum(['explicit', 'derived', 'inferred']).describe(
@@ -28,6 +28,7 @@ export const InteractionSignalSchema = z.object({
     'product_comparison',
     'purchase_barrier',
     'recommendation_response',
+    'interaction_signal',
     'information_request'
   ]).describe('The category of the extracted signal.'),
   value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]).describe('The structured value of the signal. PII (names, emails, etc.) MUST BE EXCLUDED.'),
@@ -44,6 +45,7 @@ export type InteractionSignal = z.infer<typeof InteractionSignalSchema>;
  * Maintains the "Working Memory" of the current shopping session.
  */
 export const ShopperContextSchema = z.object({
+  turnCount: z.number().int().default(1).describe('The current turn index of the conversation.'),
   objective: z.string().optional().describe('The main goal of the shopping session.'),
   requirements: z.array(z.string()).describe('Explicit must-have features or constraints.'),
   preferences: z.array(z.string()).describe('Stated likes or preferred attributes.'),
@@ -54,7 +56,8 @@ export const ShopperContextSchema = z.object({
     isFlexible: z.boolean().default(false)
   }).optional(),
   consideredGtins: z.array(z.string()).describe('GTINs actively evaluated (comparison/suitability check).'),
-  seenGtins: z.array(z.string()).describe('GTINs presented to the user.'),
+  seenGtins: z.array(z.string()).describe('GTINs presented to the user in chronological order.'),
+  rejectionSet: z.array(z.string()).default([]).describe('GTINs explicitly rejected by the shopper.'),
   unresolvedQuestions: z.array(z.string()).describe('Questions the shopper asked that require further follow-up.')
 });
 

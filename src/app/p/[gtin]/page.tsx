@@ -1,4 +1,3 @@
-
 'use client';
 
 import { notFound, useSearchParams } from 'next/navigation';

@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Transactional Journey Attribution Flow.
@@ -12,7 +11,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import { 
   AttributionReportSchema, 
-  type AttributionRecord 
+  type AttributionReport 
 } from '@/lib/schemas/attribution';
 import { subDays } from 'date-fns';
 
@@ -91,7 +90,7 @@ const attributeTransactionsFlow = ai.defineFlow(
 
         // 3. Factual Join Pipeline
         for (const txn of allTransactions) {
-            const sessionId = txn.sessionId;
+            const sessionId = (txn as any).sessionId;
             
             // INTEGRITY CHECK: Handle orphan/legacy records
             if (!sessionId) {
@@ -105,7 +104,7 @@ const attributeTransactionsFlow = ai.defineFlow(
                     journeyNodes: [],
                     dataStatus: 'SIMULATED', // Cannot verify without lineage
                     generatedAt: new Date().toISOString()
-                } as AttributionRecord);
+                } as any);
                 continue;
             }
 
@@ -123,7 +122,7 @@ const attributeTransactionsFlow = ai.defineFlow(
             const ariEvents = events.filter(e => e.type === 'interaction_signal' || e.type === 'recommendation_event');
             const hasAriInteraction = ariEvents.length > 0;
             
-            let level: AttributionRecord['attributionLevel'] = 'NONE';
+            let level: any = 'NONE';
             let status: 'VERIFIED' | 'SIMULATED' = 'SIMULATED';
 
             if (sessionDoc.exists && sessionDoc.data()?.retailerId === authorizedRetailerId) {
@@ -133,7 +132,7 @@ const attributeTransactionsFlow = ai.defineFlow(
                     uniqueSessionsAttributed.add(sessionId);
                     
                     // Recommendation logic
-                    const purchasedItems = txn.items || [];
+                    const purchasedItems = (txn as any).items || [];
                     const hasPurchasedRecommendation = ariEvents.some(ae => 
                         ae.type === 'recommendation_event' && 
                         purchasedItems.some((pi: any) => pi.gtin === ae.gtin)
@@ -151,15 +150,15 @@ const attributeTransactionsFlow = ai.defineFlow(
                 retailerId: authorizedRetailerId,
                 sessionId,
                 transactionId: txn.id,
-                purchasedGtin: txn.items?.[0]?.gtin,
-                transactionTimestamp: txn.timestamp?.toDate().toISOString(),
+                purchasedGtin: (txn as any).items?.[0]?.gtin,
+                transactionTimestamp: (txn as any).timestamp?.toDate().toISOString(),
                 ariInteraction: hasAriInteraction,
                 attributionLevel: level,
                 journeyNodes: events,
                 dataStatus: status,
                 attributionVersion: '3.0.0',
                 generatedAt: new Date().toISOString()
-            });
+            } as any);
         }
 
         return {

@@ -17,7 +17,7 @@ import ShopperProfileCta from '@/components/shopper/shopper-profile-cta';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, use } from 'react';
 import { BackButton } from '@/components/ui/back-button';

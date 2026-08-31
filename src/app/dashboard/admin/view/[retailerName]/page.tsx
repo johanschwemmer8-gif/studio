@@ -231,7 +231,7 @@ export default function RetailerViewPage() {
                 <CardContent>
                     <p className="text-muted-foreground text-xs leading-relaxed">Audit authorized administrators and assigned identity claims for this tenant.</p>
                     <Button asChild className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">
-                        <Link href={`/create-admin?retailer=${retailer.id}`}>Manage Users</Link>
+                        <Link href={`/dashboard/identity-registry?retailer=${retailer.id}`}>Manage Users</Link>
                     </Button>
                 </CardContent>
             </Card>

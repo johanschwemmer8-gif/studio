@@ -9,12 +9,14 @@ import {
 import RetailerSidebar from '@/components/dashboard/retailer-sidebar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ShieldCheck, ShieldAlert, FlaskConical } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, FlaskConical, ArrowLeft } from 'lucide-react';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 import { Badge } from '@/components/ui/badge';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
 
@@ -47,19 +49,19 @@ function RetailerMvpLayoutContent({
   children: React.ReactNode;
 }) {
     const { user } = useAuth();
+    const searchParams = useSearchParams();
     
     const isPlatformAdmin = user?.role === 'admin';
     const isRetailerUser = ['retailerAdmin', 'storeManager', 'analyst'].includes(user?.role || '');
     const hasRetailerId = !!user?.retailerId;
     
     // Explicitly check for provisioned status based on application roles
-    // Only platform admins or retailer users with a valid retailerId may enter.
     const isProvisioned = isPlatformAdmin || (isRetailerUser && hasRetailerId);
-    
     const isTestEnvironment = user?.retailerId === TEST_RETAILER_ID;
+    
+    const inspectingRetailer = searchParams.get('retailer');
 
     // GLOBAL IDENTITY GUARD
-    // Prevents unauthorized or unprovisioned users from accessing the environment.
     if (!isProvisioned) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-background p-12 text-center space-y-6">
@@ -101,7 +103,29 @@ function RetailerMvpLayoutContent({
                 </SidebarHeader>
             </RetailerSidebar>
             <SidebarInset>
-                <header className="flex items-center justify-between p-4 border-b bg-card h-16 gap-4 sticky top-0 z-50">
+                {isPlatformAdmin && (
+                    <div className="bg-primary text-primary-foreground px-6 py-2.5 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] border-b border-primary-foreground/10 shadow-lg z-50">
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2.5">
+                                <ShieldCheck className="h-4 w-4 text-accent" />
+                                <span>Platform Admin — Tenant Inspection Mode</span>
+                            </div>
+                            {(inspectingRetailer || user?.retailerId) && (
+                                <div className="flex items-center gap-2 opacity-60">
+                                    <div className="h-1 w-1 rounded-full bg-white" />
+                                    <span>Viewing: {inspectingRetailer || user?.retailerId}</span>
+                                </div>
+                            )}
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="h-8 px-4 text-[9px] font-black hover:bg-white/10 hover:text-white border-white/20 bg-transparent text-white gap-2 transition-all">
+                            <Link href="/dashboard/admin">
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                                Exit to Control Plane
+                            </Link>
+                        </Button>
+                    </div>
+                )}
+                <header className="flex items-center justify-between p-4 border-b bg-card h-16 gap-4 sticky top-0 z-40">
                 <div className="flex items-center gap-4">
                     <SidebarTrigger />
                     <h1 className="text-xl font-bold whitespace-nowrap tracking-tight">Retailer Dashboard</h1>
@@ -109,7 +133,7 @@ function RetailerMvpLayoutContent({
                 <div className="flex flex-1 items-center justify-center">
                     <SearchBar />
                 </div>
-                {isTestEnvironment && (
+                {isTestEnvironment && !isPlatformAdmin && (
                     <div className="hidden md:flex items-center gap-2 px-4 py-1.5 bg-accent/10 border border-accent/20 rounded-full">
                          <ShieldCheck className="h-3.5 w-3.5 text-accent-foreground" />
                          <span className="text-[10px] font-black uppercase tracking-widest text-accent-foreground">Verified Test Mode Active</span>
@@ -135,7 +159,11 @@ export default function RetailerMvpLayout({
 }) {
   return (
     <ThemeProvider>
-        <RetailerMvpLayoutContent>{children}</RetailerMvpLayoutContent>
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <RetailerMvpLayoutContent>{children}</RetailerMvpLayoutContent>
+        </Suspense>
     </ThemeProvider>
   );
 }
+
+import { Loader2 } from 'lucide-react';

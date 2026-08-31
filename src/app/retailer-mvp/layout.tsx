@@ -68,9 +68,6 @@ function RetailerMvpLayoutContent({
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <Button asChild variant="outline">
-                        <Link href="/create-admin">Open User Management</Link>
-                    </Button>
                     <Button variant="ghost" onClick={() => window.location.reload()}>
                         Check Again
                     </Button>

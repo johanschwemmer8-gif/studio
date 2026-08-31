@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
-import { storesByRegion } from '@/lib/data';
 import StoreSelector from '@/components/dashboard/store-selector';
 import {
   Card,
@@ -106,6 +105,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [retailerRegions, setRetailerRegions] = useState<{ province: string; stores: { name: string; code: number }[] }[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Analytics states
@@ -124,6 +124,59 @@ export default function DashboardPage() {
 
   const { toast } = useToast();
   const retailerId = user?.retailerId || 'unknown';
+
+  // Load the retailer's actual organization hierarchy from Firestore.
+  useEffect(() => {
+    if (!user?.retailerId || !db) return;
+
+    const loadOrganization = async () => {
+      try {
+        const orgRef = doc(db, 'configurations', `${user.retailerId}_org`);
+        const orgSnap = await getDoc(orgRef);
+
+        if (!orgSnap.exists()) {
+          setRetailerRegions([]);
+          return;
+        }
+
+        const organization = orgSnap.data().data;
+        const regionMap = new Map<string, { province: string; stores: { name: string; code: number }[] }>();
+
+        for (const brand of organization?.brands || []) {
+          for (const division of brand.divisions || []) {
+            for (const region of division.regions || []) {
+              const province = region.province || region.name;
+
+              if (!regionMap.has(province)) {
+                regionMap.set(province, {
+                  province,
+                  stores: [],
+                });
+              }
+
+              const target = regionMap.get(province)!;
+
+              for (const area of region.areas || []) {
+                for (const store of area.stores || []) {
+                  target.stores.push({
+                    name: store.name,
+                    code: Number(store.code) || 0,
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        setRetailerRegions(Array.from(regionMap.values()));
+      } catch (error) {
+        console.error('Failed to load retailer organization:', error);
+        setRetailerRegions([]);
+      }
+    };
+
+    loadOrganization();
+  }, [user?.retailerId]);
 
   const fetchAnalytics = async (retryCount = 0) => {
     if (!user) return;
@@ -195,7 +248,7 @@ export default function DashboardPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-card/50 p-4 rounded-xl border border-primary/10 shadow-sm">
           <div className="flex-1 w-full lg:w-auto">
              <StoreSelector
-                regions={storesByRegion}
+                regions={retailerRegions}
                 selectedRegion={selectedRegion}
                 onRegionChange={setSelectedRegion}
                 selectedStore={selectedStore}

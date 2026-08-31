@@ -1,12 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Building2, 
   PlusCircle, 
@@ -34,8 +41,21 @@ const areaSchema = z.object({
   stores: z.array(storeSchema).default([]),
 });
 
+const SOUTH_AFRICAN_PROVINCES = [
+  'Eastern Cape',
+  'Free State',
+  'Gauteng',
+  'KwaZulu-Natal',
+  'Limpopo',
+  'Mpumalanga',
+  'Northern Cape',
+  'North West',
+  'Western Cape',
+] as const;
+
 const regionSchema = z.object({
   name: z.string().min(1, 'Region name is required'),
+  province: z.enum(SOUTH_AFRICAN_PROVINCES),
   areas: z.array(areaSchema).default([]),
 });
 
@@ -257,7 +277,7 @@ function DivisionNode({ brandIndex, index, control, remove, register }: any) {
           type="button" 
           variant="ghost" 
           size="sm" 
-          onClick={() => appendRegion({ name: 'New Region', areas: [] })}
+          onClick={() => appendRegion({ name: 'New Region', province: 'Gauteng', areas: [] })}
         >
           <PlusCircle className="mr-2 h-3 w-3" /> Add Region
         </Button>
@@ -278,8 +298,27 @@ function RegionNode({ brandIndex, divisionIndex, index, control, remove, registe
           <MapPin className="h-4 w-4 text-muted-foreground" />
           <Input 
             {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${index}.name`)} 
-            placeholder="Region Name (e.g. Western Cape)" 
+            placeholder="Region Name (e.g. Durban Region)" 
             className="font-semibold text-xs h-7"
+          />
+          <Controller
+            control={control}
+            name={`brands.${brandIndex}.divisions.${divisionIndex}.regions.${index}.province`}
+            defaultValue="Gauteng"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="h-7 w-48 text-xs">
+                  <SelectValue placeholder="Select Province" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOUTH_AFRICAN_PROVINCES.map((province) => (
+                    <SelectItem key={province} value={province}>
+                      {province}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           />
           <Button type="button" variant="ghost" size="icon" onClick={remove}><Trash2 className="h-3 w-3"/></Button>
         </div>

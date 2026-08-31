@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils';
 import { listAuthUsers, type AuthUser } from '@/ai/flows/list-auth-users';
 import { assignUserClaims } from '@/ai/flows/assign-user-claims';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSearchParams } from 'next/navigation';
 
 type UserAccount = {
   uid: string;
@@ -60,14 +61,17 @@ type UserAccount = {
   isActive: boolean;
 };
 
-export default function UserAccessControlPage() {
+function UserAccessControlContent() {
+  const searchParams = useSearchParams();
+  const initialRetailer = searchParams.get('retailer') || '';
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [firestoreUsers, setFirestoreUsers] = useState<UserAccount[]>([]);
   const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
   const [retailers, setRetailers] = useState<{id: string, name: string}[]>([]);
   
-  const [selectedRetailer, setSelectedRetailer] = useState<string>('');
+  const [selectedRetailer, setSelectedRetailer] = useState<string>(initialRetailer);
   const [selectedRole, setSelectedRole] = useState<'retailerAdmin' | 'storeManager' | 'analyst'>('analyst');
   
   const [loading, setLoading] = useState(true);
@@ -76,6 +80,12 @@ export default function UserAccessControlPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+      if (initialRetailer) {
+          setSelectedRetailer(initialRetailer);
+      }
+  }, [initialRetailer]);
 
   // 1. Live Subscriptions (Users & Retailers)
   useEffect(() => {
@@ -398,5 +408,13 @@ export default function UserAccessControlPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function UserAccessControlPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>}>
+      <UserAccessControlContent />
+    </Suspense>
   );
 }

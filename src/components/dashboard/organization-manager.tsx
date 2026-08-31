@@ -55,11 +55,17 @@ const organizationSchema = z.object({
 
 type OrganizationValues = z.infer<typeof organizationSchema>;
 
-export function OrganizationManager() {
+interface OrganizationManagerProps {
+  retailerId?: string;
+}
+
+export function OrganizationManager({ retailerId: propRetailerId }: OrganizationManagerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+
+  const activeRetailerId = propRetailerId || user?.retailerId;
 
   const form = useForm<OrganizationValues>({
     resolver: zodResolver(organizationSchema),
@@ -74,9 +80,12 @@ export function OrganizationManager() {
   });
 
   useEffect(() => {
-    if (!user?.retailerId || !db) return;
+    if (!activeRetailerId || !db) {
+        setIsFetching(false);
+        return;
+    }
 
-    const docRef = doc(db, 'configurations', `${user.retailerId}_org`);
+    const docRef = doc(db, 'configurations', `${activeRetailerId}_org`);
     
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -97,19 +106,19 @@ export function OrganizationManager() {
     });
 
     return () => unsubscribe();
-  }, [user?.retailerId, form]);
+  }, [activeRetailerId, form]);
 
   const onSubmit = async (data: OrganizationValues) => {
-    if (!user?.retailerId || !db) {
+    if (!activeRetailerId || !db) {
         toast({ title: 'Error', description: 'Authentication context missing.', variant: 'destructive' });
         return;
     }
 
     setIsLoading(true);
     try {
-      const docRef = doc(db, 'configurations', `${user.retailerId}_org`);
+      const docRef = doc(db, 'configurations', `${activeRetailerId}_org`);
       await setDoc(docRef, {
-        retailerId: user.retailerId,
+        retailerId: activeRetailerId,
         type: 'org',
         data: data,
         updatedAt: serverTimestamp()
@@ -139,6 +148,18 @@ export function OrganizationManager() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Retrieving Network Hierarchy...</p>
           </div>
+      );
+  }
+
+  if (!activeRetailerId) {
+      return (
+        <Card className="border-dashed border-2 bg-muted/20">
+          <CardContent className="flex flex-col items-center justify-center py-20 text-center gap-4">
+            <Building2 className="h-10 w-10 text-muted-foreground opacity-30" />
+            <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Retailer Identity Required</p>
+            <p className="text-xs text-muted-foreground max-w-xs">You must be provisioned to a retailer to manage network structure.</p>
+          </CardContent>
+        </Card>
       );
   }
 

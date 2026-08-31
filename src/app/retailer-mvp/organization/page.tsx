@@ -1,9 +1,15 @@
 'use client';
 
+import { Suspense } from 'react';
 import { OrganizationManager } from '@/components/dashboard/organization-manager';
 import { Separator } from '@/components/ui/separator';
+import { useSearchParams } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
-export default function OrganizationPage() {
+function OrganizationPageContent() {
+  const searchParams = useSearchParams();
+  const retailerId = searchParams.get('retailer');
+
   return (
     <div className="space-y-8">
       <div>
@@ -13,7 +19,15 @@ export default function OrganizationPage() {
         </p>
       </div>
       <Separator />
-      <OrganizationManager />
+      <OrganizationManager retailerId={retailerId || undefined} />
     </div>
+  );
+}
+
+export default function OrganizationPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>}>
+      <OrganizationPageContent />
+    </Suspense>
   );
 }

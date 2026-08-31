@@ -216,7 +216,9 @@ export default function RetailerViewPage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground text-xs leading-relaxed">Manage global store locations and organizational nodes for this group.</p>
-                    <Button className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">View Network</Button>
+                    <Button asChild className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">
+                        <Link href={`/retailer-mvp/organization?retailer=${retailer.id}`}>View Network</Link>
+                    </Button>
                 </CardContent>
             </Card>
             <Card className="border-primary/10 hover:border-primary/30 transition-colors">
@@ -228,7 +230,9 @@ export default function RetailerViewPage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground text-xs leading-relaxed">Audit authorized administrators and assigned identity claims for this tenant.</p>
-                    <Button className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">Manage Users</Button>
+                    <Button asChild className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">
+                        <Link href={`/create-admin?retailer=${retailer.id}`}>Manage Users</Link>
+                    </Button>
                 </CardContent>
             </Card>
              <Card className="border-primary/10 hover:border-primary/30 transition-colors">
@@ -240,7 +244,9 @@ export default function RetailerViewPage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground text-xs leading-relaxed">Review integration secrets and API gateway settings for external data sync.</p>
-                    <Button className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">Security Audit</Button>
+                    <Button asChild className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">
+                        <Link href={`/dashboard/external-security-integrations?retailer=${retailer.id}`}>Security Audit</Link>
+                    </Button>
                 </CardContent>
             </Card>
         </div>

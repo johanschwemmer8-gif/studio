@@ -33,6 +33,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { assignUserClaims } from '@/ai/flows/assign-user-claims';
 import { createUser } from '@/ai/flows/create-user';
+import { seedTestRetailerDemo } from '@/ai/flows/seed-test-retailer-demo';
 import { Badge } from '@/components/ui/badge';
 import { collection, onSnapshot, doc, setDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
@@ -289,6 +290,30 @@ export default function AdminPage() {
     }
   };
 
+  const handleInitializeDemo = async () => {
+      try {
+          const idToken = await auth.currentUser?.getIdToken(true);
+          if (!idToken) throw new Error("Authentication required.");
+
+          const result = await seedTestRetailerDemo({ idToken });
+
+          if (result.success) {
+              toast({
+                  title: "Demo Tenant Initialized",
+                  description: "Heritage Vineyards has been provisioned successfully."
+              });
+          } else {
+              throw new Error(result.message);
+          }
+      } catch (e: any) {
+          toast({
+              title: "Demo Initialization Failed",
+              description: e.message || "Unable to initialize the demo tenant.",
+              variant: "destructive"
+          });
+      }
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -317,6 +342,9 @@ export default function AdminPage() {
                         />
                         <Button onClick={handleAddRetailer} disabled={!newRetailerName.trim()} className="h-11 px-8">
                             <PlusCircle className="mr-2 h-4 w-4" /> Add Retailer
+                        </Button>
+                        <Button onClick={handleInitializeDemo} variant="outline" className="h-11 px-6">
+                            Initialize Demo
                         </Button>
                     </div>
                 </CardContent>

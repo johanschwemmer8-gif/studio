@@ -1,11 +1,12 @@
 'use server';
 /**
- * @fileOverview A scheduled flow to synchronize products from a mock retailer API.
+ * @fileOverview Secure Product Sync Service.
  * 
  * SECURITY MODEL:
- * This flow is designed for both system-scheduled execution and manual administrative triggers.
- * - When triggered by a user (manual sync), an idToken is required for authorization.
- * - System triggers (CRON) must be secured at the infrastructure layer (e.g., service account IAM).
+ * 1. User-Initiated (Authenticated): Requires a valid Firebase ID token.
+ *    Authorized via getAuthorizedRetailerId() to prevent tenant spoofing.
+ * 2. System-Initiated (Privileged): Handled via non-exported internal functions
+ *    that are NOT reachable from the client.
  */
 
 import { ai } from '@/ai/genkit';
@@ -27,43 +28,14 @@ const ProductSchema = z.object({
   isAvailable: z.boolean(),
 });
 
-const ScheduledProductSyncInputSchema = z.object({
-  idToken: z.string().optional().describe('Firebase ID token for user-initiated triggers.'),
-  retailerId: z.string(),
-  mockApiUrl: z.string().url().default('https://mock-retailer-api.com/products'), // Example URL
-});
-export type ScheduledProductSyncInput = z.infer<typeof ScheduledProductSyncInputSchema>;
-
-const ScheduledProductSyncOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  syncedCount: z.number().optional(),
-  deletedCount: z.number().optional(),
-});
-export type ScheduledProductSyncOutput = z.infer<typeof ScheduledProductSyncOutputSchema>;
-
-export async function scheduledProductSync(input: ScheduledProductSyncInput): Promise<ScheduledProductSyncOutput> {
-  return scheduledProductSyncFlow(input);
-}
-
-const scheduledProductSyncFlow = ai.defineFlow(
-  {
-    name: 'scheduledProductSyncFlow',
-    inputSchema: ScheduledProductSyncInputSchema,
-    outputSchema: ScheduledProductSyncOutputSchema,
-  },
-  async ({ idToken, retailerId, mockApiUrl }) => {
-    // AUTHORIZATION GATE: If triggered via API/UI, enforce authoritative identity.
-    // If idToken is absent, the execution is assumed to be a system-privileged process.
-    let authorizedRetailerId = retailerId;
-    if (idToken) {
-        authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
-    }
-
+/**
+ * INTERNAL PRIVILEGED SYNC LOGIC
+ * Not exported as a Server Action to ensure it is only callable from the server.
+ */
+async function performSyncOperation(retailerId: string, mockApiUrl: string): Promise<any> {
     const db = admin.firestore();
-
-    // 1. Fetch data from mock retailer API
     let productsFromApi: z.infer<typeof ProductSchema>[];
+    
     try {
       const response = await fetch(mockApiUrl);
       if (!response.ok) {
@@ -71,7 +43,7 @@ const scheduledProductSyncFlow = ai.defineFlow(
       }
       productsFromApi = await response.json() as z.infer<typeof ProductSchema>[];
     } catch (error: any) {
-        console.warn(`Mock API fetch failed (${(error as Error).message}). Using fallback mock data.`);
+        console.warn(`[System Sync] API fetch failed for ${retailerId}: ${error.message}. Fallback data active.`);
         productsFromApi = [
             { sku: 'MOCK-001', name: 'Synced Running Shoes', description: 'Latest model.', price: 129.99, imageUrl: 'https://picsum.photos/seed/shoes/400', isAvailable: true },
             { sku: 'MOCK-002', name: 'Synced Water Bottle', description: 'Keeps drinks cold.', price: 29.99, imageUrl: 'https://picsum.photos/seed/bottle/400', isAvailable: true },
@@ -83,8 +55,7 @@ const scheduledProductSyncFlow = ai.defineFlow(
     let deletedCount = 0;
 
     try {
-      // 2. Clear all existing documents for the retailer
-      const existingProductsQuery = productsRef.where('retailerId', '==', authorizedRetailerId);
+      const existingProductsQuery = productsRef.where('retailerId', '==', retailerId);
       const snapshot = await existingProductsQuery.get();
       
       if (!snapshot.empty) {
@@ -96,13 +67,12 @@ const scheduledProductSyncFlow = ai.defineFlow(
         deletedCount = snapshot.size;
       }
 
-      // 3. Save new products
       const addBatch = db.batch();
       productsFromApi.forEach(product => {
         const docRef = productsRef.doc(product.sku); 
         addBatch.set(docRef, {
           ...product,
-          retailerId: authorizedRetailerId, 
+          retailerId: retailerId, 
           syncedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       });
@@ -110,17 +80,52 @@ const scheduledProductSyncFlow = ai.defineFlow(
 
       return {
         success: true,
-        message: `Successfully synced ${productsFromApi.length} products for retailer ${authorizedRetailerId}.`,
+        message: `Successfully synced ${productsFromApi.length} products for retailer ${retailerId}.`,
         syncedCount: productsFromApi.length,
         deletedCount: deletedCount,
       };
 
     } catch (error: any) {
-      console.error('Product synchronization failed:', error);
-      return {
-        success: false,
-        message: `Error during Firestore operation: ${(error as Error).message}`,
-      };
+      console.error(`[System Sync] Firestore error for ${retailerId}:`, error.message);
+      throw error;
     }
+}
+
+const ScheduledProductSyncInputSchema = z.object({
+  idToken: z.string().describe('Firebase ID token for user-initiated triggers.'),
+  retailerId: z.string(),
+  mockApiUrl: z.string().url().default('https://mock-retailer-api.com/products'),
+});
+
+const ScheduledProductSyncOutputSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  syncedCount: z.number().optional(),
+  deletedCount: z.number().optional(),
+});
+
+export type ScheduledProductSyncInput = z.infer<typeof ScheduledProductSyncInputSchema>;
+export type ScheduledProductSyncOutput = z.infer<typeof ScheduledProductSyncOutputSchema>;
+
+/**
+ * PUBLIC SERVER ACTION
+ * Authenticated entry point for syncing products.
+ */
+export async function scheduledProductSync(input: ScheduledProductSyncInput): Promise<ScheduledProductSyncOutput> {
+  return scheduledProductSyncFlow(input);
+}
+
+const scheduledProductSyncFlow = ai.defineFlow(
+  {
+    name: 'scheduledProductSyncFlow',
+    inputSchema: ScheduledProductSyncInputSchema,
+    outputSchema: ScheduledProductSyncOutputSchema,
+  },
+  async ({ idToken, retailerId, mockApiUrl }) => {
+    // AUTHORIZATION GATE: Resolve authoritative retailerId from token.
+    // This will throw if the token is missing or invalid.
+    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
+    
+    return await performSyncOperation(authorizedRetailerId, mockApiUrl);
   }
 );

@@ -90,7 +90,7 @@ function SidebarLogo() {
 
 /**
  * iNteract Platform Control Plane Layout
- * Protected: Access restricted to 'admin' role.
+ * Protected: Access restricted to 'admin' role only.
  */
 export default function DashboardLayout({
   children,
@@ -103,7 +103,7 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!loading) {
         if (!user) {
-            router.replace('/');
+            router.replace('/login');
         } else if (user.role !== 'admin') {
             // Non-admin users are restricted to the Retailer MVP
             router.replace('/retailer-mvp/dashboard');

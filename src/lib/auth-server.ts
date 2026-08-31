@@ -2,7 +2,7 @@
 /**
  * @fileOverview Authoritative Server-Side Authorization Helper.
  * IMPLEMENTATION: Hardened Identity Resolution with Structured Error Handling.
- * VERSION: 2.4.0 (Auth Cache & Multi-Action Resilience)
+ * VERSION: 2.5.0 (Strict Role Verification & Tenant Isolation)
  */
 
 import { admin, getDb } from "./firebase-admin";
@@ -46,7 +46,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
       const auth = admin.auth();
       const decodedToken = await auth.verifyIdToken(idToken);
       
-      let role = decodedToken.role as any;
+      let role = decodedToken.role as AuthorizedContext['role'];
       let retailerId = decodedToken.retailerId as string;
 
       // FALLBACK: If token lacks claims, check Firestore authoritative record
@@ -56,16 +56,22 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
               const userDoc = await db.collection('users').doc(decodedToken.uid).get();
               if (userDoc.exists) {
                   const userData = userDoc.data();
-                  role = role || userData?.role;
+                  role = role || (userData?.role as AuthorizedContext['role']);
                   retailerId = retailerId || userData?.retailerId;
                   console.log(`[Auth] Identity verified via Database Fallback for ${decodedToken.uid}`);
               }
           }
       }
 
+      // Final Role Validation: Ensure only authoritative roles are accepted
+      const validRoles: AuthorizedContext['role'][] = ['admin', 'retailerAdmin', 'storeManager', 'analyst'];
+      if (!role || !validRoles.includes(role)) {
+          role = 'analyst'; // Default to least privileged valid role
+      }
+
       const result: AuthorizedContext = {
         uid: decodedToken.uid,
-        role: role || 'analyst',
+        role,
         retailerId,
       };
 
@@ -104,6 +110,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
 
 /**
  * Resolves the authoritative retailerId for a requested operation.
+ * Strictly enforces tenant isolation for non-admin users.
  */
 export async function getAuthorizedRetailerId(idToken: string | undefined, requestedRetailerId: string): Promise<string> {
   const auth = await verifyAuth(idToken);
@@ -112,16 +119,22 @@ export async function getAuthorizedRetailerId(idToken: string | undefined, reque
       throw new Error(auth.error); 
   }
 
+  // Platform Admins can access any requested tenant context
   if (auth.role === 'admin') {
     return requestedRetailerId || 'unknown';
   }
   
+  // All other users MUST have a provisioned retailerId
   if (!auth.retailerId) {
     throw new Error('IDENTITY_NOT_PROVISIONED: Account not linked to a retailer.');
   }
   
+  // STRICT TENANT ISOLATION: 
+  // Non-admins can only access their own retailer context.
+  // Any attempt to request a different ID results in denial.
   if (requestedRetailerId && requestedRetailerId !== 'unknown' && auth.retailerId !== requestedRetailerId) {
-     throw new Error(`ACCESS_DENIED: Tenant mismatch.`);
+     console.error(`[Security] ACCESS_DENIED: Tenant mismatch for user ${auth.uid}. Requested: ${requestedRetailerId}, Authenticated: ${auth.retailerId}`);
+     throw new Error(`ACCESS_DENIED: You are not authorized to access this tenant's data.`);
   }
   
   return auth.retailerId;

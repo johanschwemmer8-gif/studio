@@ -53,12 +53,13 @@ function RetailerMvpLayoutContent({
     const hasRetailerId = !!user?.retailerId;
     
     // Explicitly check for provisioned status based on application roles
+    // Only platform admins or retailer users with a valid retailerId may enter.
     const isProvisioned = isPlatformAdmin || (isRetailerUser && hasRetailerId);
     
     const isTestEnvironment = user?.retailerId === TEST_RETAILER_ID;
 
     // GLOBAL IDENTITY GUARD
-    // Prevents server flow failures by stopping unprovisioned users at the layout level.
+    // Prevents unauthorized or unprovisioned users from accessing the environment.
     if (!isProvisioned) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-background p-12 text-center space-y-6">

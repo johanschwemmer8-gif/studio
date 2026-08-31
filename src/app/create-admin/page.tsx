@@ -65,6 +65,7 @@ type UserAccount = {
 /**
  * Identity Registry Component
  * Handles user provisioning and role assignment.
+ * Restricted to 'admin' role only.
  */
 function UserAccessControlContent() {
   const { user: currentUser, loading: authLoading } = useAuth();
@@ -88,10 +89,14 @@ function UserAccessControlContent() {
 
   const { toast } = useToast();
 
-  // ROUTE AUTHORIZATION
+  // ROUTE AUTHORIZATION: Only 'admin' role can access identity management
   useEffect(() => {
-      if (!authLoading && currentUser?.role !== 'admin') {
-          router.replace('/retailer-mvp/dashboard');
+      if (!authLoading) {
+          if (!currentUser) {
+              router.replace('/login');
+          } else if (currentUser.role !== 'admin') {
+              router.replace('/retailer-mvp/dashboard');
+          }
       }
   }, [currentUser, authLoading, router]);
 
@@ -133,7 +138,7 @@ function UserAccessControlContent() {
     };
   }, [toast, currentUser]);
 
-  if (authLoading || currentUser?.role !== 'admin') {
+  if (authLoading || !currentUser || currentUser.role !== 'admin') {
       return (
           <div className="flex justify-center p-20">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />

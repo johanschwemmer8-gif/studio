@@ -2,7 +2,7 @@
 /**
  * @fileOverview Secure administrative tool for assigning trusted identity claims.
  * DESIGN: Ultra-Resilient "No-Throw" Server Action.
- * VERSION: 1.9.0 (Hardened: Removed implicit bootstrap)
+ * VERSION: 2.0.0 (Hardened: Removed insecure bootstrap path)
  */
 
 import { ai } from '@/ai/genkit';

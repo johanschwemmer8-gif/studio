@@ -5,6 +5,7 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { getRemoteConfig, type RemoteConfig } from 'firebase/remote-config';
 import { getAuth, type Auth } from 'firebase/auth';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -48,6 +49,7 @@ if (!getApps().length) {
 
 const db: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);
+const storage: FirebaseStorage = getStorage(app);
 
 let analytics: Promise<Analytics | null> | null = null;
 let remoteConfig: RemoteConfig | null = null;
@@ -74,4 +76,4 @@ if (typeof window !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.pro
     }
 }
 
-export { db, auth, analytics, remoteConfig };
+export { db, auth, storage, analytics, remoteConfig };

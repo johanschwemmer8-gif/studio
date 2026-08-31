@@ -22,8 +22,9 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Template1, Template2, Template3, Template4, Template5, Template6, Template7, Template8, Template9 } from '@/components/dashboard/ui-templates';
 import { useAuth } from '@/context/auth-context';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { HubNav } from '@/components/dashboard/hub-nav';
 
 function MobileLandingPagePreview({ settings }: { settings: any }) {
@@ -92,14 +93,45 @@ export default function UiManagementPage() {
     return () => unsubscribe();
   }, [user?.retailerId]);
 
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-              setSettings(prev => ({ ...prev, logoUrl: reader.result as string }));
-          };
-          reader.readAsDataURL(file);
+
+      if (!file || !user?.retailerId || !storage) return;
+
+      try {
+          setIsSaving(true);
+
+          const extension = file.name.split('.').pop()?.toLowerCase() || 'png';
+          const logoRef = ref(
+              storage,
+              `retailer-assets/${user.retailerId}/brand-logo-${Date.now()}.${extension}`
+          );
+
+          await uploadBytes(logoRef, file, {
+              contentType: file.type,
+          });
+
+          const downloadUrl = await getDownloadURL(logoRef);
+
+          setSettings(prev => ({
+              ...prev,
+              logoUrl: downloadUrl,
+          }));
+
+          toast({
+              title: "Logo Uploaded",
+              description: "Brand logo uploaded successfully. Click Apply Branding to save the experience settings.",
+          });
+      } catch (e: any) {
+          console.error("[Brand Experience] Logo upload failed:", e);
+
+          toast({
+              title: "Logo Upload Failed",
+              description: e.message || "Unable to upload the brand logo.",
+              variant: "destructive",
+          });
+      } finally {
+          setIsSaving(false);
       }
   };
 
@@ -109,10 +141,21 @@ export default function UiManagementPage() {
       setIsSaving(true);
       try {
           const docRef = doc(db, 'configurations', `${user.retailerId}_brand`);
+
+          const brandSettings = {
+              logoUrl: typeof settings.logoUrl === 'string' ? settings.logoUrl : '',
+              logoWidth: Number(settings.logoWidth) || 128,
+              logoAlign: settings.logoAlign || 'center',
+              logoPadding: Number(settings.logoPadding) || 0,
+              selectedTemplate: settings.selectedTemplate || 'template1',
+              landingPageUrl: typeof settings.landingPageUrl === 'string' ? settings.landingPageUrl : '',
+              scanDestination: settings.scanDestination === 'url' ? 'url' : 'ai',
+          };
+
           await setDoc(docRef, {
               retailerId: user.retailerId,
               type: 'brand',
-              data: settings,
+              data: brandSettings,
               updatedAt: serverTimestamp()
           });
           toast({ title: "Experience Settings Saved", description: "Authoritative branding synchronized." });

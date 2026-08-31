@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -10,7 +9,7 @@ import {
 import RetailerSidebar from '@/components/dashboard/retailer-sidebar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, FlaskConical, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, FlaskConical } from 'lucide-react';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
@@ -48,9 +47,15 @@ function RetailerMvpLayoutContent({
   children: React.ReactNode;
 }) {
     const { user } = useAuth();
-    const isTestEnvironment = user?.retailerId === TEST_RETAILER_ID;
+    
     const isPlatformAdmin = user?.role === 'admin';
-    const isProvisioned = !!user?.retailerId || isPlatformAdmin;
+    const isRetailerUser = ['retailerAdmin', 'storeManager', 'analyst'].includes(user?.role || '');
+    const hasRetailerId = !!user?.retailerId;
+    
+    // Explicitly check for provisioned status based on application roles
+    const isProvisioned = isPlatformAdmin || (isRetailerUser && hasRetailerId);
+    
+    const isTestEnvironment = user?.retailerId === TEST_RETAILER_ID;
 
     // GLOBAL IDENTITY GUARD
     // Prevents server flow failures by stopping unprovisioned users at the layout level.
@@ -64,13 +69,11 @@ function RetailerMvpLayoutContent({
                     <h1 className="text-2xl font-black uppercase tracking-tight">Identity Provisioning Required</h1>
                     <p className="text-muted-foreground max-w-md mx-auto">
                         Your account has not yet been associated with a specific retailer identity. 
-                        Please contact your Platform Administrator to assign your <code className="text-xs">retailerId</code>.
+                        Access to the Retailer MVP environment is restricted to authorized users.
                     </p>
                 </div>
-                <div className="flex gap-3">
-                    <Button asChild variant="outline">
-                        <Link href="/create-admin">Open User Management</Link>
-                    </Button>
+                <div className="flex flex-col items-center gap-4">
+                    <p className="text-sm font-bold text-primary">Contact your iNteract Platform Administrator to finalize setup.</p>
                     <Button variant="ghost" onClick={() => window.location.reload()}>
                         Check Again
                     </Button>

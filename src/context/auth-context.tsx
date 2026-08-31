@@ -1,15 +1,19 @@
-
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getAuth, onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-type AuthUser = User & {
+/**
+ * Authoritative Application Roles
+ */
+export type UserRole = 'admin' | 'retailerAdmin' | 'storeManager' | 'analyst';
+
+export type AuthUser = User & {
     retailerId?: string;
-    role?: 'admin' | 'retailer';
+    role?: UserRole;
 };
 
 type AuthContextType = {
@@ -39,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         const authUser: AuthUser = Object.assign(firebaseUser, {
             retailerId: claims.retailerId as string | undefined,
-            role: claims.role as 'admin' | 'retailer' | undefined,
+            role: claims.role as UserRole | undefined,
         });
 
         setUser(authUser);

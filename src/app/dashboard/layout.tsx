@@ -23,17 +23,11 @@ import {
   LogOut, 
   Shield, 
   BookOpen, 
-  DollarSign, 
   Activity, 
   Loader2,
   Users,
   Settings,
   FileCheck,
-  PlayCircle,
-  FlaskConical,
-  Lock,
-  Globe,
-  Building2,
   BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
@@ -94,6 +88,10 @@ function SidebarLogo() {
     );
 }
 
+/**
+ * iNteract Platform Control Plane Layout
+ * Protected: Access restricted to 'admin' role.
+ */
 export default function DashboardLayout({
   children,
 }: {
@@ -103,12 +101,17 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (!loading) {
+        if (!user) {
+            router.replace('/');
+        } else if (user.role !== 'admin') {
+            // Non-admin users are restricted to the Retailer MVP
+            router.replace('/retailer-mvp/dashboard');
+        }
     }
   }, [user, loading, router]);
 
-  if (loading || !user) {
+  if (loading || !user || user.role !== 'admin') {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -180,7 +183,7 @@ export default function DashboardLayout({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Test Laboratory">
                     <Link href="/dashboard/system-integration">
-                      <FlaskConical className="h-4 w-4" />
+                      <Settings className="h-4 w-4" />
                       <span>Test Laboratory</span>
                     </Link>
                   </SidebarMenuButton>

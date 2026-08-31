@@ -1,9 +1,8 @@
-
 'use server';
 /**
  * @fileOverview Secure administrative tool for assigning trusted identity claims.
  * DESIGN: Ultra-Resilient "No-Throw" Server Action.
- * VERSION: 1.8.0 (Bootstrap Logic Enabled)
+ * VERSION: 1.9.0 (Hardened: Removed implicit bootstrap)
  */
 
 import { ai } from '@/ai/genkit';
@@ -53,11 +52,15 @@ const assignUserClaimsFlow = ai.defineFlow(
     outputSchema: AssignUserClaimsOutputSchema,
   },
   async ({ idToken, targetUid, role, retailerId }) => {
-    // 1. Authorize Caller
+    // 1. Authorize Caller (Strict: Platform Admin Only)
     const caller = await verifyAuth(idToken);
     
     if (caller.error) {
         return { success: false, message: caller.error };
+    }
+
+    if (caller.role !== 'admin') {
+        return { success: false, message: "Unauthorized: Only platform administrators can provision access." };
     }
 
     const db = getDb();
@@ -66,15 +69,7 @@ const assignUserClaimsFlow = ai.defineFlow(
     }
 
     try {
-        // 2. BOOTSTRAP CHECK: If no users exist in the registry, allow the first user to provision themselves.
-        const usersSnapshot = await db.collection('users').limit(1).get();
-        const isFirstProvisioning = usersSnapshot.empty;
-
-        if (caller.role !== 'admin' && !isFirstProvisioning) {
-            return { success: false, message: "Unauthorized: Only platform administrators can provision access." };
-        }
-
-        // 3. PRIMARY PATH: Firestore Persistence
+        // 2. PRIMARY PATH: Firestore Persistence
         await db.collection('users').doc(targetUid).set({
             uid: targetUid,
             role,
@@ -85,7 +80,7 @@ const assignUserClaimsFlow = ai.defineFlow(
             dataStatus: 'VERIFIED'
         }, { merge: true });
 
-        // 4. SECONDARY PATH: Auth Custom Claims
+        // 3. SECONDARY PATH: Auth Custom Claims
         let cloudClaimStatus = "Ready";
         try {
             const auth = admin.auth();

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { 
     UserPlus, Search, Loader2, AlertTriangle, 
-    Eye, EyeOff, ShieldCheck, KeyRound, CheckCircle2, UserCheck
+    Eye, EyeOff, ShieldCheck, KeyRound, UserCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -50,7 +50,8 @@ import { cn } from '@/lib/utils';
 import { listAuthUsers, type AuthUser } from '@/ai/flows/list-auth-users';
 import { assignUserClaims } from '@/ai/flows/assign-user-claims';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
 
 type UserAccount = {
   uid: string;
@@ -61,7 +62,13 @@ type UserAccount = {
   isActive: boolean;
 };
 
+/**
+ * Identity Registry Component
+ * Handles user provisioning and role assignment.
+ */
 function UserAccessControlContent() {
+  const { user: currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialRetailer = searchParams.get('retailer') || '';
 
@@ -81,6 +88,13 @@ function UserAccessControlContent() {
 
   const { toast } = useToast();
 
+  // ROUTE AUTHORIZATION
+  useEffect(() => {
+      if (!authLoading && currentUser?.role !== 'admin') {
+          router.replace('/retailer-mvp/dashboard');
+      }
+  }, [currentUser, authLoading, router]);
+
   useEffect(() => {
       if (initialRetailer) {
           setSelectedRetailer(initialRetailer);
@@ -89,7 +103,7 @@ function UserAccessControlContent() {
 
   // 1. Live Subscriptions (Users & Retailers)
   useEffect(() => {
-    if (!db) return;
+    if (!db || currentUser?.role !== 'admin') return;
     setLoading(true);
     
     // Users stream
@@ -117,7 +131,15 @@ function UserAccessControlContent() {
         unsubscribeUsers();
         unsubscribeTenants();
     };
-  }, [toast]);
+  }, [toast, currentUser]);
+
+  if (authLoading || currentUser?.role !== 'admin') {
+      return (
+          <div className="flex justify-center p-20">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   // 2. Discover Auth Accounts
   const handleDiscoverUsers = () => {
@@ -219,7 +241,7 @@ function UserAccessControlContent() {
             
             <div className="flex gap-3">
                 <Button variant="outline" onClick={handleDiscoverUsers} disabled={isDiscovering} className="font-bold uppercase text-[10px] tracking-widest gap-2">
-                    {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4" />}
+                    {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     Discover Auth Accounts
                 </Button>
 

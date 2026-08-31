@@ -17,12 +17,11 @@ service cloud.firestore {
     }
 
     function isPlatformAdmin() {
-      // In pilot mode, any authenticated user can bootstrap the first retailer.
-      // Once provisioned, we check for 'admin' role in token OR user document.
+      // Hardened: check for 'admin' role in token OR user document.
+      // Bootstrap bypass removed to prevent unauthorized self-provisioning.
       return isAuthenticated() && (
         request.auth.token.role == 'admin' || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
 
@@ -39,7 +38,11 @@ service cloud.firestore {
 
     match /configurations/{configId} {
       allow read: if (configId.endsWith('_brand')) || (isAuthenticated());
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformAdmin() || (
+        isAuthenticated() && 
+        request.auth.token.role == 'retailerAdmin' && 
+        configId == getRetailerId() + '_org'
+      );
     }
 
     // --- IDENTITY & PRODUCT LAYER ---
@@ -57,7 +60,7 @@ service cloud.firestore {
     }
 
     match /bulkQrRequests/{requestId} {
-      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
+      allow read: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
       allow create: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
       allow update, delete: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
 

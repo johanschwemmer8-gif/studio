@@ -17,12 +17,11 @@ service cloud.firestore {
     }
 
     function isPlatformAdmin() {
-      // In pilot mode, any authenticated user can bootstrap the first retailer.
-      // Once provisioned, we check for 'admin' role in token OR user document.
+      // Platform administrators must have an explicit admin role.
+      // No bootstrap bypass is permitted.
       return isAuthenticated() && (
         request.auth.token.role == 'admin' || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
 
@@ -38,8 +37,15 @@ service cloud.firestore {
     }
 
     match /configurations/{configId} {
-      allow read: if (configId.endsWith('_brand')) || (isAuthenticated());
-      allow write: if isPlatformAdmin();
+      allow read: if (configId.matches('.*_brand$')) || (isAuthenticated());
+
+      // Platform admins may manage all configurations.
+      // Retailer admins may manage only their own organization configuration.
+      allow write: if isPlatformAdmin() || (
+        isAuthenticated() &&
+        request.auth.token.role == 'retailerAdmin' &&
+        configId == getRetailerId() + '_org'
+      );
     }
 
     // --- IDENTITY & PRODUCT LAYER ---
@@ -62,7 +68,9 @@ service cloud.firestore {
       allow update, delete: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
 
       match /items/{itemId} {
-        allow read, write: if isPlatformAdmin() || isTenantOwner(get(/databases/$(database)/documents/bulkQrRequests/$(requestId)).data.retailerId);
+        allow read, write: if isPlatformAdmin() || isTenantOwner(
+          get(/databases/$(database)/documents/bulkQrRequests/$(requestId)).data.retailerId
+        );
       }
     }
 
@@ -85,7 +93,11 @@ service cloud.firestore {
     // --- TRANSACTION LAYER ---
 
     match /baskets/{id} {
-      allow read, write: if isAuthenticated() && (resource == null || resource.data.shopperId == request.auth.uid || request.resource.data.shopperId == request.auth.uid);
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.shopperId == request.auth.uid ||
+        request.resource.data.shopperId == request.auth.uid
+      );
     }
 
     match /shoppers/{shopperId} {
@@ -93,13 +105,20 @@ service cloud.firestore {
     }
 
     match /saved_products/{id} {
-      allow read, write: if isAuthenticated() && (resource == null || resource.data.shopperId == request.auth.uid || request.resource.data.shopperId == request.auth.uid);
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.shopperId == request.auth.uid ||
+        request.resource.data.shopperId == request.auth.uid
+      );
     }
 
     // --- PLATFORM GOVERNANCE ---
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isPlatformAdmin());
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isPlatformAdmin()
+      );
       allow write: if isPlatformAdmin();
     }
 
@@ -108,6 +127,7 @@ service cloud.firestore {
     }
 
     // --- FALLBACK ---
+
     match /{document=**} {
       allow read, write: if false;
     }

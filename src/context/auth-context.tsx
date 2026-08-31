@@ -36,6 +36,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         const tokenResult = await firebaseUser.getIdTokenResult();
         const claims = tokenResult.claims;
+
+        console.log("[AUTH DEBUG] Firebase user:", firebaseUser.email);
+        console.log("[AUTH DEBUG] Firebase UID:", firebaseUser.uid);
+        console.log("[AUTH DEBUG] Firebase claims:", claims);
+        console.log("[AUTH DEBUG] retailerId claim:", claims.retailerId);
+        console.log("[AUTH DEBUG] role claim:", claims.role);
         
         const authUser: AuthUser = Object.assign(firebaseUser, {
             retailerId: claims.retailerId as string | undefined,

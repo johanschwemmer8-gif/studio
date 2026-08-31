@@ -1,7 +1,6 @@
 
 'use client';
 
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { ImageIcon, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,12 +41,16 @@ const commonLogo = ({ logoPreview, logoWidth, logoAlign, logoPadding, isThumbnai
     return (
         <header className={logoContainerClass} style={headerStyle}>
              {logoPreview ? (
-                <Image 
+                <img
                     src={logoPreview}
                     alt="Landing Page Logo"
-                    width={isThumbnail ? 40 : logoWidth}
-                    height={isThumbnail ? (40 / (128/50)) : (logoWidth / (128/50))}
-                    style={{ width: `${isThumbnail ? 40 : logoWidth}px`, display: 'inline-block' }}
+                    style={{
+                        width: `${isThumbnail ? 40 : logoWidth}px`,
+                        height: 'auto',
+                        maxWidth: '100%',
+                        objectFit: 'contain',
+                        display: 'inline-block',
+                    }}
                 />
             ) : <div className={cn("h-4 bg-muted rounded w-20 inline-block", isThumbnail ? "w-10 h-3" : "")} />}
         </header>

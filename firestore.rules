@@ -25,6 +25,13 @@ service cloud.firestore {
       );
     }
 
+    function isRetailerAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'retailerAdmin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'retailerAdmin'
+      );
+    }
+
     function isTenantOwner(retailerId) {
       return isAuthenticated() && (getRetailerId() == retailerId || isPlatformAdmin());
     }
@@ -40,11 +47,14 @@ service cloud.firestore {
       allow read: if (configId.matches('.*_brand$')) || (isAuthenticated());
 
       // Platform admins may manage all configurations.
-      // Retailer admins may manage only their own organization configuration.
+      // Retailer admins may manage only their own organization and brand configuration.
       allow write: if isPlatformAdmin() || (
-        isAuthenticated() &&
-        request.auth.token.role == 'retailerAdmin' &&
-        configId == getRetailerId() + '_org'
+        isRetailerAdmin() &&
+        (
+          configId == getRetailerId() + '_org' ||
+          configId == getRetailerId() + '_brand'
+        ) &&
+        request.resource.data.retailerId == getRetailerId()
       );
     }
 

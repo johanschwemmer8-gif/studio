@@ -96,7 +96,19 @@ export default function UiManagementPage() {
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
 
-      if (!file || !user?.retailerId || !storage) return;
+      console.log("[LOGO DEBUG] handleLogoUpload called");
+      console.log("[LOGO DEBUG] file:", file?.name, file?.type, file?.size);
+      console.log("[LOGO DEBUG] retailerId:", user?.retailerId);
+      console.log("[LOGO DEBUG] storage initialized:", !!storage);
+
+      if (!file || !user?.retailerId || !storage) {
+          console.error("[LOGO DEBUG] Upload aborted by guard", {
+              hasFile: !!file,
+              retailerId: user?.retailerId,
+              hasStorage: !!storage
+          });
+          return;
+      }
 
       try {
           setIsSaving(true);

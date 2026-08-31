@@ -26,7 +26,11 @@ import {
   Bot,
   Palette,
   CreditCard,
-  ShoppingBasket
+  ShoppingBasket,
+  BarChart2,
+  Activity,
+  BarChart3,
+  Video
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
@@ -41,14 +45,133 @@ export default function RetailerSidebar({
       {children}
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Insights & Results</SidebarGroupLabel>
+          <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Performance Overview">
+                <SidebarMenuButton asChild tooltip="Network Overview">
                   <Link href="/retailer-mvp/dashboard">
                     <LayoutDashboard className="h-4 w-4" />
                     <span>Overview</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Shopper Experience</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Brand & Experience">
+                  <Link href="/retailer-mvp/ui-management">
+                    <Palette className="h-4 w-4" />
+                    <span>Brand & Experience</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Ari Assistant">
+                  <Link href="/retailer-mvp/ai-configuration">
+                    <Bot className="h-4 w-4" />
+                    <span>Ari Experience</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Supplier Media">
+                  <Link href="/retailer-mvp/brands">
+                    <Video className="h-4 w-4" />
+                    <span>Supplier Media</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Network & Operations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="My Retail Network">
+                  <Link href="/retailer-mvp/organization">
+                    <Building2 className="h-4 w-4" />
+                    <span>My Retail Network</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="QR Activation">
+                  <Link href="/retailer-mvp/qr-management">
+                    <QrCode className="h-4 w-4" />
+                    <span>QR Activation</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Live Operations">
+                  <Link href="/retailer-mvp/real-time">
+                    <Activity className="h-4 w-4" />
+                    <span>Live Operations</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="App Connections">
+                  <Link href="/retailer-mvp/system-integration">
+                    <Settings className="h-4 w-4" />
+                    <span>App Connections</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Checkout Sync (SIM)">
+                  <Link href="/retailer-mvp/pos-terminal">
+                    <ShoppingCart className="h-4 w-4" />
+                    <span>Checkout Sync (SIM)</span>
+                  </Link>
+                </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Products & Commerce</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Product Catalog">
+                  <Link href="/retailer-mvp/products">
+                    <ShoppingBasket className="h-4 w-4" />
+                    <span>Product Catalog</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Insights & Results</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Scan Statistics">
+                  <Link href="/retailer-mvp/qr-analytics">
+                    <BarChart2 className="h-4 w-4" />
+                    <span>Scan Statistics</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -57,6 +180,14 @@ export default function RetailerSidebar({
                   <Link href="/retailer-mvp/roi">
                     <DollarSign className="h-4 w-4" />
                     <span>Profit & ROI</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Reporting">
+                  <Link href="/retailer-mvp/visuals-reporting">
+                    <BarChart3 className="h-4 w-4" />
+                    <span>Reporting</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -75,30 +206,14 @@ export default function RetailerSidebar({
         <SidebarSeparator />
 
         <SidebarGroup>
-          <SidebarGroupLabel>Shopper Experience</SidebarGroupLabel>
+          <SidebarGroupLabel>Monetization</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="QR Activation Creator">
-                  <Link href="/retailer-mvp/qr-management">
-                    <QrCode className="h-4 w-4" />
-                    <span>QR Activation</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Brand & Landing Page Editor">
-                  <Link href="/retailer-mvp/ui-management">
-                    <Palette className="h-4 w-4" />
-                    <span>Brand & Experience</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Ari (AI) Assistant Settings">
-                  <Link href="/retailer-mvp/ai-configuration">
-                    <Bot className="h-4 w-4" />
-                    <span>Ari Experience</span>
+                <SidebarMenuButton asChild tooltip="Ad Monetization">
+                  <Link href="/retailer-mvp/retail-media-network">
+                    <BarChart3 className="h-4 w-4" />
+                    <span>Ad Monetization</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -109,43 +224,11 @@ export default function RetailerSidebar({
         <SidebarSeparator />
 
         <SidebarGroup>
-          <SidebarGroupLabel>Network Setup</SidebarGroupLabel>
+          <SidebarGroupLabel>Standards & Governance</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="My Retail Network Hierarchy">
-                  <Link href="/retailer-mvp/organization">
-                    <Building2 className="h-4 w-4" />
-                    <span>My Retail Network</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Manage your product catalog">
-                  <Link href="/retailer-mvp/products">
-                    <ShoppingBasket className="h-4 w-4" />
-                    <span>Product Catalog</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="App Connections & Data Sync">
-                  <Link href="/retailer-mvp/system-integration">
-                    <Settings className="h-4 w-4" />
-                    <span>App Connections</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Terminal Checkout Sync">
-                  <Link href="/retailer-mvp/pos-terminal">
-                    <ShoppingCart className="h-4 w-4" />
-                    <span>Checkout Sync (SIM)</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Global Data Standards">
+                <SidebarMenuButton asChild tooltip="Global Standards">
                   <Link href="/retailer-mvp/gs1-conformance">
                     <ShieldCheck className="h-4 w-4" />
                     <span>Global Standards</span>
@@ -159,7 +242,7 @@ export default function RetailerSidebar({
         <SidebarSeparator />
 
         <SidebarGroup>
-          <SidebarGroupLabel>Management</SidebarGroupLabel>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>

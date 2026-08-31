@@ -1,14 +1,24 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Rocket, Upload, Edit, ArrowLeft } from 'lucide-react';
+import { Rocket, Upload, Edit, ArrowLeft, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function RetailersDashboardsPage() {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -47,65 +57,89 @@ export default function RetailersDashboardsPage() {
         <Button asChild variant="ghost" className="-ml-4 mb-4">
             <Link href="/dashboard/admin">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to iNteract Admin Panel
+                Back to Retailers
             </Link>
         </Button>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Retailer's Dashboard Management
+        <h2 className="text-2xl font-bold tracking-tight mb-2 uppercase">
+          Update Manager
         </h2>
-        <p className="text-muted-foreground max-w-3xl">
-          Centrally manage and deploy updates to all configured Retailer MVP dashboards.
+        <p className="text-muted-foreground max-w-3xl text-sm">
+          Centrally manage and deploy technical updates to all configured Retailer MVP dashboards.
         </p>
       </div>
 
       <Separator />
 
-      <Card>
-        <CardHeader>
+      <Card className="border-primary/10 shadow-lg">
+        <CardHeader className="bg-muted/30 border-b">
           <CardTitle className="flex items-center gap-2">
-            <Rocket className="text-primary" />
+            <Rocket className="text-primary h-5 w-5" />
             Global Dashboard Updates
           </CardTitle>
-          <CardDescription>
-            Push new features, bug fixes, or UI changes to all retailer dashboards simultaneously.
+          <CardDescription className="text-xs">
+            Push new features, security fixes, or UI components to every active tenant.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Clicking the button below will start the process of updating every retailer's dashboard to the latest version of the MVP. This action is powerful and should be used after thorough testing.
+        <CardContent className="space-y-4 pt-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Pushing an update will synchronize the latest production template with every retailer dashboard in the network. This operation is consequential and should only be performed after verifying changes in the sandbox.
           </p>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <Button size="lg" onClick={handleUpdateAll} variant="destructive" disabled={isUpdating}>
-              <Upload className="mr-2 h-4 w-4" />
-              {isUpdating ? 'Updating...' : 'Update All Retailer Dashboards'}
-            </Button>
+          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="lg" variant="destructive" disabled={isUpdating} className="font-black uppercase text-[10px] tracking-widest h-12 px-8">
+                  <Upload className="mr-2 h-4 w-4" />
+                  {isUpdating ? 'Update in Progress...' : 'Update All Retailer Dashboards'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Global Deployment Confirmation
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-sm">
+                    You are about to push technical updates to <strong>all active retailer dashboards</strong> simultaneously.
+                    <br /><br />
+                    This operation is consequential and irreversible. Ensure the current MVP production template has been verified.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleUpdateAll} className="bg-destructive hover:bg-destructive/90 font-black uppercase text-[10px] tracking-widest">
+                    Confirm Global Update
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            
             {isUpdating && (
                 <div className="w-full sm:w-64 flex items-center gap-2">
-                    <Progress value={progress} className="w-full" />
-                    <span className="text-sm font-medium">{Math.round(progress)}%</span>
+                    <Progress value={progress} className="w-full h-2" />
+                    <span className="text-[10px] font-black">{Math.round(progress)}%</span>
                 </div>
             )}
           </div>
         </CardContent>
       </Card>
       
-      <Card>
+      <Card className="border-primary/10">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Edit className="text-primary" />
-            Retailer MVP Edit
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Edit className="text-primary h-5 w-5" />
+            Template Editor
           </CardTitle>
-          <CardDescription>
-            Access the live Retailer MVP template to make changes, test new features, and perform bug fixes before deploying updates.
+          <CardDescription className="text-xs">
+            Access the production template to perform bug fixes or test new features.
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-                Clicking the button below will take you to the live, editable version of the Retailer Dashboard. All changes made there will be reflected in the template that gets deployed to all retailers.
+            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                Modifications made in the editor are saved to the master template. These changes will not reach retailers until you execute a Global Update.
             </p>
-            <Button asChild size="lg">
+            <Button asChild variant="outline" className="font-bold uppercase text-[10px] tracking-widest">
                 <Link href="/retailer-mvp/dashboard">
-                    Edit MVP Template
+                    Open Production Template
                 </Link>
             </Button>
         </CardContent>

@@ -66,17 +66,17 @@ export default function PerformanceDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <BackButton fallback="/dashboard/system-integration" label="Back to Sandbox" />
+        <BackButton fallback="/dashboard/system-integration" label="Back to Test Laboratory" />
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2">
-                Performance & Load Testing
+                <h2 className="text-2xl font-bold tracking-tight mb-2 uppercase">
+                Performance Monitor
                 </h2>
-                <p className="text-muted-foreground max-w-3xl">
-                Simulate high-traffic scenarios to ensure system stability and scalability.
+                <p className="text-muted-foreground max-w-3xl text-sm">
+                Simulate high-traffic scenarios to ensure system stability and scalability across all tenants.
                 </p>
             </div>
-            <Button onClick={handleToggleTest} variant={isTestRunning ? "destructive" : "default"}>
+            <Button onClick={handleToggleTest} variant={isTestRunning ? "destructive" : "default"} className="font-bold uppercase text-[10px] tracking-widest">
                 {isTestRunning ? <Square className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
                 {isTestRunning ? 'Stop Load Test' : 'Start Load Test'}
             </Button>
@@ -85,64 +85,33 @@ export default function PerformanceDashboardPage() {
       <Separator />
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">API Gateway (p95)</CardTitle><Server className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">0ms</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Database CPU</CardTitle><Database className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">0%</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">AI Model Avg. Response</CardTitle><BrainCircuit className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">0ms</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Throughput</CardTitle><Gauge className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-bold">0 req/s</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">API Gateway (p95)</CardTitle><Server className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-black">0ms</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Database CPU</CardTitle><Database className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-black">0%</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AI Node Response</CardTitle><BrainCircuit className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-black">0ms</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Throughput</CardTitle><Gauge className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="text-2xl font-black">0 req/s</div></CardContent></Card>
       </div>
 
-       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><LineChartIcon /> Live Load Test</CardTitle>
-          <CardDescription>
-            Real-time metrics from the ongoing load simulation.
+       <Card className="border-primary/10 shadow-lg">
+        <CardHeader className="bg-muted/30 border-b">
+          <CardTitle className="flex items-center gap-2 text-lg font-black uppercase tracking-tight"><LineChartIcon className="h-5 w-5 text-primary" /> Live Load Simulation</CardTitle>
+          <CardDescription className="text-xs">
+            Real-time telemetry from the ongoing performance test.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <ChartContainer config={{}} className="h-[350px] w-full">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis yAxisId="left" label={{ value: 'Count', angle: -90, position: 'insideLeft' }} />
-              <YAxis yAxisId="right" orientation="right" label={{ value: 'Errors', angle: -90, position: 'insideRight' }} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="time" fontSize={10} tickLine={false} axisLine={false} />
+              <YAxis yAxisId="left" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontWeight: 'bold', fontSize: '10px' } }} />
+              <YAxis yAxisId="right" orientation="right" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'Errors', angle: -90, position: 'insideRight', style: { textAnchor: 'middle', fontWeight: 'bold', fontSize: '10px' } }} />
               <Tooltip content={<ChartTooltipContent />} />
-              <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="users" stroke="hsl(var(--chart-1))" name="Concurrent Users" dot={false} />
-              <Line yAxisId="left" type="monotone" dataKey="rps" stroke="hsl(var(--chart-2))" name="Requests/sec" dot={false} />
-              <Line yAxisId="right" type="step" dataKey="errors" stroke="hsl(var(--destructive))" name="Errors" dot={false} />
+              <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+              <Line yAxisId="left" type="monotone" dataKey="users" stroke="hsl(var(--chart-1))" strokeWidth={2} name="Concurrent Users" dot={false} />
+              <Line yAxisId="left" type="monotone" dataKey="rps" stroke="hsl(var(--chart-2))" strokeWidth={2} name="Requests/sec" dot={false} />
+              <Line yAxisId="right" type="step" dataKey="errors" stroke="hsl(var(--destructive))" strokeWidth={2} name="Errors" dot={false} />
             </LineChart>
           </ChartContainer>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-            <CardTitle>Component Latency Breakdown (p95)</CardTitle>
-            <CardDescription>95th percentile response times for core services under load.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Service</TableHead>
-                        <TableHead>p50</TableHead>
-                        <TableHead>p95</TableHead>
-                        <TableHead className="text-right">p99</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {latencyData.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center h-24">Run a load test to see latency data.</TableCell></TableRow>
-                    ) : latencyData.map(item => (
-                        <TableRow key={item.service}>
-                            <TableCell className="font-medium">{item.service}</TableCell>
-                            <TableCell>{item.p50}ms</TableCell>
-                            <TableCell>{item.p95}ms</TableCell>
-                            <TableCell className="text-right">{item.p99}ms</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
         </CardContent>
       </Card>
     </div>

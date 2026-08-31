@@ -6,18 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, Barcode, Database, Workflow, FileText, Info, Download, ExternalLink } from 'lucide-react';
 import Gs1TestSuite from '@/components/dashboard/gs1-test-suite';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function RetailerGs1ConformancePage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black tracking-tight mb-2 flex items-center gap-3 uppercase">
+          <BackButton fallback="/retailer-mvp/dashboard" label="Back to Overview" />
+          <h2 className="text-2xl font-black tracking-tight mb-2 flex items-center gap-3 uppercase leading-none">
             <ShieldCheck className="text-primary h-7 w-7" />
             Global Standards Hub
           </h2>
-          <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
-            Technical guidelines and tools to ensure your product identifiers meet global supply chain standards for digital resolution.
+          <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed mt-2">
+            Technical guidelines and validation tools to ensure your product identifiers meet global supply chain standards for digital resolution.
           </p>
         </div>
         <Button variant="outline" className="gap-2 font-bold text-[10px] uppercase tracking-widest h-10 px-6 shadow-sm">

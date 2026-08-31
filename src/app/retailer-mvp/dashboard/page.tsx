@@ -14,7 +14,7 @@ import {
 import { 
   UserCheck, TrendingUp, Sparkles, AlertTriangle, 
   ArrowUp, MessageSquare, ShoppingCart, Loader2, Lightbulb, DollarSign,
-  Search, BarChart2, CheckCircle2, Circle, Activity
+  Search, BarChart2, CheckCircle2, Circle, Activity, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { analyzeEngagementMetrics, AnalyzeEngagementMetricsOutput } from '@/ai/flows/analyze-engagement-metrics';
@@ -62,6 +62,33 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
 
   if (loading) return <Skeleton className="h-48 w-full rounded-2xl" />;
 
+  const isComplete = status.network && status.brand && status.catalog && status.qr;
+
+  if (isComplete) return (
+    <Card className="border-primary/20 bg-primary/5 shadow-md mb-8">
+        <CardHeader>
+            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-primary">
+                <Sparkles className="h-4 w-4 text-accent" />
+                What's Next?
+            </CardTitle>
+        </CardHeader>
+        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+            <Link href="/retailer-mvp/qr-analytics" className="p-4 border rounded-xl hover:bg-white transition-colors group bg-background/50">
+                <p className="font-bold text-sm mb-1 group-hover:text-primary">Monitor Scan Volume</p>
+                <p className="text-[10px] text-muted-foreground">Track real-time engagement patterns.</p>
+            </Link>
+            <Link href="/retailer-mvp/retail-media-network" className="p-4 border rounded-xl hover:bg-white transition-colors group bg-background/50">
+                <p className="font-bold text-sm mb-1 group-hover:text-primary">Configure Media Partners</p>
+                <p className="text-[10px] text-muted-foreground">Monetize your session reach.</p>
+            </Link>
+             <Link href="/retailer-mvp/real-time" className="p-4 border rounded-xl hover:bg-white transition-colors group bg-background/50">
+                <p className="font-bold text-sm mb-1 group-hover:text-primary">Live Operations</p>
+                <p className="text-[10px] text-muted-foreground">Audit inventory and staff activation.</p>
+            </Link>
+        </CardContent>
+    </Card>
+  );
+
   const steps = [
     { label: "My Retail Network", href: "/retailer-mvp/organization", done: status.network, desc: "Define your stores and brands." },
     { label: "Brand & Experience", href: "/retailer-mvp/ui-management", done: status.brand, desc: "Upload logos and pick a template." },
@@ -69,9 +96,6 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
     { label: "QR Activation", href: "/retailer-mvp/qr-management", done: status.qr, desc: "Create your first digital link." },
     { label: "Learn the Platform", href: "/retailer-mvp/documentation", done: true, desc: "Review metrics and training guides.", optional: true },
   ];
-
-  const isComplete = status.network && status.brand && status.catalog && status.qr;
-  if (isComplete) return null;
 
   return (
     <Card className="border-accent bg-accent/5 shadow-lg border-2 overflow-hidden mb-8">
@@ -125,7 +149,8 @@ export default function DashboardPage() {
     setAnalyticsError(false);
     try {
         const idToken = await user.getIdToken();
-        const data = await analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' });
+        const retailerId = user.retailerId || 'unknown';
+        const data = await analyzeEngagementMetrics({ idToken, retailerId });
         setAnalyticsData(data);
     } catch (e: any) {
         const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('500');
@@ -165,8 +190,6 @@ export default function DashboardPage() {
   useEffect(() => {
     const sequenceLoad = async () => {
         if (!user) return;
-        // REDUCING METADATA PRESSURE: Chaining the heavy analytical fetches instead of 
-        // parallelizing them prevents "Thundering Herd" 500 errors on the App Hosting identity bridge.
         await fetchAnalytics();
         await fetchIntelligence();
     };

@@ -43,12 +43,12 @@ export default function CloudConfigurationPage() {
   return (
     <div className="space-y-8">
        <div>
-        <BackButton fallback="/dashboard/core-integration" label="Back to Infrastructure Layer" />
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Cloud Services & AI Model Configuration
+        <BackButton fallback="/dashboard/core-integration" label="Back to System Connections" />
+        <h2 className="text-2xl font-bold tracking-tight mb-2 uppercase leading-none">
+          Cloud & AI Configuration
         </h2>
-        <p className="text-muted-foreground max-w-3xl">
-          Manage connections to your cloud provider and configure generative AI models.
+        <p className="text-muted-foreground max-w-3xl text-sm mt-2">
+          Manage core infrastructure connections and the specific Generative AI models powering the iNteract Intelligence Layer.
         </p>
       </div>
 
@@ -56,70 +56,72 @@ export default function CloudConfigurationPage() {
 
       <form onSubmit={handleSaveChanges}>
         <div className="space-y-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Cloud className="text-primary"/> Cloud Provider</CardTitle>
-                    <CardDescription>
-                        Provide the API credentials for your cloud services provider.
+            <Card className="border-primary/10 shadow-lg">
+                <CardHeader className="bg-muted/30 border-b">
+                    <CardTitle className="flex items-center gap-2 text-lg font-black uppercase tracking-tight"><Cloud className="text-primary h-5 w-5"/> Cloud Provider</CardTitle>
+                    <CardDescription className="text-xs">
+                        Configure authoritative credentials for your platform cloud provider.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 pt-6">
                      <div className="space-y-2">
-                        <Label htmlFor="cloud-provider">Cloud Provider</Label>
+                        <Label htmlFor="cloud-provider" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cloud Provider</Label>
                         <Select defaultValue="gcp">
-                            <SelectTrigger id="cloud-provider">
+                            <SelectTrigger id="cloud-provider" className="h-11">
                                 <SelectValue placeholder="Select a provider" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="gcp">Google Cloud Platform</SelectItem>
+                                <SelectItem value="gcp">Google Cloud Platform (Authoritative)</SelectItem>
                                 <SelectItem value="aws">Amazon Web Services</SelectItem>
                                 <SelectItem value="azure">Microsoft Azure</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="api-key">API Key</Label>
-                        <Input id="api-key" type="password" placeholder="••••••••••••••••••••" />
+                     <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="api-key" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">API Key</Label>
+                            <Input id="api-key" type="password" placeholder="••••••••••••••••••••" className="h-11" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="api-secret" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Private Key / Secret</Label>
+                            <Input id="api-secret" type="password" placeholder="••••••••••••••••••••" className="h-11" />
+                        </div>
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="api-secret">API Secret / Private Key</Label>
-                        <Input id="api-secret" type="password" placeholder="••••••••••••••••••••" />
-                    </div>
-                    <div className="flex gap-2">
-                        <Button type="button" variant="secondary" onClick={handleTestConnection}>
+                    <div className="flex gap-2 pt-2">
+                        <Button type="button" variant="outline" onClick={handleTestConnection} className="font-bold uppercase text-[10px] tracking-widest h-10 px-6">
                             <TestTube2 className="mr-2 h-4 w-4" />
-                            Test Connection
+                            Test Handshake
                         </Button>
                     </div>
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BrainCircuit className="text-primary"/> Generative AI Models</CardTitle>
-                    <CardDescription>
-                        Configure the AI models used for different platform features.
+            <Card className="border-primary/10 shadow-lg">
+                <CardHeader className="bg-muted/30 border-b">
+                    <CardTitle className="flex items-center gap-2 text-lg font-black uppercase tracking-tight"><BrainCircuit className="text-primary h-5 w-5"/> Generative AI Models</CardTitle>
+                    <CardDescription className="text-xs">
+                        Select the specialized models for different platform intelligence features.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 pt-6">
                     <div className="space-y-2">
-                        <Label htmlFor="chat-model">Chat & Personalization Model</Label>
-                        <Input id="chat-model" defaultValue="gemini-2.5-flash" />
-                         <p className="text-xs text-muted-foreground">Model used for chatbot conversations and product recommendations.</p>
+                        <Label htmlFor="chat-model" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Ari Guidance Model</Label>
+                        <Input id="chat-model" defaultValue="gemini-2.5-flash" className="h-11 font-mono" />
+                         <p className="text-[10px] text-muted-foreground italic">Model optimized for low-latency shopper conversations and product recommendations.</p>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="analytics-model">Analytics Model</Label>
-                        <Input id="analytics-model" defaultValue="gemini-2.5-pro" />
-                         <p className="text-xs text-muted-foreground">Model used for analyzing dashboard metrics and providing insights.</p>
+                        <Label htmlFor="analytics-model" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Intelligence Aggregator Model</Label>
+                        <Input id="analytics-model" defaultValue="gemini-2.5-pro" className="h-11 font-mono" />
+                         <p className="text-[10px] text-muted-foreground italic">High-reasoning model for complex behavioral analytics and ROI projection.</p>
                     </div>
                 </CardContent>
             </Card>
         </div>
         
         <div className="flex justify-end mt-8">
-            <Button type="submit">
+            <Button type="submit" size="lg" className="h-12 px-12 font-black uppercase text-xs tracking-widest shadow-xl">
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                Save Infrastructure Settings
             </Button>
         </div>
       </form>

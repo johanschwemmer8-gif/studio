@@ -28,7 +28,10 @@ import {
   Users,
   Settings,
   FileCheck,
-  BarChart3
+  BarChart3,
+  FlaskConical,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import Link from 'next/link';
 import SearchBar from '@/components/dashboard/search-bar';
@@ -181,13 +184,37 @@ export default function DashboardLayout({
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Integrity Audit">
+                    <Link href="/dashboard/external-security-integrations">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Integrity Audit</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Test Laboratory">
                     <Link href="/dashboard/system-integration">
-                      <Settings className="h-4 w-4" />
+                      <FlaskConical className="h-4 w-4" />
                       <span>Test Laboratory</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuSub className="ml-8 border-l border-primary/10">
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild size="sm">
+                            <Link href="/dashboard/system-integration/performance">
+                                <span>Performance Monitor</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild size="sm">
+                            <Link href="/dashboard/system-integration/scan-failures">
+                                <span>Failure Log</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenuSub>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -221,14 +248,14 @@ export default function DashboardLayout({
           <SidebarSeparator />
           
           <SidebarGroup>
-            <SidebarGroupLabel>Platform Support</SidebarGroupLabel>
+            <SidebarGroupLabel>Identity & Access</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="User Access">
-                    <Link href="/create-admin">
+                  <SidebarMenuButton asChild tooltip="Identity Registry">
+                    <Link href="/dashboard/identity-registry">
                       <Users className="h-4 w-4" />
-                      <span>User Access</span>
+                      <span>Identity Registry</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -6,21 +6,20 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * LEGACY ROUTE REDIRECT
- * This route has been superseded by /create-admin.
- * Redirecting to ensure user management remains centralized.
+ * This route has been moved into the Admin Dashboard context for consistent navigation.
  */
-export default function UserAdminRedirectPage() {
+export default function LegacyUserAdminRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/create-admin');
+    router.replace('/dashboard/identity-registry');
   }, [router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
-            Redirecting to Active User Management...
+            Redirecting to Identity Registry...
         </p>
     </div>
   );

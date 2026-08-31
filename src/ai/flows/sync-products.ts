@@ -1,13 +1,13 @@
-
 'use server';
 /**
  * @fileOverview Authoritative Product Sync Service.
- * Implements chunked batching to respect Firestore 500-operation limits.
+ * Hardened: Enforces authoritative tenant identity via getAuthorizedRetailerId.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -23,6 +23,7 @@ const ProductSchema = z.object({
 });
 
 const SyncProductsInputSchema = z.object({
+  idToken: z.string().optional().describe('Firebase ID token for authoritative identity resolution.'),
   retailerId: z.string(),
   products: z.array(ProductSchema),
 });
@@ -44,7 +45,10 @@ const syncProductsFlow = ai.defineFlow(
     inputSchema: SyncProductsInputSchema,
     outputSchema: SyncProductsOutputSchema,
   },
-  async ({ retailerId, products }) => {
+  async ({ idToken, retailerId, products }) => {
+    // AUTHORIZATION GATE: Enforce authoritative retailer identity
+    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
+    
     const db = admin.firestore();
     const BATCH_SIZE = 500;
     let syncedCount = 0;
@@ -58,7 +62,7 @@ const syncProductsFlow = ai.defineFlow(
                 const productRef = db.collection('products').doc(product.sku);
                 batch.set(productRef, {
                     ...product,
-                    retailerId: retailerId,
+                    retailerId: authorizedRetailerId,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 }, { merge: true });
                 syncedCount++;

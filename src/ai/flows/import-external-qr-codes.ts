@@ -1,15 +1,14 @@
-
-
 'use server';
 /**
  * @fileOverview Batch CSV Importer for external QR identifiers.
- * Implements chunked processing for high-volume imports.
+ * Hardened: Enforces authoritative tenant identity via getAuthorizedRetailerId.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
 import Papa from 'papaparse';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -21,6 +20,7 @@ const QrCodeRecordSchema = z.object({
 });
 
 const ImportExternalQrCodesInputSchema = z.object({
+  idToken: z.string().optional().describe('Firebase ID token for authoritative identity resolution.'),
   retailerId: z.string().describe('The ID of the retailer for this batch.'),
   campaignId: z.string().describe('The ID of the campaign for this batch.'),
   csvData: z.string().describe('The CSV content as a string. Must contain "id" and "url" headers.'),
@@ -46,8 +46,11 @@ const importExternalQrCodesFlow = ai.defineFlow(
     outputSchema: ImportExternalQrCodesOutputSchema,
   },
   async (data) => {
+    // AUTHORIZATION GATE: Enforce authoritative retailer identity
+    const authorizedRetailerId = await getAuthorizedRetailerId(data.idToken, data.retailerId);
+    
     const db = admin.firestore();
-    const { retailerId, campaignId, csvData } = data;
+    const { campaignId, csvData } = data;
     const batchId = `ext-batch-${Date.now()}`;
     const BATCH_SIZE = 500;
     let importedCount = 0;
@@ -73,7 +76,7 @@ const importExternalQrCodesFlow = ai.defineFlow(
             const { id, url } = QrCodeRecordSchema.parse(row);
             const qrRef = db.collection('externalQRCodes').doc(id);
             batch.set(qrRef, {
-                retailerId,
+                retailerId: authorizedRetailerId,
                 campaignId,
                 originalUrl: url,
                 interactUrl: `/track/${id}`,

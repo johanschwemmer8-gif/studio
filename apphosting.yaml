@@ -10,4 +10,4 @@ scripts:
   # Explicitly define the install command to handle legacy peer dependencies
   installCommand: npm install --legacy-peer-deps
   # Explicitly define the build command for the application
-  buildCommand: npm run build
+  buildCommand: rm -rf .next && npm run build

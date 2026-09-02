@@ -22,9 +22,10 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Template1, Template2, Template3, Template4, Template5, Template6, Template7, Template8, Template9 } from '@/components/dashboard/ui-templates';
 import { useAuth } from '@/context/auth-context';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
+import { getApp } from 'firebase/app';
 import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
 import { HubNav } from '@/components/dashboard/hub-nav';
 
 function MobileLandingPagePreview({ settings }: { settings: any }) {
@@ -99,13 +100,14 @@ export default function UiManagementPage() {
       console.log("[LOGO DEBUG] handleLogoUpload called");
       console.log("[LOGO DEBUG] file:", file?.name, file?.type, file?.size);
       console.log("[LOGO DEBUG] retailerId:", user?.retailerId);
-      console.log("[LOGO DEBUG] storage initialized:", !!storage);
+      const firebaseStorage = getStorage(getApp());
+      console.log("[LOGO DEBUG] storage initialized:", !!firebaseStorage);
 
-      if (!file || !user?.retailerId || !storage) {
+      if (!file || !user?.retailerId) {
           console.error("[LOGO DEBUG] Upload aborted by guard", {
               hasFile: !!file,
               retailerId: user?.retailerId,
-              hasStorage: !!storage
+              hasStorage: !!firebaseStorage
           });
           return;
       }
@@ -115,7 +117,7 @@ export default function UiManagementPage() {
 
           const extension = file.name.split('.').pop()?.toLowerCase() || 'png';
           const logoRef = ref(
-              storage,
+              firebaseStorage,
               `retailer-assets/${user.retailerId}/brand-logo-${Date.now()}.${extension}`
           );
 

@@ -18,29 +18,18 @@ import { admin, getDb } from '@/lib/firebase-admin';
 import { verifyAuth } from '@/lib/auth-server';
 import { parseGS1 } from '@/lib/gs1-parser';
 import { type Product } from '@/lib/data';
+import {
+  type CanonicalProduct,
+  type CanonicalProductSource,
+  type CanonicalProductStatus,
+  type CanonicalProductValidationStatus,
+  type CanonicalProductEnrichmentStatus
+} from '@/types/product';
 
-export type ProductSource =
-  | 'MANUAL'
-  | 'BULK_IMPORT'
-  | 'API'
-  | 'SYSTEM';
-
-export type ProductStatus =
-  | 'DRAFT'
-  | 'READY'
-  | 'ACTIVE'
-  | 'ARCHIVED';
-
-export type ProductValidationStatus =
-  | 'PENDING'
-  | 'VALID'
-  | 'INVALID';
-
-export type ProductEnrichmentStatus =
-  | 'NOT_STARTED'
-  | 'PROCESSING'
-  | 'COMPLETE'
-  | 'FAILED';
+export type ProductSource = CanonicalProductSource;
+export type ProductStatus = CanonicalProductStatus;
+export type ProductValidationStatus = CanonicalProductValidationStatus;
+export type ProductEnrichmentStatus = CanonicalProductEnrichmentStatus;
 
 export type CanonicalProductInput = {
   gtin?: string;
@@ -81,6 +70,118 @@ export type CanonicalProductResult =
  * - Retailer-owned facts are stored as supplied.
  * - iNteract/system metadata is generated here.
  */
+function buildCanonicalProduct(
+  input: CanonicalProductInput,
+  context: {
+    productId: string;
+    retailerId: string;
+    name: string;
+    category: string;
+    price: number;
+    currency: string;
+    now: unknown;
+    identity: ReturnType<typeof parseGS1> | null;
+    rawGtin: string;
+    uid: string;
+  }
+): CanonicalProduct {
+  const {
+    productId,
+    retailerId,
+    name,
+    category,
+    price,
+    currency,
+    now,
+    identity,
+    rawGtin,
+    uid
+  } = context;
+
+  const product: CanonicalProduct = {
+    productId,
+    retailerId,
+
+    name,
+    category,
+
+    price,
+    currency,
+
+    status: 'READY',
+    source: input.source || 'MANUAL',
+
+    validation: {
+      status: 'VALID',
+      warnings: [
+        ...(input.description?.trim()
+          ? []
+          : ['Product description was not supplied.']),
+        ...(identity
+          ? []
+          : ['GTIN was not supplied; GS1 validation was not performed.'])
+      ],
+      validatedAt: now
+    },
+
+    enrichment: {
+      status: 'NOT_STARTED'
+    },
+
+    createdAt: now,
+    updatedAt: now,
+
+    createdBy: uid,
+    updatedBy: uid
+  };
+
+  if (identity) {
+    product.gtin = identity.gtin;
+
+    product.gs1 = {
+      originalFormat: `GTIN${rawGtin.length}`,
+      checkDigitValid: true,
+      validatedAt: now
+    };
+  }
+
+  if (input.barcode?.trim()) {
+    product.barcode = input.barcode.trim();
+  }
+
+  if (input.retailerSku?.trim()) {
+    product.retailerSku = input.retailerSku.trim();
+  }
+
+  if (input.brand?.trim()) {
+    product.brand = input.brand.trim();
+  }
+
+  if (input.description?.trim()) {
+    product.description = input.description.trim();
+  }
+
+  if (input.subcategory?.trim()) {
+    product.subcategory = input.subcategory.trim();
+  }
+
+  if (input.department?.trim()) {
+    product.department = input.department.trim();
+  }
+
+  if (input.imageUrl?.trim()) {
+    product.imageUrl = input.imageUrl.trim();
+  }
+
+  if (input.promotionalPrice !== undefined) {
+    product.promotionalPrice = Number(
+      input.promotionalPrice.toFixed(2)
+    );
+  }
+
+  return product;
+}
+
 export async function createCanonicalProduct(
   input: CanonicalProductInput,
   idToken: string
@@ -217,81 +318,6 @@ export async function createCanonicalProduct(
       }
     }
 
-    const now = admin.firestore.Timestamp.now();
-
-    const product: Record<string, unknown> = {
-      productId,
-      retailerId,
-
-      name,
-      category,
-
-      price: Number(input.price.toFixed(2)),
-      currency,
-
-      
-
-      status: 'READY' as ProductStatus,
-      source: input.source || 'MANUAL',
-
-      validation: {
-        status: 'VALID' as ProductValidationStatus,
-        warnings: [
-          ...(input.description?.trim()
-            ? []
-            : ['Product description was not supplied.']),
-          ...(identity
-            ? []
-            : ['GTIN was not supplied; GS1 validation was not performed.'])
-        ],
-        validatedAt: now
-      },
-
-      enrichment: {
-        status: 'NOT_STARTED' as ProductEnrichmentStatus
-      },
-
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    /*
-     * GTIN is optional. When supplied, it has already passed GS1 validation.
-     */
-    if (identity) {
-      product.gtin = identity.gtin;
-
-      product.gs1 = {
-        originalFormat: `GTIN${rawGtin.length}`,
-        checkDigitValid: true,
-        validatedAt: now
-      };
-    }
-
-    /*
-     * Barcode is an optional retailer/product identifier.
-     * It is intentionally not treated as a GTIN.
-     */
-    if (input.barcode?.trim()) {
-      product.barcode = input.barcode.trim();
-    }
-
-    /*
-     * Add retailer-owned optional fields only when supplied.
-     * This avoids writing undefined values into Firestore.
-     */
-    if (input.brand?.trim()) {
-      product.brand = input.brand.trim();
-    }
-
-    if (input.description?.trim()) {
-      product.description = input.description.trim();
-    }
-
-    if (input.subcategory?.trim()) {
-      product.subcategory = input.subcategory.trim();
-    }
-
     if (input.promotionalPrice !== undefined) {
       if (
         !Number.isFinite(input.promotionalPrice) ||
@@ -302,29 +328,22 @@ export async function createCanonicalProduct(
           error: 'Promotional price must be a valid number greater than or equal to zero.'
         };
       }
-
-      product.promotionalPrice = Number(
-        input.promotionalPrice.toFixed(2)
-      );
     }
 
-    if (input.retailerSku?.trim()) {
-      product.retailerSku = input.retailerSku.trim();
-    }
+    const now = admin.firestore.Timestamp.now();
 
-    if (input.department?.trim()) {
-      product.department = input.department.trim();
-    }
-
-    if (input.imageUrl?.trim()) {
-      product.imageUrl = input.imageUrl.trim();
-    }
-
-    /*
-     * Audit fields use the verified Firebase UID.
-     */
-    product.createdBy = verifiedAuth.uid;
-    product.updatedBy = verifiedAuth.uid;
+    const product = buildCanonicalProduct(input, {
+      productId,
+      retailerId,
+      name,
+      category,
+      price: Number(input.price.toFixed(2)),
+      currency,
+      now,
+      identity,
+      rawGtin,
+      uid: verifiedAuth.uid
+    });
 
     await productRef.set(product);
 

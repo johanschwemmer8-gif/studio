@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
+import { addCanonicalProduct } from './actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,43 +92,64 @@ export default function ProductCatalogPage() {
 
     const handleAddProduct = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!db || retailerId === 'unknown') return;
 
-        let normalizedGtin = formData.gtin.replace(/\s+/g, '');
-        if (normalizedGtin.length < 14) {
-            normalizedGtin = normalizedGtin.padStart(14, '0');
-        }
-
-        if (!/^\d{14}$/.test(normalizedGtin)) {
-            toast({ title: "Invalid Barcode", description: "Product barcode must be numeric (8-14 digits).", variant: "destructive" });
+        if (retailerId === 'unknown' || !user) {
+            toast({
+                title: "Authentication Required",
+                description: "Your account is not linked to a retailer.",
+                variant: "destructive"
+            });
             return;
         }
 
         setIsSaving(true);
+
         try {
-            const productRef = doc(db, 'products', normalizedGtin);
-            const existing = await getDoc(productRef);
-            
-            if (existing.exists() && existing.data()?.retailerId === retailerId) {
-                toast({ title: "Duplicate Entry", description: "This barcode is already in your catalog.", variant: "destructive" });
-                setIsSaving(false);
+            const idToken = await user.getIdToken();
+
+            const result = await addCanonicalProduct(
+                {
+                    gtin: formData.gtin,
+                    retailerId,
+                    name: formData.name,
+                    description: formData.description,
+                    category: formData.category,
+                    price: parseFloat(formData.price),
+                    imageUrl: formData.imageUrl,
+                    source: 'MANUAL'
+                },
+                idToken
+            );
+
+            if (!result.success) {
+                toast({
+                    title: "Save Failed",
+                    description: result.error,
+                    variant: "destructive"
+                });
                 return;
             }
 
-            await setDoc(productRef, {
-                ...formData,
-                gtin: normalizedGtin,
-                retailerId,
-                price: parseFloat(formData.price) || 0,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
+            toast({
+                title: "Product Added",
+                description: `"${formData.name}" added successfully.`
             });
 
-            toast({ title: "Product Added", description: `"${formData.name}" added successfully.` });
             setIsAddModalOpen(false);
-            setFormData({ gtin: '', name: '', description: '', category: 'General', price: '', imageUrl: '' });
+            setFormData({
+                gtin: '',
+                name: '',
+                description: '',
+                category: 'General',
+                price: '',
+                imageUrl: ''
+            });
         } catch (error: any) {
-            toast({ title: "Save Failed", description: error.message, variant: "destructive" });
+            toast({
+                title: "Save Failed",
+                description: error?.message || "Unable to add product.",
+                variant: "destructive"
+            });
         } finally {
             setIsSaving(false);
         }

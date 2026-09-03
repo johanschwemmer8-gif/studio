@@ -286,9 +286,9 @@ export default function ProductCatalogPage() {
                     </DialogTrigger>
 
                     {/* Wider horizontal Add Product dialog */}
-                    <DialogContent className="sm:max-w-[850px] max-h-[90vh] overflow-hidden">
+                    <DialogContent className="sm:max-w-[850px] h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
 
-                        <form onSubmit={handleAddProduct} className="flex flex-col min-h-0">
+                        <form onSubmit={handleAddProduct} className="flex flex-col min-h-0 flex-1">
 
                             <DialogHeader>
                                 <DialogTitle>Add New Product</DialogTitle>

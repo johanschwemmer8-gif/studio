@@ -36,14 +36,18 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 type Product = {
-    gtin: string;
+    productId: string;
+    firestoreId: string;
+    gtin?: string;
+    retailerSku?: string;
+    barcode?: string;
     name: string;
     brand?: string;
-    description: string;
+    description?: string;
     category: string;
     price: number;
     currency?: string;
-    imageUrl: string;
+    imageUrl?: string;
 };
 
 export default function ProductCatalogPage() {
@@ -58,6 +62,8 @@ export default function ProductCatalogPage() {
     // Form State for Add
     const [formData, setFormData] = useState({
         gtin: '',
+        retailerSku: '',
+        barcode: '',
         name: '',
         brand: '',
         description: '',
@@ -84,7 +90,15 @@ export default function ProductCatalogPage() {
             q,
             (snapshot) => {
                 const fetched: Product[] = snapshot.docs.map(
-                    doc => doc.data() as Product
+                    productDoc => {
+                        const data = productDoc.data();
+
+                        return {
+                            ...data,
+                            productId: data.productId || productDoc.id,
+                            firestoreId: productDoc.id,
+                        } as Product;
+                    }
                 );
                 setProducts(fetched);
                 setLoading(false);
@@ -121,8 +135,10 @@ export default function ProductCatalogPage() {
 
             const result = await addCanonicalProduct(
                 {
-                    gtin: formData.gtin,
+                    gtin: formData.gtin || undefined,
                     retailerId,
+                    retailerSku: formData.retailerSku || undefined,
+                    barcode: formData.barcode || undefined,
                     name: formData.name,
                     brand: formData.brand,
                     description: formData.description,
@@ -153,6 +169,8 @@ export default function ProductCatalogPage() {
 
             setFormData({
                 gtin: '',
+                retailerSku: '',
+                barcode: '',
                 name: '',
                 brand: '',
                 description: '',
@@ -180,11 +198,13 @@ export default function ProductCatalogPage() {
         setIsSaving(true);
 
         try {
-            const productRef = doc(db, 'products', editingProduct.gtin);
+            const productRef = doc(db, 'products', editingProduct.firestoreId);
 
             await updateDoc(productRef, {
                 name: editingProduct.name,
-                description: editingProduct.description,
+                retailerSku: editingProduct.retailerSku || null,
+                barcode: editingProduct.barcode || null,
+                description: editingProduct.description || '',
                 category: editingProduct.category,
                 price: parseFloat(editingProduct.price.toString()) || 0,
                 imageUrl: editingProduct.imageUrl,
@@ -208,11 +228,11 @@ export default function ProductCatalogPage() {
         }
     };
 
-    const handleDeleteProduct = async (gtin: string) => {
+    const handleDeleteProduct = async (firestoreId: string) => {
         if (!db) return;
 
         try {
-            await deleteDoc(doc(db, 'products', gtin));
+            await deleteDoc(doc(db, 'products', firestoreId));
 
             toast({
                 title: "Product Removed",
@@ -293,7 +313,7 @@ export default function ProductCatalogPage() {
 
                                     <Input
                                         id="gtin"
-                                        placeholder="e.g. 00012345678905"
+                                        placeholder="Optional — e.g. 00012345678905"
                                         value={formData.gtin}
                                         onChange={e =>
                                             setFormData({
@@ -301,7 +321,54 @@ export default function ProductCatalogPage() {
                                                 gtin: e.target.value
                                             })
                                         }
-                                        required
+                                        className="h-11 font-mono"
+                                    />
+
+                                    <p className="text-[10px] text-muted-foreground">
+                                        Optional. Only validated GS1 GTINs are stored as GTINs.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label
+                                        htmlFor="retailerSku"
+                                        className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                                    >
+                                        Retailer SKU
+                                    </Label>
+
+                                    <Input
+                                        id="retailerSku"
+                                        placeholder="Optional — retailer's SKU"
+                                        value={formData.retailerSku}
+                                        onChange={e =>
+                                            setFormData({
+                                                ...formData,
+                                                retailerSku: e.target.value
+                                            })
+                                        }
+                                        className="h-11 font-mono"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label
+                                        htmlFor="barcode"
+                                        className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                                    >
+                                        Barcode
+                                    </Label>
+
+                                    <Input
+                                        id="barcode"
+                                        placeholder="Optional — barcode"
+                                        value={formData.barcode}
+                                        onChange={e =>
+                                            setFormData({
+                                                ...formData,
+                                                barcode: e.target.value
+                                            })
+                                        }
                                         className="h-11 font-mono"
                                     />
                                 </div>
@@ -507,15 +574,57 @@ export default function ProductCatalogPage() {
                             <DialogTitle>Edit Product</DialogTitle>
 
                             <DialogDescription>
-                                Modify details for GTIN:{' '}
+                                Modify the product record. Product ID:{' '}
                                 <span className="font-mono text-primary">
-                                    {editingProduct?.gtin}
+                                    {editingProduct?.productId}
                                 </span>
                             </DialogDescription>
                         </DialogHeader>
 
                         {editingProduct && (
                             <div className="grid gap-5 py-6">
+
+                                <div className="space-y-2">
+                                    <Label
+                                        htmlFor="edit-sku"
+                                        className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                                    >
+                                        Retailer SKU
+                                    </Label>
+
+                                    <Input
+                                        id="edit-sku"
+                                        value={editingProduct.retailerSku || ''}
+                                        onChange={e =>
+                                            setEditingProduct({
+                                                ...editingProduct,
+                                                retailerSku: e.target.value
+                                            })
+                                        }
+                                        className="h-11 font-mono"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label
+                                        htmlFor="edit-barcode"
+                                        className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                                    >
+                                        Barcode
+                                    </Label>
+
+                                    <Input
+                                        id="edit-barcode"
+                                        value={editingProduct.barcode || ''}
+                                        onChange={e =>
+                                            setEditingProduct({
+                                                ...editingProduct,
+                                                barcode: e.target.value
+                                            })
+                                        }
+                                        className="h-11 font-mono"
+                                    />
+                                </div>
 
                                 <div className="space-y-2">
                                     <Label
@@ -700,6 +809,14 @@ export default function ProductCatalogPage() {
                                 </TableHead>
 
                                 <TableHead>
+                                    SKU
+                                </TableHead>
+
+                                <TableHead>
+                                    Barcode
+                                </TableHead>
+
+                                <TableHead>
                                     GTIN
                                 </TableHead>
 
@@ -720,7 +837,7 @@ export default function ProductCatalogPage() {
                             {products.map((p) => (
 
                                 <TableRow
-                                    key={p.gtin}
+                                    key={p.firestoreId}
                                     className="group hover:bg-muted/30 transition-colors"
                                 >
 
@@ -741,8 +858,16 @@ export default function ProductCatalogPage() {
 
                                     </TableCell>
 
+                                    <TableCell className="font-mono text-xs text-muted-foreground">
+                                        {p.retailerSku || '—'}
+                                    </TableCell>
+
+                                    <TableCell className="font-mono text-xs text-muted-foreground">
+                                        {p.barcode || '—'}
+                                    </TableCell>
+
                                     <TableCell className="font-mono text-xs text-primary font-medium">
-                                        {p.gtin}
+                                        {p.gtin || '—'}
                                     </TableCell>
 
                                     <TableCell>
@@ -768,7 +893,9 @@ export default function ProductCatalogPage() {
                                                 className="font-bold text-[10px] uppercase tracking-widest h-8 px-3"
                                             >
                                                 <Link
-                                                    href={`/retailer-mvp/qr-management?gtin=${p.gtin}`}
+                                                    href={p.gtin
+                                                        ? `/retailer-mvp/qr-management?gtin=${p.gtin}`
+                                                        : `/retailer-mvp/qr-management?productId=${p.productId}`}
                                                 >
                                                     <QrCode className="h-3.5 w-3.5 mr-1.5" />
                                                     Activate
@@ -788,7 +915,7 @@ export default function ProductCatalogPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => handleDeleteProduct(p.gtin)}
+                                                onClick={() => handleDeleteProduct(p.firestoreId)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

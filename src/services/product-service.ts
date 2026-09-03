@@ -43,7 +43,8 @@ export type ProductEnrichmentStatus =
   | 'FAILED';
 
 export type CanonicalProductInput = {
-  gtin: string;
+  gtin?: string;
+  barcode?: string;
   retailerId: string;
   name: string;
   brand?: string;
@@ -73,9 +74,10 @@ export type CanonicalProductResult =
  * Creates a canonical iNteract product record.
  *
  * IMPORTANT:
- * - GTIN is validated before normalization.
+ * - GTIN is validated when supplied.
  * - retailerId is resolved against the authenticated identity.
- * - The Firestore document ID is always canonical GTIN-14.
+ * - iNteract generates a canonical internal productId.
+ * - GTIN, retailerSku and barcode are retailer/product identifiers.
  * - Retailer-owned facts are stored as supplied.
  * - iNteract/system metadata is generated here.
  */
@@ -129,10 +131,10 @@ export async function createCanonicalProduct(
       };
     }
 
-    const rawGtin = input.gtin.replace(/\s+/g, '');
-    const identity = parseGS1(rawGtin);
+    const rawGtin = input.gtin?.replace(/\s+/g, '') || '';
+    const identity = rawGtin ? parseGS1(rawGtin) : null;
 
-    if (!identity) {
+    if (rawGtin && !identity) {
       return {
         success: false,
         error:
@@ -186,32 +188,39 @@ export async function createCanonicalProduct(
       };
     }
 
-    const productRef = db
-      .collection('products')
-      .doc(identity.gtin);
+    // iNteract generates the canonical internal Product ID.
+    const productId = `prod_${db.collection('products').doc().id}`;
 
-    const existing = await productRef.get();
+    // Preserve the existing GTIN document-ID convention for backward
+    // compatibility. GTIN-less products use the canonical Product ID.
+    const productRef = identity
+      ? db.collection('products').doc(identity.gtin)
+      : db.collection('products').doc(productId);
 
-    if (existing.exists) {
-      const existingData = existing.data();
+    if (identity) {
+      const existing = await productRef.get();
 
-      if (existingData?.retailerId !== retailerId) {
+      if (existing.exists) {
+        const existingData = existing.data();
+
+        if (existingData?.retailerId !== retailerId) {
+          return {
+            success: false,
+            error: 'This GTIN already belongs to another retailer.'
+          };
+        }
+
         return {
           success: false,
-          error: 'This GTIN already belongs to another retailer.'
+          error: 'This GTIN is already in your product catalog.'
         };
       }
-
-      return {
-        success: false,
-        error: 'This GTIN is already in your product catalog.'
-      };
     }
 
     const now = admin.firestore.Timestamp.now();
 
     const product: Record<string, unknown> = {
-      gtin: identity.gtin,
+      productId,
       retailerId,
 
       name,
@@ -220,20 +229,21 @@ export async function createCanonicalProduct(
       price: Number(input.price.toFixed(2)),
       currency,
 
-      gs1: {
-        originalFormat: `GTIN${rawGtin.length}`,
-        checkDigitValid: true,
-        validatedAt: now
-      },
+      
 
       status: 'READY' as ProductStatus,
       source: input.source || 'MANUAL',
 
       validation: {
         status: 'VALID' as ProductValidationStatus,
-        warnings: input.description?.trim()
-          ? []
-          : ['Product description was not supplied.'],
+        warnings: [
+          ...(input.description?.trim()
+            ? []
+            : ['Product description was not supplied.']),
+          ...(identity
+            ? []
+            : ['GTIN was not supplied; GS1 validation was not performed.'])
+        ],
         validatedAt: now
       },
 
@@ -244,6 +254,27 @@ export async function createCanonicalProduct(
       createdAt: now,
       updatedAt: now,
     };
+
+    /*
+     * GTIN is optional. When supplied, it has already passed GS1 validation.
+     */
+    if (identity) {
+      product.gtin = identity.gtin;
+
+      product.gs1 = {
+        originalFormat: `GTIN${rawGtin.length}`,
+        checkDigitValid: true,
+        validatedAt: now
+      };
+    }
+
+    /*
+     * Barcode is an optional retailer/product identifier.
+     * It is intentionally not treated as a GTIN.
+     */
+    if (input.barcode?.trim()) {
+      product.barcode = input.barcode.trim();
+    }
 
     /*
      * Add retailer-owned optional fields only when supplied.
@@ -300,8 +331,15 @@ export async function createCanonicalProduct(
     return {
       success: true,
       product: {
-        gtin: identity.gtin,
+        productId,
         retailerId,
+        ...(identity ? { gtin: identity.gtin } : {}),
+        ...(input.barcode?.trim()
+          ? { barcode: input.barcode.trim() }
+          : {}),
+        ...(input.retailerSku?.trim()
+          ? { retailerSku: input.retailerSku.trim() }
+          : {}),
         name,
         category,
         price: Number(input.price.toFixed(2)),

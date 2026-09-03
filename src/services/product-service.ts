@@ -299,7 +299,14 @@ export async function createCanonicalProduct(
 
     return {
       success: true,
-      product
+      product: {
+        gtin: identity.gtin,
+        retailerId,
+        name,
+        category,
+        price: Number(input.price.toFixed(2)),
+        currency,
+      }
     };
   } catch (error: any) {
     console.error(

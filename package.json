@@ -80,6 +80,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "genkit": "1.17.0"
+    "genkit": "1.17.0",
+    "websocket-driver": "0.7.5"
   }
 }

@@ -82,6 +82,24 @@ export type ProductImportPreview = {
   rejectedRows: number;
 };
 
+export type ProductImportPreviewRow = {
+  rowNumber: number;
+  mapped: Record<string, unknown>;
+  status: ProductImportRowStatus;
+  duplicateClassification?: ProductImportDuplicateClassification;
+  issues: ProductImportIssue[];
+  validatedData?: Record<string, unknown>;
+};
+
+export type ProductImportPreviewResult = {
+  rows: ProductImportPreviewRow[];
+  totalRows: number;
+  validRows: number;
+  warningRows: number;
+  rejectedRows: number;
+  duplicateRows: number;
+};
+
 export type ProductImportJob = {
   importJobId: string;
   retailerId: string;

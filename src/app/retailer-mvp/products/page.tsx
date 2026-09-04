@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-    PlusCircle, ShoppingBasket, Loader2, Trash2,
+    PlusCircle, Upload, ShoppingBasket, Loader2, Trash2,
     CheckCircle2, QrCode, Pencil, Save
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -274,10 +274,22 @@ export default function ProductCatalogPage() {
                     </p>
                 </div>
 
-                <Dialog
-                    open={isAddModalOpen}
-                    onOpenChange={setIsAddModalOpen}
-                >
+                <div className="flex items-center gap-3">
+                    <Button
+                        asChild
+                        variant="outline"
+                        className="gap-2 font-black uppercase text-[10px] tracking-widest h-12 px-6"
+                    >
+                        <Link href="/retailer-mvp/products/import">
+                            <Upload className="h-4 w-4" />
+                            Bulk Import
+                        </Link>
+                    </Button>
+
+                    <Dialog
+                        open={isAddModalOpen}
+                        onOpenChange={setIsAddModalOpen}
+                    >
                     <DialogTrigger asChild>
                         <Button className="gap-2 font-black uppercase text-[10px] tracking-widest h-12 px-8 shadow-xl">
                             <PlusCircle className="h-4 w-4" />
@@ -556,7 +568,8 @@ export default function ProductCatalogPage() {
                         </form>
 
                     </DialogContent>
-                </Dialog>
+                    </Dialog>
+                </div>
             </div>
 
             {/* Edit Dialog */}

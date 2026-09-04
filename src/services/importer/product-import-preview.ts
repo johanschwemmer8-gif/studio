@@ -6,29 +6,13 @@ import type {
   ProductImportIssue,
   ProductImportRowStatus,
   ProductImportDuplicateClassification,
+  ProductImportPreviewRow,
+  ProductImportPreviewResult,
 } from '@/types/importer/product-import';
 
 export type ProductImportPreviewInput = {
   rowNumber: number;
   mapped: Record<string, unknown>;
-};
-
-export type ProductImportPreviewRow = {
-  rowNumber: number;
-  mapped: Record<string, unknown>;
-  status: ProductImportRowStatus;
-  duplicateClassification?: ProductImportDuplicateClassification;
-  issues: ProductImportIssue[];
-  validatedData?: Record<string, unknown>;
-};
-
-export type ProductImportPreviewResult = {
-  rows: ProductImportPreviewRow[];
-  totalRows: number;
-  validRows: number;
-  warningRows: number;
-  rejectedRows: number;
-  duplicateRows: number;
 };
 
 export async function previewProductImportRows(

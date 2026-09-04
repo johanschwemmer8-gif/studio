@@ -323,3 +323,29 @@ export function getProductImportTargetFields(): ProductImportTargetField[] {
 export function getRequiredProductImportFields(): ProductImportTargetField[] {
   return ['name', 'category', 'price', 'currency'];
 }
+
+export function mapProductImportRows(
+  sourceRows: Array<{
+    rowNumber: number;
+    values: Record<string, unknown>;
+  }>,
+  mappings: ProductImportMapping[]
+): Array<{
+  rowNumber: number;
+  mapped: Record<string, unknown>;
+}> {
+  return sourceRows.map((row) => {
+    const mapped: Record<string, unknown> = {};
+
+    for (const mapping of mappings) {
+      if (!mapping.sourceColumn || !mapping.targetField) continue;
+
+      mapped[mapping.targetField] = row.values[mapping.sourceColumn];
+    }
+
+    return {
+      rowNumber: row.rowNumber,
+      mapped,
+    };
+  });
+}

@@ -38,6 +38,31 @@ export type ProductImportJobResult =
       error: string;
     };
 
+function serializeProductImportJob(job: ProductImportJob): ProductImportJob {
+  const serializeDate = (value: unknown): unknown => {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      'toDate' in value &&
+      typeof (value as { toDate?: unknown }).toDate === 'function'
+    ) {
+      return (value as { toDate: () => Date }).toDate().toISOString();
+    }
+
+    return value;
+  };
+
+  return {
+    ...job,
+    startedAt: serializeDate(job.startedAt),
+    completedAt: serializeDate(job.completedAt),
+  };
+}
+
 function resolveRetailerId(
   role: 'admin' | 'retailerAdmin' | 'storeManager' | 'analyst',
   authenticatedRetailerId: string | undefined,
@@ -136,10 +161,7 @@ export async function createProductImportJob(
 
   return {
     success: true,
-    job: {
-      ...job,
-      startedAt: now.toISOString(),
-    },
+    job: serializeProductImportJob(job),
   };
 }
 
@@ -271,6 +293,8 @@ export async function updateProductImportJob(
 
   return {
     success: true,
-    job: updatedSnapshot.data() as ProductImportJob,
+    job: serializeProductImportJob(
+      updatedSnapshot.data() as ProductImportJob
+    ),
   };
 }

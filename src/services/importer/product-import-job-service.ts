@@ -136,7 +136,10 @@ export async function createProductImportJob(
 
   return {
     success: true,
-    job,
+    job: {
+      ...job,
+      startedAt: now.toISOString(),
+    },
   };
 }
 

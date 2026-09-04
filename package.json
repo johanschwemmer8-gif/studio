@@ -84,6 +84,7 @@
     "websocket-driver": "0.7.5",
     "handlebars": "4.7.9",
     "protobufjs": "7.6.6",
-    "@babel/runtime": "7.26.10"
+    "@babel/runtime": "7.26.10",
+    "fast-uri": "3.1.7"
   }
 }

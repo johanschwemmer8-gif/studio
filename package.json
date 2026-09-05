@@ -95,6 +95,13 @@
     "@types/request": {
       "form-data": "2.5.6"
     },
-    "yaml": "2.9.0"
+    "yaml": "2.9.0",
+    "@google-cloud/modelarmor": {
+      "google-gax": {
+        "rimraf": {
+          "glob": "10.5.0"
+        }
+      }
+    }
   }
 }

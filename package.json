@@ -90,6 +90,9 @@
       "body-parser": "1.20.6"
     },
     "lodash": "4.18.1",
-    "nanoid": "3.3.18"
+    "nanoid": "3.3.18",
+    "@types/request": {
+      "form-data": "2.5.6"
+    }
   }
 }

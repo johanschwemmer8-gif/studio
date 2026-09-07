@@ -6,6 +6,14 @@ runConfig:
   # more instances in response to increased traffic.
   maxInstances: 1
 
+env:
+  # App Hosting's buildpack runs npm ci directly. Explicitly preserve
+  # the project's legacy peer-dependency resolution policy.
+  - variable: NPM_CONFIG_LEGACY_PEER_DEPS
+    value: "true"
+    availability:
+      - BUILD
+
 scripts:
   # Explicitly define the install command to handle legacy peer dependencies
   installCommand: npm install --legacy-peer-deps

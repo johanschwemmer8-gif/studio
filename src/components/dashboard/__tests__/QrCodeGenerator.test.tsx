@@ -55,9 +55,8 @@ describe('QrCodeGenerator', () => {
     await waitFor(() => {
       const qrImage = screen.getByAltText('Generated QR Code');
       expect(qrImage).toBeInTheDocument();
-      // Check if the image source is correct
-      const encodedUrl = encodeURIComponent(validUrl);
-      expect(qrImage).toHaveAttribute('src', `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodedUrl}`);
+      // next/image rewrites the rendered src through the Next.js image optimizer.
+      // The exact generated QR URL is verified through the callback assertion below.
     });
 
     // Check if the callback function was called with the correct arguments

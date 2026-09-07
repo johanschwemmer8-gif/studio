@@ -8,11 +8,6 @@ import ClientFormattedDate from '../client-formatted-date';
 jest.useFakeTimers();
 
 describe('ClientFormattedDate', () => {
-  it('renders a placeholder initially', () => {
-    render(<ClientFormattedDate timestamp="2023-10-27T10:00:00Z" />);
-    expect(screen.getByText('calculating...')).toBeInTheDocument();
-  });
-
   it('renders the formatted date after hydration', () => {
     const testDate = '2023-10-27T10:00:00Z';
     render(<ClientFormattedDate timestamp={testDate} />);

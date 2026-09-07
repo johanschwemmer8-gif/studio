@@ -37,7 +37,6 @@ function isCanonicalRole(value: unknown): value is CanonicalRole {
     value === 'regionalManager' ||
     value === 'areaManager' ||
     value === 'storeManager' ||
-    value === 'storeUser' ||
     value === 'analyst'
   );
 }
@@ -196,6 +195,23 @@ export async function verifyAuth(idToken?: string): Promise<AuthResult> {
       }
 
       const userData = userDoc.data();
+
+      /**
+       * Inactive users fail closed explicitly.
+       *
+       * This check is intentionally performed before the full profile
+       * validation so an otherwise well-formed inactive account receives
+       * a distinct authorization failure.
+       */
+      if (
+        userData &&
+        typeof userData === 'object' &&
+        (userData as Record<string, unknown>).isActive === false
+      ) {
+        return authenticationFailure(
+          'ACCOUNT_INACTIVE: User account is inactive.'
+        );
+      }
 
       if (!isValidAuthorizationProfile(userData, decodedToken.uid)) {
         return authenticationFailure(

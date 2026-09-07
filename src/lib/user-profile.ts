@@ -45,9 +45,6 @@ function permissions(
 
 export function getDefaultPermissions(role: CanonicalRole): Permissions {
   switch (role) {
-    case 'platformAdmin':
-      return { ...ALL_PERMISSIONS };
-
     case 'networkOwner':
       return {
         ...ALL_PERMISSIONS,

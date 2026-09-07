@@ -22,20 +22,18 @@ export function isScopeWithin(
   child: AuthorizationScope,
   parent: AuthorizationScope
 ): boolean {
-  if (parent.level === 'platform') {
-    return true;
+
+
+  if (!parent.networkId || !child.networkId) {
+    return false;
   }
 
-  if (child.level === 'platform') {
+  if (parent.networkId !== child.networkId) {
     return false;
   }
 
   if (parent.level === 'network') {
-    return Boolean(
-      parent.networkId &&
-      child.networkId &&
-      parent.networkId === child.networkId
-    );
+    return true;
   }
 
   const hierarchy: Array<{
@@ -76,19 +74,12 @@ export function isScopeWithin(
  * A user may manage roles strictly below their own authority level.
  * Equal or higher authority roles cannot be managed.
  *
- * platformAdmin is the sole platform-level authority.
  */
 export function canManageRole(
   actorRole: CanonicalRole,
   targetRole: CanonicalRole
 ): boolean {
-  if (actorRole === 'platformAdmin') {
-    return targetRole !== 'platformAdmin';
-  }
 
-  if (targetRole === 'platformAdmin') {
-    return false;
-  }
 
   return ROLE_AUTHORITY[actorRole] > ROLE_AUTHORITY[targetRole];
 }
@@ -105,67 +96,48 @@ export function isRoleScopeValid(
 ): boolean {
   const expectedLevel = ROLE_SCOPE_LEVEL[role];
 
-  if (role === 'platformAdmin') {
-    return (
-      scope.level === 'platform' &&
-      !scope.networkId &&
-      !scope.brandId &&
-      !scope.divisionId &&
-      !scope.regionId &&
-      !scope.areaId &&
-      !scope.storeId
-    );
-  }
-
   if (role !== 'analyst' && expectedLevel && scope.level !== expectedLevel) {
     return false;
   }
 
-  if (scope.level === 'platform') {
+  const requiredIds: Record<
+    AuthorizationScope['level'],
+    Array<keyof AuthorizationScope>
+  > = {
+    network: ['networkId'],
+    brand: ['networkId', 'brandId'],
+    division: ['networkId', 'brandId', 'divisionId'],
+    region: ['networkId', 'brandId', 'divisionId', 'regionId'],
+    area: ['networkId', 'brandId', 'divisionId', 'regionId', 'areaId'],
+    store: [
+      'networkId',
+      'brandId',
+      'divisionId',
+      'regionId',
+      'areaId',
+      'storeId',
+    ],
+  };
+
+  const required = requiredIds[scope.level];
+
+  if (!required) {
     return false;
   }
 
-  if (!scope.networkId) {
-    return false;
-  }
+  const hierarchyIds: Array<keyof AuthorizationScope> = [
+    'networkId',
+    'brandId',
+    'divisionId',
+    'regionId',
+    'areaId',
+    'storeId',
+  ];
 
-  if (scope.level === 'brand' && !scope.brandId) {
-    return false;
-  }
-
-  if (scope.level === 'division' && (!scope.brandId || !scope.divisionId)) {
-    return false;
-  }
-
-  if (
-    scope.level === 'region' &&
-    (!scope.brandId || !scope.divisionId || !scope.regionId)
-  ) {
-    return false;
-  }
-
-  if (
-    scope.level === 'area' &&
-    (!scope.brandId ||
-      !scope.divisionId ||
-      !scope.regionId ||
-      !scope.areaId)
-  ) {
-    return false;
-  }
-
-  if (
-    scope.level === 'store' &&
-    (!scope.brandId ||
-      !scope.divisionId ||
-      !scope.regionId ||
-      !scope.areaId ||
-      !scope.storeId)
-  ) {
-    return false;
-  }
-
-  return true;
+  return hierarchyIds.every((id) => {
+    const shouldExist = required.includes(id);
+    return shouldExist === Boolean(scope[id]);
+  });
 }
 
 /**
@@ -202,17 +174,14 @@ export function canManageUser(
     };
   }
 
-  if (
-    actor.role !== 'platformAdmin' &&
-    !hasPermission(actor, 'manageUsers')
-  ) {
+  if (!hasPermission(actor, 'manageUsers')) {
     return {
       allowed: false,
       reason: 'Actor does not have user-management permission.',
     };
   }
 
-  if (actor.role !== 'platformAdmin' && actor.retailerId !== target.retailerId) {
+  if (actor.retailerId !== target.retailerId) {
     return {
       allowed: false,
       reason: 'Target user belongs to a different retailer.',
@@ -233,10 +202,7 @@ export function canManageUser(
     };
   }
 
-  if (
-    actor.role !== 'platformAdmin' &&
-    !isScopeWithin(target.scope, actor.scope)
-  ) {
+  if (!isScopeWithin(target.scope, actor.scope)) {
     return {
       allowed: false,
       reason: 'Target user is outside the actor scope.',
@@ -265,11 +231,6 @@ export function canAccessScope(
     };
   }
 
-  if (actor.role === 'platformAdmin') {
-    return {
-      allowed: true,
-    };
-  }
 
   if (!actor.retailerId) {
     return {

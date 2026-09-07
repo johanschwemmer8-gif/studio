@@ -8,11 +8,9 @@
 /**
  * Canonical platform and retailer roles.
  *
- * `platformAdmin` is the iNteract platform-level administrator.
  * All other roles operate within a retailer/network hierarchy.
  */
 export type CanonicalRole =
-  | 'platformAdmin'
   | 'networkOwner'
   | 'networkAdmin'
   | 'brandManager'
@@ -36,7 +34,6 @@ export type LegacyRole =
  * Scope levels correspond directly to the iNteract organization hierarchy.
  */
 export type ScopeLevel =
-  | 'platform'
   | 'network'
   | 'brand'
   | 'division'
@@ -136,7 +133,6 @@ export type AuthorizedContext = {
  * a management hierarchy role.
  */
 export const ROLE_AUTHORITY: Record<CanonicalRole, number> = {
-  platformAdmin: 100,
 
   networkOwner: 90,
   networkAdmin: 80,
@@ -155,7 +151,6 @@ export const ROLE_AUTHORITY: Record<CanonicalRole, number> = {
  * Canonical role-to-scope mapping.
  */
 export const ROLE_SCOPE_LEVEL: Partial<Record<CanonicalRole, ScopeLevel>> = {
-  platformAdmin: 'platform',
 
   networkOwner: 'network',
   networkAdmin: 'network',

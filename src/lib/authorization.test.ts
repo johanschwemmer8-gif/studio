@@ -107,14 +107,6 @@ function makeTarget(
 }
 
 describe('isScopeWithin', () => {
-  test('platform scope contains every scope', () => {
-    expect(isScopeWithin(storeScope, { level: 'platform' })).toBe(true);
-  });
-
-  test('platform scope cannot be contained by a retailer scope', () => {
-    expect(isScopeWithin({ level: 'platform' }, networkScope)).toBe(false);
-  });
-
   test('network scope contains descendants in the same network', () => {
     expect(isScopeWithin(brandScope, networkScope)).toBe(true);
     expect(isScopeWithin(storeScope, networkScope)).toBe(true);
@@ -125,6 +117,33 @@ describe('isScopeWithin', () => {
       isScopeWithin(
         { ...brandScope, networkId: 'network-2' },
         networkScope
+      )
+    ).toBe(false);
+  });
+
+  test('different networks are denied even when lower-level IDs match', () => {
+    const otherNetworkStore: AuthorizationScope = {
+      ...storeScope,
+      networkId: 'network-2',
+    };
+
+    expect(isScopeWithin(otherNetworkStore, storeScope)).toBe(false);
+    expect(isScopeWithin(otherNetworkStore, brandScope)).toBe(false);
+    expect(isScopeWithin(otherNetworkStore, networkScope)).toBe(false);
+  });
+
+  test('missing network IDs fail closed', () => {
+    expect(
+      isScopeWithin(
+        { ...storeScope, networkId: undefined },
+        brandScope
+      )
+    ).toBe(false);
+
+    expect(
+      isScopeWithin(
+        storeScope,
+        { ...brandScope, networkId: undefined }
       )
     ).toBe(false);
   });
@@ -148,6 +167,7 @@ describe('isScopeWithin', () => {
 
   test('division scope contains only matching descendants', () => {
     expect(isScopeWithin(regionScope, divisionScope)).toBe(true);
+
     expect(
       isScopeWithin(
         { ...regionScope, divisionId: 'division-2' },
@@ -171,35 +191,28 @@ describe('isScopeWithin', () => {
 });
 
 describe('canManageRole', () => {
-  test('platformAdmin can manage every non-platform role', () => {
-    expect(canManageRole('platformAdmin', 'networkOwner')).toBe(true);
-    expect(canManageRole('platformAdmin', 'analyst')).toBe(true);
-  });
-
-  test('platformAdmin cannot manage another platformAdmin', () => {
-    expect(canManageRole('platformAdmin', 'platformAdmin')).toBe(false);
+  test('networkOwner is the highest retailer role', () => {
+    expect(canManageRole('networkOwner', 'networkAdmin')).toBe(true);
+    expect(canManageRole('networkOwner', 'networkOwner')).toBe(false);
   });
 
   test('a role cannot manage an equal or higher authority role', () => {
     expect(canManageRole('brandManager', 'brandManager')).toBe(false);
     expect(canManageRole('brandManager', 'networkAdmin')).toBe(false);
+    expect(canManageRole('networkAdmin', 'networkOwner')).toBe(false);
   });
 
   test('a higher retailer role can manage a lower retailer role', () => {
     expect(canManageRole('brandManager', 'storeManager')).toBe(true);
     expect(canManageRole('networkAdmin', 'brandManager')).toBe(true);
+    expect(canManageRole('networkOwner', 'analyst')).toBe(true);
   });
 });
 
 describe('isRoleScopeValid', () => {
-  test('platformAdmin requires platform scope with no hierarchy IDs', () => {
-    expect(isRoleScopeValid('platformAdmin', { level: 'platform' })).toBe(true);
-    expect(
-      isRoleScopeValid('platformAdmin', {
-        level: 'platform',
-        networkId: 'network-1',
-      })
-    ).toBe(false);
+  test('networkOwner requires network scope', () => {
+    expect(isRoleScopeValid('networkOwner', networkScope)).toBe(true);
+    expect(isRoleScopeValid('networkOwner', brandScope)).toBe(false);
   });
 
   test('network roles require a network ID', () => {
@@ -210,7 +223,9 @@ describe('isRoleScopeValid', () => {
   test('manager roles require their matching hierarchy level and ancestors', () => {
     expect(isRoleScopeValid('brandManager', brandScope)).toBe(true);
     expect(isRoleScopeValid('brandManager', networkScope)).toBe(false);
+
     expect(isRoleScopeValid('divisionManager', divisionScope)).toBe(true);
+
     expect(
       isRoleScopeValid('divisionManager', {
         level: 'division',
@@ -223,13 +238,43 @@ describe('isRoleScopeValid', () => {
   test('analyst requires an explicit non-platform scope', () => {
     expect(isRoleScopeValid('analyst', storeScope)).toBe(true);
     expect(isRoleScopeValid('analyst', networkScope)).toBe(true);
-    expect(isRoleScopeValid('analyst', { level: 'platform' })).toBe(false);
+  });
+
+  test('network scope rejects descendant IDs', () => {
+    expect(
+      isRoleScopeValid('networkAdmin', {
+        level: 'network',
+        networkId: 'network-1',
+        storeId: 'store-1',
+      })
+    ).toBe(false);
+  });
+
+  test('brand scope rejects deeper descendant IDs', () => {
+    expect(
+      isRoleScopeValid('brandManager', {
+        level: 'brand',
+        networkId: 'network-1',
+        brandId: 'brand-1',
+        storeId: 'store-1',
+      })
+    ).toBe(false);
+  });
+
+  test('no retailer role can use platform scope', () => {
+    const invalidScope = {
+      level: 'platform',
+    } as unknown as AuthorizationScope;
+
+    expect(isRoleScopeValid('networkOwner', invalidScope)).toBe(false);
+    expect(isRoleScopeValid('analyst', invalidScope)).toBe(false);
   });
 });
 
 describe('hasPermission', () => {
   test('active users receive enabled permissions', () => {
     const actor = makeContext('storeUser', storeScope);
+
     expect(hasPermission(actor, 'dashboard')).toBe(true);
   });
 
@@ -237,6 +282,7 @@ describe('hasPermission', () => {
     const actor = makeContext('storeUser', storeScope, {
       permissions: { ...permissions, export: false },
     });
+
     expect(hasPermission(actor, 'export')).toBe(false);
   });
 
@@ -244,31 +290,17 @@ describe('hasPermission', () => {
     const actor = makeContext('storeUser', storeScope, {
       isActive: false,
     });
+
     expect(hasPermission(actor, 'dashboard')).toBe(false);
   });
 });
 
 describe('canManageUser', () => {
-  test('platformAdmin can manage a non-platform user without manageUsers permission', () => {
-    const actor = makeContext('platformAdmin', { level: 'platform' }, {
-      permissions: { ...permissions, manageUsers: false },
-    });
-    const target = makeTarget('networkAdmin', networkScope);
-
-    expect(canManageUser(actor, target)).toEqual({ allowed: true });
-  });
-
-  test('platformAdmin cannot manage another platformAdmin', () => {
-    const actor = makeContext('platformAdmin', { level: 'platform' });
-    const target = makeTarget('platformAdmin', { level: 'platform' });
-
-    expect(canManageUser(actor, target).allowed).toBe(false);
-  });
-
   test('retailer manager requires manageUsers permission', () => {
     const actor = makeContext('brandManager', brandScope, {
       permissions: { ...permissions, manageUsers: false },
     });
+
     const target = makeTarget('storeManager', storeScope);
 
     expect(canManageUser(actor, target).allowed).toBe(false);
@@ -279,6 +311,20 @@ describe('canManageUser', () => {
     const target = makeTarget('storeManager', storeScope);
 
     expect(canManageUser(actor, target)).toEqual({ allowed: true });
+  });
+
+  test('networkOwner can manage lower roles within its network', () => {
+    const actor = makeContext('networkOwner', networkScope);
+    const target = makeTarget('networkAdmin', networkScope);
+
+    expect(canManageUser(actor, target)).toEqual({ allowed: true });
+  });
+
+  test('networkOwner cannot manage another networkOwner', () => {
+    const actor = makeContext('networkOwner', networkScope);
+    const target = makeTarget('networkOwner', networkScope);
+
+    expect(canManageUser(actor, target).allowed).toBe(false);
   });
 
   test('retailer manager cannot manage a higher role', () => {
@@ -298,8 +344,30 @@ describe('canManageUser', () => {
     expect(canManageUser(actor, target).allowed).toBe(false);
   });
 
+  test('networkOwner cannot manage a user in another network', () => {
+    const actor = makeContext('networkOwner', networkScope);
+
+    const target = makeTarget('networkAdmin', {
+      level: 'network',
+      networkId: 'network-2',
+    });
+
+    expect(canManageUser(actor, target).allowed).toBe(false);
+  });
+
+  test('networkOwner cannot manage a user in another retailer', () => {
+    const actor = makeContext('networkOwner', networkScope);
+
+    const target = makeTarget('networkAdmin', networkScope, {
+      retailerId: 'retailer-2',
+    });
+
+    expect(canManageUser(actor, target).allowed).toBe(false);
+  });
+
   test('retailer mismatch is denied', () => {
     const actor = makeContext('networkAdmin', networkScope);
+
     const target = makeTarget('brandManager', brandScope, {
       retailerId: 'retailer-2',
     });
@@ -311,6 +379,7 @@ describe('canManageUser', () => {
     const actor = makeContext('brandManager', brandScope, {
       isActive: false,
     });
+
     const target = makeTarget('storeManager', storeScope);
 
     expect(canManageUser(actor, target).allowed).toBe(false);
@@ -325,21 +394,6 @@ describe('canManageUser', () => {
 });
 
 describe('canAccessScope', () => {
-  test('platformAdmin can access any scope', () => {
-    const actor = makeContext('platformAdmin', { level: 'platform' });
-    expect(
-      canAccessScope(actor, {
-        level: 'store',
-        networkId: 'network-99',
-        brandId: 'brand-99',
-        divisionId: 'division-99',
-        regionId: 'region-99',
-        areaId: 'area-99',
-        storeId: 'store-99',
-      })
-    ).toEqual({ allowed: true });
-  });
-
   test('manager can access their own scope and descendants', () => {
     const actor = makeContext('brandManager', brandScope);
 
@@ -362,6 +416,30 @@ describe('canAccessScope', () => {
     const actor = makeContext('storeManager', storeScope);
 
     expect(canAccessScope(actor, brandScope).allowed).toBe(false);
+  });
+
+  test('networkOwner cannot access another network', () => {
+    const actor = makeContext('networkOwner', networkScope);
+
+    const otherNetworkStore = {
+      ...storeScope,
+      networkId: 'network-2',
+    };
+
+    expect(canAccessScope(actor, otherNetworkStore).allowed).toBe(false);
+  });
+
+  test('permissions do not expand hierarchy scope', () => {
+    const actor = makeContext('networkOwner', networkScope, {
+      permissions: { ...permissions, manageOrganization: true, export: true },
+    });
+
+    const otherNetworkStore = {
+      ...storeScope,
+      networkId: 'network-2',
+    };
+
+    expect(canAccessScope(actor, otherNetworkStore).allowed).toBe(false);
   });
 
   test('missing retailer assignment is denied', () => {

@@ -39,8 +39,8 @@ const allPermissions: Permissions = {
 };
 
 describe('user-profile', () => {
-  test('returns full permissions for platformAdmin', () => {
-    expect(getDefaultPermissions('platformAdmin')).toEqual(allPermissions);
+  test('networkOwner receives full retailer-level default permissions', () => {
+    expect(getDefaultPermissions('networkOwner')).toEqual(allPermissions);
   });
 
   test('returns conservative permissions for storeUser', () => {

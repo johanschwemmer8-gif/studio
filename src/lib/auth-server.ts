@@ -197,11 +197,11 @@ export async function verifyAuth(idToken?: string): Promise<AuthResult> {
       const userData = userDoc.data();
 
       /**
-       * Inactive users fail closed explicitly.
+       * Explicitly reject inactive accounts.
        *
-       * This check is intentionally performed before the full profile
-       * validation so an otherwise well-formed inactive account receives
-       * a distinct authorization failure.
+       * This is deliberately checked before full authorization-profile
+       * validation so an inactive account receives a distinct failure
+       * rather than being treated merely as malformed.
        */
       if (
         userData &&

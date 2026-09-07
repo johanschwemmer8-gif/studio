@@ -31,12 +31,14 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 const storeSchema = z.object({
+  id: z.string().min(1),
   name: z.string().min(1, 'Store name is required'),
   code: z.string().optional(),
   address: z.string().optional(),
 });
 
 const areaSchema = z.object({
+  id: z.string().min(1),
   name: z.string().min(1, 'Area name is required'),
   stores: z.array(storeSchema).default([]),
 });
@@ -54,17 +56,20 @@ const SOUTH_AFRICAN_PROVINCES = [
 ] as const;
 
 const regionSchema = z.object({
+  id: z.string().min(1),
   name: z.string().min(1, 'Region name is required'),
   province: z.enum(SOUTH_AFRICAN_PROVINCES),
   areas: z.array(areaSchema).default([]),
 });
 
 const divisionSchema = z.object({
+  id: z.string().min(1),
   name: z.string().min(1, 'Division name is required'),
   regions: z.array(regionSchema).default([]),
 });
 
 const brandSchema = z.object({
+  id: z.string().min(1),
   name: z.string().min(1, 'Brand name is required'),
   divisions: z.array(divisionSchema).default([]),
 });
@@ -74,6 +79,41 @@ const organizationSchema = z.object({
 });
 
 type OrganizationValues = z.infer<typeof organizationSchema>;
+
+function ensureOrganizationIds(data: any): OrganizationValues {
+  return {
+    brands: Array.isArray(data?.brands)
+      ? data.brands.map((brand: any) => ({
+          ...brand,
+          id: brand.id || crypto.randomUUID(),
+          divisions: Array.isArray(brand.divisions)
+            ? brand.divisions.map((division: any) => ({
+                ...division,
+                id: division.id || crypto.randomUUID(),
+                regions: Array.isArray(division.regions)
+                  ? division.regions.map((region: any) => ({
+                      ...region,
+                      id: region.id || crypto.randomUUID(),
+                      areas: Array.isArray(region.areas)
+                        ? region.areas.map((area: any) => ({
+                            ...area,
+                            id: area.id || crypto.randomUUID(),
+                            stores: Array.isArray(area.stores)
+                              ? area.stores.map((store: any) => ({
+                                  ...store,
+                                  id: store.id || crypto.randomUUID(),
+                                }))
+                              : [],
+                          }))
+                        : [],
+                    }))
+                  : [],
+              }))
+            : [],
+        }))
+      : [],
+  };
+}
 
 export function OrganizationManager() {
   const { user } = useAuth();
@@ -101,13 +141,13 @@ export function OrganizationManager() {
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        form.reset(data.data as OrganizationValues);
+        form.reset(ensureOrganizationIds(data.data));
       } else {
         // Migration fallback: check localStorage
         const saved = localStorage.getItem('retail-organization-structure');
         if (saved) {
           try {
-            form.reset(JSON.parse(saved));
+            form.reset(ensureOrganizationIds(JSON.parse(saved)));
           } catch (e) {
             console.error('Failed to parse legacy org structure');
           }
@@ -189,7 +229,7 @@ export function OrganizationManager() {
           type="button" 
           variant="outline" 
           className="w-full h-16 border-dashed border-2 hover:border-primary hover:bg-primary/5"
-          onClick={() => appendBrand({ name: 'New Brand', divisions: [] })}
+          onClick={() => appendBrand({ id: crypto.randomUUID(), name: 'New Brand', divisions: [] })}
         >
           <PlusCircle className="mr-2 h-5 w-5" /> Add Another Brand
         </Button>
@@ -235,7 +275,7 @@ function BrandNode({ index, control, remove, register }: any) {
           variant="ghost" 
           size="sm" 
           className="w-full border border-dashed text-muted-foreground"
-          onClick={() => appendDivision({ name: 'New Division', regions: [] })}
+          onClick={() => appendDivision({ id: crypto.randomUUID(), name: 'New Division', regions: [] })}
         >
           <PlusCircle className="mr-2 h-4 w-4" /> Add Division
         </Button>
@@ -277,7 +317,7 @@ function DivisionNode({ brandIndex, index, control, remove, register }: any) {
           type="button" 
           variant="ghost" 
           size="sm" 
-          onClick={() => appendRegion({ name: 'New Region', province: 'Gauteng', areas: [] })}
+          onClick={() => appendRegion({ id: crypto.randomUUID(), name: 'New Region', province: 'Gauteng', areas: [] })}
         >
           <PlusCircle className="mr-2 h-3 w-3" /> Add Region
         </Button>
@@ -339,7 +379,7 @@ function RegionNode({ brandIndex, divisionIndex, index, control, remove, registe
             type="button" 
             variant="ghost" 
             size="sm" 
-            onClick={() => appendArea({ name: 'New Area', stores: [] })}
+            onClick={() => appendArea({ id: crypto.randomUUID(), name: 'New Area', stores: [] })}
           >
             <PlusCircle className="mr-2 h-3 w-3" /> Add Area
           </Button>
@@ -383,7 +423,7 @@ function AreaNode({ brandIndex, divisionIndex, regionIndex, index, control, remo
             variant="outline" 
             size="sm" 
             className="text-[10px] h-6 border-dashed"
-            onClick={() => appendStore({ name: '' })}
+            onClick={() => appendStore({ id: crypto.randomUUID(), name: '' })}
           >
             <PlusCircle className="mr-1 h-3 w-3" /> Add Store
           </Button>

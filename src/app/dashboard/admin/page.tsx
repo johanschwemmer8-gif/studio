@@ -49,7 +49,7 @@ function slugify(text: string) {
 
 function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
     const [targetUid, setTargetUid] = useState('');
-    const [selectedRole, setSelectedRole] = useState<'retailerAdmin' | 'storeManager' | 'analyst'>('retailerAdmin');
+    const [selectedRole, setSelectedRole] = useState<'networkAdmin' | 'storeManager' | 'analyst'>('networkAdmin');
     const [selectedRetailerId, setSelectedRetailerId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
@@ -65,7 +65,11 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
                 idToken: idToken || '',
                 targetUid,
                 role: selectedRole,
-                retailerId: selectedRetailerId
+                retailerId: selectedRetailerId,
+                scope: {
+                    level: 'network',
+                    networkId: selectedRetailerId
+                }
             });
 
             if (result.success) {
@@ -121,7 +125,7 @@ function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
                             <Select onValueChange={(v: any) => setSelectedRole(v)} value={selectedRole}>
                                 <SelectTrigger className="bg-white h-9 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="retailerAdmin">Admin</SelectItem>
+                                    <SelectItem value="networkAdmin">Network Admin</SelectItem>
                                     <SelectItem value="storeManager">Manager</SelectItem>
                                     <SelectItem value="analyst">Analyst</SelectItem>
                                 </SelectContent>
@@ -234,7 +238,7 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
                             <Select onValueChange={(v: any) => setSelectedRole(v)} value={selectedRole}>
                                 <SelectTrigger className="bg-white h-9 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="retailerAdmin">Retailer Admin</SelectItem>
+                                    <SelectItem value="networkAdmin">Network Admin</SelectItem>
                                     <SelectItem value="storeManager">Store Manager</SelectItem>
                                     <SelectItem value="analyst">Analyst</SelectItem>
                                 </SelectContent>

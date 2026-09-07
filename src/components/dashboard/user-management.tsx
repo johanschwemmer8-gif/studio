@@ -37,8 +37,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { type FormValues as BrandFormValues } from './brand-management-form';
+import { type OrganizationValues } from './organization-manager';
 import Papa from 'papaparse';
+import { useAuth } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const permissionsSchema = z.object({
   dashboard: z.boolean().default(false),
@@ -78,22 +81,36 @@ const permissionLabels: { id: keyof z.infer<typeof permissionsSchema>; label: st
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
-  const [brandData, setBrandData] = useState<BrandFormValues | null>(null);
+  const [brandData, setBrandData] = useState<OrganizationValues | null>(null);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    try {
-      const savedBrandData = localStorage.getItem('brandManagement');
-      if (savedBrandData) {
-        setBrandData(JSON.parse(savedBrandData));
+    if (!user?.retailerId || !db) return;
+
+    const orgRef = doc(db, 'configurations', `${user.retailerId}_org`);
+
+    const unsubscribe = onSnapshot(
+      orgRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.data) {
+            setBrandData(data.data as OrganizationValues);
+          }
+        } else {
+          setBrandData(null);
+        }
+      },
+      (error) => {
+        console.error('Failed to load organization data', error);
+        setBrandData(null);
       }
-    } catch (error) {
-      console.error("Failed to parse brand data from localStorage", error);
-    }
-    
+    );
+
     try {
       const savedUsers = localStorage.getItem('userManagement');
       if (savedUsers) {
@@ -102,7 +119,9 @@ export default function UserManagement() {
     } catch (error) {
       console.error("Failed to parse user data from localStorage", error);
     }
-  }, []);
+
+    return () => unsubscribe();
+  }, [user?.retailerId]);
 
   const form = useForm<User>({
     resolver: zodResolver(userSchema),

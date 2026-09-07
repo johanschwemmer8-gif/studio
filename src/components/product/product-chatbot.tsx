@@ -63,11 +63,14 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
     setInput('');
 
     startTransition(async () => {
+      const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
+
       const chatInput: ProductChatInput = {
         gtin: product.gtin,
         url: typeof window !== 'undefined' ? window.location.href : '',
         history: newMessages,
         shopperUid: user?.uid,
+        hasConsent,
       };
       
       try {

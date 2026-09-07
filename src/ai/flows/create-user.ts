@@ -1,25 +1,54 @@
 'use server';
 /**
- * create-user.ts
- * Secure server-side user provisioning flow.
- * - Only platform admins may call
- * - Creates Firebase Auth account via Admin SDK
- * - Assigns custom claims
- * - Persists authoritative users/{uid} record
- * - Returns only safe information
+ * @fileOverview Secure platform user provisioning flow.
+ *
+ * Platform authorization is established through /platformOperators/{uid}.
+ * Retailer authorization is established through the authoritative
+ * /users/{uid} profile. Firebase custom claims are not authoritative.
  */
+
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin, getDb } from '@/lib/firebase-admin';
-import { verifyAuth } from '@/lib/auth-server';
+import { verifyPlatformOperator } from '@/lib/auth-server';
+import {
+  AuthorizationScope,
+  CanonicalRole,
+  Permissions,
+} from '@/lib/auth-types';
+import { isRoleScopeValid } from '@/lib/authorization';
+import { getDefaultPermissions } from '@/lib/user-profile';
+
+const ScopeSchema = z.object({
+  level: z.enum(['network', 'brand', 'division', 'region', 'area', 'store']),
+  networkId: z.string().optional(),
+  brandId: z.string().optional(),
+  divisionId: z.string().optional(),
+  regionId: z.string().optional(),
+  areaId: z.string().optional(),
+  storeId: z.string().optional(),
+}).strict();
+
+const CanonicalRoleSchema = z.enum([
+  'networkOwner',
+  'networkAdmin',
+  'brandManager',
+  'divisionManager',
+  'regionalManager',
+  'areaManager',
+  'storeManager',
+  'storeUser',
+  'analyst',
+]);
 
 const CreateUserInputSchema = z.object({
-  idToken: z.string().describe("Administrator's Firebase ID token."),
+  idToken: z.string().describe("Platform operator's Firebase ID token."),
   name: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(['retailerAdmin', 'storeManager', 'analyst']),
+  role: CanonicalRoleSchema,
   retailerId: z.string().min(1),
+  scope: ScopeSchema,
 });
 
 const CreateUserOutputSchema = z.object({
@@ -32,7 +61,9 @@ const CreateUserOutputSchema = z.object({
   displayName: z.string().optional(),
 });
 
-export async function createUser(input: z.infer<typeof CreateUserInputSchema>) {
+export async function createUser(
+  input: z.infer<typeof CreateUserInputSchema>
+) {
   return createUserFlow(input);
 }
 
@@ -42,67 +73,121 @@ const createUserFlow = ai.defineFlow(
     inputSchema: CreateUserInputSchema,
     outputSchema: CreateUserOutputSchema,
   },
-  async ({ idToken, name, email, password, role, retailerId }) => {
-    // 1. Authorize caller
-    const caller = await verifyAuth(idToken);
-    if (caller.error) {
-      return { success: false, message: caller.error };
-    }
-
-    if (caller.role !== 'admin') {
-      return { success: false, message: 'Unauthorized: Only platform administrators can create user accounts.' };
-    }
+  async ({ idToken, name, email, password, role, retailerId, scope }) => {
+    // 1. Authorize caller on the separate iNteract platform security plane.
+    const caller = await verifyPlatformOperator(idToken);
 
     const db = getDb();
-    if (!db) return { success: false, message: 'Infrastructure Unavailable: Firestore.' };
-
-    // 2. Validate retailer exists
-    try {
-      const tenantDoc = await db.collection('tenants').doc(retailerId).get();
-      if (!tenantDoc.exists) {
-        return { success: false, message: `Retailer '${retailerId}' not found.` };
-      }
-    } catch (e: any) {
-      console.error('[CreateUser] Failed to validate retailer:', e.message);
-      return { success: false, message: 'Failed to validate retailer. Try again.' };
+    if (!db) {
+      return {
+        success: false,
+        message: 'Infrastructure Unavailable: Firestore.',
+      };
     }
 
-    // 3. Create Auth account
+    // 2. Validate the target retailer.
+    try {
+      const tenantDoc = await db.collection('tenants').doc(retailerId).get();
+
+      if (!tenantDoc.exists) {
+        return {
+          success: false,
+          message: `Retailer '${retailerId}' not found.`,
+        };
+      }
+
+      const tenantData = tenantDoc.data();
+
+      if (tenantData?.status !== 'active') {
+        return {
+          success: false,
+          message: `Retailer '${retailerId}' is not active.`,
+        };
+      }
+    } catch (error: any) {
+      console.error(
+        '[CreateUser] Failed to validate retailer:',
+        error?.message || error
+      );
+
+      return {
+        success: false,
+        message: 'Failed to validate retailer. Try again.',
+      };
+    }
+
+    // 3. Validate canonical role/scope relationship.
+    const authorizationScope: AuthorizationScope = scope;
+
+    if (!isRoleScopeValid(role as CanonicalRole, authorizationScope)) {
+      return {
+        success: false,
+        message: 'Invalid role and authorization scope combination.',
+      };
+    }
+
+    if (
+      authorizationScope.networkId &&
+      authorizationScope.networkId !== retailerId
+    ) {
+      return {
+        success: false,
+        message: 'Authorization scope does not belong to the selected retailer.',
+      };
+    }
+
+    if (
+      role === 'networkOwner' ||
+      role === 'networkAdmin'
+    ) {
+      if (authorizationScope.networkId !== retailerId) {
+        return {
+          success: false,
+          message: 'Network roles must be scoped to the selected retailer network.',
+        };
+      }
+    }
+
+    // 4. Create the Firebase Authentication account.
     let createdUid: string | null = null;
+
     try {
       const auth = admin.auth();
+
       const userRecord = await auth.createUser({
         email,
         password,
         displayName: name,
         emailVerified: false,
       });
+
       createdUid = userRecord.uid;
 
-      // 4. Persist authoritative record to Firestore first (so verifyAuth fallback works)
+      // 5. Persist the complete authoritative retailer authorization profile.
+      const permissions: Permissions = getDefaultPermissions(
+        role as CanonicalRole
+      );
+
       await db.collection('users').doc(createdUid).set({
         uid: createdUid,
         displayName: name,
         email,
         role,
         retailerId,
+        scope: authorizationScope,
+        permissions,
         isActive: true,
         provisionedAt: admin.firestore.FieldValue.serverTimestamp(),
         provisionedBy: caller.uid,
-        dataStatus: 'VERIFIED'
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedBy: caller.uid,
+        dataStatus: 'VERIFIED',
       });
 
-      // 5. Assign custom claims (best-effort with timeout)
-      try {
-        const claims = { role: role || 'analyst', retailerId: retailerId || 'unknown' } as any;
-        await Promise.race([
-          auth.setCustomUserClaims(createdUid, claims),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Cloud timeout')), 6000))
-        ]);
-      } catch (claimError: any) {
-        console.warn('[CreateUser] Claim assignment deferred:', claimError.message);
-        // Claims may be applied later; we do not roll back solely because of claim sync problems
-      }
+      // 6. Deliberately do not assign Firebase custom claims.
+      //
+      // Firebase Authentication establishes identity.
+      // /users/{uid} establishes authoritative retailer authorization.
 
       return {
         success: true,
@@ -114,27 +199,39 @@ const createUserFlow = ai.defineFlow(
         displayName: name,
       };
     } catch (error: any) {
-      console.error('[CreateUser] Failure:', error.code || error.message);
+      console.error(
+        '[CreateUser] Failure:',
+        error?.code || error?.message || error
+      );
 
-      // Duplicate email handling
-      if (error.code === 'auth/email-already-exists') {
+      if (error?.code === 'auth/email-already-exists') {
         return {
           success: false,
-          message: 'This email already has a Firebase Authentication account. Use Discover Auth Accounts to provision the existing account instead.'
+          message:
+            'This email already has a Firebase Authentication account. Use the existing-account provisioning flow instead.',
         };
       }
 
-      // If we partially created an Auth user and then failed to persist, attempt compensating delete
+      // If Auth creation succeeded but profile persistence failed,
+      // attempt compensating deletion to avoid an orphaned Auth account.
       if (createdUid) {
         try {
           await admin.auth().deleteUser(createdUid);
-          console.warn(`[CreateUser] Compensating delete executed for ${createdUid}`);
-        } catch (delErr: any) {
-          console.error('[CreateUser] Failed to delete orphaned auth user:', delErr.message);
+          console.warn(
+            `[CreateUser] Compensating delete executed for ${createdUid}`
+          );
+        } catch (deleteError: any) {
+          console.error(
+            '[CreateUser] Failed to delete orphaned auth user:',
+            deleteError?.message || deleteError
+          );
         }
       }
 
-      return { success: false, message: 'Failed to create user. Try again later.' };
+      return {
+        success: false,
+        message: 'Failed to create user. Try again later.',
+      };
     }
   }
 );

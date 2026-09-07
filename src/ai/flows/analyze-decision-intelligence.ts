@@ -53,7 +53,7 @@ const analyzeDecisionIntelligenceFlow = ai.defineFlow(
         // In production, this would query Firestore for the last 30 days of InteractionEvents.
         // For this prototype, we return sophisticated mock data derived from the Decision Engine logic.
 
-        return {
+        const result: DecisionIntelligenceOutput = {
             intentGaps: [
                 { productId: '1', productName: 'Eco-Friendly Water Bottle', engagementScore: 88, conversionRate: 12, gapIndicator: 'Price Sensitivity' },
                 { productId: '2', productName: 'Wireless Charging Pad', engagementScore: 94, conversionRate: 8, gapIndicator: 'Missing Information' },
@@ -79,5 +79,7 @@ const analyzeDecisionIntelligenceFlow = ai.defineFlow(
                 { category: 'Accessories', uniqueScanners: 750, repeatEngagementRate: 18.9 },
             ]
         };
+
+        return result;
     }
 );

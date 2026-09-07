@@ -119,10 +119,13 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
     startChatTransition(async () => {
         try {
+            const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
+
             const res = await productChat({
                 url: destination,
                 history: [...messages, { role: 'user', content: userMessage }],
-                shopperUid: user?.uid
+                shopperUid: user?.uid,
+                hasConsent
             });
             setMessages(prev => [...prev, { role: 'model', content: res.message }]);
         } catch (e) {

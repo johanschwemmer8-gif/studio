@@ -3,88 +3,167 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // --- AUTHENTICATION HELPERS ---
-    
+    // --- AUTHENTICATION & AUTHORIZATION HELPERS ---
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function getRetailerId() {
-      // Check token first, then fallback to user document for pilot resilience
-      return request.auth.token.retailerId != null 
-        ? request.auth.token.retailerId 
-        : get(/databases/$(database)/documents/users/$(request.auth.uid)).data.retailerId;
+    // Platform authorization is completely separate from retailer authorization.
+    // Custom Firebase Auth claims are intentionally NOT trusted.
+    function isPlatformOperator() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/platformOperators/$(request.auth.uid))
+        && get(/databases/$(database)/documents/platformOperators/$(request.auth.uid)).data.uid == request.auth.uid
+        && get(/databases/$(database)/documents/platformOperators/$(request.auth.uid)).data.role == 'platformOperator'
+        && get(/databases/$(database)/documents/platformOperators/$(request.auth.uid)).data.isActive == true;
     }
 
-    function isPlatformAdmin() {
-      // Platform administrators must have an explicit admin role.
-      // No bootstrap bypass is permitted.
-      return isAuthenticated() && (
-        request.auth.token.role == 'admin' || 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
+    // The /users/{uid} document is the authoritative retailer authorization profile.
+    function hasRetailerProfile() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.uid == request.auth.uid
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.retailerId is string
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.retailerId != ''
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role is string
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isActive == true;
     }
 
-    function isRetailerAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.role == 'retailerAdmin' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'retailerAdmin'
-      );
+    function isActiveRetailerUser() {
+      return hasRetailerProfile();
     }
 
-    function isTenantOwner(retailerId) {
-      return isAuthenticated() && (getRetailerId() == retailerId || isPlatformAdmin());
+    function currentRetailerId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.retailerId;
     }
+
+    function isSameRetailer(retailerId) {
+      return isActiveRetailerUser()
+        && currentRetailerId() == retailerId;
+    }
+
+    function hasPermission(permission) {
+      return isActiveRetailerUser()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions[permission] == true;
+    }
+
 
     // --- CONFIGURATION HUB ---
 
     match /tenants/{tenantId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformOperator();
     }
 
     match /configurations/{configId} {
-      allow read: if (configId.matches('.*_brand$')) || (isAuthenticated());
+      allow read: if configId.matches('.*_brand$')
+        || isActiveRetailerUser();
 
-      // Platform admins may manage all configurations.
-      // Retailer admins may manage only their own organization and brand configuration.
-      allow write: if isPlatformAdmin() || (
-        isRetailerAdmin() &&
-        (
-          configId == getRetailerId() + '_org' ||
-          configId == getRetailerId() + '_brand'
-        ) &&
-        request.resource.data.retailerId == getRetailerId()
-      );
+      allow write: if isPlatformOperator()
+        || (
+          hasPermission('manageOrganization')
+          && request.resource.data.retailerId is string
+          && isSameRetailer(request.resource.data.retailerId)
+          && (
+            configId == currentRetailerId() + '_org'
+            || configId == currentRetailerId() + '_brand'
+          )
+        );
     }
 
     // --- IDENTITY & PRODUCT LAYER ---
 
     match /products/{gtin} {
       allow read: if true;
-      allow create: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(request.resource.data.retailerId));
-      allow update: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(resource.data.retailerId));
-      allow delete: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(resource.data.retailerId));
+
+      allow create: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(request.resource.data.retailerId)
+        );
+
+      allow update: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(resource.data.retailerId)
+          && request.resource.data.retailerId == resource.data.retailerId
+        );
+
+      allow delete: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(resource.data.retailerId)
+        );
     }
 
     match /qrcodes/{qrId} {
       allow read: if true;
-      allow write: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
+
+      allow write: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(request.resource.data.retailerId)
+        );
     }
 
     match /bulkQrRequests/{requestId} {
-      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
-      allow create: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
-      allow update, delete: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
+      allow read: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(resource.data.retailerId)
+        );
+
+      allow create: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(request.resource.data.retailerId)
+        );
+
+      allow update, delete: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(resource.data.retailerId)
+        );
 
       match /items/{itemId} {
-        allow read, write: if isPlatformAdmin() || isTenantOwner(
-          get(/databases/$(database)/documents/bulkQrRequests/$(requestId)).data.retailerId
-        );
+        allow read, write: if isPlatformOperator()
+          || (
+            hasPermission("manageOrganization")
+            && isSameRetailer(
+              get(/databases/$(database)/documents/bulkQrRequests/$(requestId)).data.retailerId
+            )
+          );
       }
     }
 
-    // --- INTELLIGENCE LAYER (iNteract) ---
+    // --- IN-STORE CONFIGURATION ---
+
+    match /inStoreConfigs/{configId} {
+      allow read: if isPlatformOperator()
+        || isSameRetailer(resource.data.retailerId);
+
+      allow create: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(request.resource.data.retailerId)
+        );
+
+      allow update: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(resource.data.retailerId)
+          && request.resource.data.retailerId == resource.data.retailerId
+        );
+
+      allow delete: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(resource.data.retailerId)
+        );
+    }
+
+        // --- INTELLIGENCE LAYER (iNteract) ---
 
     match /sessions/{sessionId} {
       allow create, read, update: if true; 
@@ -92,12 +171,12 @@ service cloud.firestore {
 
     match /events/{eventId} {
       allow create: if true;
-      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
+      allow read: if isSameRetailer(resource.data.retailerId);
     }
 
     match /ai_conversations/{id} {
       allow create: if true;
-      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
+      allow read: if isSameRetailer(resource.data.retailerId);
     }
 
     // --- TRANSACTION LAYER ---
@@ -122,18 +201,80 @@ service cloud.firestore {
       );
     }
 
+    // --- TRANSACTIONS ---
+
+    match /transactions/{transactionId} {
+      allow read: if isPlatformOperator()
+        || isSameRetailer(resource.data.retailerId);
+
+      allow create: if isPlatformOperator()
+        || (
+          hasPermission("dashboard")
+          && isSameRetailer(request.resource.data.retailerId)
+        );
+
+      allow update: if isPlatformOperator()
+        || (
+          hasPermission("dashboard")
+          && isSameRetailer(resource.data.retailerId)
+          && request.resource.data.retailerId == resource.data.retailerId
+        );
+
+      allow delete: if isPlatformOperator();
+    }
+
+    // --- A/B TESTING & EXPERIMENTATION ---
+
+    match /experiments/{experimentId} {
+      allow read: if isPlatformOperator()
+        || isSameRetailer(resource.data.retailerId);
+
+      allow create: if isPlatformOperator()
+        || (
+          hasPermission("abTesting")
+          && isSameRetailer(request.resource.data.retailerId)
+        );
+
+      allow update: if isPlatformOperator()
+        || (
+          hasPermission("abTesting")
+          && isSameRetailer(resource.data.retailerId)
+          && request.resource.data.retailerId == resource.data.retailerId
+        );
+
+      allow delete: if isPlatformOperator()
+        || (
+          hasPermission("abTesting")
+          && isSameRetailer(resource.data.retailerId)
+        );
+    }
+
+    // --- BILLING & SUBSCRIPTIONS ---
+
+    match /subscriptions/{retailerId} {
+      allow read: if isPlatformOperator()
+        || isSameRetailer(retailerId);
+      allow write: if isPlatformOperator();
+
+      match /invoices/{invoiceId} {
+        allow read: if isPlatformOperator()
+          || isSameRetailer(retailerId);
+        allow write: if isPlatformOperator();
+      }
+    }
+
     // --- PLATFORM GOVERNANCE ---
 
     match /users/{userId} {
       allow read: if isAuthenticated() && (
         request.auth.uid == userId ||
-        isPlatformAdmin()
+        isPlatformOperator()
       );
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformOperator();
     }
 
     match /auditLogs/{logId} {
-      allow read, write: if isPlatformAdmin();
+      allow read, write: if isPlatformOperator();
     }
 
     // --- FALLBACK ---

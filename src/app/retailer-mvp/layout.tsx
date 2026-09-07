@@ -49,8 +49,7 @@ function RetailerMvpLayoutContent({
 }) {
     const { user } = useAuth();
     const isTestEnvironment = user?.retailerId === TEST_RETAILER_ID;
-    const isPlatformAdmin = user?.role === 'admin';
-    const isProvisioned = !!user?.retailerId || isPlatformAdmin;
+    const isProvisioned = !!user?.retailerId;
 
     // GLOBAL IDENTITY GUARD
     // Prevents server flow failures by stopping unprovisioned users at the layout level.

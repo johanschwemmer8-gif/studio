@@ -28,9 +28,10 @@ import { KeyRound, PlusCircle, Copy, Trash2, Ban, CheckCircle, RotateCcw, Loader
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/lib/firebase';
-import { collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { saveRetailerApiKey } from '@/ai/flows/save-retailer-api-key';
+import { deleteRetailerApiKey } from '@/ai/flows/delete-retailer-api-key';
 
 type ApiKey = {
   id: string;
@@ -112,18 +113,24 @@ export default function ApiKeyManager() {
   };
 
   const deleteKey = async (name: string) => {
-    if (!db || retailerId === 'unknown') return;
+    if (retailerId === "unknown") return;
     try {
-        // In a real app, this would also delete from Secret Manager via a flow.
-        // For the pilot, we remove the reference from Firestore.
-        const ref = doc(db, 'retailerIntegrations', retailerId);
-        await setDoc(ref, { [name]: null }, { merge: true });
-        toast({ title: 'Integration Removed', description: `Disconnected ${name}.`, variant: 'destructive' });
+        const idToken = await user?.getIdToken();
+        const result = await deleteRetailerApiKey({
+            idToken,
+            retailerId,
+            serviceName: name,
+        });
+
+        if (result.success) {
+            toast({ title: "Integration Removed", description: result.message, variant: "destructive" });
+        } else {
+            throw new Error(result.message);
+        }
     } catch (e: any) {
-        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
-  
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/20">

@@ -1,15 +1,23 @@
-
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getAuth, onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import {
+  AuthorizationScope,
+  CanonicalRole,
+  Permissions,
+} from '@/lib/auth-types';
 
 type AuthUser = User & {
-    retailerId?: string;
-    role?: 'admin' | 'retailer';
+  retailerId?: string;
+  role?: CanonicalRole;
+  scope?: AuthorizationScope;
+  permissions?: Permissions;
+  isActive?: boolean;
 };
 
 type AuthContextType = {
@@ -26,33 +34,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!auth) {
-        console.warn("Firebase Auth is not initialized. Skipping auth state changes.");
+    if (!auth || !db) {
+      console.warn('[Auth] Firebase services are not initialized.');
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        setUser(null);
         setLoading(false);
         return;
-    }
-    
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const tokenResult = await firebaseUser.getIdTokenResult();
-        const claims = tokenResult.claims;
+      }
 
-        console.log("[AUTH DEBUG] Firebase user:", firebaseUser.email);
-        console.log("[AUTH DEBUG] Firebase UID:", firebaseUser.uid);
-        console.log("[AUTH DEBUG] Firebase claims:", claims);
-        console.log("[AUTH DEBUG] retailerId claim:", claims.retailerId);
-        console.log("[AUTH DEBUG] role claim:", claims.role);
-        
+      try {
+        const profileRef = doc(db, 'users', firebaseUser.uid);
+        const profileSnapshot = await getDoc(profileRef);
+
+        if (!profileSnapshot.exists()) {
+          console.error('[Auth] Authoritative user profile not found.');
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        const profile = profileSnapshot.data();
+
+        if (
+          profile.uid !== firebaseUser.uid ||
+          typeof profile.retailerId !== 'string' ||
+          typeof profile.role !== 'string' ||
+          !profile.scope ||
+          !profile.permissions ||
+          profile.isActive !== true
+        ) {
+          console.error('[Auth] Invalid or inactive authoritative user profile.');
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
         const authUser: AuthUser = Object.assign(firebaseUser, {
-            retailerId: claims.retailerId as string | undefined,
-            role: claims.role as 'admin' | 'retailer' | undefined,
+          retailerId: profile.retailerId as string,
+          role: profile.role as CanonicalRole,
+          scope: profile.scope as AuthorizationScope,
+          permissions: profile.permissions as Permissions,
+          isActive: profile.isActive as boolean,
         });
 
         setUser(authUser);
-      } else {
+      } catch (error) {
+        console.error('[Auth] Failed to load authoritative user profile:', error);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -67,9 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
     );
   }
 

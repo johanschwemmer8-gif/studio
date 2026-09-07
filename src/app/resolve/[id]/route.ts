@@ -61,7 +61,7 @@ export async function GET(
         batchNumber,
         serialNumber,
         userAgent: request.headers.get('user-agent') || '',
-        ip: request.ip || ''
+        ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || ''
     });
 
     // 4. Log Atomic Behavioral Event (Scan)

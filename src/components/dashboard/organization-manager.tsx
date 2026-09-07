@@ -78,7 +78,7 @@ const organizationSchema = z.object({
   brands: z.array(brandSchema),
 });
 
-type OrganizationValues = z.infer<typeof organizationSchema>;
+export type OrganizationValues = z.infer<typeof organizationSchema>;
 
 function ensureOrganizationIds(data: any): OrganizationValues {
   return {

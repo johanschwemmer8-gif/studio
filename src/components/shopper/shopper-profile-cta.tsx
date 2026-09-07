@@ -9,11 +9,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Sparkles, Loader2, BookmarkCheck, ShieldCheck } from 'lucide-react';
 import ShopperAuthDialog from './shopper-auth-dialog';
 import { useToast } from '@/hooks/use-toast';
-import type { Product } from '@/lib/data';
+import type { ShopperProduct } from '@/types/shopper-product';
 import { cn } from '@/lib/utils';
 
 type ShopperProfileCtaProps = {
-  product: Product;
+  product: ShopperProduct;
 };
 
 export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
@@ -33,7 +33,7 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
     try {
       // Use GTIN-only identifier for saved products
       const savedRef = doc(db, 'saved_products', `${user.uid}_${product.gtin}`);
-      const retailerId = product.retailerId || 'unknown';
+      const retailerId = product.retailerId;
 
       await setDoc(savedRef, {
         shopperId: user.uid,

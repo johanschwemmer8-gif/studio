@@ -33,13 +33,14 @@ import {
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, where, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { BackButton } from '@/components/ui/back-button';
+import { useAuth } from '@/context/auth-context';
 
 const experimentSchema = z.object({
   name: z.string().min(3, { message: "Experiment name must be at least 3 characters." }),
@@ -55,6 +56,7 @@ type ExperimentFormData = z.infer<typeof experimentSchema>;
 
 type Experiment = {
   id: string;
+  retailerId: string;
   name: string;
   description: string;
   status: string;
@@ -80,6 +82,7 @@ export default function ABTestingPage() {
   const [selectedExperiment, setSelectedExperiment] = useState<Experiment | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<ExperimentFormData>({
     resolver: zodResolver(experimentSchema),
@@ -102,7 +105,17 @@ export default function ABTestingPage() {
     }
 
     setLoading(true);
-    const q = query(collection(db, 'experiments'), orderBy('startDate', 'desc'));
+    if (!user?.retailerId) {
+      setExperiments([]);
+      setLoading(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'experiments'),
+      where('retailerId', '==', user.retailerId),
+      orderBy('startDate', 'desc')
+    );
     
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const experimentsData: Experiment[] = [];
@@ -122,7 +135,7 @@ export default function ABTestingPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, user?.retailerId]);
   
   const handleCreateExperiment = async (data: ExperimentFormData) => {
     if (!db) {
@@ -130,8 +143,14 @@ export default function ABTestingPage() {
         return;
     }
 
+    if (!user?.retailerId) {
+      toast({ title: 'Error', description: 'No retailer authorization found.', variant: 'destructive' });
+      return;
+    }
+
     const newExperiment = {
       ...data,
+      retailerId: user.retailerId,
       status: 'Running',
       startDate: serverTimestamp(),
       results: {

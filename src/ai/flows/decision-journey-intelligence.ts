@@ -58,22 +58,49 @@ export async function getDecisionJourneyIntelligence(idToken: string | undefined
             .limit(5000)
             .get();
         
-        const allEvents = eventSnapshot.docs.map(d => ({ 
-            id: d.id, 
-            ...d.data(),
-            timestamp: d.data().timestamp?.toDate().getTime() || 0
-        }));
+        type JourneyEventRecord = {
+            id: string;
+            sessionId?: string;
+            gtin?: string;
+            eventType?: string;
+            metadata?: Record<string, unknown>;
+            timestamp: number;
+            [key: string]: unknown;
+        };
+
+        const allEvents: JourneyEventRecord[] = eventSnapshot.docs.map(d => {
+            const data = d.data() as Record<string, unknown>;
+            const timestamp = data.timestamp as { toDate?: () => Date } | undefined;
+
+            return {
+                id: d.id,
+                ...data,
+                timestamp: timestamp?.toDate?.().getTime() || 0
+            };
+        });
 
         const txnSnapshot = await db.collection('transactions')
             .where('retailerId', '==', authorizedRetailerId)
             .where('timestamp', '>=', startTime)
             .limit(2500)
             .get();
-        
-        const allTransactions = txnSnapshot.docs.map(d => ({
-            ...d.data(),
-            timestamp: d.data().timestamp?.toDate().getTime() || 0
-        }));
+
+        type JourneyTransactionRecord = {
+            sessionId?: string;
+            gtin?: string;
+            timestamp: number;
+            [key: string]: unknown;
+        };
+
+        const allTransactions: JourneyTransactionRecord[] = txnSnapshot.docs.map(d => {
+            const data = d.data() as Record<string, unknown>;
+            const timestamp = data.timestamp as { toDate?: () => Date } | undefined;
+
+            return {
+                ...data,
+                timestamp: timestamp?.toDate?.().getTime() || 0
+            };
+        });
 
         const sessionsMap: Record<string, any[]> = {};
         allEvents.forEach(e => {

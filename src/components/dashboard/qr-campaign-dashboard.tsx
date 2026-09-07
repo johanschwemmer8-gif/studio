@@ -103,7 +103,18 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     const handleRegenerate = async (qrCodeId: string) => {
         setRegeneratingIds(prev => [...prev, qrCodeId]);
         try {
-            const result = await regenerateQrCode({ requestId: request.id, qrCodeId });
+            const idToken = await user?.getIdToken();
+
+            if (!idToken || !user?.retailerId) {
+                throw new Error('Authentication or retailer context is missing.');
+            }
+
+            const result = await regenerateQrCode({
+                requestId: request.id,
+                qrCodeId,
+                idToken,
+                retailerId: user.retailerId,
+            });
             if (result.success) {
                 toast({ title: "QR Code Regenerated" });
             } else {

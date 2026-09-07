@@ -214,7 +214,7 @@ export default function DashboardPage() {
                   <ArrowUp className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">+{conversion.basketUpliftPercentage.toFixed(1)}%</div>
+                  <div className="text-3xl font-bold">+{conversion.basketSizeIncreasePercent.toFixed(1)}%</div>
                   <p className="text-xs text-muted-foreground">
                     Spend increase for shoppers using AI guidance.
                   </p>

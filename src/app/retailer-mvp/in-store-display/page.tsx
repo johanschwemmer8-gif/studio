@@ -47,6 +47,7 @@ type InStoreConfig = {
     configName: string;
     contentSlot: any;
     lastUpdated: Timestamp;
+    isActive: boolean;
 };
 
 function LivePreview({ config }: { config: any }) {

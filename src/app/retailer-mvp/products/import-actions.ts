@@ -32,27 +32,21 @@ export async function previewBulkProductImport(
 ) {
   const auth = await verifyAuth(idToken);
 
-  if (auth.error || auth.uid === '') {
-    throw new Error(auth.error || 'Authentication failed.');
+  if ('error' in auth) {
+    throw new Error(auth.error);
   }
 
-  const retailerId =
-    auth.role === 'admin' ? requestedRetailerId : auth.retailerId;
-
-  if (!retailerId || retailerId === 'unknown') {
+  if (!auth.retailerId || auth.retailerId === 'unknown') {
     throw new Error('Account is not linked to a valid retailer.');
   }
 
-  if (
-    auth.role !== 'admin' &&
-    auth.retailerId !== requestedRetailerId
-  ) {
+  if (auth.retailerId !== requestedRetailerId) {
     throw new Error(
       'Access denied: retailer identity does not match your account.'
     );
   }
 
-  return previewProductImportRows(retailerId, rows);
+  return previewProductImportRows(auth.retailerId, rows);
 }
 
 export async function updateBulkProductImportJob(

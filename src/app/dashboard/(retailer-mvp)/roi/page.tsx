@@ -266,7 +266,7 @@ export default function RoiPage() {
                         </div>
                         <div className="flex justify-between items-baseline pt-2 border-t">
                             <span className="text-primary font-semibold text-sm">Uplift</span>
-                            {metricsData ? <span className="text-lg font-bold text-primary">{`${metricsData.conversion.basketUpliftPercentage.toFixed(2)}%`}</span> : <Skeleton className="h-6 w-16" />}
+                            {metricsData ? <span className="text-lg font-bold text-primary">{`${metricsData.conversion.basketSizeIncreasePercent.toFixed(2)}%`}</span> : <Skeleton className="h-6 w-16" />}
                         </div>
                     </CardContent>
                 </Card>

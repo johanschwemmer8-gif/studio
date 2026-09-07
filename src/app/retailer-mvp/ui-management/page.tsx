@@ -293,7 +293,7 @@ export default function UiManagementPage() {
             <Card className="sticky top-6">
                 <CardHeader>
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <PhoneMockup className="h-4 w-4" /> Shopper Preview
+                      <LayoutTemplate className="h-4 w-4" /> Shopper Preview
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex justify-center">

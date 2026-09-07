@@ -7,7 +7,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
-import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
+import { verifyAuth } from '@/lib/auth-server';
+import { hasPermission } from '@/lib/authorization';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -49,8 +50,16 @@ const deleteBulkQrRequestFlow = ai.defineFlow(
       
       const requestData = requestDoc.data();
       
-      // SECURITY GATE: Verify caller is admin or belongs to the retailer who owns the request
-      if (auth.role !== 'admin' && requestData?.retailerId !== auth.retailerId) {
+      // SECURITY GATE: Require authoritative retailer authorization and permission.
+      if ('error' in auth) {
+        throw new Error(auth.error);
+      }
+
+      if (!hasPermission(auth, 'manageOrganization')) {
+        throw new Error('You are not authorized to delete bulk QR requests.');
+      }
+
+      if (requestData?.retailerId !== auth.retailerId) {
         throw new Error('You are not authorized to delete this request.');
       }
       

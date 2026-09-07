@@ -9,7 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin, getDb } from '@/lib/firebase-admin';
-import { verifyAuth } from '@/lib/auth-server';
+import { verifyPlatformOperator } from '@/lib/auth-server';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
 const FIRESTORE_BATCH_LIMIT = 500;
@@ -36,11 +36,8 @@ const resetTestRetailerFlow = ai.defineFlow(
     outputSchema: ResetTestRetailerOutputSchema,
   },
   async ({ idToken, mode }) => {
-    // 1. Authorize Caller (Must be Platform Admin)
-    const caller = await verifyAuth(idToken);
-    if (caller.role !== 'admin') {
-        throw new Error("Unauthorized: Only platform administrators can reset the test environment.");
-    }
+    // 1. Authorize Caller (Must be an iNteract platform operator)
+    const caller = await verifyPlatformOperator(idToken);
 
     const db = getDb();
     if (!db) throw new Error("Infrastructure Layer Unavailable.");

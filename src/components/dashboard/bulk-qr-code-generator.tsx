@@ -48,6 +48,7 @@ const styleSchema = z.object({
   colorHex: z.string().optional().default('#000000'),
   bgColorHex: z.string().optional().default('#FFFFFF'),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).optional().default('M'),
+  isGs1DigitalLink: z.boolean().default(true),
   aiPersona: z.string().optional(),
   aiTone: z.string().optional(),
   aiGoal: z.string().optional(),
@@ -86,6 +87,7 @@ export default function BulkQRCodeGenerator() {
               colorHex: '#000000',
               bgColorHex: '#FFFFFF',
               errorCorrection: 'M',
+              isGs1DigitalLink: true,
               scanDestination: 'ai',
             }
         },

@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, use } from 'react';
 import { BackButton } from '@/components/ui/back-button';
 import { getCanonicalProduct } from '@/services/product-service';
-import type { Product } from '@/lib/data';
+import type { ShopperProduct } from '@/types/shopper-product';
 
 export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin: string }> }) {
   const { gtin } = use(params);
@@ -33,7 +33,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ShopperProduct | null>(null);
   const [retailerConfig, setRetailerConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

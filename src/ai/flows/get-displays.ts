@@ -63,7 +63,7 @@ export const getDisplays = ai.defineFlow(
         return displays;
     } catch (e: any) {
         console.warn("Infrastructure Layer Friction: Using Display simulation fallback.");
-        return [
+        const fallbackDisplays: Display[] = [
             {
                 displayId: 'display_sandton_001',
                 retailerId: authorizedRetailerId,
@@ -81,6 +81,8 @@ export const getDisplays = ai.defineFlow(
                 lastPing: new Date(Date.now() - 3600000).toISOString(),
             }
         ];
+
+        return fallbackDisplays;
     }
   }
 );

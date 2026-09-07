@@ -63,53 +63,34 @@ function serializeProductImportJob(job: ProductImportJob): ProductImportJob {
   };
 }
 
-function resolveRetailerId(
-  role: 'admin' | 'retailerAdmin' | 'storeManager' | 'analyst',
-  authenticatedRetailerId: string | undefined,
-  requestedRetailerId: string
-): string {
-  if (role === 'admin') {
-    return requestedRetailerId.trim();
-  }
-
-  return authenticatedRetailerId?.trim() || '';
-}
-
 export async function createProductImportJob(
   idToken: string,
   input: CreateProductImportJobInput
 ): Promise<ProductImportJobResult> {
   const auth = await verifyAuth(idToken);
 
-  if (auth.error || auth.uid === '') {
+  if ('error' in auth) {
     return {
       success: false,
       error: auth.error || 'Authentication failed.',
     };
   }
 
-  const retailerId = resolveRetailerId(
-    auth.role,
-    auth.retailerId,
-    input.requestedRetailerId
-  );
-
-  if (retailerId === '' || retailerId === 'unknown') {
+  if (!auth.retailerId || auth.retailerId === 'unknown') {
     return {
       success: false,
       error: 'Account is not linked to a valid retailer.',
     };
   }
 
-  if (
-    auth.role !== 'admin' &&
-    auth.retailerId !== input.requestedRetailerId
-  ) {
+  if (auth.retailerId !== input.requestedRetailerId) {
     return {
       success: false,
       error: 'Access denied: retailer identity does not match your account.',
     };
   }
+
+  const retailerId = auth.retailerId;
 
   const filename = input.filename.trim();
 
@@ -227,10 +208,21 @@ export async function updateProductImportJob(
 
   const existing = snapshot.data() as ProductImportJob;
 
-  if (
-    auth.role !== 'admin' &&
-    existing.retailerId !== auth.retailerId
-  ) {
+  if ('error' in auth) {
+    return {
+      success: false,
+      error: auth.error || 'Authentication failed.',
+    };
+  }
+
+  if (!auth.retailerId || auth.retailerId === 'unknown') {
+    return {
+      success: false,
+      error: 'Account is not linked to a valid retailer.',
+    };
+  }
+
+  if (existing.retailerId !== auth.retailerId) {
     return {
       success: false,
       error: 'Access denied: import job belongs to another retailer.',

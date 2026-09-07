@@ -31,10 +31,10 @@ export const IntelligenceInsightSchema = z.object({
     totalSignalCount: z.number().int(),
     evidenceTypesIncluded: z.array(z.string()),
     aggregationVersion: z.string().default('1.1.0'),
-    timeWindow: {
-        start: z.string(),
-        end: z.string()
-    }
+    timeWindow: z.object({
+      start: z.string(),
+      end: z.string()
+    })
   }),
   generatedAt: z.string()
 });

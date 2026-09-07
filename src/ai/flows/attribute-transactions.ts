@@ -19,7 +19,7 @@ import { subDays } from 'date-fns';
  * RESILIENCE HELPER: Wraps Firestore read operations in a jittered retry loop.
  * Targets transient Google Cloud Metadata/Auth errors (500, UNKNOWN).
  */
-async function fetchWithRetry(query: any, label: string) {
+async function fetchWithRetry<T>(query: { get(): Promise<T> }, label: string): Promise<T> {
   const maxRetries = 5; // Increased for high-latency environments
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -41,6 +41,8 @@ async function fetchWithRetry(query: any, label: string) {
       throw error;
     }
   }
+
+  throw new Error(`[Firestore Retry] ${label} failed unexpectedly.`);
 }
 
 export async function attributeTransactions(idToken: string | undefined, retailerId: string, daysLookback: number = 30) {
@@ -99,17 +101,42 @@ const attributeTransactionsFlow = ai.defineFlow(
                 fetchWithRetry(txnQuery, `Transactions Fetch [${sessionId}]`)
             ]);
             
-            const events = eventSnapshot.docs.map(d => ({ 
-                id: d.id, 
-                ...d.data(),
-                timestamp: d.data().timestamp?.toDate().toISOString() || new Date().toISOString()
-            }));
+            type EventRecord = {
+                id: string;
+                eventType?: string;
+                gtin?: string;
+                timestamp: string;
+                [key: string]: unknown;
+            };
 
-            const transactions = txnSnapshot.docs.map(d => ({
-                id: d.id,
-                ...d.data(),
-                timestamp: d.data().timestamp?.toDate().toISOString() || new Date().toISOString()
-            }));
+            type TransactionRecord = {
+                id: string;
+                gtin?: string;
+                timestamp: string;
+                [key: string]: unknown;
+            };
+
+            const events: EventRecord[] = eventSnapshot.docs.map(d => {
+                const data = d.data() as Record<string, unknown>;
+                const timestamp = data.timestamp as { toDate?: () => Date } | undefined;
+
+                return {
+                    id: d.id,
+                    ...data,
+                    timestamp: timestamp?.toDate?.().toISOString() || new Date().toISOString()
+                };
+            });
+
+            const transactions: TransactionRecord[] = txnSnapshot.docs.map(d => {
+                const data = d.data() as Record<string, unknown>;
+                const timestamp = data.timestamp as { toDate?: () => Date } | undefined;
+
+                return {
+                    id: d.id,
+                    ...data,
+                    timestamp: timestamp?.toDate?.().toISOString() || new Date().toISOString()
+                };
+            });
 
             const ariEvents = events.filter(e => e.eventType === 'interaction_signal' || e.eventType === 'recommendation_event');
             const hasAriInteraction = ariEvents.length > 0;
@@ -156,7 +183,7 @@ const attributeTransactionsFlow = ai.defineFlow(
             }
         }
 
-        return {
+        const report: import('@/lib/schemas/attribution').AttributionReport = {
             retailerId: authorizedRetailerId,
             totalSessions: sessionIds.length,
             ariAssistedSessions: sessionIds.filter(id => records.some(r => r.sessionId === id && r.ariInteraction)).length,
@@ -164,6 +191,8 @@ const attributeTransactionsFlow = ai.defineFlow(
             records,
             dataStatus: 'VERIFIED'
         };
+
+        return report;
     } catch (error: any) {
         console.warn("[Attribution] Persistence Friction:", error.message);
         throw error; // Propagate to allow client-side handling

@@ -725,7 +725,7 @@ export default function BulkProductImportPage() {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        downloadImportErrorReport(readResult, previewResult)
+                        downloadImportErrorReport(readResult, previewResult, [])
                       }
                     >
                       Download error report
@@ -865,7 +865,19 @@ export default function BulkProductImportPage() {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        downloadImportErrorReport(readResult, previewResult, importResult.errors)
+                        downloadImportErrorReport(
+                          readResult,
+                          previewResult,
+                          importResult.rows
+                            .filter((row) => row.status === "REJECTED")
+                            .map((row) => ({
+                              rowNumber: row.rowNumber,
+                              raw: {},
+                              mapped: {},
+                              status: row.status,
+                              issues: row.issues,
+                            }))
+                        )
                       }
                     >
                       Download error report

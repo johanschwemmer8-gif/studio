@@ -197,6 +197,16 @@ export async function verifyAuth(idToken?: string): Promise<AuthResult> {
 
       const userData = userDoc.data();
 
+      if (
+        userData &&
+        typeof userData === 'object' &&
+        (userData as Record<string, unknown>).isActive === false
+      ) {
+        return authenticationFailure(
+          'ACCOUNT_INACTIVE: User account is inactive.'
+        );
+      }
+
       if (!isValidAuthorizationProfile(userData, decodedToken.uid)) {
         return authenticationFailure(
           'INVALID_AUTHORIZATION_PROFILE: Authoritative user profile is invalid.'
@@ -272,7 +282,7 @@ export async function getAuthorizedRetailerId(
 ): Promise<string> {
   const auth = await verifyAuth(idToken);
 
-  if (auth.error) {
+  if ('error' in auth) {
     throw new Error(auth.error);
   }
 
@@ -291,4 +301,84 @@ export async function getAuthorizedRetailerId(
   }
 
   return auth.retailerId;
+}
+
+/**
+ * Verifies that the authenticated Firebase identity is an active
+ * iNteract platform operator.
+ *
+ * Platform authorization is deliberately separate from retailer
+ * authorization.
+ *
+ * This function does not:
+ * - read /users/{uid}
+ * - require a retailerId
+ * - trust Firebase custom claims
+ * - trust retailer roles
+ * - grant retailer permissions
+ */
+export async function verifyPlatformOperator(
+  idToken?: string
+): Promise<{ uid: string; email?: string }> {
+  if (!idToken) {
+    throw new Error(
+      'Authentication required: No session token provided.'
+    );
+  }
+
+  try {
+    const auth = admin.auth();
+    const decodedToken = await auth.verifyIdToken(idToken);
+
+    const db = getDb();
+
+    if (!db) {
+      throw new Error('Authorization database unavailable.');
+    }
+
+    const operatorDoc = await db
+      .collection('platformOperators')
+      .doc(decodedToken.uid)
+      .get();
+
+    if (!operatorDoc.exists) {
+      throw new Error(
+        'PLATFORM_ACCESS_DENIED: Platform operator record not found.'
+      );
+    }
+
+    const operator = operatorDoc.data();
+
+    if (
+      !operator ||
+      operator.uid !== decodedToken.uid ||
+      operator.isActive !== true ||
+      operator.role !== 'platformOperator'
+    ) {
+      throw new Error(
+        'PLATFORM_ACCESS_DENIED: Platform operator record is invalid or inactive.'
+      );
+    }
+
+    return {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+    };
+  } catch (error: any) {
+    if (error?.code === 'auth/id-token-expired') {
+      throw new Error(
+        'Your session has expired. Please log out and back in.'
+      );
+    }
+
+    console.error(
+      '[Platform Auth] Verification Failure:',
+      error?.code || 'ERR',
+      error?.message || ''
+    );
+
+    throw new Error(
+      error?.message || 'Platform authentication failed.'
+    );
+  }
 }

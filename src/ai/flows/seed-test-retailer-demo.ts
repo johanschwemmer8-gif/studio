@@ -8,7 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin, getDb } from '@/lib/firebase-admin';
-import { verifyAuth } from '@/lib/auth-server';
+import { verifyPlatformOperator } from '@/lib/auth-server';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
 
@@ -106,10 +106,7 @@ const seedTestRetailerDemoFlow = ai.defineFlow(
     outputSchema: SeedTestRetailerDemoOutputSchema,
   },
   async ({ idToken }) => {
-    const caller = await verifyAuth(idToken);
-    if (caller.role !== 'admin') {
-        throw new Error("Unauthorized: Only platform administrators can seed the demo.");
-    }
+    const caller = await verifyPlatformOperator(idToken);
 
     const db = getDb();
     if (!db) throw new Error("Infrastructure Unavailable.");

@@ -17,7 +17,7 @@
 import { admin, getDb } from '@/lib/firebase-admin';
 import { verifyAuth } from '@/lib/auth-server';
 import { parseGS1 } from '@/lib/gs1-parser';
-import { type Product } from '@/lib/data';
+import type { ShopperProduct } from '@/types/shopper-product';
 import {
   type CanonicalProduct,
   type CanonicalProductSource,
@@ -203,34 +203,28 @@ export async function createCanonicalProduct(
   try {
     const verifiedAuth = await verifyAuth(idToken);
 
-    if (verifiedAuth.error || !verifiedAuth.uid) {
+    if ('error' in verifiedAuth) {
       return {
         success: false,
         error: verifiedAuth.error || 'Authentication failed.'
       };
     }
 
-    const retailerId =
-      verifiedAuth.role === 'admin'
-        ? input.retailerId
-        : verifiedAuth.retailerId;
-
-    if (!retailerId || retailerId === 'unknown') {
+    if (!verifiedAuth.retailerId || verifiedAuth.retailerId === 'unknown') {
       return {
         success: false,
         error: 'Account is not linked to a valid retailer.'
       };
     }
 
-    if (
-      verifiedAuth.role !== 'admin' &&
-      verifiedAuth.retailerId !== input.retailerId
-    ) {
+    if (verifiedAuth.retailerId !== input.retailerId) {
       return {
         success: false,
         error: 'Access denied: retailer identity does not match your account.'
       };
     }
+
+    const retailerId = verifiedAuth.retailerId;
 
     const rawGtin = input.gtin?.replace(/\s+/g, '') || '';
     const identity = rawGtin ? parseGS1(rawGtin) : null;
@@ -387,7 +381,7 @@ export async function createCanonicalProduct(
  */
 export async function getCanonicalProduct(
   gtin: string
-): Promise<Product | null> {
+): Promise<ShopperProduct | null> {
   if (!gtin) return null;
 
   const db = getDb();
@@ -421,8 +415,16 @@ export async function getCanonicalProduct(
       return null;
     }
 
+    if (!data.retailerId || data.retailerId === 'unknown') {
+      console.error(
+        `[ProductService] Product ${identity.gtin} has no valid retailerId.`
+      );
+      return null;
+    }
+
     return {
       gtin: data.gtin || identity.gtin,
+      retailerId: data.retailerId,
       name: data.name || '',
       brand: data.brand || '',
       description: data.description || '',
@@ -438,9 +440,8 @@ export async function getCanonicalProduct(
         data.category ||
         'product',
       batchNumber: data.batchNumber,
-      serialNumber: data.serialNumber,
-      retailerId: data.retailerId
-    } as Product;
+      serialNumber: data.serialNumber
+    };
   } catch (error) {
     console.error(
       `[ProductService] Error retrieving GTIN ${gtin}:`,

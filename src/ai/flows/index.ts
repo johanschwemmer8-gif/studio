@@ -11,6 +11,8 @@ import { generateCampaignAI, type GenerateCampaignAIInput, type GenerateCampaign
 import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
 import { generateZipForRequest, type GenerateZipForRequestInput, type GenerateZipForRequestOutput } from './generate-zip-for-request';
 import { getQrTemplates } from './get-qr-templates';
+import { type Display } from './get-displays';
+import { type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
 import { type GetQrTemplatesInput, type QrTemplate } from '@/lib/schemas/qr-templates';
 import { getScanEvents } from './get-scan-events';
 import { type GetScanEventsInput, type GetScanEventsOutput } from '@/lib/schemas/scan-events';
@@ -18,8 +20,6 @@ import { getScanInteraction } from './get-scan-interaction';
 import { type GetScanInteractionInput, type GetScanInteractionOutput } from '@/lib/schemas/scan-interaction';
 import { importExternalQrCodes, type ImportExternalQrCodesInput, type ImportExternalQrCodesOutput } from './import-external-qr-codes';
 import { logABTestConversion, type LogABTestConversionInput } from './log-ab-test-conversion';
-import { logAdClick, type LogAdClickInput } from './log-ad-click';
-import { logPurchaseConversion, type LogPurchaseConversionInput } from './log-purchase-conversion';
 import { processBulkQrQueue, type ProcessBulkQrQueueOutput } from './process-bulk-qr-queue';
 import { productChat, type ProductChatInput, type ProductChatOutput } from './product-chat-flow';
 import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutput } from './regenerate-qr-code';
@@ -56,8 +56,6 @@ export {
     getScanInteraction,
     importExternalQrCodes,
     logABTestConversion,
-    logAdClick,
-    logPurchaseConversion,
     processBulkQrQueue,
     productChat,
     regenerateQrCode,
@@ -88,16 +86,12 @@ export type {
     GenerateCampaignAIInput, GenerateCampaignAIOutput,
     GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput,
     GenerateZipForRequestInput, GenerateZipForRequestOutput,
-    Display,
-    ExecutiveRoiMetricsOutput,
     GetQrTemplatesInput,
     QrTemplate,
     GetScanEventsInput, GetScanEventsOutput,
     GetScanInteractionInput, GetScanInteractionOutput,
     ImportExternalQrCodesInput, ImportExternalQrCodesOutput,
     LogABTestConversionInput,
-    LogAdClickInput,
-    LogPurchaseConversionInput,
     ProcessBulkQrQueueOutput,
     ProductChatInput, ProductChatOutput,
     RegenerateQrCodeInput, RegenerateQrCodeOutput,

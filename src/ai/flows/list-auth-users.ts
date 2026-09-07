@@ -1,17 +1,20 @@
 'use server';
+
 /**
- * @fileOverview Secure administrative tool for listing users from Firebase Auth.
- * DESIGN: Gated to Platform Admins only.
- * VERSION: 1.0.0
+ * @fileOverview Secure platform tool for listing Firebase Authentication users.
+ *
+ * Platform authorization is established through /platformOperators/{uid}.
+ * Firebase custom claims are deliberately not treated as authoritative
+ * retailer authorization.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { admin } from '@/lib/firebase-admin';
-import { verifyAuth } from '@/lib/auth-server';
+import { admin, getDb } from '@/lib/firebase-admin';
+import { verifyPlatformOperator } from '@/lib/auth-server';
 
 const ListAuthUsersInputSchema = z.object({
-  idToken: z.string().describe("Administrator's Firebase ID token."),
+  idToken: z.string().describe("Platform operator's Firebase ID token."),
   maxResults: z.number().optional().default(100),
 });
 
@@ -26,16 +29,13 @@ const AuthUserSchema = z.object({
 
 export type AuthUser = z.infer<typeof AuthUserSchema>;
 
-/**
- * PRIMARY SERVER ACTION
- */
-export async function listAuthUsers(input: z.infer<typeof ListAuthUsersInputSchema>): Promise<AuthUser[]> {
-    return listAuthUsersFlow(input);
+export async function listAuthUsers(
+  input: z.input<typeof ListAuthUsersInputSchema>
+): Promise<AuthUser[]> {
+  const parsedInput = ListAuthUsersInputSchema.parse(input);
+  return listAuthUsersFlow(parsedInput);
 }
 
-/**
- * INTERNAL GENKIT FLOW
- */
 const listAuthUsersFlow = ai.defineFlow(
   {
     name: 'listAuthUsersFlow',
@@ -43,28 +43,61 @@ const listAuthUsersFlow = ai.defineFlow(
     outputSchema: z.array(AuthUserSchema),
   },
   async ({ idToken, maxResults }) => {
-    // 1. Authorize Caller
-    const caller = await verifyAuth(idToken);
-    
-    if (caller.role !== 'admin') {
-        throw new Error("Unauthorized: Only platform administrators can list Auth accounts.");
-    }
+    await verifyPlatformOperator(idToken);
 
     try {
-        // 2. Fetch from Firebase Admin SDK
-        const listUsersResult = await admin.auth().listUsers(maxResults);
-        
-        return listUsersResult.users.map(u => ({
+      const listUsersResult = await admin.auth().listUsers(maxResults);
+      const db = getDb();
+
+      return Promise.all(
+        listUsersResult.users.map(async (u) => {
+          let role: string | undefined;
+          let retailerId: string | undefined;
+
+          if (db) {
+            const userDoc = await db
+              .collection('users')
+              .doc(u.uid)
+              .get();
+
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+
+              if (userData) {
+                role =
+                  typeof userData.role === 'string'
+                    ? userData.role
+                    : undefined;
+
+                retailerId =
+                  typeof userData.retailerId === 'string'
+                    ? userData.retailerId
+                    : undefined;
+              }
+            }
+          }
+
+          return {
             uid: u.uid,
             email: u.email,
             displayName: u.displayName,
-            role: (u.customClaims?.role as string) || undefined,
-            retailerId: (u.customClaims?.retailerId as string) || undefined,
+            role,
+            retailerId,
             creationTime: u.metadata.creationTime,
-        }));
+          };
+        })
+      );
     } catch (error: any) {
-        console.error("[Admin] Auth Discovery Failure:", error.message);
-        throw new Error(`Auth Service Error: ${error.message}`);
+      console.error(
+        '[Platform] Auth Discovery Failure:',
+        error?.message || error
+      );
+
+      throw new Error(
+        `Auth Service Error: ${
+          error?.message || 'Unable to list Auth accounts.'
+        }`
+      );
     }
   }
 );

@@ -53,6 +53,7 @@ export type ScopeLevel =
 export type AuthorizationScope = {
   level: ScopeLevel;
 
+  networkId?: string;
   brandId?: string;
   divisionId?: string;
   regionId?: string;

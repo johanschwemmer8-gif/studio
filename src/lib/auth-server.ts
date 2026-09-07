@@ -1,109 +1,294 @@
 'use server';
+
 /**
- * @fileOverview Authoritative Server-Side Authorization Helper.
- * IMPLEMENTATION: Hardened Identity Resolution with Structured Error Handling.
- * VERSION: 2.3.0 (Infrastructure Resilience Optimized)
+ * @fileOverview Authoritative Server-Side Authentication and Authorization Context.
+ *
+ * Firebase Authentication establishes identity.
+ * Firestore /users/{uid} establishes authoritative retailer authorization.
+ *
+ * Firebase custom claims are deliberately not trusted for retailer role,
+ * scope, permissions, or tenant assignment.
  */
 
-import { admin, getDb } from "./firebase-admin";
+import { admin, getDb } from './firebase-admin';
+import {
+  AuthorizationDecision,
+  AuthorizationScope,
+  AuthorizedContext,
+  CanonicalRole,
+  Permissions,
+  UserAuthorizationProfile,
+} from './auth-types';
+import { isRoleScopeValid } from './authorization';
 
-export type AuthorizedContext = {
-  uid: string;
-  role: 'admin' | 'retailerAdmin' | 'storeManager' | 'analyst';
-  retailerId?: string;
-  error?: string;
+export type AuthFailure = {
+  uid: '';
+  error: string;
 };
 
-/**
- * Validates the ID token and returns the authorized context.
- * LATENCY OPTIMIZED: Uses exponential backoff for transient cloud failures.
- * DESIGN: Returns a context object with an 'error' field instead of throwing.
- */
-export async function verifyAuth(idToken?: string): Promise<AuthorizedContext> {
-  if (!idToken || idToken === '') {
-    return { uid: '', role: 'analyst', error: 'Authentication required: No session token provided.' };
+export type AuthResult = AuthorizedContext | AuthFailure;
+
+function isCanonicalRole(value: unknown): value is CanonicalRole {
+  return (
+    value === 'networkOwner' ||
+    value === 'networkAdmin' ||
+    value === 'brandManager' ||
+    value === 'divisionManager' ||
+    value === 'regionalManager' ||
+    value === 'areaManager' ||
+    value === 'storeManager' ||
+    value === 'storeUser' ||
+    value === 'analyst'
+  );
+}
+
+function isPermissions(value: unknown): value is Permissions {
+  if (!value || typeof value !== 'object') {
+    return false;
   }
 
-  // Increased retries to handle persistent transient metadata service failures in high-latency GCP regions.
-  const maxRetries = 5; 
+  const permissions = value as Record<string, unknown>;
+
+  const requiredPermissions: Array<keyof Permissions> = [
+    'dashboard',
+    'roi',
+    'visualsReporting',
+    'realTime',
+    'abTesting',
+    'systemIntegration',
+    'retailMediaNetwork',
+    'manageUsers',
+    'manageOrganization',
+    'approve',
+    'export',
+  ];
+
+  return requiredPermissions.every(
+    (permission) => typeof permissions[permission] === 'boolean'
+  );
+}
+
+function isAuthorizationScope(value: unknown): value is AuthorizationScope {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const scope = value as Record<string, unknown>;
+
+  if (
+    scope.level !== 'network' &&
+    scope.level !== 'brand' &&
+    scope.level !== 'division' &&
+    scope.level !== 'region' &&
+    scope.level !== 'area' &&
+    scope.level !== 'store'
+  ) {
+    return false;
+  }
+
+  const hierarchyIds = [
+    'networkId',
+    'brandId',
+    'divisionId',
+    'regionId',
+    'areaId',
+    'storeId',
+  ] as const;
+
+  return hierarchyIds.every((id) => {
+    const present = Boolean(scope[id]);
+    return !present || typeof scope[id] === 'string';
+  });
+}
+
+function isValidAuthorizationProfile(
+  value: unknown,
+  expectedUid: string
+): value is UserAuthorizationProfile {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const profile = value as Record<string, unknown>;
+
+  if (profile.uid !== expectedUid) {
+    return false;
+  }
+
+  if (typeof profile.retailerId !== 'string' || profile.retailerId === '') {
+    return false;
+  }
+
+  if (typeof profile.displayName !== 'string') {
+    return false;
+  }
+
+  if (typeof profile.email !== 'string') {
+    return false;
+  }
+
+  if (!isCanonicalRole(profile.role)) {
+    return false;
+  }
+
+  if (!isAuthorizationScope(profile.scope)) {
+    return false;
+  }
+
+  if (!isRoleScopeValid(profile.role, profile.scope)) {
+    return false;
+  }
+
+  if (!isPermissions(profile.permissions)) {
+    return false;
+  }
+
+  if (profile.isActive !== true) {
+    return false;
+  }
+
+  return true;
+}
+
+function authenticationFailure(error: string): AuthFailure {
+  return {
+    uid: '',
+    error,
+  };
+}
+
+/**
+ * Validates the Firebase ID token and resolves the authoritative
+ * retailer authorization profile from /users/{uid}.
+ *
+ * Firebase provides identity.
+ * Firestore provides authorization.
+ */
+export async function verifyAuth(idToken?: string): Promise<AuthResult> {
+  if (!idToken) {
+    return authenticationFailure(
+      'Authentication required: No session token provided.'
+    );
+  }
+
+  const maxRetries = 5;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const auth = admin.auth();
       const decodedToken = await auth.verifyIdToken(idToken);
-      
-      let role = decodedToken.role as any;
-      let retailerId = decodedToken.retailerId as string;
 
-      // FALLBACK: If token lacks claims, check Firestore authoritative record
-      if (!role || !retailerId) {
-          const db = getDb();
-          if (db) {
-              const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-              if (userDoc.exists) {
-                  const userData = userDoc.data();
-                  role = role || userData?.role;
-                  retailerId = retailerId || userData?.retailerId;
-                  console.log(`[Auth] Identity verified via Database Fallback for ${decodedToken.uid}`);
-              }
-          }
+      const db = getDb();
+
+      if (!db) {
+        throw new Error('Authorization database unavailable.');
+      }
+
+      const userDoc = await db
+        .collection('users')
+        .doc(decodedToken.uid)
+        .get();
+
+      if (!userDoc.exists) {
+        return authenticationFailure(
+          'IDENTITY_NOT_PROVISIONED: Authoritative user profile not found.'
+        );
+      }
+
+      const userData = userDoc.data();
+
+      if (!isValidAuthorizationProfile(userData, decodedToken.uid)) {
+        return authenticationFailure(
+          'INVALID_AUTHORIZATION_PROFILE: Authoritative user profile is invalid.'
+        );
       }
 
       return {
-        uid: decodedToken.uid,
-        role: role || 'analyst',
-        retailerId,
+        uid: userData.uid,
+        retailerId: userData.retailerId,
+        role: userData.role,
+        scope: userData.scope,
+        permissions: userData.permissions,
+        isActive: userData.isActive,
       };
     } catch (error: any) {
-      const isTransient = 
-        error.message.includes('metadata') || 
-        error.message.includes('refresh') || 
-        error.message.includes('500') ||
-        error.message.includes('UNKNOWN') ||
-        error.code === 'auth/internal-error';
+      const message =
+        typeof error?.message === 'string' ? error.message : '';
+
+      const isTransient =
+        message.includes('metadata') ||
+        message.includes('refresh') ||
+        message.includes('500') ||
+        message.includes('UNKNOWN') ||
+        error?.code === 'auth/internal-error';
 
       if (isTransient && attempt < maxRetries) {
-        // Increased base delay to give metadata server more recovery room
-        const delay = (1000 * Math.pow(2, attempt)) + (Math.random() * 500);
-        console.warn(`[Auth] Handshake Friction (Attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${Math.round(delay)}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        const delay =
+          1000 * Math.pow(2, attempt) + Math.random() * 500;
+
+        console.warn(
+          `[Auth] Handshake Friction (Attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${Math.round(delay)}ms...`
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
 
-      console.error('[Auth] Verification Failure:', error.code || 'ERR', error.message);
-      
-      let message = "Authentication failed.";
-      if (isTransient) message = "Identity Service Busy: The cloud handshake timed out. Please refresh and try again.";
-      if (error.code === 'auth/id-token-expired') message = "Your session has expired. Please log out and back in.";
+      console.error(
+        '[Auth] Verification Failure:',
+        error?.code || 'ERR',
+        message
+      );
 
-      return { uid: '', role: 'analyst', error: message };
+      if (error?.code === 'auth/id-token-expired') {
+        return authenticationFailure(
+          'Your session has expired. Please log out and back in.'
+        );
+      }
+
+      if (isTransient) {
+        return authenticationFailure(
+          'Identity Service Busy: The cloud handshake timed out. Please refresh and try again.'
+        );
+      }
+
+      return authenticationFailure('Authentication failed.');
     }
   }
-  
-  return { uid: '', role: 'analyst', error: "Identity Service Unavailable: Maximum retries exceeded." };
+
+  return authenticationFailure(
+    'Identity Service Unavailable: Maximum retries exceeded.'
+  );
 }
 
 /**
  * Resolves the authoritative retailerId for a requested operation.
+ *
+ * There is deliberately no retailer-side admin bypass.
  */
-export async function getAuthorizedRetailerId(idToken: string | undefined, requestedRetailerId: string): Promise<string> {
+export async function getAuthorizedRetailerId(
+  idToken: string | undefined,
+  requestedRetailerId: string
+): Promise<string> {
   const auth = await verifyAuth(idToken);
-  
+
   if (auth.error) {
-      throw new Error(auth.error); 
+    throw new Error(auth.error);
   }
 
-  if (auth.role === 'admin') {
-    return requestedRetailerId || 'unknown';
-  }
-  
   if (!auth.retailerId) {
-    throw new Error('IDENTITY_NOT_PROVISIONED: Account not linked to a retailer.');
+    throw new Error(
+      'IDENTITY_NOT_PROVISIONED: Account not linked to a retailer.'
+    );
   }
-  
-  if (requestedRetailerId && requestedRetailerId !== 'unknown' && auth.retailerId !== requestedRetailerId) {
-     throw new Error(`ACCESS_DENIED: Tenant mismatch.`);
+
+  if (
+    requestedRetailerId &&
+    requestedRetailerId !== 'unknown' &&
+    auth.retailerId !== requestedRetailerId
+  ) {
+    throw new Error('ACCESS_DENIED: Tenant mismatch.');
   }
-  
+
   return auth.retailerId;
 }

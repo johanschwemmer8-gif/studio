@@ -6,8 +6,15 @@ runConfig:
   # more instances in response to increased traffic.
   maxInstances: 1
 
+env:
+  # App Hosting build environment: preserve legacy peer-dependency resolution.
+  - variable: NPM_CONFIG_LEGACY_PEER_DEPS
+    value: "true"
+    availability:
+      - BUILD
+
 scripts:
   # Explicitly define the install command to handle legacy peer dependencies
   installCommand: npm install --legacy-peer-deps
   # Explicitly define the build command for the application
-  buildCommand: npm run build
+  buildCommand: rm -rf .next && npm run build

@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2, CheckCircle2, ListChecks, Printer, MapPin, Scan, Info } from 'lucide-react';
+import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2, CheckCircle2, ListChecks, Printer, MapPin, Scan, Info, Target, Box } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
@@ -34,13 +33,16 @@ type BulkRequest = {
     productName?: string;
     totalRequested: number;
     status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'DRAFT';
-    createdAt: Timestamp | Date;
+    createdAt: any;
     itemsDone: number;
     aiStatus?: 'PENDING' | 'READY' | 'ERROR';
     aiOutputs?: GenerateCampaignAIOutput;
     aiError?: string;
     retailerId?: string;
     options?: any;
+    target?: any;
+    location?: string;
+    storeName?: string;
 };
 
 type QrItem = {
@@ -49,15 +51,19 @@ type QrItem = {
     status: 'PENDING' | 'DONE' | 'ERROR';
     signedUrl: string;
     trackingUrl?: string;
-    regeneratedAt?: { toDate: () => Date };
+    regeneratedAt?: any;
 };
 
 const getDisplayDate = (timestamp: any) => {
     if (!timestamp) return 'Date pending...';
-    if (typeof timestamp.toDate === 'function') return new Date(timestamp.toDate()).toLocaleString();
-    if (timestamp instanceof Date) return timestamp.toLocaleString();
-    const date = new Date(timestamp);
-    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
+    try {
+        if (typeof timestamp.toDate === 'function') return new Date(timestamp.toDate()).toLocaleString();
+        if (timestamp instanceof Date) return timestamp.toLocaleString();
+        const date = new Date(timestamp);
+        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
+    } catch (e) {
+        return 'Format Error';
+    }
 };
 
 const CHUNK_SIZE = 50;
@@ -72,7 +78,6 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     const { toast } = useToast();
     
     const [currentRequest, setCurrentRequest] = useState(request);
-    const [isAiRegenerating, startAiRegenerating] = useTransition();
 
     useEffect(() => {
         if (!db) return;
@@ -80,7 +85,7 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
         const itemsQuery = query(collection(db, `bulkQrRequests/${request.id}/items`));
         const unsubscribeItems = onSnapshot(itemsQuery, snapshot => {
             const fetchedItems: QrItem[] = snapshot.docs.map((doc: any) => ({
-                id: doc.id,
+                qrCodeId: doc.id,
                 ...doc.data(),
             }));
             setItems(fetchedItems);
@@ -106,7 +111,7 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             const idToken = await user?.getIdToken();
 
             if (!idToken || !user?.retailerId) {
-                throw new Error('Authentication or retailer context is missing.');
+                throw new Error('Authentication context missing.');
             }
 
             const result = await regenerateQrCode({
@@ -116,12 +121,12 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
                 retailerId: user.retailerId,
             });
             if (result.success) {
-                toast({ title: "QR Code Regenerated" });
+                toast({ title: "QR Identity Fixed" });
             } else {
-                 throw new Error('Regeneration failed.');
+                 throw new Error('Fix failed.');
             }
         } catch (error: any) {
-             toast({ title: "Regeneration Failed", description: error.message, variant: 'destructive' });
+             toast({ title: "Fix Failed", description: error.message, variant: 'destructive' });
         } finally {
             setRegeneratingIds(prev => prev.filter(id => id !== qrCodeId));
         }
@@ -135,11 +140,11 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             if (result.success && result.zipDataUri) {
                 const link = document.createElement("a");
                 link.href = result.zipDataUri;
-                link.download = `interact_${request.campaignId.replace(/\s+/g, '_')}.zip`;
+                link.download = `interact_activation_${request.id.substring(0,6)}.zip`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                toast({ title: "Download Started", description: "Your deployment package is ready." });
+                toast({ title: "Download Started", description: "Deployment package ready." });
             } else {
                 throw new Error(result.message || 'ZIP failed.');
             }
@@ -155,102 +160,50 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
             {currentRequest.status === 'COMPLETED' && (
-                <div className="grid md:grid-cols-2 gap-6">
-                    <Card className="border-primary/20 bg-primary/5 shadow-md">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                Ready for Deployment
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                This digital activation batch is complete. Download the package and follow the checklist to go live.
-                            </p>
-                            <Button className="w-full h-12 font-black uppercase text-[10px] tracking-widest gap-2" onClick={handleDownloadZip} disabled={downloading}>
+                <Card className="border-primary/20 bg-primary/5 shadow-md">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            Activation Ready
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                             <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase text-muted-foreground">Digital identity</p>
+                                <p className="text-xs font-bold font-mono">{items[0]?.qrCodeId || '...'}</p>
+                            </div>
+                            <Button className="h-10 font-black uppercase text-[10px] tracking-widest gap-2" onClick={handleDownloadZip} disabled={downloading}>
                                 {downloading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Download className="h-4 w-4" />}
-                                Download Deployment Package
+                                Download Package
                             </Button>
-                            <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-[10px] text-yellow-800 font-bold">
-                                <Info className="h-3 w-3 shrink-0" />
-                                <span>Remember: 100% of labels must be scanned before launch.</span>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-accent/20 bg-accent/5">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-accent-foreground">
-                                <ListChecks className="h-4 w-4" />
-                                Deployment Checklist
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                             {[
-                                { icon: <Printer />, text: "Print QR stickers (40x40mm ink/thermal)" },
-                                { icon: <MapPin />, text: "Place labels on shelf-edge next to price" },
-                                { icon: <Scan />, text: "Verify 100% of labels by scanning" },
-                             ].map((step, i) => (
-                                 <div key={i} className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
-                                     <div className="h-5 w-5 shrink-0 text-primary">{step.icon}</div>
-                                     <span>{step.text}</span>
-                                 </div>
-                             ))}
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
             )}
 
-            <Separator />
-            
-            <div className="flex justify-between items-center">
-                 <h3 className="text-lg font-black uppercase tracking-tighter">Activation Previews</h3>
-                <div className="w-48">
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="ALL">All Statuses</SelectItem>
-                            <SelectItem value="DONE">Verified</SelectItem>
-                            <SelectItem value="ERROR">Failure</SelectItem>
-                            <SelectItem value="PENDING">Processing</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {[...Array(6)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}
-                </div>
-            ) : filteredItems.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8 italic text-sm">No activations match the current filter.</p>
-            ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {filteredItems.map(item => (
-                        <Card key={item.qrCodeId} className="group relative overflow-hidden">
-                            <CardContent className="p-1">
-                                 <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
-                                    {item.status === 'PENDING' ? (
-                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/30" />
-                                    ) : item.status === 'ERROR' ? (
-                                         <div className="text-center text-destructive p-2"><AlertTriangle className="h-6 w-6 mx-auto" /></div>
-                                    ) : (
-                                        <Image src={item.signedUrl} alt={item.qrCodeId} width={150} height={150} className="w-full h-full object-contain" />
-                                    )}
-                                    <div className="absolute inset-0 bg-primary/90 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
-                                         <Button variant="secondary" size="sm" onClick={() => handleRegenerate(item.qrCodeId)} className="w-full text-[8px] font-black uppercase tracking-widest h-8">
-                                            <RefreshCw className="h-3 w-3 mr-1" /> Fix Code
-                                        </Button>
-                                    </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {filteredItems.map(item => (
+                    <Card key={item.qrCodeId} className="group relative overflow-hidden bg-background border-primary/5">
+                        <CardContent className="p-2">
+                                <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
+                                {item.status === 'PENDING' ? (
+                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/30" />
+                                ) : item.status === 'ERROR' ? (
+                                        <div className="text-center text-destructive p-2"><AlertTriangle className="h-6 w-6 mx-auto" /></div>
+                                ) : (
+                                    <Image src={item.signedUrl} alt={item.qrCodeId} width={150} height={150} className="w-full h-full object-contain" />
+                                )}
+                                <div className="absolute inset-0 bg-primary/90 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+                                        <Button variant="secondary" size="sm" onClick={() => handleRegenerate(item.qrCodeId)} className="w-full text-[8px] font-black uppercase tracking-widest h-8">
+                                        <RefreshCw className="h-3 w-3 mr-1" /> Fix Identity
+                                    </Button>
                                 </div>
-                            </CardContent>
-                             <div className="p-2 border-t bg-muted/10">
-                                <p className="text-[8px] font-mono text-muted-foreground truncate">{item.qrCodeId}</p>
                             </div>
-                        </Card>
-                    ))}
-                </div>
-            )}
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         </div>
     );
 }
@@ -272,11 +225,19 @@ export default function QrCampaignDashboard() {
         const q = query(collection(db, 'bulkQrRequests'), where('retailerId', '==', user.retailerId));
         const unsubscribe = onSnapshot(q, snapshot => {
             const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+            
+            // Safer sort function that handles both Dates and Timestamps
             fetched.sort((a, b) => {
-                const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
-                const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
-                return dateB - dateA;
+                const getTime = (val: any) => {
+                    if (val instanceof Timestamp) return val.toDate().getTime();
+                    if (val instanceof Date) return val.getTime();
+                    if (typeof val === 'string') return new Date(val).getTime();
+                    if (val?.toDate && typeof val.toDate === 'function') return val.toDate().getTime();
+                    return 0;
+                };
+                return getTime(b.createdAt) - getTime(a.createdAt);
             });
+            
             setRequests(fetched);
             setLoading(false);
         });
@@ -292,10 +253,14 @@ export default function QrCampaignDashboard() {
             let itemsDone = 0;
             while (itemsDone < request.totalRequested) {
                 const batch = writeBatch(db);
-                const itemsRef = collection(db, `bulkQrRequests/${requestRef.id}/items`);
+                const itemsRef = collection(db, `bulkQrRequests/${request.id}/items`);
                 const currentChunkSize = Math.min(CHUNK_SIZE, request.totalRequested - itemsDone);
+                
+                // For client-side generation using modular SDK
+                const { doc: firestoreDoc, collection: firestoreCollection } = await import('firebase/firestore');
+
                 for (let i = 0; i < currentChunkSize; i++) {
-                    const qrCodeId = doc(collection(db, 'id_generator')).id;
+                    const qrCodeId = firestoreDoc(firestoreCollection(db, 'id_generator')).id;
                     const qrOptions = request.options || {};
                     const qrColor = (qrOptions.colorHex || '#000000').replace('#', '');
                     const qrBgColor = (qrOptions.bgColorHex || '#FFFFFF').replace('#', '');
@@ -307,8 +272,8 @@ export default function QrCampaignDashboard() {
                         signedUrl: `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(trackingUrl)}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrOptions.errorCorrection || 'M'}`,
                         status: 'DONE',
                     };
-                    batch.set(doc(itemsRef, qrCodeId), itemData);
-                    batch.set(doc(db, 'qrcodes', qrCodeId), {
+                    batch.set(firestoreDoc(itemsRef, qrCodeId), itemData);
+                    batch.set(firestoreDoc(db, 'qrcodes', qrCodeId), {
                         retailerId: request.retailerId,
                         campaignId: request.campaignId,
                         qrCodeId,
@@ -324,72 +289,67 @@ export default function QrCampaignDashboard() {
                 await updateDoc(requestRef, { itemsDone, updatedAt: new Date() });
             }
             await updateDoc(requestRef, { status: 'COMPLETED' });
-            toast({ title: 'Batch Verified', description: `Activations for "${request.productName}" are ready.` });
+            toast({ title: 'Activation Pipeline Complete', description: `Identity established for "${request.productName || 'Shelf'}".` });
         } catch (e: any) {
-            toast({ title: "Process Failed", description: e.message, variant: 'destructive' });
+            toast({ title: "Pipeline Failed", description: e.message, variant: 'destructive' });
             await updateDoc(requestRef, { status: 'DRAFT' });
         }
     };
 
-    if (loading) return <Card className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary opacity-20 h-10 w-10"/></Card>;
+    if (loading) return <Card className="p-10 flex justify-center border-none shadow-none"><Loader2 className="animate-spin text-primary opacity-20 h-10 w-10"/></Card>;
 
     return (
-        <div className="space-y-6">
-            <Card className="border-primary/10 shadow-lg">
-                <CardHeader>
-                    <CardTitle className="text-xl font-black uppercase tracking-tighter">Activation History</CardTitle>
-                    <CardDescription>Monitor and manage your digital activation requests.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {requests.length === 0 ? (
-                        <div className="p-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No activation history found.</p>
-                        </div>
-                    ) : requests.map(req => {
-                        const progress = req.totalRequested > 0 ? ((req.itemsDone || 0) / req.totalRequested) * 100 : 0;
-                        const isProcessing = processingIds.includes(req.id) || req.status === 'PROCESSING';
-                        const isSelected = selectedRequest?.id === req.id;
-                        
-                        const canProcess = req.status === 'DRAFT' || (req.status === 'PROCESSING' && !isProcessing);
+        <div className="space-y-4">
+            {requests.length === 0 ? (
+                <div className="p-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No history recorded.</p>
+                </div>
+            ) : requests.map(req => {
+                const progress = req.totalRequested > 0 ? ((req.itemsDone || 0) / req.totalRequested) * 100 : 0;
+                const isProcessing = processingIds.includes(req.id) || req.status === 'PROCESSING';
+                const isSelected = selectedRequest?.id === req.id;
+                
+                const canProcess = req.status === 'DRAFT' || (req.status === 'PROCESSING' && !isProcessing);
 
-                        return (
-                            <Card key={req.id} className={cn("transition-all duration-300", isSelected ? "border-primary ring-2 ring-primary/10" : "hover:border-primary/30")}>
-                                <div className="flex flex-col sm:flex-row p-6 items-center gap-6">
-                                    <div className="flex-1 min-w-0">
-                                        <Badge variant="outline" className="mb-2 text-[8px] font-black uppercase tracking-tighter opacity-50">{req.campaignId}</Badge>
-                                        <h4 className="text-lg font-black tracking-tight truncate">{req.productName || 'Unnamed Product'}</h4>
-                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">{getDisplayDate(req.createdAt)}</p>
-                                    </div>
-                                    <div className="w-full sm:w-48 space-y-2">
-                                        <div className="flex justify-between text-[10px] font-black uppercase">
-                                            <span className={cn(req.status === 'COMPLETED' ? "text-green-600" : "text-primary")}>{req.status}</span>
-                                            <span>{req.itemsDone || 0} / {req.totalRequested}</span>
-                                        </div>
-                                        <Progress value={progress} className="h-2" />
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        {canProcess ? (
-                                            <Button variant="default" size="sm" onClick={() => { setProcessingIds(p => [...p, req.id]); processRequestInChunks(req).finally(() => setProcessingIds(p => p.filter(id => id !== req.id))); }} disabled={isProcessing} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest shadow-md">
-                                                {isProcessing ? <Loader2 className="h-3 w-3 animate-spin"/> : <RefreshCw className="h-3 w-3"/>}
-                                                {req.status === 'PROCESSING' ? 'Resume Activation' : 'Process Activation'}
-                                            </Button>
-                                        ) : (
-                                            <Button variant={isSelected ? "secondary" : "outline"} size="sm" onClick={() => setSelectedRequest(isSelected ? null : req)} className="h-10 px-6 font-black uppercase text-[10px] tracking-widest">
-                                                <Eye className="h-3.5 w-3.5 mr-2" /> {isSelected ? 'Close' : 'Manage'}
-                                            </Button>
-                                        )}
-                                    </div>
+                return (
+                    <Card key={req.id} className={cn("transition-all duration-300", isSelected ? "border-primary ring-1 ring-primary/10" : "hover:border-primary/30")}>
+                        <div className="flex flex-col sm:flex-row p-5 items-center gap-6">
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="secondary" className="text-[8px] font-black uppercase tracking-tighter bg-muted/50">{req.campaignId || 'Default Campaign'}</Badge>
+                                    <Badge className={cn("text-[8px] font-black uppercase", req.status === 'COMPLETED' ? "bg-green-500" : "bg-primary")}>{req.status}</Badge>
                                 </div>
-                                {isSelected && (
-                                    <div className="px-6 pb-6 pt-0 border-t bg-muted/5">
-                                        <div className="pt-6"><QrRequestDetails request={req} /></div>
-                                    </div>
+                                <h4 className="text-base font-black tracking-tight truncate flex items-center gap-2">
+                                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                                    {req.storeName ? `${req.storeName} — ` : ''}{req.location || 'Unknown Point of Decision'}
+                                </h4>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1"><Target className="h-3 w-3" /> {req.productName || 'Category Activation'}</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold border-l pl-3">{getDisplayDate(req.createdAt)}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 shrink-0">
+                                {canProcess ? (
+                                    <Button variant="default" size="sm" onClick={() => { setProcessingIds(p => [...p, req.id]); processRequestInChunks(req).finally(() => setProcessingIds(p => p.filter(id => id !== req.id))); }} disabled={isProcessing} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest">
+                                        {isProcessing ? <Loader2 className="h-3 w-3 animate-spin"/> : <RefreshCw className="h-3 w-3"/>}
+                                        {req.status === 'PROCESSING' ? 'Resume' : 'Activate'}
+                                    </Button>
+                                ) : (
+                                    <Button variant={isSelected ? "secondary" : "outline"} size="sm" onClick={() => setSelectedRequest(isSelected ? null : req)} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest">
+                                        <Eye className="h-3.5 w-3.5 mr-2" /> {isSelected ? 'Close' : 'Details'}
+                                    </Button>
                                 )}
-                            </Card>
-                        )
-                    })}
-                </CardContent>
-            </Card>
+                            </div>
+                        </div>
+                        {isSelected && (
+                            <div className="px-5 pb-5 pt-0 border-t bg-muted/5 animate-in fade-in slide-in-from-top-2">
+                                <div className="pt-5"><QrRequestDetails request={req} /></div>
+                            </div>
+                        )}
+                    </Card>
+                )
+            })}
         </div>
     );
 }

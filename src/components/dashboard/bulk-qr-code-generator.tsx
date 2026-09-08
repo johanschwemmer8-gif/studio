@@ -294,12 +294,6 @@ export default function BulkQRCodeGenerator() {
         );
       }
 
-      /*
-       * One activation = one QR.
-       *
-       * `count` is deliberately fixed at 1 here.
-       * True multi-activation creation will be implemented separately.
-       */
       const target = {
         category: data.category || undefined,
         subCategory: data.subCategory || undefined,
@@ -447,16 +441,6 @@ export default function BulkQRCodeGenerator() {
             >
               Activate Another
             </Button>
-
-            <Button
-              asChild
-              className="h-12 bg-green-600 px-8 font-black uppercase text-[10px] tracking-widest text-white hover:bg-green-500"
-            >
-              <a href="#job-dashboard">
-                View Activation History
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
-            </Button>
           </div>
         </CardContent>
 
@@ -467,28 +451,6 @@ export default function BulkQRCodeGenerator() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-        <div>
-          <h2 className="flex items-center gap-3 text-2xl font-black tracking-tight text-primary">
-            <Barcode className="h-8 w-8" />
-            Create Activation
-          </h2>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create a measurable Point-of-Decision activation for your physical
-            retail network.
-          </p>
-        </div>
-
-        <Badge
-          variant="outline"
-          className="gap-1.5 rounded-full border-primary/20 bg-primary/5 px-3 py-1 font-bold uppercase tracking-wider text-[10px] text-primary"
-        >
-          <ShieldCheck className="h-3.5 w-3.5" />
-          Verified Standards
-        </Badge>
-      </div>
-
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-6">
 
@@ -503,11 +465,11 @@ export default function BulkQRCodeGenerator() {
 
                 <div>
                   <CardTitle className="text-lg">
-                    What do you want to promote?
+                    Retailer Intent / Target
                   </CardTitle>
 
                   <CardDescription>
-                    Define the retailer&apos;s promotional or decision target.
+                    Define the promotional or decision target.
                     You can stop at any useful level of the hierarchy.
                   </CardDescription>
                 </div>
@@ -634,12 +596,6 @@ export default function BulkQRCodeGenerator() {
                     )}
                   />
                 )}
-
-                {targetProduct?.gtin && (
-                  <p className="font-mono text-[10px] text-muted-foreground">
-                    GTIN: {targetProduct.gtin}
-                  </p>
-                )}
               </div>
 
               <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-4 md:col-span-2 lg:col-span-3">
@@ -680,12 +636,11 @@ export default function BulkQRCodeGenerator() {
 
                 <div>
                   <CardTitle className="text-lg">
-                    Where is the activation?
+                    Physical Point of Decision
                   </CardTitle>
 
                   <CardDescription>
-                    Identify the physical Point of Decision where the QR will
-                    be deployed.
+                    Identify where the QR will be deployed in-store.
                   </CardDescription>
                 </div>
               </div>
@@ -719,7 +674,7 @@ export default function BulkQRCodeGenerator() {
 
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Activation Name
+                  Campaign Association
                 </Label>
 
                 <Input
@@ -729,25 +684,8 @@ export default function BulkQRCodeGenerator() {
                 />
 
                 <p className="text-[10px] text-muted-foreground">
-                  This identifies the retailer&apos;s activation/campaign
-                  context. It is not the QR identity itself.
+                  This identifier links the activation to a specific retailer campaign context.
                 </p>
-              </div>
-
-              <div className="flex items-start gap-3 rounded-xl border bg-muted/20 p-4 md:col-span-2">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-
-                <div>
-                  <p className="text-xs font-bold">
-                    Point of Decision
-                  </p>
-
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    The physical location is recorded as deployment context.
-                    The QR represents this activation, not a generic shelf and
-                    not the product itself.
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -763,13 +701,12 @@ export default function BulkQRCodeGenerator() {
 
                 <div>
                   <CardTitle className="text-lg">
-                    Products in this activation
+                    Product Context
                   </CardTitle>
 
                   <CardDescription>
                     Select products available in the shopper&apos;s decision
-                    or comparison context. These do not receive separate QR
-                    identities.
+                    context. These do not receive separate QR identities.
                   </CardDescription>
                 </div>
               </div>
@@ -784,11 +721,7 @@ export default function BulkQRCodeGenerator() {
               ) : products.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-6 text-center">
                   <p className="text-sm font-medium">
-                    No retailer catalogue products available.
-                  </p>
-
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    You can still create category-level activations.
+                    No catalogue products available.
                   </p>
                 </div>
               ) : (
@@ -835,20 +768,6 @@ export default function BulkQRCodeGenerator() {
                     })}
                 </div>
               )}
-
-              <div className="mt-5 rounded-xl border border-primary/10 bg-primary/[0.03] p-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">
-                  Product Context
-                </p>
-
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {contextProducts.length === 0
-                    ? 'No products selected for comparison context.'
-                    : `${contextProducts.length} catalogue product${
-                        contextProducts.length === 1 ? '' : 's'
-                      } selected.`}
-                </p>
-              </div>
             </CardContent>
           </Card>
 
@@ -863,12 +782,11 @@ export default function BulkQRCodeGenerator() {
 
                 <div>
                   <CardTitle className="text-lg">
-                    What should the shopper achieve?
+                    Shopper Objective
                   </CardTitle>
 
                   <CardDescription>
-                    Define the intended shopper objective for this Point of
-                    Decision.
+                    Define the intended outcome for this Point of Decision.
                   </CardDescription>
                 </div>
               </div>
@@ -919,7 +837,7 @@ export default function BulkQRCodeGenerator() {
             </CardContent>
           </Card>
 
-          {/* STEP 5 — EXPERIENCE */}
+          {/* STEP 5 — REVIEW */}
 
           <Card className="border-primary/10 shadow-lg">
             <CardHeader className="border-b bg-muted/30">
@@ -930,119 +848,11 @@ export default function BulkQRCodeGenerator() {
 
                 <div>
                   <CardTitle className="text-lg">
-                    Shopper experience
+                    Review Activation
                   </CardTitle>
 
                   <CardDescription>
-                    Configure the optional Ari experience attached to this
-                    activation.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="grid gap-6 pt-6 md:grid-cols-2">
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest">
-                  Assistant Persona
-                </Label>
-
-                <Input
-                  {...form.register('assistantPersona')}
-                  placeholder="e.g. Expert Sommelier"
-                  className="bg-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest">
-                  Assistant Tone
-                </Label>
-
-                <Input
-                  {...form.register('assistantTone')}
-                  placeholder="e.g. Helpful and concise"
-                  className="bg-white"
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest">
-                  Assistant Goal
-                </Label>
-
-                <Textarea
-                  {...form.register('assistantGoal')}
-                  placeholder="e.g. Help the shopper choose the right Merlot for a summer dinner."
-                  className="min-h-24 bg-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest">
-                  Shopper Destination
-                </Label>
-
-                <Controller
-                  control={form.control}
-                  name="scanDestination"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger className="bg-white">
-                        <SelectValue />
-                      </SelectTrigger>
-
-                      <SelectContent>
-                        <SelectItem value="ai">
-                          Ari Guidance (Interactive)
-                        </SelectItem>
-
-                        <SelectItem value="url">
-                          Direct to Website
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-
-              {scanDestination === 'url' && (
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest">
-                    Destination URL
-                  </Label>
-
-                  <Input
-                    {...form.register('landingPageUrl')}
-                    placeholder="https://..."
-                    className="bg-white"
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* STEP 6 — REVIEW */}
-
-          <Card className="border-primary/10 shadow-lg">
-            <CardHeader className="border-b bg-muted/30">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-white">
-                  6
-                </div>
-
-                <div>
-                  <CardTitle className="text-lg">
-                    Review activation
-                  </CardTitle>
-
-                  <CardDescription>
-                    Confirm the activation context before creating its QR
-                    identity.
+                    Confirm the context before creating the digital identity.
                   </CardDescription>
                 </div>
               </div>
@@ -1054,7 +864,7 @@ export default function BulkQRCodeGenerator() {
 
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Activation
+                    Activation Context
                   </p>
 
                   <p className="mt-1 text-sm font-semibold">
@@ -1077,7 +887,7 @@ export default function BulkQRCodeGenerator() {
 
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Target
+                    Target Intent
                   </p>
 
                   <p className="mt-1 text-sm font-semibold">
@@ -1095,7 +905,7 @@ export default function BulkQRCodeGenerator() {
 
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Physical Point of Decision
+                    Point of Decision
                   </p>
 
                   <p className="mt-1 text-sm font-semibold">
@@ -1117,33 +927,14 @@ export default function BulkQRCodeGenerator() {
 
                   <div>
                     <p className="text-xs font-bold">
-                      One activation. One QR identity.
+                      1 Activation = 1 QR Identity
                     </p>
 
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      The selected products provide shopper decision context.
-                      The QR itself represents this retailer-defined
-                      activation at its Point of Decision. The product GTIN
-                      remains the authoritative product identifier.
+                      The selected products provide context. The resulting QR code serves as the digital identity for this physical Point of Decision.
                     </p>
                   </div>
                 </div>
-              </div>
-
-              <div className="rounded-xl bg-slate-900 p-5 text-white">
-                <div className="flex items-center gap-2">
-                  <Barcode className="h-4 w-4 text-blue-400" />
-
-                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">
-                    GS1 / Digital Identity
-                  </p>
-                </div>
-
-                <p className="mt-3 text-xs leading-relaxed text-slate-300">
-                  {targetProduct?.gtin
-                    ? `Target GTIN: ${targetProduct.gtin}`
-                    : 'Category / decision-level activation — no specific target GTIN selected.'}
-                </p>
               </div>
             </CardContent>
 
@@ -1151,7 +942,7 @@ export default function BulkQRCodeGenerator() {
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-4 w-4" />
-                Server-side activation processing
+                Authoritative activation pipeline active.
               </div>
 
               <Button
@@ -1162,7 +953,7 @@ export default function BulkQRCodeGenerator() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating Activation
+                    Creating...
                   </>
                 ) : (
                   <>

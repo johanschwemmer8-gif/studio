@@ -9,10 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { db } from '@/lib/firebase';
 import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShoppingBasket, Loader2, ArrowRight, QrCode, Layers, BarChart3 } from 'lucide-react';
+import { ShoppingBasket, Loader2, ArrowRight, QrCode, Layers, BarChart3, FlaskConical, History as HistoryIcon, PlusCircle, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 
 export default function QrManagementPage() {
     const { user } = useAuth();
@@ -99,74 +100,124 @@ export default function QrManagementPage() {
 
     return (
         <div className="space-y-8">
-            <div>
-                <h1 className="text-3xl font-black tracking-tight">QR Management</h1>
-                <p className="mt-2 text-muted-foreground">
-                    Create, manage and monitor your digital product QR activations.
-                </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-black tracking-tight uppercase leading-none">QR Management</h1>
+                    <p className="mt-2 text-muted-foreground text-sm">
+                        Create, manage and monitor your Point-of-Decision digital activations.
+                    </p>
+                </div>
             </div>
 
-            <Tabs defaultValue="activation" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-auto p-1.5">
-                    <TabsTrigger
-                        value="activation"
-                        className="py-3 gap-2 font-semibold"
-                    >
-                        <QrCode className="h-4 w-4" />
-                        QR Activation
-                    </TabsTrigger>
+            <Tabs defaultValue="activate-shelf" className="w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    {/* Navigation Sidebar */}
+                    <aside className="lg:col-span-1 space-y-8">
+                        <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-8 items-start">
+                            <div className="space-y-4 w-full">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2">QR Activations</h3>
+                                <div className="flex flex-col gap-1 w-full">
+                                    <TabsTrigger value="activate-shelf" className="w-full justify-start py-3 px-4 gap-3 data-[state=active]:bg-primary data-[state=active]:text-white transition-all rounded-xl border border-transparent shadow-none">
+                                        <PlusCircle className="h-4 w-4" />
+                                        <span className="font-bold text-xs uppercase tracking-tight">Activate a Shelf</span>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="history" className="w-full justify-start py-3 px-4 gap-3 data-[state=active]:bg-primary data-[state=active]:text-white transition-all rounded-xl border border-transparent shadow-none">
+                                        <HistoryIcon className="h-4 w-4" />
+                                        <span className="font-bold text-xs uppercase tracking-tight">Activation History</span>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="lab" className="w-full justify-start py-3 px-4 gap-3 data-[state=active]:bg-primary data-[state=active]:text-white transition-all rounded-xl border border-transparent shadow-none">
+                                        <FlaskConical className="h-4 w-4" />
+                                        <span className="font-bold text-xs uppercase tracking-tight">Interactive Lab</span>
+                                    </TabsTrigger>
+                                </div>
+                            </div>
 
-                    <TabsTrigger
-                        value="bulk"
-                        className="py-3 gap-2 font-semibold"
-                    >
-                        <Layers className="h-4 w-4" />
-                        Bulk QR Generator
-                    </TabsTrigger>
+                            <div className="space-y-4 w-full">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2">Bulk QR Generator</h3>
+                                <div className="flex flex-col gap-1 w-full">
+                                    <TabsTrigger value="bulk-activate" className="w-full justify-start py-3 px-4 gap-3 data-[state=active]:bg-primary data-[state=active]:text-white transition-all rounded-xl border border-transparent shadow-none">
+                                        <Layers className="h-4 w-4" />
+                                        <span className="font-bold text-xs uppercase tracking-tight">Activate Shelves</span>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="bulk-history" disabled className="w-full justify-start py-3 px-4 gap-3 transition-all rounded-xl border border-transparent opacity-50 cursor-not-allowed">
+                                        <HistoryIcon className="h-4 w-4" />
+                                        <span className="font-bold text-xs uppercase tracking-tight">Activated History</span>
+                                    </TabsTrigger>
+                                </div>
+                            </div>
 
-                    <TabsTrigger
-                        value="campaigns"
-                        className="py-3 gap-2 font-semibold"
-                    >
-                        <BarChart3 className="h-4 w-4" />
-                        QR Campaigns
-                    </TabsTrigger>
-                </TabsList>
+                            <div className="space-y-4 w-full">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2">QR Campaigns</h3>
+                                <div className="flex flex-col gap-1 w-full">
+                                    <TabsTrigger value="campaign-dashboard" className="w-full justify-start py-3 px-4 gap-3 data-[state=active]:bg-primary data-[state=active]:text-white transition-all rounded-xl border border-transparent shadow-none">
+                                        <LayoutDashboard className="h-4 w-4" />
+                                        <span className="font-bold text-xs uppercase tracking-tight">Campaign Dashboard</span>
+                                    </TabsTrigger>
+                                </div>
+                            </div>
+                        </TabsList>
+                    </aside>
 
-                <TabsContent value="activation" className="mt-8 space-y-8">
-                    <div>
-                        <h2 className="text-xl font-bold">QR Activation</h2>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Create and test product activations and choose the branded QR experience.
-                        </p>
+                    {/* Content Area */}
+                    <div className="lg:col-span-3 space-y-8">
+                        <TabsContent value="activate-shelf" className="mt-0 space-y-8 focus-visible:outline-none animate-in fade-in duration-500">
+                            <div>
+                                <h2 className="text-2xl font-black tracking-tight uppercase">Activate a Shelf</h2>
+                                <p className="text-sm text-muted-foreground mt-1">Create a single Point-of-Decision activation with its own digital identity.</p>
+                            </div>
+                            <BulkQRCodeGenerator />
+                            <Separator />
+                            <BrandQrTemplateGallery />
+                        </TabsContent>
+
+                        <TabsContent value="history" className="mt-0 space-y-8 focus-visible:outline-none animate-in fade-in duration-500">
+                             <div>
+                                <h2 className="text-2xl font-black tracking-tight uppercase">Activation History</h2>
+                                <p className="text-sm text-muted-foreground mt-1">Review and manage your previously created digital activations.</p>
+                            </div>
+                            <QrCampaignDashboard />
+                        </TabsContent>
+
+                        <TabsContent value="lab" className="mt-0 space-y-8 focus-visible:outline-none animate-in fade-in duration-500">
+                            <SingleQrTestGenerator />
+                        </TabsContent>
+
+                        <TabsContent value="bulk-activate" className="mt-0 space-y-8 focus-visible:outline-none animate-in fade-in duration-500">
+                            <Card className="border-dashed border-2 bg-muted/20">
+                                <CardContent className="py-20 text-center space-y-4">
+                                    <Layers className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                                    <div className="space-y-1">
+                                        <h3 className="text-lg font-bold uppercase">Bulk Activation Tool</h3>
+                                        <p className="text-sm text-muted-foreground max-w-xs mx-auto italic">
+                                            Mass creation of distinct activations via CSV import is currently in pilot development.
+                                        </p>
+                                    </div>
+                                    <Button variant="outline" className="font-bold uppercase text-[10px] tracking-widest" disabled>
+                                        Request Access
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="campaign-dashboard" className="mt-0 space-y-8 focus-visible:outline-none animate-in fade-in duration-500">
+                             <div>
+                                <h2 className="text-2xl font-black tracking-tight uppercase">Campaign Dashboard</h2>
+                                <p className="text-sm text-muted-foreground mt-1">Aggregate performance and visibility by Campaign ID.</p>
+                            </div>
+                            <Card className="border-primary/10 shadow-md">
+                                <CardHeader>
+                                    <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                                        <BarChart3 className="h-4 w-4 text-primary" />
+                                        Portfolio Visibility
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="h-64 flex items-center justify-center bg-muted/20 rounded-lg m-6 border border-dashed">
+                                    <p className="text-xs font-bold uppercase text-muted-foreground opacity-50">Campaign Data Aggregator Offline</p>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
                     </div>
-
-                    <SingleQrTestGenerator />
-
-                    <BrandQrTemplateGallery />
-                </TabsContent>
-
-                <TabsContent value="bulk" className="mt-8">
-                    <div className="mb-6">
-                        <h2 className="text-xl font-bold">Bulk QR Generator</h2>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Generate QR codes for multiple products and activations at scale.
-                        </p>
-                    </div>
-
-                    <BulkQRCodeGenerator />
-                </TabsContent>
-
-                <TabsContent value="campaigns" className="mt-8">
-                    <div className="mb-6">
-                        <h2 className="text-xl font-bold">QR Campaigns</h2>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Manage and monitor your QR activation campaigns.
-                        </p>
-                    </div>
-
-                    <QrCampaignDashboard />
-                </TabsContent>
+                </div>
             </Tabs>
         </div>
     );

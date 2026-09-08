@@ -83,6 +83,11 @@ export const QrOptionsSchema = z.object({
 
   scanDestination: z.enum(['url', 'ai']).default('ai'),
   landingPageUrl: z.string().url().optional().or(z.literal('')),
+  
+  /**
+   * Metadata flag to identify activations created via the bulk generator.
+   */
+  isBulk: z.boolean().optional(),
 });
 
 export const SubmitBulkQrRequestInputSchema = z.object({

@@ -1,29 +1,25 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Eye, Loader2, Download, RefreshCw, X, Sparkles, AlertTriangle, BarChart2, CheckCircle2, ListChecks, Printer, MapPin, Scan, Info, Target, Box } from 'lucide-react';
+import { Eye, Loader2, Download, RefreshCw, AlertTriangle, CheckCircle2, MapPin, Target, Box, History as HistoryIcon, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { Progress } from '@/components/ui/progress';
 import { generateZipForRequest } from '@/ai/flows/generate-zip-for-request';
 import { regenerateQrCode } from '@/ai/flows/regenerate-qr-code';
 import { type GenerateCampaignAIOutput } from '@/ai/flows/generate-campaign-ai';
 import { Badge } from '../ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Skeleton } from '../ui/skeleton';
-import Link from 'next/link';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { collection, query, where, onSnapshot, doc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 
@@ -72,7 +68,6 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     const { user } = useAuth();
     const [items, setItems] = useState<QrItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [statusFilter, setStatusFilter] = useState('ALL');
     const [regeneratingIds, setRegeneratingIds] = useState<string[]>([]);
     const [downloading, setDownloading] = useState(false);
     const { toast } = useToast();
@@ -155,8 +150,6 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
         }
     };
 
-    const filteredItems = items.filter(item => statusFilter === 'ALL' || item.status === statusFilter);
-
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
             {currentRequest.status === 'COMPLETED' && (
@@ -183,10 +176,10 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {filteredItems.map(item => (
+                {items.map(item => (
                     <Card key={item.qrCodeId} className="group relative overflow-hidden bg-background border-primary/5">
                         <CardContent className="p-2">
-                                <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
+                            <div className="aspect-square relative rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
                                 {item.status === 'PENDING' ? (
                                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/30" />
                                 ) : item.status === 'ERROR' ? (
@@ -208,7 +201,11 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
     );
 }
 
-export default function QrCampaignDashboard() {
+interface QrCampaignDashboardProps {
+    sourceFilter?: 'ALL' | 'SINGLE' | 'BULK';
+}
+
+export default function QrCampaignDashboard({ sourceFilter = 'ALL' }: QrCampaignDashboardProps) {
     const { user } = useAuth();
     const [requests, setRequests] = useState<BulkRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -224,15 +221,21 @@ export default function QrCampaignDashboard() {
 
         const q = query(collection(db, 'bulkQrRequests'), where('retailerId', '==', user.retailerId));
         const unsubscribe = onSnapshot(q, snapshot => {
-            const fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+            let fetched = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as BulkRequest));
             
+            // Filter by source if requested
+            if (sourceFilter === 'SINGLE') {
+                fetched = fetched.filter(r => !r.options?.isBulk);
+            } else if (sourceFilter === 'BULK') {
+                fetched = fetched.filter(r => r.options?.isBulk === true);
+            }
+
             // Safer sort function that handles both Dates and Timestamps
             fetched.sort((a, b) => {
                 const getTime = (val: any) => {
-                    if (val instanceof Timestamp) return val.toDate().getTime();
+                    if (val && typeof val === 'object' && 'toDate' in val) return val.toDate().getTime();
                     if (val instanceof Date) return val.getTime();
                     if (typeof val === 'string') return new Date(val).getTime();
-                    if (val?.toDate && typeof val.toDate === 'function') return val.toDate().getTime();
                     return 0;
                 };
                 return getTime(b.createdAt) - getTime(a.createdAt);
@@ -243,7 +246,7 @@ export default function QrCampaignDashboard() {
         });
             
         return () => unsubscribe();
-    }, [user?.retailerId]);
+    }, [user?.retailerId, sourceFilter]);
 
     const processRequestInChunks = async (request: BulkRequest) => {
         if (!db) return;
@@ -256,15 +259,14 @@ export default function QrCampaignDashboard() {
                 const itemsRef = collection(db, `bulkQrRequests/${request.id}/items`);
                 const currentChunkSize = Math.min(CHUNK_SIZE, request.totalRequested - itemsDone);
                 
-                // For client-side generation using modular SDK
-                const { doc: firestoreDoc, collection: firestoreCollection } = await import('firebase/firestore');
-
                 for (let i = 0; i < currentChunkSize; i++) {
-                    const qrCodeId = firestoreDoc(firestoreCollection(db, 'id_generator')).id;
+                    const qrItemRef = doc(itemsRef);
+                    const qrCodeId = qrItemRef.id;
                     const qrOptions = request.options || {};
                     const qrColor = (qrOptions.colorHex || '#000000').replace('#', '');
                     const qrBgColor = (qrOptions.bgColorHex || '#FFFFFF').replace('#', '');
-                    const trackingUrl = `${window.location.origin}/resolve/${qrCodeId}`;
+                    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                    const trackingUrl = `${origin}/resolve/${qrCodeId}`;
                     const itemData = {
                         index: itemsDone + i,
                         qrCodeId,
@@ -272,8 +274,8 @@ export default function QrCampaignDashboard() {
                         signedUrl: `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(trackingUrl)}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrOptions.errorCorrection || 'M'}`,
                         status: 'DONE',
                     };
-                    batch.set(firestoreDoc(itemsRef, qrCodeId), itemData);
-                    batch.set(firestoreDoc(db, 'qrcodes', qrCodeId), {
+                    batch.set(qrItemRef, itemData);
+                    batch.set(doc(db, 'qrcodes', qrCodeId), {
                         retailerId: request.retailerId,
                         campaignId: request.campaignId,
                         qrCodeId,
@@ -300,19 +302,24 @@ export default function QrCampaignDashboard() {
 
     return (
         <div className="space-y-4">
+            <div className="flex items-center justify-between px-2 mb-2">
+               <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                 {sourceFilter === 'BULK' ? <Layers className="h-3.5 w-3.5" /> : <HistoryIcon className="h-3.5 w-3.5" />}
+                 {sourceFilter === 'BULK' ? 'Bulk Activated History' : sourceFilter === 'SINGLE' ? 'Single Activation History' : 'Global Activation Audit'}
+               </h3>
+               <Badge variant="outline" className="text-[8px] font-black uppercase bg-muted/30">{requests.length} Records</Badge>
+            </div>
             {requests.length === 0 ? (
                 <div className="p-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">No history recorded.</p>
                 </div>
             ) : requests.map(req => {
-                const progress = req.totalRequested > 0 ? ((req.itemsDone || 0) / req.totalRequested) * 100 : 0;
                 const isProcessing = processingIds.includes(req.id) || req.status === 'PROCESSING';
                 const isSelected = selectedRequest?.id === req.id;
-                
                 const canProcess = req.status === 'DRAFT' || (req.status === 'PROCESSING' && !isProcessing);
 
                 return (
-                    <Card key={req.id} className={cn("transition-all duration-300", isSelected ? "border-primary ring-1 ring-primary/10" : "hover:border-primary/30")}>
+                    <Card key={req.id} className={cn("transition-all duration-300", isSelected ? "border-primary ring-1 ring-primary/10" : "hover:border-primary/30 shadow-sm")}>
                         <div className="flex flex-col sm:flex-row p-5 items-center gap-6">
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
@@ -323,8 +330,9 @@ export default function QrCampaignDashboard() {
                                     <MapPin className="h-3.5 w-3.5 text-primary" />
                                     {req.storeName ? `${req.storeName} — ` : ''}{req.location || 'Unknown Point of Decision'}
                                 </h4>
-                                <div className="flex items-center gap-3 mt-1">
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
                                     <p className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1"><Target className="h-3 w-3" /> {req.productName || 'Category Activation'}</p>
+                                    {req.target?.category && <p className="text-[10px] text-muted-foreground uppercase font-bold border-l pl-3">Target: {req.target.category}</p>}
                                     <p className="text-[10px] text-muted-foreground uppercase font-bold border-l pl-3">{getDisplayDate(req.createdAt)}</p>
                                 </div>
                             </div>

@@ -13,14 +13,14 @@ import {
   SidebarGroupContent,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { 
-  QrCode, 
-  ShoppingCart, 
+import {
+  QrCode,
+  ShoppingCart,
   ShieldCheck,
-  DollarSign, 
-  Settings, 
-  BookOpen, 
-  Target, 
+  DollarSign,
+  Settings,
+  BookOpen,
+  Target,
   LayoutDashboard,
   Building2,
   Bot,
@@ -30,19 +30,20 @@ import {
   BarChart2,
   Activity,
   BarChart3,
-  Video
+  Video,
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
 
 export default function RetailerSidebar({
-    children,
+  children,
 }: {
-    children?: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <Sidebar>
       {children}
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Overview</SidebarGroupLabel>
@@ -74,6 +75,7 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Ari Assistant">
                   <Link href="/retailer-mvp/ai-configuration">
@@ -82,6 +84,7 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Supplier Media">
                   <Link href="/retailer-mvp/brands">
@@ -108,6 +111,7 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="QR Activation">
                   <Link href="/retailer-mvp/qr-management">
@@ -116,6 +120,7 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Live Operations">
                   <Link href="/retailer-mvp/real-time">
@@ -124,6 +129,7 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="App Connections">
                   <Link href="/retailer-mvp/system-integration">
@@ -132,13 +138,15 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Checkout Sync (SIM)">
                   <Link href="/retailer-mvp/pos-terminal">
                     <ShoppingCart className="h-4 w-4" />
                     <span>Checkout Sync (SIM)</span>
                   </Link>
-                </SidebarMenuItem>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -167,7 +175,7 @@ export default function RetailerSidebar({
           <SidebarGroupLabel>Insights & Results</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-               <SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Scan Statistics">
                   <Link href="/retailer-mvp/qr-analytics">
                     <BarChart2 className="h-4 w-4" />
@@ -175,6 +183,7 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Profit & ROI Audit">
                   <Link href="/retailer-mvp/roi">
@@ -183,7 +192,8 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-               <SidebarMenuItem>
+
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Reporting">
                   <Link href="/retailer-mvp/visuals-reporting">
                     <BarChart3 className="h-4 w-4" />
@@ -191,6 +201,7 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Shopper Behavior Patterns">
                   <Link href="/retailer-mvp/decision-intelligence">
@@ -253,6 +264,7 @@ export default function RetailerSidebar({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Help Center & Training">
                   <Link href="/retailer-mvp/documentation">
@@ -265,6 +277,7 @@ export default function RetailerSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter>
         <SidebarMenu>
           <LogoutButton />

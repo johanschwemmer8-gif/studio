@@ -101,7 +101,7 @@ const getScanInteractionFlow = ai.defineFlow(
         const qrDoc = await db.collection('qrcodes').doc(qrId).get();
         if (qrDoc.exists) {
             qrData = qrDoc.data()!;
-            destinationUrl = qrData.redirectUrl || `/p/${qrData.gtin || '06001234567891'}`;
+            destinationUrl = qrData.redirectUrl || (qrData.targetProductGtin ? `/p/${qrData.targetProductGtin}` : (qrData.target?.targetProductGtin ? `/p/${qrData.target.targetProductGtin}` : `/scan/${qrId}`));
             resolvedRetailerId = qrData.retailerId || 'unknown';
             
             if (qrData.requestId) {

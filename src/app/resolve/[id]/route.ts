@@ -37,7 +37,7 @@ export async function GET(
 
     if (qrDoc.exists) {
         const qrData = qrDoc.data()!;
-        gtin = qrData.gtin || '';
+        gtin = qrData.targetProductGtin || qrData.target?.targetProductGtin || qrData.gtin || '';
         resolvedRetailerId = qrData.retailerId || 'unknown';
     } else {
         // 2. Fallback to Stateless Identity Resolution (for direct GS1 strings)
@@ -92,7 +92,7 @@ export async function GET(
     await batch.commit();
 
     // 5. Hand-off to Experience Layer (Product View)
-    let destination = `/p/${gtin}?session=${sessionId}`;
+    let destination = gtin ? `/p/${gtin}?session=${sessionId}` : `/scan/${id}?session=${sessionId}`;
     if (batchNumber) destination += `&batch=${batchNumber}`;
     if (serialNumber) destination += `&serial=${serialNumber}`;
 

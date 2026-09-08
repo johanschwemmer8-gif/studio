@@ -10,6 +10,7 @@ import {
   SidebarContent,
   SidebarMenu,
   SidebarMenuItem,
+  SidebarMenuSub,
   SidebarMenuButton,
   SidebarFooter,
   SidebarGroup,

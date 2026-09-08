@@ -20,7 +20,7 @@ const generateQrForItem = (item: any, requestData: any) => {
     const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
     const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
 
-    const qrData = item.trackingUrl || `${process.env.NEXT_PUBLIC_BASE_URL || ''}/resolve/${qrCodeId}`; 
+    const qrData = item.trackingUrl || `https://interactaoe.co.za/resolve/${qrCodeId}`;
     const encodedQrData = encodeURIComponent(qrData);
 
     let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;

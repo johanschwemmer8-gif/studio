@@ -105,10 +105,10 @@ export default function RetailerSidebar({
             <SidebarMenu>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Create and manage QR activations">
+                <SidebarMenuButton asChild tooltip="Create QR activations, generate QR codes and manage campaigns">
                   <Link href="/retailer-mvp/qr-management">
                     <QrCode className="h-4 w-4" />
-                    <span>QR Activation</span>
+                    <span>QR Management</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

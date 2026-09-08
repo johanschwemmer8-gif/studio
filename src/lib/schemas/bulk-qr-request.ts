@@ -154,17 +154,19 @@ export const SubmitBulkQrRequestInputSchema = z.object({
   shopperObjective: z.string().optional(),
 
   /**
-   * Retained for compatibility with the current bulk QR processing pipeline.
+   * ENFORCED 1:1 CARDINALITY
    *
-   * Important:
-   * `count` must NOT be interpreted as "one QR per product".
-   * The activation model must determine what each generated QR represents.
+   * One activation = One QR identity.
+   *
+   * While count remains for pipeline compatibility, the submission flow
+   * now enforces that one activation request creates exactly one identity.
    */
   count: z
     .number()
     .int()
     .min(1)
-    .max(10000),
+    .max(1)
+    .default(1),
 
   /**
    * QR appearance and shopper-experience configuration.

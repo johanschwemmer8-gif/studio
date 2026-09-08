@@ -205,7 +205,8 @@ const submitBulkQrRequestFlow = ai.defineFlow(
         // ---------------------------------------------------------------------
         // Processing state
         // ---------------------------------------------------------------------
-        totalRequested: data.count,
+        // ONE ACTIVATION = ONE QR.
+        totalRequested: 1,
         itemsDone: 0,
         status: 'QUEUED',
 
@@ -220,63 +221,55 @@ const submitBulkQrRequestFlow = ai.defineFlow(
       });
 
       // -----------------------------------------------------------------------
-      // 5. CREATE QR ITEMS SERVER-SIDE
+      // 5. CREATE QR ITEM SERVER-SIDE
       // -----------------------------------------------------------------------
+      //
+      // ONE ACTIVATION = ONE QR.
       //
       // The browser must NOT create QR identities.
       //
-      // Each item receives a server-side Firestore document ID that becomes
+      // The item receives a server-side Firestore document ID that becomes
       // the QR identity used by the existing resolution/tracking pipeline.
-      //
-      // IMPORTANT:
-      // `count` represents the number of QR identities requested by the
-      // activation request. It does NOT mean one QR per product.
-      //
-      // The current bulk mechanism is retained so existing processing can be
-      // migrated without introducing a new collection or changing scan routes.
 
       const batch = db.batch();
       const itemsCollection = requestRef.collection('items');
+      const itemRef = itemsCollection.doc();
+      const qrCodeId = itemRef.id;
 
-      for (let index = 0; index < data.count; index += 1) {
-        const itemRef = itemsCollection.doc();
-        const qrCodeId = itemRef.id;
+      const trackingUrl = `https://interactaoe.co.za/resolve/${qrCodeId}`;
 
-        const trackingUrl = `https://interactaoe.co.za/resolve/${qrCodeId}`;
+      batch.set(itemRef, {
+        qrCodeId,
 
-        batch.set(itemRef, {
-          qrCodeId,
+        // Activation/request relationship
+        requestId: requestRef.id,
+        retailerId: authorizedRetailerId,
+        campaignId: data.campaignId,
 
-          // Activation/request relationship
-          requestId: requestRef.id,
-          retailerId: authorizedRetailerId,
-          campaignId: data.campaignId,
+        // Physical context
+        storeId: data.storeId || null,
+        storeName: data.storeName || null,
+        location: data.location || null,
 
-          // Physical context
-          storeId: data.storeId || null,
-          storeName: data.storeName || null,
-          location: data.location || null,
+        // Target identity
+        targetProductGtin: targetProductGtin || null,
 
-          // Target identity
-          targetProductGtin: targetProductGtin || null,
+        // Product decision context
+        productGtins: data.productGtins || [],
 
-          // Product decision context
-          productGtins: data.productGtins || [],
+        // Existing tracking pipeline
+        trackingUrl,
+        finalRedirectUrl:
+          data.options?.landingPageUrl ||
+          (targetProductGtin ? `/p/${targetProductGtin}` : ''),
 
-          // Existing tracking pipeline
-          trackingUrl,
-          finalRedirectUrl:
-            data.options?.landingPageUrl ||
-            (targetProductGtin ? `/p/${targetProductGtin}` : ''),
+        // Processing state
+        status: 'PENDING',
+        retryCount: 0,
 
-          // Processing state
-          status: 'PENDING',
-          retryCount: 0,
-
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await batch.commit();
 

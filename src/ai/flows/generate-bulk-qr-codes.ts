@@ -1,11 +1,9 @@
-
 'use server';
 /**
- * @fileOverview A Genkit flow to submit a bulk QR code generation request.
- *
- * - submitBulkQrRequest - A callable function to queue a new bulk QR code job.
- * - SubmitBulkQrRequestInput - The input type for the flow.
- * - SubmitBulkQrRequestOutput - The return type for the flow.
+ * @fileOverview Legacy/Compatibility QR generation flow.
+ * 
+ * NOTE: This flow is being superseded by submit-bulk-qr-request.ts
+ * which follows the 1:1 Activation:QR identity model more strictly.
  */
 
 import { ai } from '@/ai/genkit';
@@ -22,18 +20,23 @@ const QrOptionsSchema = z.object({
   aiGoal: z.string().optional(),
   expiresAt: z.string().datetime().optional(),
   redirectType: z.enum(['permanent', 'temporary']).default('temporary'),
+  gtin: z.string().optional(),
 });
 
 // Define the input schema for the callable function
-const SubmitBulkQrRequestInputSchema = z.object({
-  retailerId: z.string().describe('The ID of the retailer for this batch.'),
-  campaignId: z.string().describe('The ID of the campaign for this batch.'),
-  count: z.number().int().min(1).max(500, "Cannot request more than 500 codes at a time.").describe('The number of QR codes to generate (max 500).'),
-  baseRedirect: z.string().url().refine(s => s.startsWith('https://'), "Base redirect URL must be HTTPS."),
+const LegacySubmitBulkQrRequestInputSchema = z.object({
+  retailerId: z.string().describe('The ID of the retailer for this activation.'),
+  campaignId: z.string().describe('The ID of the campaign for this activation.'),
+  count: z.number().int().min(1).max(1).default(1).describe('Must be 1 per activation.'),
+  baseRedirect: z.string().url().optional().describe("Base redirect URL."),
   options: QrOptionsSchema.optional(),
-  // createdBy would be derived from the auth context in a real scenario
+  target: z.any().optional(),
+  productGtins: z.array(z.string()).optional(),
+  storeId: z.string().optional(),
+  storeName: z.string().optional(),
+  location: z.string().optional(),
 });
-export type SubmitBulkQrRequestInput = z.infer<typeof SubmitBulkQrRequestInputSchema>;
+export type SubmitBulkQrRequestInput = z.infer<typeof LegacySubmitBulkQrRequestInputSchema>;
 
 // Define the output schema
 const SubmitBulkQrRequestOutputSchema = z.object({
@@ -44,13 +47,13 @@ export type SubmitBulkQrRequestOutput = z.infer<typeof SubmitBulkQrRequestOutput
 
 // The main exported function that acts as our callable endpoint
 export async function submitBulkQrRequest(input: SubmitBulkQrRequestInput): Promise<SubmitBulkQrRequestOutput> {
-  return submitBulkQrRequestFlow(input);
+  return legacySubmitBulkQrRequestFlow(input);
 }
 
-const submitBulkQrRequestFlow = ai.defineFlow(
+const legacySubmitBulkQrRequestFlow = ai.defineFlow(
   {
-    name: 'submitBulkQrRequestFlow',
-    inputSchema: SubmitBulkQrRequestInputSchema,
+    name: 'legacySubmitBulkQrRequestFlow', // Renamed to avoid collision with submitBulkQrRequestFlow
+    inputSchema: LegacySubmitBulkQrRequestInputSchema,
     outputSchema: SubmitBulkQrRequestOutputSchema,
   },
   async (data) => {
@@ -58,51 +61,48 @@ const submitBulkQrRequestFlow = ai.defineFlow(
         throw new Error('Firestore is not initialized. Check Firebase Admin SDK configuration.');
     }
     
-    // In a real Firebase Callable Function, you'd get the auth context here.
+    // In a real environment, auth context would be verified here.
     const createdBy = 'simulated-user@example.com'; 
-    const callerRetailerId = data.retailerId; // Placeholder for custom claim verification
-    
-    // Enforce tenant matching
-    if (callerRetailerId !== data.retailerId) {
-      throw new Error('User is not authorized to create requests for this retailer.');
-    }
+    const retailerId = data.retailerId;
 
-    const { retailerId, campaignId, count, baseRedirect, options } = data;
+    const { campaignId, options } = data;
     
     const requestRef = db.collection('bulkQrRequests').doc();
-    
     const batch = db.batch();
+
     const requestData = {
         retailerId,
         campaignId,
-        totalRequested: count,
+        totalRequested: 1, // Enforced 1:1
         status: 'QUEUED',
         createdAt: new Date(),
         updatedAt: new Date(),
         createdBy: createdBy,
         options: options || {},
+        target: data.target || null,
+        productGtins: data.productGtins || [],
+        storeId: data.storeId || null,
+        storeName: data.storeName || null,
+        location: data.location || null,
     };
     batch.set(requestRef, requestData);
 
-    // Create N item stubs
-    for (let i = 0; i < count; i++) {
-      const qrCodeId = db.collection('qrcodes').doc().id; 
-      const itemRef = requestRef.collection('items').doc(qrCodeId);
-      
-      const itemData = {
-          index: i,
-          qrCodeId: qrCodeId,
-          retailerId: retailerId, // Crucial for scoped deletion and analytics
-          redirectUrl: '', 
-          signedUrl: '',
-          storagePath: '',
-          status: 'PENDING',
-          error: '',
-          checksum: '',
-          params: {},
-      };
-      batch.set(itemRef, itemData);
-    }
+    // Create exactly one identity stub
+    const itemRef = requestRef.collection('items').doc();
+    const qrCodeId = itemRef.id;
+
+    const itemData = {
+        index: 0,
+        qrCodeId: qrCodeId,
+        retailerId: retailerId,
+        status: 'PENDING',
+        error: '',
+        targetProductGtin: options?.gtin || null,
+        productGtins: data.productGtins || [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
+    batch.set(itemRef, itemData);
 
     await batch.commit();
     

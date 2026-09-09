@@ -1,65 +1,45 @@
 import { z } from 'genkit';
 
 /**
- * @fileOverview QR Activation request schemas.
- *
- * ARCHITECTURE:
- * - One retailer-defined activation represents one Point-of-Decision objective.
- * - The QR is the digital identity of that activation.
- * - The QR is NOT the product identity.
- * - GTIN remains the authoritative product identifier.
- * - Target and Product Context are deliberately separate concepts.
- *
- * TARGET
- *   department
- *   category
- *   subCategory
- *   brand
- *   specific product
- *   GTIN
- *
- * PRODUCT CONTEXT
- *   productGtins[]
- *
- * NOTE:
- * Legacy fields are retained temporarily for compatibility with the existing
- * draft/QR-generation consumers. They should be migrated deliberately rather
- * than removed in one uncontrolled change.
+ * @fileOverview iNteract AOE — QR Activation Data Contract (Gate 0 Locked)
+ * 
+ * CORE ARCHITECTURAL SPINE:
+ * Campaign → Activation → QR Identity → Shopper Experience
+ * 
+ * INVARIANTS:
+ * 1. ONE ACTIVATION = ONE QR: Every document in bulkQrRequests represents exactly one Point-of-Decision.
+ * 2. ACTIVATION-FIRST: The QR is the identity of the Activation, NOT the product.
+ * 3. TARGET vs CONTEXT: Target defines the promotional intent. Context (productGtins[]) provides supporting data.
+ * 4. AUTHORITATIVE ID: requestId and qrCodeId are immutable anchors for the shopper journey.
  */
 
 export const QrActivationTargetSchema = z.object({
   /**
-   * Retailer-defined promotion/decision hierarchy.
-   * Not every level is mandatory.
-   *
-   * Hierarchy: department -> category -> subCategory -> brand -> GTIN
+   * RETAILER INTENT / TARGET
+   * Defines the promotional objective.
    */
   department: z.string().optional(),
   category: z.string().optional(),
   subCategory: z.string().optional(),
 
   /**
-   * @deprecated No longer part of the retailer-facing hierarchy.
-   * Retained only so existing qrcodes documents and legacy fallback
-   * code (process-bulk-qr-queue.ts) don't break. Do not expose this
-   * in any new UI.
+   * @deprecated Retained for legacy pipeline compatibility only.
    */
   productType: z.string().optional(),
 
   /**
-   * Brand is first-class data.
-   * Do not rely on parsing/inferencing brand from productName.
+   * Authoritative Brand identification.
    */
   brandId: z.string().optional(),
   brandName: z.string().optional(),
 
   /**
-   * The product the retailer wants to promote.
-   * GTIN must ultimately come from the retailer product catalogue.
+   * The specific product being promoted at this Point-of-Decision.
+   * Note: This is an INTENT attribute, not the identity of the QR.
    */
   targetProductName: z.string().optional(),
   targetProductGtin: z.string().optional(),
-});
+}).describe('The intended promotional objective for this Point-of-Decision.');
 
 export const QrOptionsSchema = z.object({
   colorHex: z.string().optional(),
@@ -67,18 +47,15 @@ export const QrOptionsSchema = z.object({
   logoPath: z.string().url().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).default('M'),
 
-  // ---------------------------------------------------------------------------
-  // LEGACY GS1 / PRODUCT COMPATIBILITY
-  // ---------------------------------------------------------------------------
-  // Retained temporarily because existing UI and supporting flows still read
-  // options.gtin. New activation logic must use target.targetProductGtin.
+  /**
+   * @deprecated Use target.targetProductGtin.
+   */
   gtin: z.string().length(14, 'GTIN must be 14 digits.').optional(),
 
   batchNumber: z.string().optional(),
   serialNumber: z.string().optional(),
   isGs1DigitalLink: z.boolean().default(true),
 
-  // AI / shopper experience configuration
   aiTone: z.string().optional(),
   aiGoal: z.string().optional(),
   aiPersona: z.string().optional(),
@@ -94,115 +71,51 @@ export const QrOptionsSchema = z.object({
   scanDestination: z.enum(['url', 'ai']).default('ai'),
   landingPageUrl: z.string().url().optional().or(z.literal('')),
 
-  /**
-   * Metadata flag to identify activations created via the bulk generator.
-   */
   isBulk: z.boolean().optional(),
 });
 
 export const SubmitBulkQrRequestInputSchema = z.object({
-  /**
-   * Firebase ID token used for authoritative identity resolution.
-   */
-  idToken: z
-    .string()
-    .describe('Firebase ID token for authoritative identity resolution.'),
+  idToken: z.string().describe('Authoritative identity token.'),
+  retailerId: z.string().describe('Validated tenant ID.'),
+  brandId: z.string().describe('Brand association.'),
+  campaignId: z.string().min(1, 'Campaign association is required.'),
 
   /**
-   * Intended retailer tenant.
-   * The server must verify this against the authenticated identity.
-   */
-  retailerId: z
-    .string()
-    .describe('The intended ID of the retailer.'),
-
-  /**
-   * Campaign/brand relationship.
-   *
-   * These remain part of the current request model because the existing
-   * application already uses campaignId and brandId.
-   */
-  brandId: z
-    .string()
-    .describe('The brand ID associated with the activation.'),
-
-  campaignId: z
-    .string()
-    .min(1, 'Campaign name is required')
-    .describe('The campaign ID associated with the activation.'),
-
-  /**
-   * NEW ACTIVATION TARGET
-   *
-   * This is intentionally optional at the shared-schema level during the
-   * migration because save-qr-campaign-draft.ts currently consumes this schema.
-   *
-   * submit-bulk-qr-request.ts will enforce that a valid target exists before
-   * creating a production activation.
+   * RETAILER INTENT (TARGET)
    */
   target: QrActivationTargetSchema.optional(),
 
   /**
-   * Products available in the shopper decision/comparison context.
-   *
-   * These are catalogue GTINs, not additional QR identities.
+   * PRODUCT CONTEXT
+   * Authoritative products available in this decision context.
+   * Rule: productGtins[] provides context without multiplying QR identities.
    */
-  productGtins: z
-    .array(z.string())
-    .default([]),
+  productGtins: z.array(z.string()).default([]),
 
   /**
-   * Physical Point-of-Decision context.
-   *
-   * `location` deliberately remains generic. It may represent an aisle,
-   * end-cap, entrance display, promotional stand, checkout display, etc.
-   *
-   * This is NOT a shelf-management or planogram model.
+   * PHYSICAL POINT-OF-DECISION (POD)
    */
   storeId: z.string().optional(),
   storeName: z.string().optional(),
-  location: z.string().optional(),
+  location: z.string().optional().describe('Generic POD location (e.g., Aisle 4, Shelf 2).'),
 
-  /**
-   * Shopper objective for this activation.
-   */
   shopperObjective: z.string().optional(),
 
   /**
-   * ENFORCED 1:1 CARDINALITY
-   *
-   * One activation = One QR identity.
-   *
-   * While count remains for pipeline compatibility, the submission flow
-   * now enforces that one activation request creates exactly one identity.
+   * CARDINALITY ENFORCEMENT: 1 Activation = 1 QR.
+   * This value is technically constrained to 1 in the logic layer.
    */
-  count: z
-    .number()
-    .int()
-    .min(1)
-    .max(1)
-    .default(1),
+  count: z.number().int().min(1).max(1).default(1),
 
   /**
-   * QR appearance and shopper-experience configuration.
+   * SYSTEM INVARIANTS: IDEMPOTENCY
+   * Prevents duplicate activation creation during retry cycles.
    */
+  idempotencyKey: z.string().optional().describe('Unique client-generated key for duplicate prevention.'),
+
   options: QrOptionsSchema.optional(),
-
-  /**
-   * Legacy friendly product name used by existing manifests/dashboard code.
-   * New activation records should derive the target product name from
-   * target.targetProductName.
-   */
-  productName: z
-    .string()
-    .optional()
-    .describe('Legacy friendly product name for compatibility.'),
+  productName: z.string().optional(),
 });
 
-export type SubmitBulkQrRequestInput = z.infer
-  typeof SubmitBulkQrRequestInputSchema
->;
-
-export type QrActivationTarget = z.infer
-  typeof QrActivationTargetSchema
->;
+export type SubmitBulkQrRequestInput = z.infer<typeof SubmitBulkQrRequestInputSchema>;
+export type QrActivationTarget = z.infer<typeof QrActivationTargetSchema>;

@@ -1,39 +1,17 @@
 'use server';
 
 /**
- * @fileOverview Submit a QR Activation request.
- *
- * ARCHITECTURE:
- * - One retailer-defined activation = one activation context.
- * - The QR represents the activation / Point of Decision.
- * - The QR is NOT the product identity.
- * - GTIN remains the authoritative product identifier.
- * - Target and Product Context are separate.
- *
- * This flow is the authoritative server-side entry point for creating
- * QR Activation requests.
- *
- * Lifecycle:
- *
- *   SUBMIT
- *      ↓
- *   bulkQrRequests/{requestId}
- *      ↓
- *   items/{qrCodeId} = PENDING
- *      ↓
- *   QUEUED
- *      ↓
- *   process-bulk-qr-queue
- *      ↓
- *   PROCESSING
- *      ↓
- *   qrcodes/{qrCodeId}
- *      ↓
- *   COMPLETED
+ * @fileOverview Authoritative QR Activation Submission Flow.
+ * 
+ * SYSTEM GATE: Gate 0 Architectural Invariants.
+ * 
+ * 1. ENFORCED CARDINALITY: Removes loops. 1 Request = 1 QR.
+ * 2. IDEMPOTENCY: Implements checks to prevent duplicate production records.
+ * 3. IDENTITY BOUNDARY: Ensures Activation IDs are distinct from Product IDs.
+ * 4. CONTEXT SEPARATION: Preserves productGtins[] as metadata, not generation triggers.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
 import { getAuthorizedRetailerId } from '@/lib/auth-server';
 import {
@@ -41,24 +19,17 @@ import {
   type SubmitBulkQrRequestInput,
 } from '@/lib/schemas/bulk-qr-request';
 
-/**
- * Re-export the input type so existing consumers such as
- * src/ai/flows/index.ts can continue importing it from this flow.
- */
 export type { SubmitBulkQrRequestInput } from '@/lib/schemas/bulk-qr-request';
 
-const SubmitBulkQrRequestOutputSchema = z.object({
+const SubmitBulkQrRequestOutputSchema = ai.defineSchema('SubmitBulkQrRequestOutput', {
   success: z.boolean(),
   requestId: z.string(),
+  isDuplicate: z.boolean().optional(),
 });
-
-export type SubmitBulkQrRequestOutput = z.infer<
-  typeof SubmitBulkQrRequestOutputSchema
->;
 
 export async function submitBulkQrRequest(
   input: SubmitBulkQrRequestInput
-): Promise<SubmitBulkQrRequestOutput> {
+) {
   return submitBulkQrRequestFlow(input);
 }
 
@@ -70,44 +41,44 @@ const submitBulkQrRequestFlow = ai.defineFlow(
   },
   async (data) => {
     // -------------------------------------------------------------------------
-    // 1. AUTHORISATION
+    // 1. AUTHORISATION GATE
     // -------------------------------------------------------------------------
-
     const authorizedRetailerId = await getAuthorizedRetailerId(
       data.idToken,
       data.retailerId
     );
 
     if (!db) {
-      throw new Error('Infrastructure Layer Unavailable.');
+      throw new Error('Infrastructure Layer (Firestore) Unavailable.');
     }
 
     // -------------------------------------------------------------------------
-    // 2. VALIDATE ACTIVATION TARGET
+    // 2. IDEMPOTENCY CHECK
     // -------------------------------------------------------------------------
-    //
-    // The shared schema keeps target optional temporarily because
-    // save-qr-campaign-draft.ts still consumes the shared schema.
-    //
-    // A production activation submitted through this flow must nevertheless
-    // contain a meaningful target.
-    //
-    // A retailer may target:
-    //   Category
-    //   Category + Sub-category
-    //   Category + Sub-category + Product Type
-    //   Brand
-    //   Specific Product
-    //   Specific Product + GTIN
-    //
-    // Not every level is mandatory.
+    // Rigorous check to prevent duplicate production records from network retries.
+    if (data.idempotencyKey) {
+      const existing = await db.collection('bulkQrRequests')
+        .where('retailerId', '==', authorizedRetailerId)
+        .where('idempotencyKey', '==', data.idempotencyKey)
+        .limit(1)
+        .get();
 
+      if (!existing.empty) {
+        console.log(`[Architecture Guard] Duplicate activation blocked for key: ${data.idempotencyKey}`);
+        return {
+          success: true,
+          requestId: existing.docs[0].id,
+          isDuplicate: true,
+        };
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. TARGET VALIDATION
+    // -------------------------------------------------------------------------
     const target = data.target;
-
     if (!target) {
-      throw new Error(
-        'Activation target is required. Select at least a category, product type, brand, or specific product.'
-      );
+      throw new Error('Architectural violation: Activation target is required.');
     }
 
     const hasTargetValue = Boolean(
@@ -121,47 +92,28 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     );
 
     if (!hasTargetValue) {
-      throw new Error(
-        'Activation target cannot be empty. Select what the retailer wants to promote.'
-      );
+      throw new Error('Activation target cannot be empty.');
     }
 
     // -------------------------------------------------------------------------
-    // 3. TARGET GTIN COMPATIBILITY
+    // 4. CREATE AUTHORITATIVE ACTIVATION (1:1 CARDINALITY)
     // -------------------------------------------------------------------------
-    //
-    // New activation model:
-    //   target.targetProductGtin
-    //
-    // Legacy consumers may still read:
-    //   options.gtin
-    //
-    // We preserve options.gtin temporarily but make the activation target
-    // authoritative whenever target.targetProductGtin is supplied.
+    const requestRef = db.collection('bulkQrRequests').doc();
+    const now = new Date();
 
     const targetProductGtin =
       target.targetProductGtin?.trim() ||
       data.options?.gtin?.trim() ||
       undefined;
 
-    // -------------------------------------------------------------------------
-    // 4. CREATE ACTIVATION REQUEST
-    // -------------------------------------------------------------------------
-
-    const requestRef = db.collection('bulkQrRequests').doc();
-
-    const now = new Date();
-
     try {
       await requestRef.set({
-        // Tenant / campaign relationship
         retailerId: authorizedRetailerId,
         brandId: data.brandId,
         campaignId: data.campaignId,
+        idempotencyKey: data.idempotencyKey || null,
 
-        // ---------------------------------------------------------------------
-        // Activation target
-        // ---------------------------------------------------------------------
+        // Activation Target (Operational Intent)
         target: {
           category: target.category || null,
           subCategory: target.subCategory || null,
@@ -172,47 +124,28 @@ const submitBulkQrRequestFlow = ai.defineFlow(
           targetProductGtin: targetProductGtin || null,
         },
 
-        // ---------------------------------------------------------------------
-        // Product decision/comparison context
-        // ---------------------------------------------------------------------
+        // Product Context (Supporting Data - Array field, NOT a multiplier)
         productGtins: data.productGtins || [],
 
-        // ---------------------------------------------------------------------
-        // Physical Point-of-Decision context
-        // ---------------------------------------------------------------------
+        // Physical Point-of-Decision (POD)
         storeId: data.storeId || null,
         storeName: data.storeName || null,
         location: data.location || null,
 
-        // ---------------------------------------------------------------------
-        // Shopper objective
-        // ---------------------------------------------------------------------
         shopperObjective: data.shopperObjective || null,
 
-        // ---------------------------------------------------------------------
-        // Legacy compatibility
-        // ---------------------------------------------------------------------
         productName:
           data.productName ||
           target.targetProductName ||
           'Unnamed Activation',
 
-        // ---------------------------------------------------------------------
-        // QR generation / experience options
-        // ---------------------------------------------------------------------
         options: data.options || {},
 
-        // ---------------------------------------------------------------------
-        // Processing state
-        // ---------------------------------------------------------------------
-        // ONE ACTIVATION = ONE QR.
+        // ONE ACTIVATION = ONE QR
         totalRequested: 1,
         itemsDone: 0,
         status: 'QUEUED',
 
-        // ---------------------------------------------------------------------
-        // Data / standards state
-        // ---------------------------------------------------------------------
         isGs1Compliant: true,
         dataStatus: 'VERIFIED',
 
@@ -221,49 +154,34 @@ const submitBulkQrRequestFlow = ai.defineFlow(
       });
 
       // -----------------------------------------------------------------------
-      // 5. CREATE QR ITEM SERVER-SIDE
+      // 5. STUB DIGITAL IDENTITY
       // -----------------------------------------------------------------------
-      //
-      // ONE ACTIVATION = ONE QR.
-      //
-      // The browser must NOT create QR identities.
-      //
-      // The item receives a server-side Firestore document ID that becomes
-      // the QR identity used by the existing resolution/tracking pipeline.
-
       const batch = db.batch();
       const itemsCollection = requestRef.collection('items');
       const itemRef = itemsCollection.doc();
       const qrCodeId = itemRef.id;
 
+      // The QR Identity is anchored to the Activation.
       const trackingUrl = `https://interactaoe.co.za/resolve/${qrCodeId}`;
 
       batch.set(itemRef, {
         qrCodeId,
-
-        // Activation/request relationship
         requestId: requestRef.id,
         retailerId: authorizedRetailerId,
         campaignId: data.campaignId,
 
-        // Physical context
         storeId: data.storeId || null,
         storeName: data.storeName || null,
         location: data.location || null,
 
-        // Target identity
         targetProductGtin: targetProductGtin || null,
-
-        // Product decision context
         productGtins: data.productGtins || [],
 
-        // Existing tracking pipeline
         trackingUrl,
         finalRedirectUrl:
           data.options?.landingPageUrl ||
           (targetProductGtin ? `/p/${targetProductGtin}` : ''),
 
-        // Processing state
         status: 'PENDING',
         retryCount: 0,
 
@@ -273,24 +191,16 @@ const submitBulkQrRequestFlow = ai.defineFlow(
 
       await batch.commit();
 
-      console.log(
-        `[QR Management] Activation queued: ${requestRef.id} for Tenant ${authorizedRetailerId}`
-      );
+      console.log(`[Architecture Guard] Activation Identity established: ${qrCodeId} (Request: ${requestRef.id})`);
 
       return {
         success: true,
         requestId: requestRef.id,
       };
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown persistence error';
-
-      console.error(
-        `[QR Management] Activation persistence failure:`,
-        message
-      );
-
-      throw new Error('Failed to create QR activation.');
+      const message = error instanceof Error ? error.message : 'Unknown persistence error';
+      console.error(`[Architecture Guard] Activation FAILED:`, message);
+      throw new Error('Failed to create authoritative QR activation.');
     }
   }
 );

@@ -58,6 +58,8 @@ import {
 
 import { useToast } from '@/hooks/use-toast';
 import { submitBulkQrRequest } from '@/ai/flows/submit-bulk-qr-request';
+import { createCampaign } from '@/ai/flows/create-campaign';
+import { listCampaigns } from '@/ai/flows/list-campaigns';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
 import {
@@ -100,6 +102,13 @@ type RetailerProduct = {
   imageUrl?: string;
 };
 
+type RetailerCampaign = {
+  campaignId: string;
+  campaignName: string;
+  campaignType: 'promotion' | 'engagement';
+  campaignMode: 'single-target' | 'collection';
+};
+
 const OBJECTIVES = [
   { value: 'discover', label: 'Discover', description: 'Help shoppers discover relevant products or categories.' },
   { value: 'compare', label: 'Compare', description: 'Help shoppers compare products in this decision context.' },
@@ -126,6 +135,15 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
 
   const [products, setProducts] = useState<RetailerProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+
+  // --- Campaign picker state ---
+  const [campaigns, setCampaigns] = useState<RetailerCampaign[]>([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
+  const [newCampaignName, setNewCampaignName] = useState('');
+  const [newCampaignType, setNewCampaignType] = useState<'promotion' | 'engagement'>('promotion');
+  const [newCampaignMode, setNewCampaignMode] = useState<'single-target' | 'collection'>('single-target');
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -181,6 +199,76 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
     }
     fetchRetailerProducts();
   }, [user?.retailerId, form]);
+
+  useEffect(() => {
+    const retailerId = user?.retailerId;
+    if (!retailerId) {
+      setLoadingCampaigns(false);
+      return;
+    }
+
+    async function fetchCampaigns() {
+      setLoadingCampaigns(true);
+      try {
+        const idToken = await user?.getIdToken();
+        if (!idToken) return;
+        const result = await listCampaigns({ idToken, retailerId });
+        setCampaigns(result.campaigns as RetailerCampaign[]);
+      } catch (error) {
+        console.error('[QR Campaign] Failed to fetch campaigns:', error);
+      } finally {
+        setLoadingCampaigns(false);
+      }
+    }
+    fetchCampaigns();
+  }, [user?.retailerId]);
+
+  const handleCreateCampaign = async () => {
+    if (!newCampaignName.trim()) {
+      toast({ title: 'Campaign name required', variant: 'destructive' });
+      return;
+    }
+
+    const retailerId = user?.retailerId;
+    if (!retailerId) {
+      toast({ title: 'Authentication required', variant: 'destructive' });
+      return;
+    }
+
+    setIsCreatingCampaign(true);
+    try {
+      const idToken = await user?.getIdToken();
+      if (!idToken) {
+        toast({ title: 'Authentication required', variant: 'destructive' });
+        return;
+      }
+
+      const result = await createCampaign({
+        idToken,
+        retailerId,
+        campaignName: newCampaignName,
+        campaignType: newCampaignType,
+        campaignMode: newCampaignMode,
+      });
+
+      const created: RetailerCampaign = {
+        campaignId: result.campaignId,
+        campaignName: newCampaignName,
+        campaignType: newCampaignType,
+        campaignMode: newCampaignMode,
+      };
+
+      setCampaigns((prev) => [created, ...prev]);
+      form.setValue('campaignId', result.campaignId, { shouldDirty: true, shouldValidate: true });
+      setShowNewCampaignForm(false);
+      setNewCampaignName('');
+      toast({ title: 'Campaign Created', description: `"${created.campaignName}" is ready to use.` });
+    } catch (err: any) {
+      toast({ title: 'Campaign Creation Failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsCreatingCampaign(false);
+    }
+  };
 
   const categories = useMemo(() => {
     const values = products.map((p) => p.category?.trim()).filter((v): v is string => Boolean(v));
@@ -470,10 +558,87 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                       <Input {...form.register('location')} placeholder="e.g. Wine Aisle 4 - End Cap" className="h-11" />
                     </div>
                   </div>
+
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Campaign Association</Label>
-                    <Input {...form.register('campaignId')} placeholder="e.g. Festive Wine Promotion 2026" className="h-11" />
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Campaign</Label>
+
+                    {!showNewCampaignForm ? (
+                      <div className="flex gap-2">
+                        <Controller
+                          control={form.control}
+                          name="campaignId"
+                          render={({ field }) => (
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger className="h-11 flex-1">
+                                <SelectValue
+                                  placeholder={loadingCampaigns ? 'Loading campaigns...' : 'Select a campaign...'}
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {campaigns.map((c) => (
+                                  <SelectItem key={c.campaignId} value={c.campaignId}>
+                                    {c.campaignName}
+                                    <span className="ml-1.5 text-[10px] uppercase opacity-50">
+                                      ({c.campaignType})
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11 shrink-0"
+                          onClick={() => setShowNewCampaignForm(true)}
+                        >
+                          <PlusCircle className="h-4 w-4 mr-2" /> New
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 rounded-xl border p-4 bg-muted/20">
+                        <Input
+                          value={newCampaignName}
+                          onChange={(e) => setNewCampaignName(e.target.value)}
+                          placeholder="Campaign name, e.g. Festive Wine Promotion 2026"
+                          className="h-11"
+                        />
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <Select
+                            value={newCampaignType}
+                            onValueChange={(v) => setNewCampaignType(v as 'promotion' | 'engagement')}
+                          >
+                            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="promotion">Marketing / Promotion</SelectItem>
+                              <SelectItem value="engagement">Engagement</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={newCampaignMode}
+                            onValueChange={(v) => setNewCampaignMode(v as 'single-target' | 'collection')}
+                          >
+                            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="single-target">Single Target (one product/brand)</SelectItem>
+                              <SelectItem value="collection">Collection (many products/categories)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="ghost" onClick={() => setShowNewCampaignForm(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="button" onClick={handleCreateCampaign} disabled={isCreatingCampaign}>
+                            {isCreatingCampaign ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Create Campaign
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
                   <div className="flex justify-end pt-4">
                     <Button type="button" onClick={() => setStep(2)} className="h-11 font-black text-[10px] uppercase tracking-widest px-8">Next Step <ChevronRight className="ml-2 h-4 w-4" /></Button>
                   </div>

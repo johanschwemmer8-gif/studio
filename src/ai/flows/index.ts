@@ -5,6 +5,7 @@ import { analyzeBehavioralInsights, type AnalyzeBehavioralInsightsInput, type An
 import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
 import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
 import { analyzeDecisionIntelligence, type DecisionIntelligenceOutput } from './analyze-decision-intelligence';
+import { createCampaign, type CreateCampaignOutput } from './create-campaign';
 import { deleteBulkQrRequest, type DeleteBulkQrRequestInput, type DeleteBulkQrRequestOutput } from './delete-bulk-qr-request';
 import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './submit-bulk-qr-request';
 import { generateCampaignAI, type GenerateCampaignAIInput, type GenerateCampaignAIOutput } from './generate-campaign-ai';
@@ -19,6 +20,7 @@ import { type GetScanEventsInput, type GetScanEventsOutput } from '@/lib/schemas
 import { getScanInteraction } from './get-scan-interaction';
 import { type GetScanInteractionInput, type GetScanInteractionOutput } from '@/lib/schemas/scan-interaction';
 import { importExternalQrCodes, type ImportExternalQrCodesInput, type ImportExternalQrCodesOutput } from './import-external-qr-codes';
+import { listCampaigns, type ListCampaignsOutput } from './list-campaigns';
 import { logABTestConversion, type LogABTestConversionInput } from './log-ab-test-conversion';
 import { processBulkQrQueue, type ProcessBulkQrQueueOutput } from './process-bulk-qr-queue';
 import { productChat, type ProductChatInput, type ProductChatOutput } from './product-chat-flow';
@@ -46,6 +48,7 @@ export {
     analyzeCampaignPerformance,
     analyzeEngagementMetrics,
     analyzeDecisionIntelligence,
+    createCampaign,
     deleteBulkQrRequest,
     submitBulkQrRequest,
     generateCampaignAI,
@@ -55,6 +58,7 @@ export {
     getScanEvents,
     getScanInteraction,
     importExternalQrCodes,
+    listCampaigns,
     logABTestConversion,
     processBulkQrQueue,
     productChat,
@@ -81,6 +85,7 @@ export type {
     AnalyzeCampaignPerformanceInput, AnalyzeCampaignPerformanceOutput,
     AnalyzeEngagementMetricsOutput,
     DecisionIntelligenceOutput,
+    CreateCampaignOutput,
     DeleteBulkQrRequestInput, DeleteBulkQrRequestOutput,
     SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput,
     GenerateCampaignAIInput, GenerateCampaignAIOutput,
@@ -91,6 +96,7 @@ export type {
     GetScanEventsInput, GetScanEventsOutput,
     GetScanInteractionInput, GetScanInteractionOutput,
     ImportExternalQrCodesInput, ImportExternalQrCodesOutput,
+    ListCampaignsOutput,
     LogABTestConversionInput,
     ProcessBulkQrQueueOutput,
     ProductChatInput, ProductChatOutput,

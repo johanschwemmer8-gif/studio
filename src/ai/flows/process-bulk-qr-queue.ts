@@ -25,6 +25,12 @@
  * - GTIN remains the authoritative product identifier.
  * - Target and Product Context remain separate.
  *
+ * FIELD PRECEDENCE (fixed):
+ * Item-level values (specific to one activation) always take precedence
+ * over request-level values (shared defaults for the whole bulk request).
+ * This allows multiple activations under the same campaign/request to have
+ * different stores, locations, target GTINs, and product context.
+ *
  * The final qrcodes record deliberately retains activation context so that
  * future measurement and Retail Media functionality can connect:
  *
@@ -52,7 +58,7 @@ const ProcessBulkQrQueueOutputSchema = z.object({
   itemsRetried: z.number().optional(),
 });
 
-export type ProcessBulkQrQueueOutput = z.infer<
+export type ProcessBulkQrQueueOutput = z.infer
   typeof ProcessBulkQrQueueOutputSchema
 >;
 
@@ -262,6 +268,10 @@ const processBulkQrQueueFlow = ai.defineFlow(
              * The activation context is deliberately copied here.
              * This prevents the final QR record from becoming detached
              * from the retailer's original Point-of-Decision intent.
+             *
+             * PRECEDENCE: item-level values win over request-level
+             * defaults, so multiple activations sharing one request/
+             * campaign can each carry their own store/location/target.
              */
             const qrMasterRef =
               db
@@ -291,6 +301,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
                  */
                 target:
                   requestData.target || {
+                    department: null,
                     category: null,
                     subCategory: null,
                     productType: null,
@@ -306,39 +317,42 @@ const processBulkQrQueueFlow = ai.defineFlow(
                  * Exact promoted product, where applicable.
                  *
                  * This is intentionally separate from productGtins.
+                 * Item-level value wins.
                  */
                 targetProductGtin:
+                  itemData.targetProductGtin ||
                   requestData.target
                     ?.targetProductGtin ||
-                  itemData.targetProductGtin ||
                   null,
 
                 /*
                  * Shopper decision / comparison context.
                  *
                  * These products do NOT represent separate QR identities.
+                 * Item-level value wins.
                  */
                 productGtins:
-                  requestData.productGtins ||
                   itemData.productGtins ||
+                  requestData.productGtins ||
                   [],
 
                 /*
-                 * Physical Point-of-Decision context
+                 * Physical Point-of-Decision context.
+                 * Item-level value wins.
                  */
                 storeId:
-                  requestData.storeId ||
                   itemData.storeId ||
+                  requestData.storeId ||
                   null,
 
                 storeName:
-                  requestData.storeName ||
                   itemData.storeName ||
+                  requestData.storeName ||
                   null,
 
                 location:
-                  requestData.location ||
                   itemData.location ||
+                  requestData.location ||
                   null,
 
                 /*
@@ -565,6 +579,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
           /*
            * Update the authoritative QR record with the
            * same activation context used by the normal path.
+           * PRECEDENCE: item-level values win over request-level.
            */
           const qrMasterRef =
             db
@@ -588,6 +603,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
 
               target:
                 requestData.target || {
+                  department: null,
                   category: null,
                   subCategory: null,
                   productType: null,
@@ -600,29 +616,29 @@ const processBulkQrQueueFlow = ai.defineFlow(
                 },
 
               targetProductGtin:
+                itemData.targetProductGtin ||
                 requestData.target
                   ?.targetProductGtin ||
-                itemData.targetProductGtin ||
                 null,
 
               productGtins:
-                requestData.productGtins ||
                 itemData.productGtins ||
+                requestData.productGtins ||
                 [],
 
               storeId:
-                requestData.storeId ||
                 itemData.storeId ||
+                requestData.storeId ||
                 null,
 
               storeName:
-                requestData.storeName ||
                 itemData.storeName ||
+                requestData.storeName ||
                 null,
 
               location:
-                requestData.location ||
                 itemData.location ||
+                requestData.location ||
                 null,
 
               shopperObjective:

@@ -11,9 +11,9 @@ import { z } from 'genkit';
  * - Target and Product Context are deliberately separate concepts.
  *
  * TARGET
+ *   department
  *   category
  *   subCategory
- *   productType
  *   brand
  *   specific product
  *   GTIN
@@ -31,9 +31,19 @@ export const QrActivationTargetSchema = z.object({
   /**
    * Retailer-defined promotion/decision hierarchy.
    * Not every level is mandatory.
+   *
+   * Hierarchy: department -> category -> subCategory -> brand -> GTIN
    */
+  department: z.string().optional(),
   category: z.string().optional(),
   subCategory: z.string().optional(),
+
+  /**
+   * @deprecated No longer part of the retailer-facing hierarchy.
+   * Retained only so existing qrcodes documents and legacy fallback
+   * code (process-bulk-qr-queue.ts) don't break. Do not expose this
+   * in any new UI.
+   */
   productType: z.string().optional(),
 
   /**
@@ -83,7 +93,7 @@ export const QrOptionsSchema = z.object({
 
   scanDestination: z.enum(['url', 'ai']).default('ai'),
   landingPageUrl: z.string().url().optional().or(z.literal('')),
-  
+
   /**
    * Metadata flag to identify activations created via the bulk generator.
    */
@@ -189,10 +199,10 @@ export const SubmitBulkQrRequestInputSchema = z.object({
     .describe('Legacy friendly product name for compatibility.'),
 });
 
-export type SubmitBulkQrRequestInput = z.infer<
+export type SubmitBulkQrRequestInput = z.infer
   typeof SubmitBulkQrRequestInputSchema
 >;
 
-export type QrActivationTarget = z.infer<
+export type QrActivationTarget = z.infer
   typeof QrActivationTargetSchema
 >;

@@ -107,6 +107,30 @@ service cloud.firestore {
         );
     }
 
+    match /campaigns/{campaignId} {
+      allow read: if isPlatformOperator()
+        || isSameRetailer(resource.data.retailerId);
+
+      allow create: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(request.resource.data.retailerId)
+        );
+
+      allow update: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(resource.data.retailerId)
+          && request.resource.data.retailerId == resource.data.retailerId
+        );
+
+      allow delete: if isPlatformOperator()
+        || (
+          hasPermission("manageOrganization")
+          && isSameRetailer(resource.data.retailerId)
+        );
+    }
+    
     match /bulkQrRequests/{requestId} {
       allow read: if isPlatformOperator()
         || (

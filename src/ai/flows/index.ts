@@ -1,6 +1,6 @@
 'use server';
 
-// This file exports all the Genkit flows for easy access from the client.
+// Reverted index with simpler naming
 import { analyzeBehavioralInsights, type AnalyzeBehavioralInsightsInput, type AnalyzeBehavioralInsightsOutput } from './analyze-behavioral-insights';
 import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
 import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
@@ -12,13 +12,8 @@ import { generateCampaignAI, type GenerateCampaignAIInput, type GenerateCampaign
 import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
 import { generateZipForRequest, type GenerateZipForRequestInput, type GenerateZipForRequestOutput } from './generate-zip-for-request';
 import { getQrTemplates } from './get-qr-templates';
-import { type Display } from './get-displays';
-import { type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
-import { type GetQrTemplatesInput, type QrTemplate } from '@/lib/schemas/qr-templates';
 import { getScanEvents } from './get-scan-events';
-import { type GetScanEventsInput, type GetScanEventsOutput } from '@/lib/schemas/scan-events';
 import { getScanInteraction } from './get-scan-interaction';
-import { type GetScanInteractionInput, type GetScanInteractionOutput } from '@/lib/schemas/scan-interaction';
 import { importExternalQrCodes, type ImportExternalQrCodesInput, type ImportExternalQrCodesOutput } from './import-external-qr-codes';
 import { listCampaigns, type ListCampaignsOutput } from './list-campaigns';
 import { logABTestConversion, type LogABTestConversionInput } from './log-ab-test-conversion';
@@ -28,14 +23,12 @@ import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutp
 import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDisplayCommandOutput } from './remote-display-command';
 import { saveQrCampaignDraft, type SaveQrCampaignDraftOutput } from './save-qr-campaign-draft';
 import { saveQrTemplate } from './save-qr-template';
-import { type SaveQrTemplateInput, type SaveQrTemplateOutput } from '@/lib/schemas/qr-templates';
 import { saveRetailerApiKey, type SaveRetailerApiKeyInput, type SaveRetailerApiKeyOutput } from './save-retailer-api-key';
 import { getScanAnalytics, type ScanAnalyticsInput, type ScanAnalyticsOutput } from './scan-analytics';
 import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledProductSyncOutput } from './scheduled-product-sync';
 import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from './sync-products';
 import { aggregateIntelligence } from './aggregate-intelligence';
 import { attributeTransactions } from './attribute-transactions';
-import { type AttributionReport, type AttributionRecord } from '@/lib/schemas/attribution';
 import { getDecisionJourneyIntelligence } from './decision-journey-intelligence';
 import { assignUserClaims } from './assign-user-claims';
 import { resetTestRetailer } from './reset-test-retailer';
@@ -91,8 +84,6 @@ export type {
     GenerateCampaignAIInput, GenerateCampaignAIOutput,
     GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput,
     GenerateZipForRequestInput, GenerateZipForRequestOutput,
-    GetQrTemplatesInput,
-    QrTemplate,
     GetScanEventsInput, GetScanEventsOutput,
     GetScanInteractionInput, GetScanInteractionOutput,
     ImportExternalQrCodesInput, ImportExternalQrCodesOutput,
@@ -103,11 +94,9 @@ export type {
     RegenerateQrCodeInput, RegenerateQrCodeOutput,
     RemoteDisplayCommandInput, RemoteDisplayCommandOutput,
     SaveQrCampaignDraftOutput,
-    SaveQrTemplateInput, SaveQrTemplateOutput,
     SaveRetailerApiKeyInput, SaveRetailerApiKeyOutput,
     ScanAnalyticsInput, ScanAnalyticsOutput,
     ScheduledProductSyncInput, ScheduledProductSyncOutput,
     SyncProductsInput, SyncProductsOutput,
-    AttributionReport, AttributionRecord,
     AuthUser
 };

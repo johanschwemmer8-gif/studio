@@ -223,13 +223,14 @@ export async function verifyAuth(idToken?: string): Promise<AuthResult> {
       };
     } catch (error: any) {
       const message =
-        typeof error?.message === 'string' ? error.message : '';
+        (typeof error?.message === 'string' ? error.message : '').toLowerCase();
 
       const isTransient =
         message.includes('metadata') ||
         message.includes('refresh') ||
         message.includes('500') ||
-        message.includes('UNKNOWN') ||
+        message.includes('unknown') ||
+        message.includes('unexpected response') ||
         error?.code === 'auth/internal-error';
 
       if (isTransient && attempt < maxRetries) {
@@ -247,7 +248,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthResult> {
       console.error(
         '[Auth] Verification Failure:',
         error?.code || 'ERR',
-        message
+        error.message || ''
       );
 
       if (error?.code === 'auth/id-token-expired') {

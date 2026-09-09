@@ -187,7 +187,13 @@ export default function DashboardPage() {
         const data = await analyzeEngagementMetrics({ idToken, retailerId: user.retailerId || 'unknown' });
         setAnalyticsData(data);
     } catch (e: any) {
-        const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('500');
+        const message = e.message?.toLowerCase() || '';
+        const isTransient = 
+          message.includes('unknown') || 
+          message.includes('metadata') || 
+          message.includes('500') ||
+          message.includes('unexpected response');
+
         if (isTransient && retryCount < 3) {
             console.warn(`[Analytics] Sync retry ${retryCount + 1}/3...`);
             setTimeout(() => fetchAnalytics(retryCount + 1), 1500 * (retryCount + 1));
@@ -208,7 +214,13 @@ export default function DashboardPage() {
         const data = await analyzeDecisionIntelligence();
         setIntelligenceData(data);
     } catch (e: any) {
-        const isTransient = e.message.includes('UNKNOWN') || e.message.includes('metadata') || e.message.includes('500');
+        const message = e.message?.toLowerCase() || '';
+        const isTransient = 
+          message.includes('unknown') || 
+          message.includes('metadata') || 
+          message.includes('500') ||
+          message.includes('unexpected response');
+
         if (isTransient && retryCount < 3) {
             console.warn(`[Intelligence] Sync retry ${retryCount + 1}/3...`);
             setTimeout(() => fetchIntelligence(retryCount + 1), 1500 * (retryCount + 1));
@@ -275,7 +287,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
            {isAnalyticsLoading ? (
-               [...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+               [...Array(4)].map((_, i) => <Skeleton className="h-32 rounded-xl" />)
            ) : analyticsError ? (
                <div className="lg:col-span-4">
                   <Alert variant="destructive" className="border-2">

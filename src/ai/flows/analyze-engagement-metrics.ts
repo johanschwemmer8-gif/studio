@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview Infrastructure Engagement Analysis Flow.
- * AUDIT VERSION: 2.1.0 (Server-Side Resilience Hardened)
+ * AUDIT VERSION: 2.1.1 (Server-Side Resilience Hardened)
  */
 
 import { ai } from '@/ai/genkit';
@@ -12,7 +12,7 @@ import { subDays } from 'date-fns';
 
 /**
  * RESILIENCE HELPER: Wraps Firestore read operations in a jittered retry loop.
- * Targets transient Google Cloud Metadata/Auth errors (500, UNKNOWN).
+ * Targets transient Google Cloud Metadata/Auth errors (500, UNKNOWN, unexpected response).
  */
 async function fetchWithRetry(query: any, label: string) {
   const maxRetries = 3;
@@ -20,11 +20,13 @@ async function fetchWithRetry(query: any, label: string) {
     try {
       return await query.get();
     } catch (error: any) {
+      const message = error.message?.toLowerCase() || '';
       const isTransient = 
-        error.message.includes('metadata') || 
-        error.message.includes('refresh') || 
-        error.message.includes('500') ||
-        error.message.includes('UNKNOWN');
+        message.includes('metadata') || 
+        message.includes('refresh') || 
+        message.includes('500') ||
+        message.includes('unknown') ||
+        message.includes('unexpected response');
 
       if (isTransient && attempt < maxRetries) {
         const delay = (500 * Math.pow(2, attempt)) + (Math.random() * 200);

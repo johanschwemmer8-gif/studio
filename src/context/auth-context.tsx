@@ -12,12 +12,22 @@ import {
   Permissions,
 } from '@/lib/auth-types';
 
+/**
+ * Platform operators are a completely separate authorization model from
+ * retailer users (see firestore.rules: isPlatformOperator() is intentionally
+ * independent of the retailer /users/{uid} profile).
+ *
+ * AuthUser.role therefore accepts either a retailer CanonicalRole OR the
+ * literal 'platformOperator' role, and isPlatformOperator flags which case
+ * applies so pages can branch on it if needed.
+ */
 type AuthUser = User & {
   retailerId?: string;
-  role?: CanonicalRole;
+  role?: CanonicalRole | 'platformOperator';
   scope?: AuthorizationScope;
   permissions?: Permissions;
   isActive?: boolean;
+  isPlatformOperator?: boolean;
 };
 
 type AuthContextType = {
@@ -27,6 +37,27 @@ type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * Platform operators are implicitly granted full functional permissions.
+ * They are not tied to a retailer/network scope, so retailer-side
+ * permission checks are not meaningful for them, but we populate a
+ * fully-permissive object so any UI that reads user.permissions.* does
+ * not unexpectedly break for an operator.
+ */
+const PLATFORM_OPERATOR_PERMISSIONS: Permissions = {
+  dashboard: true,
+  roi: true,
+  visualsReporting: true,
+  realTime: true,
+  abTesting: true,
+  systemIntegration: true,
+  retailMediaNetwork: true,
+  manageUsers: true,
+  manageOrganization: true,
+  approve: true,
+  export: true,
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -52,6 +83,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profileSnapshot = await getDoc(profileRef);
 
         if (!profileSnapshot.exists()) {
+          /*
+           * No retailer-side profile. Before treating this as an
+           * unauthenticated identity, check whether this is a platform
+           * operator instead — a separate, independent authorization
+           * model (see firestore.rules: isPlatformOperator()).
+           */
+          const operatorRef = doc(db, 'platformOperators', firebaseUser.uid);
+          const operatorSnapshot = await getDoc(operatorRef);
+
+          if (operatorSnapshot.exists()) {
+            const operatorProfile = operatorSnapshot.data();
+
+            if (
+              operatorProfile.uid === firebaseUser.uid &&
+              operatorProfile.role === 'platformOperator' &&
+              operatorProfile.isActive === true
+            ) {
+              const operatorUser: AuthUser = Object.assign(firebaseUser, {
+                role: 'platformOperator' as const,
+                isActive: true,
+                isPlatformOperator: true,
+                permissions: PLATFORM_OPERATOR_PERMISSIONS,
+              });
+
+              setUser(operatorUser);
+              setLoading(false);
+              return;
+            }
+
+            console.error('[Auth] Invalid or inactive platform operator profile.');
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
           console.error('[Auth] Authoritative user profile not found.');
           setUser(null);
           setLoading(false);
@@ -80,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           scope: profile.scope as AuthorizationScope,
           permissions: profile.permissions as Permissions,
           isActive: profile.isActive as boolean,
+          isPlatformOperator: false,
         });
 
         setUser(authUser);

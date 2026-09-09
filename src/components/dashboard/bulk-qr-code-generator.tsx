@@ -88,6 +88,7 @@ const formSchema = z.object({
   assistantGoal: z.string().optional(),
   scanDestination: z.enum(['ai', 'url']).default('ai'),
   landingPageUrl: z.string().optional().or(z.literal('')),
+  idempotencyKey: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -126,7 +127,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [batch, setBatch] = useState<FormValues[]>([]);
+  const [batch, setBatch] = useState<(FormValues & { tempId: string })[]>([]);
   const [isAddingToBatch, setIsAddingToBatch] = useState(true);
   const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
   const [batchResults, setBatchResults] = useState<{ id: string; status: string; error?: string }[]>([]);
@@ -136,7 +137,6 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
   const [products, setProducts] = useState<RetailerProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // --- Campaign picker state ---
   const [campaigns, setCampaigns] = useState<RetailerCampaign[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
   const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
@@ -165,13 +165,13 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
       assistantGoal: '',
       scanDestination: 'ai',
       landingPageUrl: '',
+      idempotencyKey: '',
     },
   });
 
   const watched = form.watch();
   const selectedTargetGtin = watched.targetProductGtin;
   const selectedContextGtins = watched.productGtins;
-  const selectedCategory = watched.category;
 
   useEffect(() => {
     const retailerId = user?.retailerId;
@@ -221,7 +221,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
       }
     }
     fetchCampaigns();
-  }, [user?.retailerId]);
+  }, [user?.retailerId, user]);
 
   const handleCreateCampaign = async () => {
     if (!newCampaignName.trim()) {
@@ -238,10 +238,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
     setIsCreatingCampaign(true);
     try {
       const idToken = await user?.getIdToken();
-      if (!idToken) {
-        toast({ title: 'Authentication required', variant: 'destructive' });
-        return;
-      }
+      if (!idToken) throw new Error("Auth required");
 
       const result = await createCampaign({
         idToken,
@@ -262,9 +259,9 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
       form.setValue('campaignId', result.campaignId, { shouldDirty: true, shouldValidate: true });
       setShowNewCampaignForm(false);
       setNewCampaignName('');
-      toast({ title: 'Campaign Created', description: `"${created.campaignName}" is ready to use.` });
+      toast({ title: 'Campaign Created', description: `"${created.campaignName}" is ready.` });
     } catch (err: any) {
-      toast({ title: 'Campaign Creation Failed', description: err.message, variant: 'destructive' });
+      toast({ title: 'Campaign Failed', description: err.message, variant: 'destructive' });
     } finally {
       setIsCreatingCampaign(false);
     }
@@ -290,7 +287,13 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
   };
 
   const onAddToBatch = (data: FormValues) => {
-    setBatch(prev => [...prev, data]);
+    // Generate idempotency key at the definition stage
+    const activationWithKey = { 
+      ...data, 
+      tempId: Math.random().toString(36).substring(7),
+      idempotencyKey: crypto.randomUUID() 
+    };
+    setBatch(prev => [...prev, activationWithKey]);
     setIsAddingToBatch(false);
     setStep(1);
     form.reset({
@@ -298,9 +301,9 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
       targetProductGtin: '',
       productGtins: [],
       location: '',
-      campaignId: data.campaignId, // Preserve campaign for convenience
+      idempotencyKey: '',
     });
-    toast({ title: "Activation Added", description: "Intent captured in batch builder." });
+    toast({ title: "Activation Defined", description: "Added to current batch." });
   };
 
   const onRemoveFromBatch = (index: number) => {
@@ -335,6 +338,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
         location: data.location,
         shopperObjective: data.shopperObjective,
         count: 1,
+        idempotencyKey: data.idempotencyKey || crypto.randomUUID(),
         options: {
           isGs1DigitalLink: true,
           isBulk: isBulkMode,
@@ -344,7 +348,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
 
       setBatchResults([{ id: result.requestId, status: 'QUEUED' }]);
       setIsSuccess(true);
-      toast({ title: "Shelf Activated", description: "Point-of-Decision identity established." });
+      toast({ title: "Shelf Activated", description: "Identity sealed in queue." });
     } catch (err: any) {
       toast({ title: "Activation Failed", description: err.message, variant: "destructive" });
     } finally {
@@ -357,7 +361,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
     setBatchResults([]);
     const idToken = await user?.getIdToken();
     if (!idToken) {
-      toast({ title: "Authentication required", variant: "destructive" });
+      toast({ title: "Auth required", variant: "destructive" });
       setIsSubmittingBatch(false);
       return;
     }
@@ -365,8 +369,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
     const results = [];
     let successCount = 0;
 
-    for (let i = 0; i < batch.length; i++) {
-      const data = batch[i];
+    for (const data of batch) {
       try {
         const result = await submitBulkQrRequest({
           idToken,
@@ -386,9 +389,10 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
           location: data.location,
           shopperObjective: data.shopperObjective,
           count: 1,
+          idempotencyKey: data.idempotencyKey,
           options: {
             isGs1DigitalLink: true,
-            isBulk: isBulkMode,
+            isBulk: true,
           },
           productName: products.find(p => p.gtin === data.targetProductGtin)?.name,
         });
@@ -396,7 +400,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
         results.push({ id: result.requestId, status: 'QUEUED' });
         successCount++;
       } catch (err: any) {
-        results.push({ id: `Error ${i+1}`, status: 'ERROR', error: err.message });
+        results.push({ id: `Error`, status: 'ERROR', error: err.message });
       }
       setBatchResults([...results]);
     }
@@ -404,9 +408,9 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
     setIsSubmittingBatch(false);
     if (successCount === batch.length) {
       setIsSuccess(true);
-      toast({ title: "Batch Activated", description: `Authoritative identities created for ${successCount} Points of Decision.` });
+      toast({ title: "Batch Processed", description: `${successCount} activations sealed.` });
     } else {
-      toast({ title: "Batch Partial Success", description: `${successCount} activations created. Some errors detected.`, variant: "destructive" });
+      toast({ title: "Partial Success", variant: "destructive" });
     }
   };
 
@@ -436,10 +440,10 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
         <CardContent className="px-10">
           <div className="mx-auto max-w-xl space-y-4 mb-8">
             <div className="rounded-xl border border-green-200 bg-white/70 p-4">
-              <p className="text-[10px] font-black uppercase text-green-700/60 mb-2">Activation Pipeline Status</p>
+              <p className="text-[10px] font-black uppercase text-green-700/60 mb-2">Gate 2 Audit Status</p>
               <div className="space-y-2">
-                {batchResults.map(res => (
-                   <div key={res.id} className="flex justify-between items-center text-xs font-mono">
+                {batchResults.map((res, i) => (
+                   <div key={i} className="flex justify-between items-center text-xs font-mono">
                       <span className="truncate max-w-[200px]">{res.id}</span>
                       <Badge className="bg-green-500 text-white text-[8px] px-1.5">{res.status}</Badge>
                    </div>
@@ -477,14 +481,14 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                 <TableHeader className="bg-muted/50">
                   <TableRow className="text-[10px] font-black uppercase">
                     <TableHead className="px-6">Point of Decision</TableHead>
-                    <TableHead>Target</TableHead>
+                    <TableHead>Target Intent</TableHead>
                     <TableHead>Shopper Objective</TableHead>
                     <TableHead className="text-right px-6">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {batch.map((item, idx) => (
-                    <TableRow key={idx}>
+                    <TableRow key={item.tempId}>
                       <TableCell className="px-6">
                         <div className="flex flex-col">
                            <span className="font-bold text-sm">{item.location}</span>
@@ -509,8 +513,8 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
           </CardContent>
           <CardFooter className="bg-muted/10 p-6 flex flex-col gap-4">
              <div className="w-full rounded-lg bg-primary/5 p-4 border border-primary/10 flex items-center gap-4">
-                <Sparkles className="h-6 w-6 text-accent" />
-                <p className="text-sm font-bold leading-tight">Review Batch: Each entry above results in exactly ONE unique digital identity record.</p>
+                <ShieldCheck className="h-6 w-6 text-green-500" />
+                <p className="text-sm font-bold leading-tight">Controlled Atomic Submission: Each entry results in exactly ONE digital identity record with full audit traceability.</p>
              </div>
              <Button 
                 onClick={handleFinalSubmit} 
@@ -535,12 +539,12 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                 {step}
               </div>
               <CardTitle className="text-lg">
-                {isBulkMode ? `Activation #${batch.length + 1} Definition` : 'Activation Definition'}
+                {isBulkMode ? `Activation #${batch.length + 1} Intent` : 'Define Activation Intent'}
               </CardTitle>
            </div>
            {isBulkMode && batch.length > 0 && (
               <Button variant="ghost" size="sm" onClick={() => setIsAddingToBatch(false)} className="text-[10px] font-bold uppercase">
-                <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Back to Batch
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" /> View Batch
               </Button>
            )}
         </CardHeader>
@@ -550,18 +554,17 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Retailer Store</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Store Name</Label>
                       <Input {...form.register('storeName')} placeholder="e.g. Sandton City" className="h-11" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Shelf / Point of Decision Location</Label>
-                      <Input {...form.register('location')} placeholder="e.g. Wine Aisle 4 - End Cap" className="h-11" />
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Physical Location (POD)</Label>
+                      <Input {...form.register('location')} placeholder="e.g. Aisle 4, Shelf 2" className="h-11" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Campaign</Label>
-
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Campaign Association</Label>
                     {!showNewCampaignForm ? (
                       <div className="flex gap-2">
                         <Controller
@@ -578,61 +581,24 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                                 {campaigns.map((c) => (
                                   <SelectItem key={c.campaignId} value={c.campaignId}>
                                     {c.campaignName}
-                                    <span className="ml-1.5 text-[10px] uppercase opacity-50">
-                                      ({c.campaignType})
-                                    </span>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           )}
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-11 shrink-0"
-                          onClick={() => setShowNewCampaignForm(true)}
-                        >
+                        <Button type="button" variant="outline" className="h-11 shrink-0" onClick={() => setShowNewCampaignForm(true)}>
                           <PlusCircle className="h-4 w-4 mr-2" /> New
                         </Button>
                       </div>
                     ) : (
                       <div className="space-y-3 rounded-xl border p-4 bg-muted/20">
-                        <Input
-                          value={newCampaignName}
-                          onChange={(e) => setNewCampaignName(e.target.value)}
-                          placeholder="Campaign name, e.g. Festive Wine Promotion 2026"
-                          className="h-11"
-                        />
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <Select
-                            value={newCampaignType}
-                            onValueChange={(v) => setNewCampaignType(v as 'promotion' | 'engagement')}
-                          >
-                            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="promotion">Marketing / Promotion</SelectItem>
-                              <SelectItem value="engagement">Engagement</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            value={newCampaignMode}
-                            onValueChange={(v) => setNewCampaignMode(v as 'single-target' | 'collection')}
-                          >
-                            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="single-target">Single Target (one product/brand)</SelectItem>
-                              <SelectItem value="collection">Collection (many products/categories)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <Input value={newCampaignName} onChange={(e) => setNewCampaignName(e.target.value)} placeholder="New Campaign Name" className="h-11" />
                         <div className="flex justify-end gap-2">
-                          <Button type="button" variant="ghost" onClick={() => setShowNewCampaignForm(false)}>
-                            Cancel
-                          </Button>
+                          <Button type="button" variant="ghost" onClick={() => setShowNewCampaignForm(false)}>Cancel</Button>
                           <Button type="button" onClick={handleCreateCampaign} disabled={isCreatingCampaign}>
                             {isCreatingCampaign ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                            Create Campaign
+                            Create
                           </Button>
                         </div>
                       </div>
@@ -640,7 +606,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                   </div>
 
                   <div className="flex justify-end pt-4">
-                    <Button type="button" onClick={() => setStep(2)} className="h-11 font-black text-[10px] uppercase tracking-widest px-8">Next Step <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    <Button type="button" onClick={() => setStep(2)} className="h-11 font-black text-[10px] uppercase tracking-widest px-8">Continue <ChevronRight className="ml-2 h-4 w-4" /></Button>
                   </div>
                </div>
              )}
@@ -649,7 +615,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                <div className="space-y-6 animate-in fade-in duration-300">
                  <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Category Target</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Category</Label>
                       {categories.length > 0 ? (
                         <Controller control={form.control} name="category" render={({ field }) => (
                           <Select value={field.value} onValueChange={field.onChange}>
@@ -657,18 +623,18 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                             <SelectContent>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                           </Select>
                         )} />
-                      ) : <Input {...form.register('category')} placeholder="e.g. Wine" className="h-11" />}
+                      ) : <Input {...form.register('category')} placeholder="e.g. Red Wine" className="h-11" />}
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Brand (Optional)</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Brand</Label>
                       <Input {...form.register('brandName')} placeholder="e.g. Heritage Vineyards" className="h-11" />
                     </div>
                  </div>
                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Promoted Product (Optional)</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Specific Product (Optional)</Label>
                     <Controller control={form.control} name="targetProductGtin" render={({ field }) => (
                       <Select value={field.value || ''} onValueChange={field.onChange}>
-                        <SelectTrigger className="h-11"><SelectValue placeholder="Select specific product from catalogue..." /></SelectTrigger>
+                        <SelectTrigger className="h-11"><SelectValue placeholder="Select target product..." /></SelectTrigger>
                         <SelectContent>
                           {products.filter(p => p.gtin && (!watched.category || p.category === watched.category)).map(p => (
                             <SelectItem key={p.gtin} value={p.gtin as string}>{p.name}</SelectItem>
@@ -686,7 +652,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
 
              {step === 3 && (
                <div className="space-y-6 animate-in fade-in duration-300">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4 block">Product Decision Context (Contextual GTINs)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4 block">Product Context (Environmental GTINs)</Label>
                   <div className="grid gap-3 md:grid-cols-2">
                     {products.filter(p => p.gtin && (!watched.category || p.category === watched.category)).map(product => {
                       const gtin = product.gtin as string;
@@ -711,7 +677,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
 
              {step === 4 && (
                 <div className="space-y-6 animate-in fade-in duration-300">
-                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4 block">Shopper Objective at Point of Decision</Label>
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4 block">Shopper Objective</Label>
                    <Controller control={form.control} name="shopperObjective" render={({ field }) => (
                       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                         {OBJECTIVES.map(obj => (
@@ -727,7 +693,7 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                    )} />
                    <div className="flex justify-between pt-4">
                     <Button type="button" variant="ghost" onClick={() => setStep(3)}>Back</Button>
-                    <Button type="button" onClick={() => setStep(5)} className="h-11 font-black text-[10px] uppercase tracking-widest px-8">Review Intent <ChevronRight className="ml-2 h-4 w-4" /></Button>
+                    <Button type="button" onClick={() => setStep(5)} className="h-11 font-black text-[10px] uppercase tracking-widest px-8">Review <ChevronRight className="ml-2 h-4 w-4" /></Button>
                   </div>
                 </div>
              )}
@@ -737,25 +703,25 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                   <div className="grid md:grid-cols-2 gap-8">
                      <div className="space-y-4">
                         <div className="rounded-xl border p-4 bg-muted/20">
-                          <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1">Physical Context</p>
+                          <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1">POD Location</p>
                           <p className="font-bold text-sm">{watched.storeName} — {watched.location}</p>
                         </div>
                         <div className="rounded-xl border p-4 bg-muted/20">
-                          <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1">Retailer Target</p>
+                          <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1">Target Intent</p>
                           <p className="font-bold text-sm">{watched.category} {watched.brandName ? `— ${watched.brandName}` : ''}</p>
                           {targetProduct && <p className="text-xs text-primary mt-1">Promoting: {targetProduct.name}</p>}
                         </div>
                      </div>
                      <div className="space-y-4">
                         <div className="rounded-xl border p-4 bg-muted/20">
-                           <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1">Contextual Products</p>
-                           <p className="font-bold text-sm">{selectedContextGtins.length} identifiers assigned</p>
+                           <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1">Supporting Context</p>
+                           <p className="font-bold text-sm">{selectedContextGtins.length} Contextual GTINs</p>
                         </div>
                         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                           <p className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Expected Identity Result</p>
+                           <p className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Final Result</p>
                            <div className="flex items-center gap-2">
                              <QrCode className="h-5 w-5 text-primary" />
-                             <span className="font-black text-lg">1 UNIQUE QR IDENTITY</span>
+                             <span className="font-black text-lg">1 UNIQUE DIGITAL LINK</span>
                            </div>
                         </div>
                      </div>
@@ -764,8 +730,8 @@ export default function BulkQRCodeGenerator({ isBulkMode = false }: BulkQRCodeGe
                   <div className="flex justify-between items-center">
                     <Button type="button" variant="ghost" onClick={() => setStep(4)}>Back</Button>
                     <Button type="submit" disabled={isSubmittingBatch} className="h-14 font-black uppercase text-xs tracking-widest px-10 shadow-xl">
-                      {isSubmittingBatch ? <Loader2 className="animate-spin mr-2" /> : <Layers className="mr-2" />}
-                      {isBulkMode ? 'Add to Batch' : 'Establish Digital Link'}
+                      {isSubmittingBatch ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2" />}
+                      {isBulkMode ? 'Add to Batch' : 'Commit Activation'}
                     </Button>
                   </div>
                </div>

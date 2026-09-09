@@ -1,7 +1,7 @@
 import { z } from 'genkit';
 
 /**
- * @fileOverview iNteract AOE — QR Activation Data Contract (Gate 0 Locked)
+ * @fileOverview iNteract AOE — QR Activation Data Contract (Gate 2 Hardened)
  * 
  * CORE ARCHITECTURAL SPINE:
  * Campaign → Activation → QR Identity → Shopper Experience
@@ -9,7 +9,7 @@ import { z } from 'genkit';
  * INVARIANTS:
  * 1. ONE ACTIVATION = ONE QR: Every document in bulkQrRequests represents exactly one Point-of-Decision.
  * 2. ACTIVATION-FIRST: The QR is the identity of the Activation, NOT the product.
- * 3. TARGET vs CONTEXT: Target defines the promotional intent. Context (productGtins[]) provides supporting data.
+ * 3. TARGET vs CONTEXT: Target defines the promotional intent. Context provides supporting data.
  * 4. AUTHORITATIVE ID: requestId and qrCodeId are immutable anchors for the shopper journey.
  */
 
@@ -21,37 +21,28 @@ export const QrActivationTargetSchema = z.object({
   department: z.string().optional(),
   category: z.string().optional(),
   subCategory: z.string().optional(),
-
-  /**
-   * @deprecated Retained for legacy pipeline compatibility only.
-   */
   productType: z.string().optional(),
-
-  /**
-   * Authoritative Brand identification.
-   */
   brandId: z.string().optional(),
   brandName: z.string().optional(),
-
-  /**
-   * The specific product being promoted at this Point-of-Decision.
-   * Note: This is an INTENT attribute, not the identity of the QR.
-   */
   targetProductName: z.string().optional(),
   targetProductGtin: z.string().optional(),
 }).describe('The intended promotional objective for this Point-of-Decision.');
+
+export const QRProductContextSchema = z.object({
+  /**
+   * PRODUCT CONTEXT
+   * Authoritative products available in this decision context.
+   * Rule: productGtins[] provides context without multiplying QR identities.
+   */
+  productGtins: z.array(z.string()).default([]),
+}).describe('Contextual product data for the shopper environment.');
 
 export const QrOptionsSchema = z.object({
   colorHex: z.string().optional(),
   bgColorHex: z.string().optional(),
   logoPath: z.string().url().optional(),
   errorCorrection: z.enum(['L', 'M', 'Q', 'H']).default('M'),
-
-  /**
-   * @deprecated Use target.targetProductGtin.
-   */
-  gtin: z.string().length(14, 'GTIN must be 14 digits.').optional(),
-
+  
   batchNumber: z.string().optional(),
   serialNumber: z.string().optional(),
   isGs1DigitalLink: z.boolean().default(true),
@@ -83,12 +74,10 @@ export const SubmitBulkQrRequestInputSchema = z.object({
   /**
    * RETAILER INTENT (TARGET)
    */
-  target: QrActivationTargetSchema.optional(),
+  target: QrActivationTargetSchema,
 
   /**
    * PRODUCT CONTEXT
-   * Authoritative products available in this decision context.
-   * Rule: productGtins[] provides context without multiplying QR identities.
    */
   productGtins: z.array(z.string()).default([]),
 
@@ -96,14 +85,13 @@ export const SubmitBulkQrRequestInputSchema = z.object({
    * PHYSICAL POINT-OF-DECISION (POD)
    */
   storeId: z.string().optional(),
-  storeName: z.string().optional(),
-  location: z.string().optional().describe('Generic POD location (e.g., Aisle 4, Shelf 2).'),
+  storeName: z.string().min(1, 'Store name is required for activation.'),
+  location: z.string().min(1, 'Physical location is required for activation.'),
 
   shopperObjective: z.string().optional(),
 
   /**
    * CARDINALITY ENFORCEMENT: 1 Activation = 1 QR.
-   * This value is technically constrained to 1 in the logic layer.
    */
   count: z.number().int().min(1).max(1).default(1),
 

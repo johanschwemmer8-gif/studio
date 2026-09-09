@@ -1,14 +1,14 @@
 'use server';
 
 /**
- * @fileOverview Authoritative QR Identity Generation Pipeline.
+ * @fileOverview Authoritative QR Identity Generation Pipeline (Gate 2 Hardened)
  * 
- * SYSTEM GATE: Gate 0 Architectural Invariants.
+ * SYSTEM GATE: Gate 2 Architectural Invariants.
  * 
  * ARCHITECTURE CONTRACT:
  * 1. ONE ACTIVATION = ONE QR: This processor creates exactly one master qrcodes record per request item.
  * 2. PRIMARY OBJECT: The qrcodes record is the digital twin of the Point-of-Decision Activation.
- * 3. IDENTIFIER INTEGRITY: Prices and dynamic facts are NOT encoded in the QR. Only the tracking URL is encoded.
+ * 3. IDENTITY INTEGRITY: Copies POD and Target context from the parent activation.
  * 4. TRACEABILITY: Master records retain a direct link (requestId) back to the operational intent.
  */
 
@@ -88,7 +88,6 @@ const processBulkQrQueueFlow = ai.defineFlow(
   async () => {
     const db = admin.firestore();
     let itemsProcessedCount = 0;
-    let itemsRetriedCount = 0;
     let processedRequestId: string | undefined;
 
     const requestsRef = db.collection('bulkQrRequests');
@@ -139,11 +138,12 @@ const processBulkQrQueueFlow = ai.defineFlow(
                 requestId: lockedRequestDoc.id,
                 qrCodeId: itemData.qrCodeId,
 
-                // Primary promotional intent
+                // Primary promotional intent (Target)
                 target: requestData.target || null,
                 targetProductGtin: itemData.targetProductGtin || requestData.target?.targetProductGtin || null,
 
-                // Decision context (GTIN array, NOT a multiplier)
+                // Decision context (Separated Context)
+                productContext: requestData.productContext || { productGtins: requestData.productGtins || [] },
                 productGtins: itemData.productGtins || requestData.productGtins || [],
 
                 // Physical Point-of-Decision (POD)
@@ -163,6 +163,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
                 options: requestData.options || {},
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                dataStatus: 'VERIFIED'
               },
               { merge: true }
             );
@@ -188,7 +189,7 @@ const processBulkQrQueueFlow = ai.defineFlow(
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
         }
-        console.error(`[Architecture Guard] Processing FAILED for ${processedRequestId}:`, message);
+        console.error(`[Gate 2 Engine] Processing FAILED for ${processedRequestId}:`, message);
       }
     }
 

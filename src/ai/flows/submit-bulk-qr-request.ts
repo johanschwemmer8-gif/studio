@@ -1,19 +1,19 @@
 'use server';
 
 /**
- * @fileOverview Authoritative QR Activation Submission Flow.
+ * @fileOverview Authoritative QR Activation Engine (Gate 2 Hardened)
  * 
- * SYSTEM GATE: Gate 0 Architectural Invariants.
+ * SYSTEM GATE: Gate 2 Architectural Invariants & Server Actions.
  * 
- * 1. ENFORCED CARDINALITY: Removes loops. 1 Request = 1 QR.
- * 2. IDEMPOTENCY: Implements checks to prevent duplicate production records.
- * 3. IDENTITY BOUNDARY: Ensures Activation IDs are distinct from Product IDs.
- * 4. CONTEXT SEPARATION: Preserves productGtins[] as metadata, not generation triggers.
+ * 1. ENFORCED CARDINALITY: 1 Request = 1 QR Identity.
+ * 2. TRANSACTIONAL INTEGRITY: Creation is an atomic operation.
+ * 3. IDEMPOTENCY: Implements checks to prevent duplicate production records.
+ * 4. GOVERNANCE: Restricts creation to authorized management roles.
  */
 
 import { ai } from '@/ai/genkit';
-import { db } from '@/lib/firebase-admin';
-import { getAuthorizedRetailerId } from '@/lib/auth-server';
+import { db, admin } from '@/lib/firebase-admin';
+import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
 import {
   SubmitBulkQrRequestInputSchema,
   type SubmitBulkQrRequestInput,
@@ -41,8 +41,16 @@ const submitBulkQrRequestFlow = ai.defineFlow(
   },
   async (data) => {
     // -------------------------------------------------------------------------
-    // 1. AUTHORISATION GATE
+    // 1. AUTHORIZATION & GOVERNANCE GATE
     // -------------------------------------------------------------------------
+    const auth = await verifyAuth(data.idToken);
+    if ('error' in auth) throw new Error(auth.error);
+
+    // Strictly prohibit store-level users from creating commercial activations
+    if (auth.role === 'storeUser' || auth.role === 'analyst') {
+      throw new Error("ACCESS_DENIED: Your role is not authorized to create commercial activations.");
+    }
+
     const authorizedRetailerId = await getAuthorizedRetailerId(
       data.idToken,
       data.retailerId
@@ -55,7 +63,6 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     // -------------------------------------------------------------------------
     // 2. IDEMPOTENCY CHECK
     // -------------------------------------------------------------------------
-    // Rigorous check to prevent duplicate production records from network retries.
     if (data.idempotencyKey) {
       const existing = await db.collection('bulkQrRequests')
         .where('retailerId', '==', authorizedRetailerId)
@@ -64,7 +71,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
         .get();
 
       if (!existing.empty) {
-        console.log(`[Architecture Guard] Duplicate activation blocked for key: ${data.idempotencyKey}`);
+        console.log(`[Gate 2] Duplicate activation blocked: ${data.idempotencyKey}`);
         return {
           success: true,
           requestId: existing.docs[0].id,
@@ -74,133 +81,108 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     }
 
     // -------------------------------------------------------------------------
-    // 3. TARGET VALIDATION
+    // 3. TARGET & POD VALIDATION
     // -------------------------------------------------------------------------
     const target = data.target;
-    if (!target) {
-      throw new Error('Architectural violation: Activation target is required.');
-    }
-
     const hasTargetValue = Boolean(
       target.category?.trim() ||
-        target.subCategory?.trim() ||
-        target.productType?.trim() ||
-        target.brandId?.trim() ||
-        target.brandName?.trim() ||
-        target.targetProductName?.trim() ||
-        target.targetProductGtin?.trim()
+      target.subCategory?.trim() ||
+      target.brandName?.trim() ||
+      target.targetProductGtin?.trim()
     );
 
     if (!hasTargetValue) {
-      throw new Error('Activation target cannot be empty.');
+      throw new Error('Gate 2 Violation: Activation target (Retailer Intent) cannot be empty.');
+    }
+
+    if (!data.storeName?.trim() || !data.location?.trim()) {
+      throw new Error('Gate 2 Violation: Physical Point-of-Decision (Store and Location) is required.');
     }
 
     // -------------------------------------------------------------------------
-    // 4. CREATE AUTHORITATIVE ACTIVATION (1:1 CARDINALITY)
+    // 4. ATOMIC CREATION (1:1 CARDINALITY)
     // -------------------------------------------------------------------------
     const requestRef = db.collection('bulkQrRequests').doc();
-    const now = new Date();
+    const batch = db.batch();
+    const now = admin.firestore.Timestamp.now();
 
-    const targetProductGtin =
-      target.targetProductGtin?.trim() ||
-      data.options?.gtin?.trim() ||
-      undefined;
+    const targetProductGtin = target.targetProductGtin?.trim() || undefined;
 
-    try {
-      await requestRef.set({
-        retailerId: authorizedRetailerId,
-        brandId: data.brandId,
-        campaignId: data.campaignId,
-        idempotencyKey: data.idempotencyKey || null,
+    // A. Authoritative Activation Record
+    batch.set(requestRef, {
+      retailerId: authorizedRetailerId,
+      brandId: data.brandId,
+      campaignId: data.campaignId,
+      idempotencyKey: data.idempotencyKey || null,
 
-        // Activation Target (Operational Intent)
-        target: {
-          category: target.category || null,
-          subCategory: target.subCategory || null,
-          productType: target.productType || null,
-          brandId: target.brandId || null,
-          brandName: target.brandName || null,
-          targetProductName: target.targetProductName || null,
-          targetProductGtin: targetProductGtin || null,
-        },
-
-        // Product Context (Supporting Data - Array field, NOT a multiplier)
-        productGtins: data.productGtins || [],
-
-        // Physical Point-of-Decision (POD)
-        storeId: data.storeId || null,
-        storeName: data.storeName || null,
-        location: data.location || null,
-
-        shopperObjective: data.shopperObjective || null,
-
-        productName:
-          data.productName ||
-          target.targetProductName ||
-          'Unnamed Activation',
-
-        options: data.options || {},
-
-        // ONE ACTIVATION = ONE QR
-        totalRequested: 1,
-        itemsDone: 0,
-        status: 'QUEUED',
-
-        isGs1Compliant: true,
-        dataStatus: 'VERIFIED',
-
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      // -----------------------------------------------------------------------
-      // 5. STUB DIGITAL IDENTITY
-      // -----------------------------------------------------------------------
-      const batch = db.batch();
-      const itemsCollection = requestRef.collection('items');
-      const itemRef = itemsCollection.doc();
-      const qrCodeId = itemRef.id;
-
-      // The QR Identity is anchored to the Activation.
-      const trackingUrl = `https://interactaoe.co.za/resolve/${qrCodeId}`;
-
-      batch.set(itemRef, {
-        qrCodeId,
-        requestId: requestRef.id,
-        retailerId: authorizedRetailerId,
-        campaignId: data.campaignId,
-
-        storeId: data.storeId || null,
-        storeName: data.storeName || null,
-        location: data.location || null,
-
+      // Retailer Intent
+      target: {
+        category: target.category || null,
+        subCategory: target.subCategory || null,
+        productType: target.productType || null,
+        brandId: target.brandId || null,
+        brandName: target.brandName || null,
+        targetProductName: target.targetProductName || null,
         targetProductGtin: targetProductGtin || null,
+      },
+
+      // Product Context (Separated from Target)
+      productContext: {
         productGtins: data.productGtins || [],
+      },
+      productGtins: data.productGtins || [], // Legacy compatibility
 
-        trackingUrl,
-        finalRedirectUrl:
-          data.options?.landingPageUrl ||
-          (targetProductGtin ? `/p/${targetProductGtin}` : ''),
+      // Physical Point-of-Decision (POD)
+      storeId: data.storeId || null,
+      storeName: data.storeName,
+      location: data.location,
 
-        status: 'PENDING',
-        retryCount: 0,
+      shopperObjective: data.shopperObjective || null,
+      productName: data.productName || target.targetProductName || 'Unnamed Activation',
 
-        createdAt: now,
-        updatedAt: now,
-      });
+      options: data.options || {},
+      totalRequested: 1,
+      itemsDone: 0,
+      status: 'QUEUED',
 
-      await batch.commit();
+      isGs1Compliant: true,
+      dataStatus: 'VERIFIED',
 
-      console.log(`[Architecture Guard] Activation Identity established: ${qrCodeId} (Request: ${requestRef.id})`);
+      createdAt: now,
+      updatedAt: now,
+      createdBy: auth.uid,
+    });
 
-      return {
-        success: true,
-        requestId: requestRef.id,
-      };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown persistence error';
-      console.error(`[Architecture Guard] Activation FAILED:`, message);
-      throw new Error('Failed to create authoritative QR activation.');
-    }
+    // B. Digital Identity Stub (linked 1:1)
+    const itemsCollection = requestRef.collection('items');
+    const itemRef = itemsCollection.doc();
+    const qrCodeId = itemRef.id;
+    const trackingUrl = `https://interactaoe.co.za/resolve/${qrCodeId}`;
+
+    batch.set(itemRef, {
+      qrCodeId,
+      requestId: requestRef.id,
+      retailerId: authorizedRetailerId,
+      campaignId: data.campaignId,
+      storeId: data.storeId || null,
+      storeName: data.storeName,
+      location: data.location,
+      targetProductGtin: targetProductGtin || null,
+      productGtins: data.productGtins || [],
+      trackingUrl,
+      finalRedirectUrl: data.options?.landingPageUrl || (targetProductGtin ? `/p/${targetProductGtin}` : ''),
+      status: 'PENDING',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await batch.commit();
+
+    console.log(`[Gate 2] Activation Identity Sealed: ${qrCodeId}`);
+
+    return {
+      success: true,
+      requestId: requestRef.id,
+    };
   }
 );

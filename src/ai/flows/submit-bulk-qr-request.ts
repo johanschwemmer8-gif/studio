@@ -86,8 +86,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     // 2. VALIDATE ACTIVATION TARGET
     // -------------------------------------------------------------------------
     //
-    // The shared schema keeps target optional temporarily because
-    // save-qr-campaign-draft.ts still consumes the shared schema.
+    // The shared schema keeps target optional temporarily during migration.
     //
     // A production activation submitted through this flow must nevertheless
     // contain a meaningful target.

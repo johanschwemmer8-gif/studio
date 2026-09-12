@@ -28,7 +28,14 @@ import { productChat, type ProductChatInput, type ProductChatOutput } from './pr
 import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutput } from './regenerate-qr-code';
 import { registerDisplay } from './register-display';
 import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDisplayCommandOutput } from './remote-display-command';
-import { saveQrCampaignDraft, type SaveQrCampaignDraftOutput } from './save-qr-campaign-draft';
+import { createCampaign, type CreateCampaignOutput } from './create-campaign';
+import { updateCampaign, type UpdateCampaignOutput } from './update-campaign';
+import { archiveCampaign, type ArchiveCampaignOutput } from './archive-campaign';
+import {
+    type CreateCampaignInput,
+    type UpdateCampaignInput,
+    type ArchiveCampaignInput,
+} from '@/lib/schemas/campaign-command';
 import { saveQrTemplate } from './save-qr-template';
 import { type SaveQrTemplateInput, type SaveQrTemplateOutput } from '@/lib/schemas/qr-templates';
 import { saveRetailerApiKey, type SaveRetailerApiKeyInput, type SaveRetailerApiKeyOutput } from './save-retailer-api-key';
@@ -70,7 +77,9 @@ export {
     regenerateQrCode,
     registerDisplay,
     remoteDisplayCommand,
-    saveQrCampaignDraft,
+    createCampaign,
+    updateCampaign,
+    archiveCampaign,
     saveQrTemplate,
     saveRetailerApiKey,
     getScanAnalytics,
@@ -110,7 +119,9 @@ export type {
     ProductChatInput, ProductChatOutput,
     RegenerateQrCodeInput, RegenerateQrCodeOutput,
     RemoteDisplayCommandInput, RemoteDisplayCommandOutput,
-    SaveQrCampaignDraftOutput,
+    CreateCampaignInput, CreateCampaignOutput,
+    UpdateCampaignInput, UpdateCampaignOutput,
+    ArchiveCampaignInput, ArchiveCampaignOutput,
     SaveQrTemplateInput, SaveQrTemplateOutput,
     SaveRetailerApiKeyInput, SaveRetailerApiKeyOutput,
     ScanAnalyticsInput, ScanAnalyticsOutput,

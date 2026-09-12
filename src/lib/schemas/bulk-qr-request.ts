@@ -119,8 +119,7 @@ export const SubmitBulkQrRequestInputSchema = z.object({
   /**
    * NEW ACTIVATION TARGET
    *
-   * This is intentionally optional at the shared-schema level during the
-   * migration because save-qr-campaign-draft.ts currently consumes this schema.
+   * This is intentionally optional at the shared-schema level during migration.
    *
    * submit-bulk-qr-request.ts will enforce that a valid target exists before
    * creating a production activation.

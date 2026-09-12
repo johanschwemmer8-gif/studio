@@ -101,6 +101,11 @@ service cloud.firestore {
 
     // --- PLATFORM GOVERNANCE ---
 
+    match /platformOperators/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isPlatformAdmin());
       allow write: if isPlatformAdmin();

@@ -1,17 +1,50 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { admin } from '@/lib/firebase-admin';
-import { parseGS1 } from '@/lib/gs1-parser';
 import { randomUUID } from 'node:crypto';
+
+import { NextRequest, NextResponse } from 'next/server';
+
+import { admin } from '@/lib/firebase-admin';
+import { resolveProductionQr } from '@/lib/qr-resolution';
+import { ScanEventSchema } from '@/lib/schemas/scan-events';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
+const RESOLUTION_ERROR_CODES = new Set([
+  'QR_NOT_FOUND',
+  'QR_INTEGRITY_ERROR',
+  'UNSUPPORTED_QR_ENVIRONMENT',
+  'QR_RETIRED',
+  'DEPLOYMENT_NOT_FOUND',
+  'DEPLOYMENT_INTEGRITY_ERROR',
+  'DEPLOYMENT_REMOVED',
+  'DEPLOYMENT_UNAVAILABLE',
+  'ACTIVATION_NOT_FOUND',
+  'ACTIVATION_INTEGRITY_ERROR',
+  'ACTIVATION_UNAVAILABLE',
+  'ACTIVATION_NOT_STARTED',
+  'ACTIVATION_ENDED',
+  'CAMPAIGN_NOT_FOUND',
+  'CAMPAIGN_INTEGRITY_ERROR',
+  'CAMPAIGN_ARCHIVED',
+  'CAMPAIGN_NOT_STARTED',
+  'CAMPAIGN_ENDED',
+]);
+
 /**
- * ARCHITECTURAL GATEWAY:
- * This route is the central resolution point for all iNteract Digital Links.
- * It prioritizes registered QR identifiers over stateless GS1 parsing to 
- * support both standard and demonstration/test identifiers.
+ * Canonical production QR resolver.
+ *
+ * Identity path:
+ * Retailer
+ *   -> Campaign
+ *     -> Activation
+ *       -> Deployment
+ *         -> QR
+ *           -> Scan Event
+ *
+ * A QR scan records exposure only. It does NOT automatically create a
+ * Shopper Session. A qualifying downstream interaction establishes the
+ * anonymous Shopper Session separately.
  */
 export async function GET(
   request: NextRequest,
@@ -20,86 +53,65 @@ export async function GET(
   const { id } = await params;
   const db = admin.firestore();
 
-  // Construct safe origin for redirects to avoid internal localhost leaks
-  // Prioritize x-forwarded-host as App Hosting uses an internal 'host' header
-  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || 'localhost';
+  const host =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host') ||
+    'localhost';
+
   const protocol = request.headers.get('x-forwarded-proto') || 'https';
   const origin = `${protocol}://${host}`;
 
-  try {
-    // 1. Resolve Identity from QR Registry First (Handles registered standard and demo IDs)
-    const qrDoc = await db.collection('qrcodes').doc(id).get();
-    
-    let gtin = '';
-    let batchNumber = '';
-    let serialNumber = '';
-    let resolvedRetailerId = 'unknown';
+  const reject = (code: string) =>
+    NextResponse.redirect(new URL(`/error?code=${code}`, origin), 302);
 
-    if (qrDoc.exists) {
-        const qrData = qrDoc.data()!;
-        gtin = qrData.targetProductGtin || qrData.target?.targetProductGtin || qrData.gtin || '';
-        resolvedRetailerId = qrData.retailerId || 'unknown';
-    } else {
-        // 2. Fallback to Stateless Identity Resolution (for direct GS1 strings)
-        const identity = parseGS1(id);
-        if (!identity) {
-            console.error(`[Resolver] Invalid identity format: ${id}`);
-            return NextResponse.redirect(new URL('/error?code=invalid_identity', origin));
-        }
-        gtin = identity.gtin;
-        batchNumber = identity.batchNumber || '';
-        serialNumber = identity.serialNumber || '';
+  try {
+    // 1. Resolve the canonical production QR relationship chain.
+    const { qr, activation } = await resolveProductionQr(id);
+
+    // 2. Record canonical scan event only.
+    //
+    // No Shopper Session is created here.
+    const eventId = `ev_${randomUUID()}`;
+    const now = admin.firestore.Timestamp.now();
+
+    const scanEvent = {
+      eventId,
+      eventType: 'scan' as const,
+
+      retailerId: qr.retailerId,
+      campaignId: qr.campaignId,
+      activationId: qr.activationId,
+      deploymentId: qr.deploymentId,
+      qrCodeId: qr.qrCodeId,
+
+      configurationVersion: activation.configurationVersion,
+      environment: qr.environment,
+
+      timestamp: now,
+
+      userAgent: request.headers.get('user-agent') || '',
+      referrer: request.headers.get('referer') || '',
+    };
+
+    ScanEventSchema.parse(scanEvent);
+
+    await db.collection('events').doc(eventId).set(scanEvent);
+
+    // 3. Hand off canonical QR identity to the shopper experience.
+    return NextResponse.redirect(
+      new URL(`/scan/${encodeURIComponent(qr.qrCodeId)}`, origin),
+      302
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'UNKNOWN_RESOLUTION_FAILURE';
+
+    if (RESOLUTION_ERROR_CODES.has(message)) {
+      return reject(message.toLowerCase());
     }
 
-    // 3. Initialize iNteract Intelligence Session (Anchors all future behavior)
-    // UUID generation for collision resistance and security
-    const sessionId = `sess_${randomUUID()}`;
-    const eventId = `ev_${randomUUID()}`;
-    
-    const batch = db.batch();
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '';
-    
-    // Create Session with Retailer Anchor
-    batch.set(db.collection('sessions').doc(sessionId), {
-        sessionId,
-        retailerId: resolvedRetailerId,
-        shopperId: 'guest',
-        startTime: admin.firestore.FieldValue.serverTimestamp(),
-        entryGtin: gtin,
-        entryQrId: id,
-        batchNumber,
-        serialNumber,
-        userAgent: request.headers.get('user-agent') || '',
-        ip: ip
-    });
+    console.error(`[Resolver] Critical failure for ${id}:`, message);
 
-    // 4. Log Atomic Behavioral Event (Scan)
-    batch.set(db.collection('events').doc(eventId), {
-        eventId,
-        sessionId,
-        gtin,
-        retailerId: resolvedRetailerId,
-        eventType: 'scan',
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        metadata: {
-            batchNumber,
-            serialNumber,
-            source: "IDENTITY_RESOLVER",
-            qrId: id
-        }
-    });
-
-    await batch.commit();
-
-    // 5. Hand-off to Experience Layer (Product View)
-    let destination = gtin ? `/p/${gtin}?session=${sessionId}` : `/scan/${id}?session=${sessionId}`;
-    if (batchNumber) destination += `&batch=${batchNumber}`;
-    if (serialNumber) destination += `&serial=${serialNumber}`;
-
-    return NextResponse.redirect(new URL(destination, origin), 302);
-
-  } catch (error: any) {
-    console.error(`[Resolver] Critical failure for ${id}:`, error.message);
-    return NextResponse.redirect(new URL('/error?code=500', origin));
+    return reject('500');
   }
 }

@@ -1,127 +1,199 @@
 'use server';
+
 /**
- * @fileOverview A Genkit flow to regenerate a single QR code within a bulk request.
- * Hardened with server-side authorization and tenant isolation.
+ * @fileOverview Canonical QR reprint flow.
+ *
+ * Reprinting preserves QR identity. The client supplies only qrCodeId;
+ * all Campaign, Activation, Deployment, tenant, tracking, and artifact
+ * relationships are resolved and validated server-side.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { admin } from '@/lib/firebase-admin';
+import { admin, db } from '@/lib/firebase-admin';
 import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-const generateQrForItem = (item: any, requestData: any) => {
-    const { qrCodeId } = item;
-    const qrOptions = requestData.options || {};
-    const qrColor = qrOptions.colorHex ? qrOptions.colorHex.replace('#', '') : '000000';
-    const qrBgColor = qrOptions.bgColorHex ? qrOptions.bgColorHex.replace('#', '') : 'ffffff';
-    const qrError = qrOptions.logoPath ? 'H' : (qrOptions.errorCorrection || 'M');
-
-    const qrData = item.trackingUrl || `https://interactaoe.co.za/resolve/${qrCodeId}`;
-    const encodedQrData = encodeURIComponent(qrData);
-
-    let generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodedQrData}&color=${qrColor}&bgcolor=${qrBgColor}&ecc=${qrError}`;
-
-    if (qrOptions.logoPath) {
-        generatedQrUrl += `&logo=${encodeURIComponent(qrOptions.logoPath)}`;
-    }
-    
-    const storagePath = `qr/${requestData.retailerId}/${requestData.campaignId}/${qrCodeId}.png`;
-
-    return {
-        status: 'DONE',
-        storagePath: storagePath,
-        signedUrl: generatedQrUrl,
-        checksum: '', 
-        error: admin.firestore.FieldValue.delete(),
-        regeneratedAt: admin.firestore.FieldValue.serverTimestamp(),
-        regenerationCount: admin.firestore.FieldValue.increment(1),
-    };
-};
-
-const RegenerateQrCodeInputSchema = z.object({
-  requestId: z.string(),
-  qrCodeId: z.string(),
-  idToken: z.string().describe("Firebase ID token for authorization."),
-  retailerId: z.string().describe("The retailer ID for tenant verification."),
-});
-export type RegenerateQrCodeInput = z.infer<typeof RegenerateQrCodeInputSchema>;
+import { requireCapability } from '@/lib/authorization';
+import { DeploymentSchema } from '@/lib/schemas/deployment';
+import { QrCodeSchema } from '@/lib/schemas/qr-code';
+import {
+  ReprintQrCodeInputSchema,
+  type ReprintQrCodeInput,
+} from '@/lib/schemas/qr-command';
 
 const RegenerateQrCodeOutputSchema = z.object({
   success: z.boolean(),
   signedUrl: z.string(),
   regeneratedAt: z.string(),
 });
-export type RegenerateQrCodeOutput = z.infer<typeof RegenerateQrCodeOutputSchema>;
 
-export async function regenerateQrCode(input: RegenerateQrCodeInput): Promise<RegenerateQrCodeOutput> {
+export type RegenerateQrCodeOutput = z.infer<
+  typeof RegenerateQrCodeOutputSchema
+>;
+
+export type RegenerateQrCodeInput = ReprintQrCodeInput;
+
+export async function regenerateQrCode(
+  input: RegenerateQrCodeInput
+): Promise<RegenerateQrCodeOutput> {
   return regenerateQrCodeFlow(input);
 }
 
 const regenerateQrCodeFlow = ai.defineFlow(
   {
     name: 'regenerateQrCodeFlow',
-    inputSchema: RegenerateQrCodeInputSchema,
+    inputSchema: ReprintQrCodeInputSchema,
     outputSchema: RegenerateQrCodeOutputSchema,
   },
-  async ({ requestId, qrCodeId, idToken, retailerId }) => {
-    // 1. Authorize & Resolve Authoritative Identity
-    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
-    const actor = await verifyAuth(idToken);
-    
-    const db = admin.firestore();
-    const requestRef = db.collection('bulkQrRequests').doc(requestId);
-    const itemRef = requestRef.collection('items').doc(qrCodeId);
+  async (data) => {
+    const actor = await verifyAuth(data.idToken);
 
-    const [requestDoc, itemDoc] = await Promise.all([requestRef.get(), itemRef.get()]);
-
-    if (!requestDoc.exists) {
-      throw new Error(`Request with ID ${requestId} not found.`);
-    }
-    if (!itemDoc.exists) {
-      throw new Error(`QR code with ID ${qrCodeId} not found in request.`);
+    if (actor.error) {
+      throw new Error(actor.error);
     }
 
-    const requestData = requestDoc.data()!;
-    const itemData = itemDoc.data()!;
+    const authorizedRetailerId = await getAuthorizedRetailerId(
+      data.idToken,
+      data.retailerId
+    );
 
-    // 2. Security Check: Enforce tenant isolation
-    if (requestData.retailerId !== authorizedRetailerId) {
-      throw new Error('Access Denied: You are not authorized to regenerate codes for this tenant.');
+    requireCapability(actor.role, 'QR_REPRINT');
+
+    if (db == null) {
+      throw new Error('Infrastructure Layer Unavailable.');
     }
 
-    const updateData = generateQrForItem(itemData, requestData);
+    const qrRef = db.collection('qrcodes').doc(data.qrCodeId);
 
-    const auditLogRef = db.collection('auditLogs').doc();
-    const batch = db.batch();
+    const result = await db.runTransaction(async (transaction) => {
+      const qrSnapshot = await transaction.get(qrRef);
 
-    batch.update(itemRef, updateData);
+      if (qrSnapshot.exists === false) {
+        throw new Error('QR_NOT_FOUND');
+      }
 
-    batch.set(auditLogRef, {
-        type: 'REGENERATE',
-        requestId,
-        retailerId: authorizedRetailerId,
-        campaignId: requestData.campaignId,
+      const rawQr = qrSnapshot.data();
+
+      if (rawQr === undefined) {
+        throw new Error('QR_INTEGRITY_ERROR: QR identity is unreadable.');
+      }
+
+      const qrCode = QrCodeSchema.parse(rawQr);
+
+      if (qrCode.qrCodeId !== data.qrCodeId) {
+        throw new Error(
+          'QR_INTEGRITY_ERROR: QR document identity does not match the requested QR.'
+        );
+      }
+
+      if (qrCode.retailerId !== authorizedRetailerId) {
+        throw new Error(
+          'ACCESS_DENIED: QR identity does not belong to the authorized retailer.'
+        );
+      }
+
+      if (qrCode.environment !== 'PRODUCTION') {
+        throw new Error(
+          'QR_INTEGRITY_ERROR: Canonical production reprint only supports production QR identities.'
+        );
+      }
+
+      if (qrCode.status === 'RETIRED') {
+        throw new Error(
+          'QR_RETIRED: Retired QR identities cannot be reprinted.'
+        );
+      }
+
+      const deploymentRef = db
+        .collection('deployments')
+        .doc(qrCode.deploymentId);
+
+      const deploymentSnapshot = await transaction.get(deploymentRef);
+
+      if (deploymentSnapshot.exists === false) {
+        throw new Error(
+          'DEPLOYMENT_NOT_FOUND: QR identity references a Deployment that does not exist.'
+        );
+      }
+
+      const rawDeployment = deploymentSnapshot.data();
+
+      if (rawDeployment === undefined) {
+        throw new Error(
+          'DEPLOYMENT_INTEGRITY_ERROR: QR identity references an unreadable Deployment.'
+        );
+      }
+
+      const deployment = DeploymentSchema.parse(rawDeployment);
+
+      if (
+        deployment.retailerId !== qrCode.retailerId ||
+        deployment.campaignId !== qrCode.campaignId ||
+        deployment.activationId !== qrCode.activationId ||
+        deployment.deploymentId !== qrCode.deploymentId ||
+        deployment.qrCodeId !== qrCode.qrCodeId
+      ) {
+        throw new Error(
+          'QR_INTEGRITY_ERROR: QR identity does not match the Deployment relationship chain.'
+        );
+      }
+
+      if (deployment.removedAt !== undefined) {
+        throw new Error(
+          'DEPLOYMENT_REMOVED: QR identities bound to removed Deployments cannot be reprinted.'
+        );
+      }
+
+      const encodedTrackingUrl = encodeURIComponent(qrCode.trackingUrl);
+      const signedUrl =
+        `https://api.qrserver.com/v1/create-qr-code/?size=512x512` +
+        `&data=${encodedTrackingUrl}&color=000000&bgcolor=ffffff&ecc=M`;
+
+      const storagePath =
+        qrCode.storagePath ??
+        `qr/${qrCode.retailerId}/${qrCode.campaignId}/${qrCode.qrCodeId}.png`;
+
+      const now = admin.firestore.Timestamp.now();
+
+      const candidateQrCode = {
+        ...qrCode,
+        storagePath,
+        signedUrl,
+        updatedAt: now,
+        updatedBy: actor.uid,
+      };
+
+      QrCodeSchema.parse(candidateQrCode);
+
+      transaction.update(qrRef, {
+        storagePath: candidateQrCode.storagePath,
+        signedUrl: candidateQrCode.signedUrl,
+        updatedAt: candidateQrCode.updatedAt,
+        updatedBy: candidateQrCode.updatedBy,
+      });
+
+      const auditLogRef = db.collection('auditLogs').doc();
+
+      transaction.set(auditLogRef, {
+        type: 'QR_REPRINT',
+        retailerId: qrCode.retailerId,
+        campaignId: qrCode.campaignId,
+        activationId: qrCode.activationId,
+        deploymentId: qrCode.deploymentId,
+        qrCodeId: qrCode.qrCodeId,
         actorUid: actor.uid,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        details: {
-            qrCodeId: qrCodeId,
-            previousStatus: itemData.status,
-        }
-    });
+        timestamp: now,
+      });
 
-    await batch.commit();
-    
-    const updatedItemDoc = await itemRef.get();
-    const updatedData = updatedItemDoc.data()!;
+      return {
+        signedUrl,
+        regeneratedAt: now.toDate().toISOString(),
+      };
+    });
 
     return {
       success: true,
-      signedUrl: updatedData.signedUrl,
-      regeneratedAt: (updatedData.regeneratedAt as admin.firestore.Timestamp).toDate().toISOString(),
+      signedUrl: result.signedUrl,
+      regeneratedAt: result.regeneratedAt,
     };
   }
 );

@@ -92,6 +92,21 @@ export const QrCodeStatusSchema = z.enum([
 export type QrCodeStatus = z.infer<typeof QrCodeStatusSchema>;
 
 /**
+ * QR environment classification.
+ *
+ * This explicitly separates production QR identities from test/demo
+ * identities. Prefixes such as "test_" or "demo_" may still be used for
+ * readability, but they must never be the environment authority.
+ */
+export const QrEnvironmentSchema = z.enum([
+  "PRODUCTION",
+  "TEST",
+  "DEMO",
+]);
+
+export type QrEnvironment = z.infer<typeof QrEnvironmentSchema>;
+
+/**
  * Primary retailer-defined Point-of-Decision target level.
  *
  * Exactly one Primary Target belongs to an Activation.

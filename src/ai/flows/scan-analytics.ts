@@ -51,7 +51,7 @@ const getScanAnalyticsFlow = ai.defineFlow(
     }
 
     // 2. Calculate True Reach (Unique Sessions)
-    const sessionIds = new Set(events.map(e => e.sessionId));
+    const sessionIds = new Set(events.filter(e => e.sessionId).map(e => e.sessionId as string));
     const uniqueSessionsCount = sessionIds.size;
     
     // 3. Aggregate by Day using unique sessions as unit
@@ -59,6 +59,7 @@ const getScanAnalyticsFlow = ai.defineFlow(
     events.forEach(event => {
         const day = new Date(event.timestamp).toISOString().split('T')[0];
         if (!sessionsByDay[day]) sessionsByDay[day] = new Set();
+        if (!event.sessionId) return;
         sessionsByDay[day].add(event.sessionId);
     });
     
@@ -70,6 +71,7 @@ const getScanAnalyticsFlow = ai.defineFlow(
     // 4. Aggregate GTIN Popularity (Unique Sessions per GTIN)
     const sessionsByGtin: Record<string, { sessions: Set<string>, campaignId: string }> = {};
     events.forEach(event => {
+        if (!event.gtin || !event.sessionId) return;
         if (!sessionsByGtin[event.gtin]) {
             sessionsByGtin[event.gtin] = { sessions: new Set(), campaignId: event.campaignId };
         }

@@ -160,18 +160,6 @@ const seedTestRetailerDemoFlow = ai.defineFlow(
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            // Pre-provision QR Codes for each product
-            const qrId = `demo_${p.gtin}`;
-            batch.set(db.collection('qrcodes').doc(qrId), {
-                qrCodeId: qrId,
-                retailerId: TEST_RETAILER_ID,
-                gtin: p.gtin,
-                campaignId: 'Demo Scenario',
-                trackingUrl: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/resolve/${qrId}`,
-                redirectUrl: `/p/${p.gtin}`,
-                scanCount: 0,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
-            });
         }
 
         await batch.commit();

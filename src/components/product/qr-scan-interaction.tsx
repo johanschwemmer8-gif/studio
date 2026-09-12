@@ -1,19 +1,18 @@
 'use client';
 
 import { useEffect, useState, useTransition, useRef } from 'react';
-import { getScanInteraction, productChat, type GetScanInteractionOutput } from '@/ai/flows';
+import { beginQrShopperSession, getScanInteraction, productChat, type GetScanInteractionOutput } from '@/ai/flows';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Sparkles, ShieldCheck, Loader2, Send, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
-import { useSearchParams } from 'next/navigation';
+
 
 type Message = {
     role: 'user' | 'model';
@@ -32,11 +31,9 @@ function TypingIndicator() {
 
 export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const { user } = useAuth();
-  const searchParams = useSearchParams();
-  const sessionIdFromUrl = searchParams.get('session');
-  
+
   const [data, setData] = useState<GetScanInteractionOutput | null>(null);
-  const [clientDestinationUrl, setClientDestinationUrl] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -47,58 +44,34 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   useEffect(() => {
     const fetchInteraction = async () => {
       try {
-        let finalDest = 'https://interactaoe.co.za';
-        
-        // 1. Client-side fetch for the destination URL and retailer identity
-        if (db) {
-            const qrDoc = await getDoc(doc(db, 'qrcodes', qrId));
-            if (qrDoc.exists()) {
-                const qrData = qrDoc.data();
-                if (qrData.redirectUrl) {
-                    setClientDestinationUrl(qrData.redirectUrl);
-                    finalDest = qrData.redirectUrl;
-                }
-            }
-        }
+        const result = await getScanInteraction({ qrCodeId: qrId });
 
-        // 2. Call the Genkit flow for the AI greeting
-        const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
-        
-        if (db && sessionIdFromUrl) {
-            // Update the session with shopper mapping if newly identified
-            if (user?.uid) {
-                setDoc(doc(db, 'sessions', sessionIdFromUrl), {
-                    shopperId: user.uid,
-                    updatedAt: serverTimestamp()
-                }, { merge: true }).catch(() => {});
+        setData(result);
+        if (result.messages?.length) {
+          setIsTyping(true);
+          let current = 0;
+          const interval = setInterval(() => {
+            if (current < result.messages.length) {
+              setMessages(prev => [
+                ...prev,
+                { role: 'model', content: result.messages[current] },
+              ]);
+              current++;
+            } else {
+              setIsTyping(false);
+              clearInterval(interval);
             }
+          }, 800);
         }
-
-        if (result) {
-            setData(result);
-            if (result.messages?.length) {
-                setIsTyping(true);
-                let current = 0;
-                const interval = setInterval(() => {
-                    if (current < result.messages.length) {
-                        setMessages(prev => [...prev, { role: 'model', content: result.messages[current] }]);
-                        current++;
-                    } else {
-                        setIsTyping(false);
-                        clearInterval(interval);
-                    }
-                }, 800);
-            }
-        }
-      } catch (e: any) {
-        console.warn('Intelligence Layer Handshake Friction');
+      } catch (error) {
+        console.warn('Unable to resolve QR shopper experience:', error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     if (qrId) fetchInteraction();
-  }, [qrId, user, sessionIdFromUrl]);
+  }, [qrId]);
 
   useEffect(() => {
       if (scrollRef.current) {
@@ -108,40 +81,56 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!userInput.trim() || isPendingChat || isTyping) return;
+
+    if (userInput.trim().length === 0 || isPendingChat || isTyping || data == null) return;
 
     const userMessage = userInput.trim();
-    const destination = clientDestinationUrl || data?.destinationUrl || 'https://interactaoe.co.za';
-    
     setUserInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsTyping(true);
 
     startChatTransition(async () => {
-        try {
-            const res = await productChat({
-                url: destination,
-                history: [...messages, { role: 'user', content: userMessage }],
-                shopperUid: user?.uid,
-                sessionId: sessionIdFromUrl || undefined,
-                hasConsent: true,
-            });
-            setMessages(prev => [...prev, { role: 'model', content: res.message }]);
-        } catch (e) {
-            setMessages(prev => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to continue to the product page while I reconnect." }]);
-        } finally {
-            setIsTyping(false);
-        }
+      try {
+        const session = await beginQrShopperSession({
+          qrCodeId: qrId,
+          ...(sessionId ? { sessionId } : {}),
+        });
+
+        setSessionId(session.sessionId);
+
+        const hasConsent =
+          window.localStorage.getItem('consent-behavioral-analysis') === 'true';
+
+        const res = await productChat({
+          ...(data.destinationUrl ? { url: data.destinationUrl } : {}),
+          history: [...messages, { role: 'user', content: userMessage }],
+          sessionId: session.sessionId,
+          retailerId: data.retailerId,
+          hasConsent,
+        });
+
+        setMessages(prev => [
+          ...prev,
+          { role: 'model', content: res.message },
+        ]);
+      } catch (error) {
+        console.warn('QR shopper interaction failed:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'model',
+            content: "I'm still synchronizing with the network. Please try again in a moment.",
+          },
+        ]);
+      } finally {
+        setIsTyping(false);
+      }
     });
   };
 
   const handleContinue = () => {
-    const destination = clientDestinationUrl || data?.destinationUrl || 'https://interactaoe.co.za';
-    // Preserve session during redirect if it's an internal path
-    const url = new URL(destination, window.location.origin);
-    if (sessionIdFromUrl) url.searchParams.set('session', sessionIdFromUrl);
-    window.location.href = url.toString();
+    if (data?.scanDestination !== 'URL' || data.destinationUrl == null) return;
+    window.location.href = data.destinationUrl;
   };
 
   if (loading) {
@@ -234,14 +223,16 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             </Button>
         </form>
         
-        <Button
-          onClick={handleContinue}
-          size="lg"
-          className="w-full max-w-md mx-auto flex h-14 rounded-2xl text-lg font-bold shadow-xl bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
-        >
-          {shopperFirstName ? `Continue, ${shopperFirstName}` : 'Proceed to Website'}
-          <Sparkles className="h-4 w-4 opacity-70" />
-        </Button>
+        {data?.scanDestination === "URL" && data.destinationUrl && (
+            <Button
+              onClick={handleContinue}
+              size="lg"
+              className="w-full max-w-md mx-auto flex h-14 rounded-2xl text-lg font-bold shadow-xl bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
+            >
+              {shopperFirstName ? `Continue, ${shopperFirstName}` : "Proceed to Website"}
+              <Sparkles className="h-4 w-4 opacity-70" />
+            </Button>
+          )}
       </div>
     </div>
   );

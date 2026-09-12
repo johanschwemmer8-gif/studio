@@ -31,6 +31,44 @@ import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDispla
 import { createCampaign, type CreateCampaignOutput } from './create-campaign';
 import { updateCampaign, type UpdateCampaignOutput } from './update-campaign';
 import { archiveCampaign, type ArchiveCampaignOutput } from './archive-campaign';
+import { createActivation, type CreateActivationOutput } from './create-activation';
+import { updateActivation, type UpdateActivationOutput } from './update-activation';
+import { submitActivation, type SubmitActivationOutput } from './submit-activation';
+import { approveActivation, type ApproveActivationOutput } from './approve-activation';
+import { scheduleActivation, type ScheduleActivationOutput } from './schedule-activation';
+import { pauseActivation, type PauseActivationOutput } from './pause-activation';
+import { endActivation, type EndActivationOutput } from './end-activation';
+import { archiveActivation, type ArchiveActivationOutput } from './archive-activation';
+import {
+    type CreateActivationInput,
+    type UpdateActivationInput,
+    type SubmitActivationInput,
+    type ApproveActivationInput,
+    type ScheduleActivationInput,
+    type PauseActivationInput,
+    type EndActivationInput,
+    type ArchiveActivationInput,
+} from '@/lib/schemas/activation-command';
+import { createDeployment, type CreateDeploymentOutput } from './create-deployment';
+import { assignDeployment, type AssignDeploymentOutput } from './assign-deployment';
+import { markDeploymentPrinted, type MarkDeploymentPrintedOutput } from './mark-deployment-printed';
+import { markDeploymentDeployed, type MarkDeploymentDeployedOutput } from './mark-deployment-deployed';
+import { reportDeploymentProblem, type ReportDeploymentProblemOutput } from './report-deployment-problem';
+import { resolveDeploymentProblem, type ResolveDeploymentProblemOutput } from './resolve-deployment-problem';
+import { removeDeployment, type RemoveDeploymentOutput } from './remove-deployment';
+import { bindQrToDeployment, type BindQrToDeploymentOutput } from './bind-qr-to-deployment';
+import { beginQrShopperSession, type BeginQrShopperSessionOutput } from './begin-qr-shopper-session';
+import {
+    type CreateDeploymentInput,
+    type AssignDeploymentInput,
+    type MarkDeploymentPrintedInput,
+    type MarkDeploymentDeployedInput,
+    type ReportDeploymentProblemInput,
+    type ResolveDeploymentProblemInput,
+    type RemoveDeploymentInput,
+} from '@/lib/schemas/deployment-command';
+import { type BindQrToDeploymentInput } from '@/lib/schemas/qr-command';
+import { type BeginQrShopperSessionInput } from '@/lib/schemas/shopper-session-command';
 import {
     type CreateCampaignInput,
     type UpdateCampaignInput,
@@ -80,6 +118,23 @@ export {
     createCampaign,
     updateCampaign,
     archiveCampaign,
+    createActivation,
+    updateActivation,
+    submitActivation,
+    approveActivation,
+    scheduleActivation,
+    pauseActivation,
+    endActivation,
+    archiveActivation,
+    createDeployment,
+    assignDeployment,
+    markDeploymentPrinted,
+    markDeploymentDeployed,
+    reportDeploymentProblem,
+    resolveDeploymentProblem,
+    removeDeployment,
+    bindQrToDeployment,
+    beginQrShopperSession,
     saveQrTemplate,
     saveRetailerApiKey,
     getScanAnalytics,
@@ -122,6 +177,23 @@ export type {
     CreateCampaignInput, CreateCampaignOutput,
     UpdateCampaignInput, UpdateCampaignOutput,
     ArchiveCampaignInput, ArchiveCampaignOutput,
+    CreateActivationInput, CreateActivationOutput,
+    UpdateActivationInput, UpdateActivationOutput,
+    SubmitActivationInput, SubmitActivationOutput,
+    ApproveActivationInput, ApproveActivationOutput,
+    ScheduleActivationInput, ScheduleActivationOutput,
+    PauseActivationInput, PauseActivationOutput,
+    EndActivationInput, EndActivationOutput,
+    ArchiveActivationInput, ArchiveActivationOutput,
+    CreateDeploymentInput, CreateDeploymentOutput,
+    AssignDeploymentInput, AssignDeploymentOutput,
+    MarkDeploymentPrintedInput, MarkDeploymentPrintedOutput,
+    MarkDeploymentDeployedInput, MarkDeploymentDeployedOutput,
+    ReportDeploymentProblemInput, ReportDeploymentProblemOutput,
+    ResolveDeploymentProblemInput, ResolveDeploymentProblemOutput,
+    RemoveDeploymentInput, RemoveDeploymentOutput,
+    BindQrToDeploymentInput, BindQrToDeploymentOutput,
+    BeginQrShopperSessionInput, BeginQrShopperSessionOutput,
     SaveQrTemplateInput, SaveQrTemplateOutput,
     SaveRetailerApiKeyInput, SaveRetailerApiKeyOutput,
     ScanAnalyticsInput, ScanAnalyticsOutput,

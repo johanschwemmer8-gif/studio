@@ -1,14 +1,9 @@
 'use server';
-/**
- * @fileOverview Continuity Engine Interaction Flow.
- * Acts as the relationship infrastructure for returning shoppers.
- * Constructs personalized lifecycle greetings based on persistent behavioral memory.
- * AUDIT VERSION: 1.6.0 (Resilience Hardened)
- */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getDb } from '@/lib/firebase-admin';
+import { resolveProductionQr } from '@/lib/qr-resolution';
 import {
   GetScanInteractionInputSchema,
   type GetScanInteractionInput,
@@ -16,59 +11,49 @@ import {
   type GetScanInteractionOutput,
 } from '@/lib/schemas/scan-interaction';
 
-
 const InteractionPromptInputSchema = z.object({
-    retailerName: z.string(),
-    campaignName: z.string(),
-    personality: z.string(),
-    intent: z.string(),
-    constraints: z.string().optional(),
-    shopperName: z.string().optional(),
-    pastInterests: z.array(z.string()).optional(),
+  retailerName: z.string(),
+  campaignName: z.string(),
+  activationName: z.string(),
+  personality: z.string(),
+  intent: z.string(),
+  greeting: z.string().optional(),
+  constraints: z.string().optional(),
 });
 
 const InteractionPromptOutputSchema = z.object({
-    messages: z.array(z.string()).max(3, "Maximum of 3 messages").describe('Personalized continuity messages.'),
+  messages: z.array(z.string()).max(3),
 });
 
 const prompt = ai.definePrompt({
-    name: 'getScanInteractionPrompt',
-    input: { schema: InteractionPromptInputSchema },
-    output: { schema: InteractionPromptOutputSchema },
-    prompt: `You are Ari, the world-class Continuity Assistant for {{retailerName}} Decision Intelligence.
-    Your goal is to provide expert Lifecycle Guidance. You are not just selling; you are managing a relationship.
-    A shopper has just scanned a product from "{{campaignName}}".
+  name: 'getScanInteractionPrompt',
+  input: { schema: InteractionPromptInputSchema },
+  output: { schema: InteractionPromptOutputSchema },
+  prompt: `You are Ari, the in-store decision assistant for {{retailerName}}.
+The shopper has entered the {{campaignName}} campaign experience through the {{activationName}} activation.
 
-    {{#if shopperName}}
-    SHOPPER RECOGNIZED: {{shopperName}}.
-    CONTINUITY LOG: They have previously explored these categories: {{#each pastInterests}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
-    Acknowledge them by name and reinforce their persistent relationship with the brand.
-    Example: "Welcome back {{shopperName}}. We've updated your guidance based on your interest in {{pastInterests.[0]}}."
-    {{else}}
-    GUEST SHOPPER: Provide a high-energy welcome to the Decision Intelligence platform. Focus on the value of personalized guidance.
-    {{/if}}
+Your personality: {{personality}}.
+Your objective: {{intent}}.
+{{#if constraints}}Additional operating instructions: {{constraints}}.{{/if}}
+{{#if greeting}}Preferred greeting: {{greeting}}.{{/if}}
 
-    Your personality: {{personality}}.
-    Operating Objective: Maintain lifecycle continuity and provide buying guidance.
-    {{#if constraints}}Constraints: {{constraints}}.{{/if}}
-
-    Generate 1-3 short, engaging messages. Be brief and conversational. Always identify yourself as Ari if introducing yourself.`,
+Generate 1-3 short, useful shopper-facing messages. Be conversational and focused on helping the shopper make a decision. Do not invent product facts. Identify yourself as Ari when appropriate.`,
 });
 
-
-export async function getScanInteraction(input: GetScanInteractionInput): Promise<GetScanInteractionOutput> {
-  const fallbackResponse: GetScanInteractionOutput = {
-    messages: ["Hello! Ari here.", "Welcome to the iNteract platform. I'm synchronizing your personalized guidance journey now."],
-    destinationUrl: "https://interactaoe.co.za", 
-    retailerLogoUrl: '',
-  };
-
+function validOptionalUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string' || value.length === 0) return undefined;
   try {
-    return await getScanInteractionFlow(input);
-  } catch (error: any) {
-    console.warn("[Continuity Engine] Resilience Fallback Active:", error.message);
-    return fallbackResponse;
+    new URL(value);
+    return value;
+  } catch {
+    return undefined;
   }
+}
+
+export async function getScanInteraction(
+  input: GetScanInteractionInput
+): Promise<GetScanInteractionOutput> {
+  return getScanInteractionFlow(input);
 }
 
 const getScanInteractionFlow = ai.defineFlow(
@@ -77,110 +62,87 @@ const getScanInteractionFlow = ai.defineFlow(
     inputSchema: GetScanInteractionInputSchema,
     outputSchema: GetScanInteractionOutputSchema,
   },
-  async ({ qrId, shopperUid }) => {
+  async ({ qrCodeId }) => {
     const db = getDb();
-    
-    let destinationUrl = "https://interactaoe.co.za";
-    let qrData: any = {};
-    let mediaOptions: any = {};
-    let shopperName: string | undefined;
-    let pastInterests: string[] = [];
-    let retailerName = 'iNteract';
-    let retailerLogoUrl = '';
-    let resolvedRetailerId = 'unknown';
-
-    if (!db) {
-        return {
-            messages: ["Hello! I'm Ari.", "I'm currently operating in simulation mode while we synchronize with the store network.", "You can still view the product details below."],
-            destinationUrl,
-            retailerLogoUrl: '',
-        };
+    if (db == null) {
+      throw new Error('INFRASTRUCTURE_UNAVAILABLE');
     }
 
+    const { qr, activation, campaign } = await resolveProductionQr(qrCodeId);
+    const config = activation.experienceConfig;
+
+    if (config.scanDestination == null) {
+      throw new Error('EXPERIENCE_CONFIGURATION_ERROR');
+    }
+
+    let destinationUrl: string | undefined;
+    if (config.scanDestination === 'URL') {
+      if (config.landingPageUrl == null) {
+        throw new Error('EXPERIENCE_CONFIGURATION_ERROR');
+      }
+      destinationUrl = config.landingPageUrl;
+    }
+
+    const tenantDoc = await db.collection('tenants').doc(qr.retailerId).get();
+    const tenantData = tenantDoc.exists ? tenantDoc.data() : undefined;
+    const retailerName =
+      typeof tenantData?.name === 'string' && tenantData.name.length > 0
+        ? tenantData.name
+        : qr.retailerId;
+    const retailerLogoUrl = validOptionalUrl(tenantData?.logoUrl);
+
+    const personality =
+      config.persona || config.tone || 'Expert & Knowledgeable';
+    const intent = config.goal || activation.shopperObjective;
+
+    let messages: string[];
     try {
-        const qrDoc = await db.collection('qrcodes').doc(qrId).get();
-        if (qrDoc.exists) {
-            qrData = qrDoc.data()!;
-            destinationUrl = qrData.redirectUrl || (qrData.targetProductGtin ? `/p/${qrData.targetProductGtin}` : (qrData.target?.targetProductGtin ? `/p/${qrData.target.targetProductGtin}` : `/scan/${qrId}`));
-            resolvedRetailerId = qrData.retailerId || 'unknown';
-            
-            if (qrData.requestId) {
-                const requestDoc = await db.collection('bulkQrRequests').doc(qrData.requestId).get();
-                if (requestDoc.exists) {
-                    mediaOptions = requestDoc.data()?.options || {};
-                }
-            }
-        }
-    } catch (e) {
-        console.warn("[Identity Resolution] Metadata friction, using resolution defaults.");
-    }
-    
-    if (shopperUid) {
-        try {
-            const shopperDoc = await db.collection('shoppers').doc(shopperUid).get();
-            if (shopperDoc.exists) {
-                const sData = shopperDoc.data()!;
-                shopperName = sData.displayName;
-                
-                const interactions = await db.collection('product_interactions')
-                    .where('shopperId', '==', shopperUid)
-                    .orderBy('timestamp', 'desc')
-                    .limit(5)
-                    .get();
-                
-                const categories = new Set<string>();
-                for(const doc of interactions.docs) {
-                    if(doc.data().metadata?.category) categories.add(doc.data().metadata.category);
-                }
-                pastInterests = Array.from(categories).slice(0, 3);
-            }
-        } catch (e) {
-            console.warn("[Shopper Memory] Synchronization deferred.");
-        }
-    }
+      const { output } = await prompt({
+        retailerName,
+        campaignName: campaign.name,
+        activationName: activation.name,
+        personality,
+        intent,
+        greeting: config.greeting,
+        constraints: activation.advancedInstructions,
+      });
 
-    const aiProfileId = qrData.aiProfileId || 'default-assistant';
-
-    try {
-        const [aiProfileDoc, retailerDoc] = await Promise.all([
-            db.collection('ai_profiles').doc(aiProfileId).get(),
-            db.collection('tenants').doc(resolvedRetailerId).get()
-        ]);
-        
-        const aiProfile = aiProfileDoc.exists ? aiProfileDoc.data()! : {
-            personality: 'Expert & Knowledgeable',
-            intent: 'Provide persistent buying guidance and lifecycle management.',
-        };
-        retailerName = retailerDoc.exists ? retailerDoc.data()!.name : 'iNteract';
-        retailerLogoUrl = retailerDoc.exists ? retailerDoc.data()!.logoUrl : '';
-
-        const { output } = await prompt({
-            retailerName,
-            campaignName: qrData.campaignId || 'Product Discovery',
-            personality: aiProfile.personality,
-            intent: Array.isArray(aiProfile.intent) ? aiProfile.intent.join(', ') : aiProfile.intent,
-            constraints: aiProfile.constraints,
-            shopperName,
-            pastInterests,
-        });
-
-        return {
-          messages: output?.messages || ["Hello! I'm Ari.", "Welcome to iNteract. Let's explore more details about this product."],
-          destinationUrl,
-          retailerLogoUrl,
-          mediaType: mediaOptions.mediaType,
-          mediaUrl: mediaOptions.mediaUrl,
-          headline: mediaOptions.headline,
-          subhead: mediaOptions.subhead,
-        };
-
+      messages =
+        output?.messages && output.messages.length > 0
+          ? output.messages
+          : [config.greeting || "Hello! I'm Ari. How can I help with your decision today?"];
     } catch (error) {
-        return { 
-            messages: ["Hello! Ari here.", "Welcome back to the experience layer. I'm ready to guide your decision journey."],
-            destinationUrl, 
-            retailerLogoUrl,
-            ...mediaOptions 
-        };
+      console.warn('[Scan Interaction] Ari greeting generation fallback:', error);
+      messages = [
+        config.greeting || "Hello! I'm Ari. How can I help with your decision today?",
+      ];
     }
+
+    const result: GetScanInteractionOutput = {
+      messages,
+      qrCodeId: qr.qrCodeId,
+      retailerId: qr.retailerId,
+      campaignId: qr.campaignId,
+      activationId: qr.activationId,
+      deploymentId: qr.deploymentId,
+      configurationVersion: activation.configurationVersion,
+      environment: qr.environment,
+      retailerName,
+      campaignName: campaign.name,
+      activationName: activation.name,
+      shopperObjective: activation.shopperObjective,
+      experienceMode: activation.experienceMode,
+      scanDestination: config.scanDestination,
+      ...(destinationUrl ? { destinationUrl } : {}),
+      target: activation.target,
+      productContext: activation.productContext,
+      ...(retailerLogoUrl ? { retailerLogoUrl } : {}),
+      ...(config.mediaType ? { mediaType: config.mediaType } : {}),
+      ...(config.mediaUrl ? { mediaUrl: config.mediaUrl } : {}),
+      ...(config.headline ? { headline: config.headline } : {}),
+      ...(config.subhead ? { subhead: config.subhead } : {}),
+    };
+
+    return GetScanInteractionOutputSchema.parse(result);
   }
 );

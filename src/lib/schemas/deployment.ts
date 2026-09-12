@@ -5,6 +5,9 @@ import {
   FirestoreTimestampSchema,
 } from './retail-domain';
 
+export const DeploymentOperationalStatusSchema =
+  DeploymentStatusSchema.exclude(['PROBLEM_REPORTED']);
+
 export const DeploymentPlacementSchema = z.object({
   department: z.string().optional(),
   area: z.string().optional(),
@@ -24,7 +27,7 @@ export const DeploymentSchema = z.object({
   storeId: z.string().min(1),
   storeName: z.string().min(1),
   placement: DeploymentPlacementSchema,
-  qrCodeId: z.string().min(1),
+  qrCodeId: z.string().min(1).optional(),
   status: DeploymentStatusSchema,
   assignedAt: FirestoreTimestampSchema.optional(),
   assignedBy: z.string().min(1).optional(),
@@ -35,6 +38,9 @@ export const DeploymentSchema = z.object({
   problemReportedAt: FirestoreTimestampSchema.optional(),
   problemReportedBy: z.string().min(1).optional(),
   problemReason: z.string().optional(),
+  problemPreviousStatus: DeploymentOperationalStatusSchema.optional(),
+  problemResolvedAt: FirestoreTimestampSchema.optional(),
+  problemResolvedBy: z.string().min(1).optional(),
   createdAt: FirestoreTimestampSchema,
   createdBy: z.string().min(1),
   updatedAt: FirestoreTimestampSchema,

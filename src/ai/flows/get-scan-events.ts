@@ -37,7 +37,8 @@ const getScanEventsFlow = ai.defineFlow(
 
     // 2. Build Factual Query
     let query = db.collection('events')
-        .where('retailerId', '==', authorizedRetailerId);
+        .where('retailerId', '==', authorizedRetailerId)
+        .where('eventType', '==', 'scan');
 
     if (filters.campaignId) {
         query = query.where('campaignId', '==', filters.campaignId);
@@ -62,10 +63,16 @@ const getScanEventsFlow = ai.defineFlow(
         const data = doc.data();
         return {
             eventId: doc.id,
-            sessionId: data.sessionId || 'legacy',
-            gtin: data.gtin || '00000000000000',
+            eventType: 'scan' as const,
+            ...(data.sessionId ? { sessionId: data.sessionId } : {}),
+            ...(data.gtin ? { gtin: data.gtin } : {}),
             retailerId: data.retailerId,
             campaignId: data.campaignId || 'unassigned',
+            ...(data.activationId ? { activationId: data.activationId } : {}),
+            ...(data.deploymentId ? { deploymentId: data.deploymentId } : {}),
+            ...(data.qrCodeId ? { qrCodeId: data.qrCodeId } : {}),
+            ...(data.configurationVersion ? { configurationVersion: data.configurationVersion } : {}),
+            ...(data.environment ? { environment: data.environment } : {}),
             timestamp: data.timestamp instanceof admin.firestore.Timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString(),
             userAgent: data.userAgent || 'unknown',
             referrer: data.referrer || '',

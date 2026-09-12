@@ -100,7 +100,7 @@ function QrRequestDetails({ request }: { request: BulkRequest }) {
             const idToken = await user?.getIdToken();
             if (!idToken || !user?.retailerId) throw new Error("Authentication required.");
             
-            const result = await regenerateQrCode({ requestId: request.id, qrCodeId, idToken, retailerId: user.retailerId });
+            const result = await regenerateQrCode({ qrCodeId, idToken, retailerId: user.retailerId });
             if (result.success) {
                 toast({ title: "QR Code Regenerated" });
             } else {

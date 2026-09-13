@@ -1,46 +1,35 @@
 'use server';
 
 /**
- * @fileOverview Process queued QR Activation requests.
+ * @fileOverview Canonical Bulk Activation / Deployment queue processor.
  *
  * ARCHITECTURE:
  *
- *   RETAILER ACTIVATION
- *        ↓
  *   bulkQrRequests/{requestId}
  *        ↓
- *   items/{qrCodeId}
+ *   items/{itemId}
  *        ↓
- *   PROCESSING
+ *   canonical Activation DRAFT
  *        ↓
- *   qrcodes/{qrCodeId}
- *        ↓
- *   SHOPPER SCAN
+ *   canonical Deployment(s) NOT_ASSIGNED
  *
  * IMPORTANT:
- * - One activation represents one Point-of-Decision objective.
- * - One activation produces one QR in the current retailer workflow.
- * - The QR is the digital identity of the activation.
- * - The QR is NOT the product identity.
- * - GTIN remains the authoritative product identifier.
- * - Target and Product Context remain separate.
- *
- * The final qrcodes record deliberately retains activation context so that
- * future measurement and Retail Media functionality can connect:
- *
- * Campaign
- *   → Activation
- *   → Target
- *   → Store / Location
- *   → QR
- *   → Shopper Engagement
+ * - One bulk item defines one Activation.
+ * - One Activation may create one or more Deployments.
+ * - Stable business IDs are persisted on the queue item before records are created.
+ * - Retries recover the same Activation and Deployment identities.
+ * - This processor does NOT create, bind, activate, or deploy QR identities.
+ * - QR binding occurs later through the canonical Deployment / QR lifecycle.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import { createActivationInternal } from '@/lib/activation-internal';
+import { createDeploymentInternal } from '@/lib/deployment-internal';
+import { BulkActivationWorkItemSchema } from '@/lib/schemas/bulk-qr-request';
 
-if (!admin.apps.length) {
+if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
@@ -56,87 +45,207 @@ export type ProcessBulkQrQueueOutput = z.infer<
   typeof ProcessBulkQrQueueOutputSchema
 >;
 
-/**
- * Production base URL used when NEXT_PUBLIC_BASE_URL is not configured.
- *
- * This prevents physical QR codes from encoding a relative path such as:
- *
- *   /resolve/{qrCodeId}
- *
- * which would not be a valid standalone QR destination.
- */
-const getBaseUrl = () => {
-  const configuredBaseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL?.trim();
-
-  if (configuredBaseUrl) {
-    return configuredBaseUrl.replace(/\/+$/, '');
-  }
-
-  return 'https://interactaoe.co.za';
+type StableItemIdentities = {
+  activationId: string;
+  deploymentIds: string[];
 };
 
-const generateQrForItem = (
-  item: FirebaseFirestore.DocumentData,
+function requireNonEmptyString(value: unknown, fieldName: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`INVALID_BULK_REQUEST: ${fieldName} is required.`);
+  }
+
+  return value;
+}
+
+async function ensureStableItemIdentities(
+  itemRef: FirebaseFirestore.DocumentReference,
+  deploymentCount: number
+): Promise<StableItemIdentities> {
+  const db = admin.firestore();
+
+  return db.runTransaction(async (transaction) => {
+    const currentSnapshot = await transaction.get(itemRef);
+
+    if (currentSnapshot.exists === false) {
+      throw new Error('BULK_ITEM_NOT_FOUND');
+    }
+
+    const currentData = currentSnapshot.data() || {};
+
+    const existingActivationId =
+      typeof currentData.activationId === 'string' &&
+      currentData.activationId.trim().length > 0
+        ? currentData.activationId
+        : undefined;
+
+    const existingDeploymentIds = Array.isArray(currentData.deploymentIds)
+      ? currentData.deploymentIds
+      : [];
+
+    const activationId =
+      existingActivationId || db.collection('activations').doc().id;
+
+    const deploymentIds = Array.from(
+      { length: deploymentCount },
+      (_, index) => {
+        const existingId = existingDeploymentIds[index];
+
+        if (typeof existingId === 'string' && existingId.trim().length > 0) {
+          return existingId;
+        }
+
+        return db.collection('deployments').doc().id;
+      }
+    );
+
+    const identitiesAlreadyStable =
+      existingActivationId === activationId &&
+      existingDeploymentIds.length === deploymentCount &&
+      deploymentIds.every(
+        (deploymentId, index) =>
+          existingDeploymentIds[index] === deploymentId
+      );
+
+    if (identitiesAlreadyStable === false) {
+      transaction.update(itemRef, {
+        activationId,
+        deploymentIds,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    return {
+      activationId,
+      deploymentIds,
+    };
+  });
+}
+
+async function processCanonicalItem(
+  itemDoc: FirebaseFirestore.QueryDocumentSnapshot,
   requestData: FirebaseFirestore.DocumentData
-) => {
-  const qrCodeId = item.qrCodeId;
+): Promise<void> {
+  const retailerId = requireNonEmptyString(
+    requestData.retailerId,
+    'retailerId'
+  );
 
-  if (!qrCodeId) {
-    throw new Error('QR code ID is missing from activation item.');
+  const submittedBy = requireNonEmptyString(
+    requestData.submittedBy,
+    'submittedBy'
+  );
+
+  const itemData = itemDoc.data();
+
+  const workItem = BulkActivationWorkItemSchema.parse({
+    activation: itemData.activation,
+    deployments: itemData.deployments,
+  });
+
+  const stableIds = await ensureStableItemIdentities(
+    itemDoc.ref,
+    workItem.deployments.length
+  );
+
+  await createActivationInternal({
+    activationId: stableIds.activationId,
+    retailerId,
+    actorUid: submittedBy,
+    activation: workItem.activation,
+  });
+
+  for (let index = 0; index < workItem.deployments.length; index += 1) {
+    await createDeploymentInternal({
+      deploymentId: stableIds.deploymentIds[index],
+      retailerId,
+      activationId: stableIds.activationId,
+      actorUid: submittedBy,
+      deployment: workItem.deployments[index],
+    });
   }
 
-  const qrOptions = requestData.options || {};
-
-  const qrColor = qrOptions.colorHex
-    ? String(qrOptions.colorHex).replace('#', '')
-    : '000000';
-
-  const qrBgColor = qrOptions.bgColorHex
-    ? String(qrOptions.bgColorHex).replace('#', '')
-    : 'ffffff';
-
-  const qrError = qrOptions.logoPath
-    ? 'H'
-    : qrOptions.errorCorrection || 'M';
-
-  /*
-   * The activation item should already contain an absolute tracking URL.
-   * If it does not, construct one here as a defensive fallback.
-   */
-  const trackingUrl =
-    item.trackingUrl ||
-    `${getBaseUrl()}/resolve/${qrCodeId}`;
-
-  const encodedQrData = encodeURIComponent(trackingUrl);
-
-  let generatedQrUrl =
-    `https://api.qrserver.com/v1/create-qr-code/?` +
-    `size=512x512` +
-    `&data=${encodedQrData}` +
-    `&color=${qrColor}` +
-    `&bgcolor=${qrBgColor}` +
-    `&ecc=${qrError}`;
-
-  if (qrOptions.logoPath) {
-    generatedQrUrl +=
-      `&logo=${encodeURIComponent(qrOptions.logoPath)}`;
-  }
-
-  const storagePath =
-    `qr/${requestData.retailerId}/` +
-    `${requestData.campaignId}/` +
-    `${qrCodeId}.png`;
-
-  return {
+  await itemDoc.ref.update({
     status: 'DONE',
-    storagePath,
-    signedUrl: generatedQrUrl,
-    trackingUrl,
-    checksum: '',
+    activationId: stableIds.activationId,
+    deploymentIds: stableIds.deploymentIds,
+    qrCodeIds: [],
     error: admin.firestore.FieldValue.delete(),
-  };
-};
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+async function refreshRequestStatus(
+  requestRef: FirebaseFirestore.DocumentReference
+): Promise<void> {
+  const itemsSnapshot = await requestRef.collection('items').get();
+
+  if (itemsSnapshot.empty) {
+    await requestRef.update({
+      status: 'FAILED',
+      error: 'BULK_REQUEST_EMPTY: No work items were found.',
+      itemsDone: 0,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  const itemData = itemsSnapshot.docs.map((doc) => doc.data());
+
+  const itemsDone = itemData.filter(
+    (item) => item.status === 'DONE'
+  ).length;
+
+  const allDone = itemsDone === itemData.length;
+
+  const hasExhaustedError = itemData.some(
+    (item) =>
+      item.status === 'ERROR' &&
+      typeof item.retryCount === 'number' &&
+      item.retryCount >= 3
+  );
+
+  if (allDone) {
+    await requestRef.update({
+      status: 'COMPLETED',
+      itemsDone,
+      error: admin.firestore.FieldValue.delete(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  if (hasExhaustedError) {
+    await requestRef.update({
+      status: 'FAILED',
+      itemsDone,
+      error:
+        'One or more bulk items exhausted their retry allowance.',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  await requestRef.update({
+    status: 'QUEUED',
+    itemsDone,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+async function recordItemError(
+  itemRef: FirebaseFirestore.DocumentReference,
+  error: unknown
+): Promise<void> {
+  const message =
+    error instanceof Error ? error.message : 'Unknown processing error';
+
+  await itemRef.update({
+    status: 'ERROR',
+    error: message,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
 
 const processBulkQrQueueFlow = ai.defineFlow(
   {
@@ -150,12 +259,6 @@ const processBulkQrQueueFlow = ai.defineFlow(
     let itemsRetriedCount = 0;
     let processedRequestId: string | undefined;
 
-    /*
-     * ============================================================
-     * 1. PROCESS ONE QUEUED ACTIVATION REQUEST
-     * ============================================================
-     */
-
     const requestsRef = db.collection('bulkQrRequests');
 
     const queuedRequestQuery = requestsRef
@@ -163,562 +266,142 @@ const processBulkQrQueueFlow = ai.defineFlow(
       .orderBy('createdAt')
       .limit(1);
 
-    const queuedSnapshot =
-      await queuedRequestQuery.get();
+    const queuedSnapshot = await queuedRequestQuery.get();
 
-    if (!queuedSnapshot.empty) {
+    if (queuedSnapshot.empty === false) {
       const requestDoc = queuedSnapshot.docs[0];
-
       processedRequestId = requestDoc.id;
 
-      try {
-        /*
-         * Lock the request before processing it.
-         */
-        await db.runTransaction(async (transaction) => {
-          const currentDoc =
-            await transaction.get(requestDoc.ref);
+      let lockAcquired = false;
 
-          if (!currentDoc.exists) {
-            throw new Error(
-              'Activation request no longer exists.'
-            );
+      try {
+        await db.runTransaction(async (transaction) => {
+          const currentDoc = await transaction.get(requestDoc.ref);
+
+          if (currentDoc.exists === false) {
+            throw new Error('Bulk request no longer exists.');
           }
 
-          if (
-            currentDoc.data()?.status !== 'QUEUED'
-          ) {
-            throw new Error(
-              'Request was locked by another process.'
-            );
+          if (currentDoc.data()?.status !== 'QUEUED') {
+            throw new Error('REQUEST_LOCKED');
           }
 
           transaction.update(requestDoc.ref, {
             status: 'PROCESSING',
-            updatedAt:
-              admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
         });
 
-        /*
-         * Re-read the request after acquiring the lock so that the
-         * processor works with the authoritative persisted activation.
-         */
-        const lockedRequestDoc =
-          await requestDoc.ref.get();
+        lockAcquired = true;
 
-        if (!lockedRequestDoc.exists) {
-          throw new Error(
-            'Activation request disappeared during processing.'
-          );
+        const lockedRequestDoc = await requestDoc.ref.get();
+
+        if (lockedRequestDoc.exists === false) {
+          throw new Error('Bulk request disappeared during processing.');
         }
 
-        const requestData =
-          lockedRequestDoc.data() || {};
+        const requestData = lockedRequestDoc.data() || {};
 
-        const itemsRef =
-          requestDoc.ref.collection('items');
+        requireNonEmptyString(requestData.retailerId, 'retailerId');
+        requireNonEmptyString(requestData.submittedBy, 'submittedBy');
 
-        const pendingItemsQuery = itemsRef
+        const itemsRef = requestDoc.ref.collection('items');
+
+        const pendingItemsSnapshot = await itemsRef
           .where('status', '==', 'PENDING')
-          .limit(100);
+          .limit(100)
+          .get();
 
-        const pendingItemsSnapshot =
-          await pendingItemsQuery.get();
+        itemsProcessedCount = pendingItemsSnapshot.size;
 
-        if (!pendingItemsSnapshot.empty) {
-          itemsProcessedCount =
-            pendingItemsSnapshot.size;
-
-          const batch = db.batch();
-
-          for (
-            const itemDoc of pendingItemsSnapshot.docs
-          ) {
-            const itemData = itemDoc.data();
-
-            const updateData =
-              generateQrForItem(
-                itemData,
-                requestData
-              );
-
-            /*
-             * Update the activation item.
-             */
-            batch.update(
-              itemDoc.ref,
-              {
-                ...updateData,
-                updatedAt:
-                  admin.firestore.FieldValue.serverTimestamp(),
-              }
-            );
-
-            /*
-             * Create the authoritative QR master record.
-             *
-             * IMPORTANT:
-             * The activation context is deliberately copied here.
-             * This prevents the final QR record from becoming detached
-             * from the retailer's original Point-of-Decision intent.
-             */
-            const qrMasterRef =
-              db
-                .collection('qrcodes')
-                .doc(itemData.qrCodeId);
-
-            batch.set(
-              qrMasterRef,
-              {
-                /*
-                 * Core identity / relationships
-                 */
-                retailerId:
-                  requestData.retailerId,
-
-                campaignId:
-                  requestData.campaignId,
-
-                requestId:
-                  lockedRequestDoc.id,
-
-                qrCodeId:
-                  itemData.qrCodeId,
-
-                /*
-                 * Activation target
-                 */
-                target:
-                  requestData.target || {
-                    category: null,
-                    subCategory: null,
-                    productType: null,
-                    brandId: null,
-                    brandName: null,
-                    targetProductName: null,
-                    targetProductGtin:
-                      itemData.targetProductGtin ||
-                      null,
-                  },
-
-                /*
-                 * Exact promoted product, where applicable.
-                 *
-                 * This is intentionally separate from productGtins.
-                 */
-                targetProductGtin:
-                  requestData.target
-                    ?.targetProductGtin ||
-                  itemData.targetProductGtin ||
-                  null,
-
-                /*
-                 * Shopper decision / comparison context.
-                 *
-                 * These products do NOT represent separate QR identities.
-                 */
-                productGtins:
-                  requestData.productGtins ||
-                  itemData.productGtins ||
-                  [],
-
-                /*
-                 * Physical Point-of-Decision context
-                 */
-                storeId:
-                  requestData.storeId ||
-                  itemData.storeId ||
-                  null,
-
-                storeName:
-                  requestData.storeName ||
-                  itemData.storeName ||
-                  null,
-
-                location:
-                  requestData.location ||
-                  itemData.location ||
-                  null,
-
-                /*
-                 * Shopper objective
-                 */
-                shopperObjective:
-                  requestData.shopperObjective ||
-                  null,
-
-                /*
-                 * Product-friendly legacy field retained for compatibility.
-                 */
-                productName:
-                  requestData.productName ||
-                  requestData.target
-                    ?.targetProductName ||
-                  null,
-
-                /*
-                 * Scan / destination infrastructure
-                 */
-                redirectUrl:
-                  itemData.finalRedirectUrl ||
-                  '',
-
-                trackingUrl:
-                  updateData.trackingUrl,
-
-                storagePath:
-                  updateData.storagePath,
-
-                signedUrl:
-                  updateData.signedUrl,
-
-                /*
-                 * Measurement
-                 */
-                scanCount: 0,
-
-                /*
-                 * QR / GS1 state
-                 */
-                isGs1Compliant:
-                  requestData.isGs1Compliant ??
-                  true,
-
-                dataStatus:
-                  requestData.dataStatus ||
-                  'VERIFIED',
-
-                status: 'ACTIVE',
-
-                /*
-                 * Preserve relevant activation options.
-                 * This gives downstream experiences access to the
-                 * configured AI / destination behaviour without having
-                 * to look up the request first.
-                 */
-                options:
-                  requestData.options ||
-                  {},
-
-                /*
-                 * Timestamps
-                 */
-                createdAt:
-                  admin.firestore.FieldValue.serverTimestamp(),
-
-                updatedAt:
-                  admin.firestore.FieldValue.serverTimestamp(),
-
-                expiresAt:
-                  requestData.options?.expiresAt
-                    ? new Date(
-                        requestData.options.expiresAt
-                      )
-                    : null,
-              },
-              { merge: true }
-            );
+        for (const itemDoc of pendingItemsSnapshot.docs) {
+          try {
+            await processCanonicalItem(itemDoc, requestData);
+          } catch (error: unknown) {
+            await recordItemError(itemDoc.ref, error);
           }
-
-          await batch.commit();
         }
 
-        /*
-         * Determine whether every activation item has completed.
-         */
-        const allItemsSnapshot =
-          await itemsRef.get();
-
-        const allItemsDone =
-          !allItemsSnapshot.empty &&
-          allItemsSnapshot.docs.every(
-            (doc) =>
-              doc.data().status === 'DONE'
-          );
-
-        if (allItemsDone) {
-          await requestDoc.ref.update({
-            status: 'COMPLETED',
-            itemsDone:
-              allItemsSnapshot.size,
-            updatedAt:
-              admin.firestore.FieldValue.serverTimestamp(),
-          });
-        } else {
-          /*
-           * Keep the request in PROCESSING if there are still
-           * pending items to be handled by another invocation.
-           */
-          await requestDoc.ref.update({
-            status: 'QUEUED',
-            itemsDone:
-              allItemsSnapshot.docs.filter(
-                (doc) =>
-                  doc.data().status === 'DONE'
-              ).length,
-            updatedAt:
-              admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
+        await refreshRequestStatus(requestDoc.ref);
       } catch (error: unknown) {
         const message =
-          error instanceof Error
-            ? error.message
-            : 'Unknown processing error';
+          error instanceof Error ? error.message : 'Unknown request error';
 
-        if (message === 'Request was locked by another process.') {
+        if (message === 'REQUEST_LOCKED') {
           console.log(
-            `[QR Management] Activation ${processedRequestId} is already being processed by another worker.`
+            `[QR Management] Bulk request ${processedRequestId} is already being processed by another worker.`
           );
         } else {
-          if (processedRequestId) {
-            await requestsRef
-              .doc(processedRequestId)
-              .update({
-                status: 'FAILED',
-                error: message,
-                updatedAt:
-                  admin.firestore.FieldValue.serverTimestamp(),
-              });
+          if (lockAcquired && processedRequestId) {
+            await requestsRef.doc(processedRequestId).update({
+              status: 'FAILED',
+              error: message,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
           }
 
           console.error(
-            `[QR Management] Failed to process activation ${processedRequestId}:`,
+            `[QR Management] Failed to process bulk request ${processedRequestId}:`,
             message
           );
         }
       }
     }
 
-    /*
-     * ============================================================
-     * 2. RETRY ERRORED ACTIVATION ITEMS
-     * ============================================================
-     *
-     * This remains global because the existing queue architecture
-     * stores activation items beneath each bulkQrRequests document.
-     */
+    const erroredItemsSnapshot = await db
+      .collectionGroup('items')
+      .where('status', '==', 'ERROR')
+      .where('retryCount', '<', 3)
+      .limit(50)
+      .get();
 
-    const erroredItemsQuery =
-      db
-        .collectionGroup('items')
-        .where('status', '==', 'ERROR')
-        .where('retryCount', '<', 3)
-        .limit(50);
+    itemsRetriedCount = erroredItemsSnapshot.size;
 
-    const erroredItemsSnapshot =
-      await erroredItemsQuery.get();
+    for (const itemDoc of erroredItemsSnapshot.docs) {
+      const requestRef = itemDoc.ref.parent.parent;
 
-    if (!erroredItemsSnapshot.empty) {
-      itemsRetriedCount =
-        erroredItemsSnapshot.size;
-
-      for (
-        const itemDoc of erroredItemsSnapshot.docs
-      ) {
-        const itemData =
-          itemDoc.data();
-
-        const requestRef =
-          itemDoc.ref.parent.parent;
-
-        if (!requestRef) {
-          continue;
-        }
-
-        const requestDoc =
-          await requestRef.get();
-
-        if (!requestDoc.exists) {
-          continue;
-        }
-
-        const requestData =
-          requestDoc.data() || {};
-
-        try {
-          const updateData =
-            generateQrForItem(
-              itemData,
-              requestData
-            );
-
-          const batch = db.batch();
-
-          /*
-           * Return the activation item to DONE.
-           */
-          batch.update(
-            itemDoc.ref,
-            {
-              ...updateData,
-              retryCount:
-                admin.firestore.FieldValue.increment(
-                  1
-                ),
-              updatedAt:
-                admin.firestore.FieldValue.serverTimestamp(),
-            }
-          );
-
-          /*
-           * Update the authoritative QR record with the
-           * same activation context used by the normal path.
-           */
-          const qrMasterRef =
-            db
-              .collection('qrcodes')
-              .doc(itemData.qrCodeId);
-
-          batch.set(
-            qrMasterRef,
-            {
-              retailerId:
-                requestData.retailerId,
-
-              campaignId:
-                requestData.campaignId,
-
-              requestId:
-                requestDoc.id,
-
-              qrCodeId:
-                itemData.qrCodeId,
-
-              target:
-                requestData.target || {
-                  category: null,
-                  subCategory: null,
-                  productType: null,
-                  brandId: null,
-                  brandName: null,
-                  targetProductName: null,
-                  targetProductGtin:
-                    itemData.targetProductGtin ||
-                    null,
-                },
-
-              targetProductGtin:
-                requestData.target
-                  ?.targetProductGtin ||
-                itemData.targetProductGtin ||
-                null,
-
-              productGtins:
-                requestData.productGtins ||
-                itemData.productGtins ||
-                [],
-
-              storeId:
-                requestData.storeId ||
-                itemData.storeId ||
-                null,
-
-              storeName:
-                requestData.storeName ||
-                itemData.storeName ||
-                null,
-
-              location:
-                requestData.location ||
-                itemData.location ||
-                null,
-
-              shopperObjective:
-                requestData.shopperObjective ||
-                null,
-
-              productName:
-                requestData.productName ||
-                requestData.target
-                  ?.targetProductName ||
-                null,
-
-              redirectUrl:
-                itemData.finalRedirectUrl ||
-                '',
-
-              trackingUrl:
-                updateData.trackingUrl,
-
-              storagePath:
-                updateData.storagePath,
-
-              signedUrl:
-                updateData.signedUrl,
-
-              status: 'ACTIVE',
-
-              isGs1Compliant:
-                requestData.isGs1Compliant ??
-                true,
-
-              dataStatus:
-                requestData.dataStatus ||
-                'VERIFIED',
-
-              options:
-                requestData.options ||
-                {},
-
-              updatedAt:
-                admin.firestore.FieldValue.serverTimestamp(),
-
-              expiresAt:
-                requestData.options?.expiresAt
-                  ? new Date(
-                      requestData.options.expiresAt
-                    )
-                  : null,
-            },
-            { merge: true }
-          );
-
-          await batch.commit();
-        } catch (error: unknown) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : 'Unknown retry error';
-
-          await itemDoc.ref.update({
-            error: message,
-            retryCount:
-              admin.firestore.FieldValue.increment(
-                1
-              ),
-            updatedAt:
-              admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
+      if (requestRef == null) {
+        continue;
       }
-    }
 
-    /*
-     * ============================================================
-     * 3. RESPONSE
-     * ============================================================
-     */
+      const requestDoc = await requestRef.get();
+
+      if (requestDoc.exists === false) {
+        continue;
+      }
+
+      const requestData = requestDoc.data() || {};
+
+      try {
+        await itemDoc.ref.update({
+          retryCount: admin.firestore.FieldValue.increment(1),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        await processCanonicalItem(itemDoc, requestData);
+      } catch (error: unknown) {
+        await recordItemError(itemDoc.ref, error);
+      }
+
+      await refreshRequestStatus(requestRef);
+    }
 
     const messages: string[] = [];
 
     if (itemsProcessedCount > 0) {
       messages.push(
-        `Processed ${itemsProcessedCount} activation item(s) for request ${processedRequestId}.`
+        `Processed ${itemsProcessedCount} canonical bulk item(s) for request ${processedRequestId}.`
       );
     }
 
     if (itemsRetriedCount > 0) {
       messages.push(
-        `Retried ${itemsRetriedCount} errored activation item(s).`
+        `Retried ${itemsRetriedCount} errored canonical bulk item(s).`
       );
     }
 
     if (messages.length === 0) {
-      messages.push(
-        'No new or errored activation items to process.'
-      );
+      messages.push('No new or errored bulk items to process.');
     }
 
     return {

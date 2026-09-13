@@ -72,6 +72,7 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     try {
       await requestRef.set({
         retailerId: authorizedRetailerId,
+        submittedBy: actor.uid,
         totalRequested: data.items.length,
         itemsDone: 0,
         status: 'SUBMITTING',

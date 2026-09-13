@@ -6,11 +6,8 @@ import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type 
 import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
 import { analyzeDecisionIntelligence, type DecisionIntelligenceOutput } from './analyze-decision-intelligence';
 import { assignDisplayConfig } from './assign-display-config';
-import { deleteBulkQrRequest, type DeleteBulkQrRequestInput, type DeleteBulkQrRequestOutput } from './delete-bulk-qr-request';
 import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './submit-bulk-qr-request';
-import { generateCampaignAI, type GenerateCampaignAIInput, type GenerateCampaignAIOutput } from './generate-campaign-ai';
 import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
-import { generateZipForRequest, type GenerateZipForRequestInput, type GenerateZipForRequestOutput } from './generate-zip-for-request';
 import { getDisplays, type Display } from './get-displays';
 import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
 import { getQrTemplates } from './get-qr-templates';
@@ -96,11 +93,8 @@ export {
     analyzeEngagementMetrics,
     analyzeDecisionIntelligence,
     assignDisplayConfig,
-    deleteBulkQrRequest,
     submitBulkQrRequest,
-    generateCampaignAI,
     generateCrossSellRecommendations,
-    generateZipForRequest,
     getDisplays,
     getExecutiveRoiMetrics,
     getQrTemplates,
@@ -155,11 +149,8 @@ export type {
     AnalyzeCampaignPerformanceInput, AnalyzeCampaignPerformanceOutput,
     AnalyzeEngagementMetricsOutput,
     DecisionIntelligenceOutput,
-    DeleteBulkQrRequestInput, DeleteBulkQrRequestOutput,
     SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput,
-    GenerateCampaignAIInput, GenerateCampaignAIOutput,
     GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput,
-    GenerateZipForRequestInput, GenerateZipForRequestOutput,
     Display,
     ExecutiveRoiMetricsOutput,
     GetQrTemplatesInput,

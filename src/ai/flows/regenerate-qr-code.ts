@@ -3,13 +3,21 @@
 /**
  * @fileOverview Canonical QR reprint flow.
  *
- * Reprinting preserves QR identity. The client supplies only qrCodeId;
- * all Campaign, Activation, Deployment, tenant, tracking, and artifact
- * relationships are resolved and validated server-side.
+ * ARCHITECTURE:
+ * - Reprinting preserves QR identity.
+ * - The client supplies only qrCodeId.
+ * - Campaign, Activation, Deployment, tenant, and tracking relationships
+ *   are resolved and validated server-side.
+ * - The existing canonical trackingUrl is rendered locally.
+ * - Reprinting does not create or replace QR identity.
+ * - Reprinting does not mutate the canonical QR document.
+ * - The rendered PNG is a transient operational artifact.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import QRCode from 'qrcode';
+
 import { admin, db } from '@/lib/firebase-admin';
 import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
 import { requireCapability } from '@/lib/authorization';
@@ -22,7 +30,9 @@ import {
 
 const RegenerateQrCodeOutputSchema = z.object({
   success: z.boolean(),
-  signedUrl: z.string(),
+  qrCodeId: z.string(),
+  trackingUrl: z.string().url(),
+  qrImageDataUrl: z.string().min(1),
   regeneratedAt: z.string(),
 });
 
@@ -64,136 +74,144 @@ const regenerateQrCodeFlow = ai.defineFlow(
 
     const qrRef = db.collection('qrcodes').doc(data.qrCodeId);
 
-    const result = await db.runTransaction(async (transaction) => {
-      const qrSnapshot = await transaction.get(qrRef);
+    /*
+     * Read and validate the complete canonical QR → Deployment relationship
+     * inside a transaction so the rendering context is derived from one
+     * consistent database view.
+     *
+     * The transaction deliberately performs no writes.
+     */
+    const renderingContext = await db.runTransaction(
+      async (transaction) => {
+        const qrSnapshot = await transaction.get(qrRef);
 
-      if (qrSnapshot.exists === false) {
-        throw new Error('QR_NOT_FOUND');
+        if (qrSnapshot.exists === false) {
+          throw new Error('QR_NOT_FOUND');
+        }
+
+        const rawQr = qrSnapshot.data();
+
+        if (rawQr === undefined) {
+          throw new Error(
+            'QR_INTEGRITY_ERROR: QR identity is unreadable.'
+          );
+        }
+
+        const qrCode = QrCodeSchema.parse(rawQr);
+
+        if (qrCode.qrCodeId !== data.qrCodeId) {
+          throw new Error(
+            'QR_INTEGRITY_ERROR: QR document identity does not match the requested QR.'
+          );
+        }
+
+        if (qrCode.retailerId !== authorizedRetailerId) {
+          throw new Error(
+            'ACCESS_DENIED: QR identity does not belong to the authorized retailer.'
+          );
+        }
+
+        if (qrCode.environment !== 'PRODUCTION') {
+          throw new Error(
+            'QR_INTEGRITY_ERROR: Canonical production reprint only supports production QR identities.'
+          );
+        }
+
+        if (qrCode.status === 'RETIRED') {
+          throw new Error(
+            'QR_RETIRED: Retired QR identities cannot be reprinted.'
+          );
+        }
+
+        const deploymentRef = db
+          .collection('deployments')
+          .doc(qrCode.deploymentId);
+
+        const deploymentSnapshot = await transaction.get(deploymentRef);
+
+        if (deploymentSnapshot.exists === false) {
+          throw new Error(
+            'DEPLOYMENT_NOT_FOUND: QR identity references a Deployment that does not exist.'
+          );
+        }
+
+        const rawDeployment = deploymentSnapshot.data();
+
+        if (rawDeployment === undefined) {
+          throw new Error(
+            'DEPLOYMENT_INTEGRITY_ERROR: QR identity references an unreadable Deployment.'
+          );
+        }
+
+        const deployment = DeploymentSchema.parse(rawDeployment);
+
+        if (
+          deployment.retailerId !== qrCode.retailerId ||
+          deployment.campaignId !== qrCode.campaignId ||
+          deployment.activationId !== qrCode.activationId ||
+          deployment.deploymentId !== qrCode.deploymentId ||
+          deployment.qrCodeId !== qrCode.qrCodeId
+        ) {
+          throw new Error(
+            'QR_INTEGRITY_ERROR: QR identity does not match the Deployment relationship chain.'
+          );
+        }
+
+        if (deployment.removedAt !== undefined) {
+          throw new Error(
+            'DEPLOYMENT_REMOVED: QR identities bound to removed Deployments cannot be reprinted.'
+          );
+        }
+
+        return {
+          qrCodeId: qrCode.qrCodeId,
+          retailerId: qrCode.retailerId,
+          campaignId: qrCode.campaignId,
+          activationId: qrCode.activationId,
+          deploymentId: qrCode.deploymentId,
+          trackingUrl: qrCode.trackingUrl,
+        };
       }
+    );
 
-      const rawQr = qrSnapshot.data();
-
-      if (rawQr === undefined) {
-        throw new Error('QR_INTEGRITY_ERROR: QR identity is unreadable.');
+    /*
+     * Render only after canonical database validation has completed.
+     * The QR image is derived from the existing stable trackingUrl and
+     * therefore cannot create or replace QR identity.
+     */
+    const qrImageDataUrl = await QRCode.toDataURL(
+      renderingContext.trackingUrl,
+      {
+        errorCorrectionLevel: 'M',
+        type: 'image/png',
+        width: 512,
+        margin: 4,
       }
+    );
 
-      const qrCode = QrCodeSchema.parse(rawQr);
+    /*
+     * Audit only after rendering succeeds. A failed render must not be
+     * recorded as a successful QR reprint.
+     */
+    const now = admin.firestore.Timestamp.now();
 
-      if (qrCode.qrCodeId !== data.qrCodeId) {
-        throw new Error(
-          'QR_INTEGRITY_ERROR: QR document identity does not match the requested QR.'
-        );
-      }
-
-      if (qrCode.retailerId !== authorizedRetailerId) {
-        throw new Error(
-          'ACCESS_DENIED: QR identity does not belong to the authorized retailer.'
-        );
-      }
-
-      if (qrCode.environment !== 'PRODUCTION') {
-        throw new Error(
-          'QR_INTEGRITY_ERROR: Canonical production reprint only supports production QR identities.'
-        );
-      }
-
-      if (qrCode.status === 'RETIRED') {
-        throw new Error(
-          'QR_RETIRED: Retired QR identities cannot be reprinted.'
-        );
-      }
-
-      const deploymentRef = db
-        .collection('deployments')
-        .doc(qrCode.deploymentId);
-
-      const deploymentSnapshot = await transaction.get(deploymentRef);
-
-      if (deploymentSnapshot.exists === false) {
-        throw new Error(
-          'DEPLOYMENT_NOT_FOUND: QR identity references a Deployment that does not exist.'
-        );
-      }
-
-      const rawDeployment = deploymentSnapshot.data();
-
-      if (rawDeployment === undefined) {
-        throw new Error(
-          'DEPLOYMENT_INTEGRITY_ERROR: QR identity references an unreadable Deployment.'
-        );
-      }
-
-      const deployment = DeploymentSchema.parse(rawDeployment);
-
-      if (
-        deployment.retailerId !== qrCode.retailerId ||
-        deployment.campaignId !== qrCode.campaignId ||
-        deployment.activationId !== qrCode.activationId ||
-        deployment.deploymentId !== qrCode.deploymentId ||
-        deployment.qrCodeId !== qrCode.qrCodeId
-      ) {
-        throw new Error(
-          'QR_INTEGRITY_ERROR: QR identity does not match the Deployment relationship chain.'
-        );
-      }
-
-      if (deployment.removedAt !== undefined) {
-        throw new Error(
-          'DEPLOYMENT_REMOVED: QR identities bound to removed Deployments cannot be reprinted.'
-        );
-      }
-
-      const encodedTrackingUrl = encodeURIComponent(qrCode.trackingUrl);
-      const signedUrl =
-        `https://api.qrserver.com/v1/create-qr-code/?size=512x512` +
-        `&data=${encodedTrackingUrl}&color=000000&bgcolor=ffffff&ecc=M`;
-
-      const storagePath =
-        qrCode.storagePath ??
-        `qr/${qrCode.retailerId}/${qrCode.campaignId}/${qrCode.qrCodeId}.png`;
-
-      const now = admin.firestore.Timestamp.now();
-
-      const candidateQrCode = {
-        ...qrCode,
-        storagePath,
-        signedUrl,
-        updatedAt: now,
-        updatedBy: actor.uid,
-      };
-
-      QrCodeSchema.parse(candidateQrCode);
-
-      transaction.update(qrRef, {
-        storagePath: candidateQrCode.storagePath,
-        signedUrl: candidateQrCode.signedUrl,
-        updatedAt: candidateQrCode.updatedAt,
-        updatedBy: candidateQrCode.updatedBy,
-      });
-
-      const auditLogRef = db.collection('auditLogs').doc();
-
-      transaction.set(auditLogRef, {
-        type: 'QR_REPRINT',
-        retailerId: qrCode.retailerId,
-        campaignId: qrCode.campaignId,
-        activationId: qrCode.activationId,
-        deploymentId: qrCode.deploymentId,
-        qrCodeId: qrCode.qrCodeId,
-        actorUid: actor.uid,
-        timestamp: now,
-      });
-
-      return {
-        signedUrl,
-        regeneratedAt: now.toDate().toISOString(),
-      };
+    await db.collection('auditLogs').add({
+      type: 'QR_REPRINT',
+      retailerId: renderingContext.retailerId,
+      campaignId: renderingContext.campaignId,
+      activationId: renderingContext.activationId,
+      deploymentId: renderingContext.deploymentId,
+      qrCodeId: renderingContext.qrCodeId,
+      actorUid: actor.uid,
+      timestamp: now,
     });
 
     return {
       success: true,
-      signedUrl: result.signedUrl,
-      regeneratedAt: result.regeneratedAt,
+      qrCodeId: renderingContext.qrCodeId,
+      trackingUrl: renderingContext.trackingUrl,
+      qrImageDataUrl,
+      regeneratedAt: now.toDate().toISOString(),
     };
   }
 );

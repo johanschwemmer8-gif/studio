@@ -64,3 +64,21 @@ export const RemoveDeploymentInputSchema =
 export type RemoveDeploymentInput = z.infer<
   typeof RemoveDeploymentInputSchema
 >;
+
+/**
+ * Command contract for generating the operational Deployment Pack for an
+ * existing Deployment with an already-bound production QR identity.
+ *
+ * Campaign, Activation, QR identity, tracking URL, store/placement context,
+ * and printable artifact data are deliberately not accepted from the client.
+ * They are resolved and validated server-side from canonical records.
+ *
+ * Generating a Deployment Pack does not create or replace QR identity and
+ * does not advance Deployment lifecycle state.
+ */
+export const GenerateDeploymentPackInputSchema =
+  DeploymentLifecycleInputSchema;
+
+export type GenerateDeploymentPackInput = z.infer<
+  typeof GenerateDeploymentPackInputSchema
+>;

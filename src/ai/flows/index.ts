@@ -53,6 +53,7 @@ import { markDeploymentDeployed, type MarkDeploymentDeployedOutput } from './mar
 import { reportDeploymentProblem, type ReportDeploymentProblemOutput } from './report-deployment-problem';
 import { resolveDeploymentProblem, type ResolveDeploymentProblemOutput } from './resolve-deployment-problem';
 import { removeDeployment, type RemoveDeploymentOutput } from './remove-deployment';
+import { generateDeploymentPack, type GenerateDeploymentPackOutput } from './generate-deployment-pack';
 import { bindQrToDeployment, type BindQrToDeploymentOutput } from './bind-qr-to-deployment';
 import { beginQrShopperSession, type BeginQrShopperSessionOutput } from './begin-qr-shopper-session';
 import {
@@ -63,6 +64,7 @@ import {
     type ReportDeploymentProblemInput,
     type ResolveDeploymentProblemInput,
     type RemoveDeploymentInput,
+    type GenerateDeploymentPackInput,
 } from '@/lib/schemas/deployment-command';
 import { type BindQrToDeploymentInput } from '@/lib/schemas/qr-command';
 import { type BeginQrShopperSessionInput } from '@/lib/schemas/shopper-session-command';
@@ -127,6 +129,7 @@ export {
     reportDeploymentProblem,
     resolveDeploymentProblem,
     removeDeployment,
+    generateDeploymentPack,
     bindQrToDeployment,
     beginQrShopperSession,
     saveQrTemplate,
@@ -183,6 +186,7 @@ export type {
     ReportDeploymentProblemInput, ReportDeploymentProblemOutput,
     ResolveDeploymentProblemInput, ResolveDeploymentProblemOutput,
     RemoveDeploymentInput, RemoveDeploymentOutput,
+    GenerateDeploymentPackInput, GenerateDeploymentPackOutput,
     BindQrToDeploymentInput, BindQrToDeploymentOutput,
     BeginQrShopperSessionInput, BeginQrShopperSessionOutput,
     SaveQrTemplateInput, SaveQrTemplateOutput,

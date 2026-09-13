@@ -14,6 +14,7 @@ import {
   ShopperContextSchema, 
   RecommendationRationaleSchema 
 } from '@/lib/schemas/interaction-signals';
+import { ShopperSessionSchema } from '@/lib/schemas/shopper-session';
 
 const ARI_CORE_VERSION = '1.7.0';
 
@@ -46,27 +47,59 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
   const db = getDb();
   
   // 1. Authoritative Identity Resolution (Tenant Isolation)
+  //
+  // productChat supports two deliberate modes:
+  // - Generic product guidance: no sessionId is supplied.
+  // - Session-bound POD guidance: sessionId is supplied and the canonical
+  //   Shopper Session becomes authoritative.
+  //
+  // Once a sessionId is supplied, validation MUST fail closed. A missing,
+  // unreadable, or tenant-mismatched Session must never fall back to
+  // client-supplied retailer authority.
   let authorizedRetailerId = input.retailerId || 'unknown';
-  if (db && input.sessionId) {
-    try {
-      const sessionDoc = await db.collection('sessions').doc(input.sessionId).get();
-      if (sessionDoc.exists) {
-        const sessionData = sessionDoc.data();
-        const authoritativeRetailerId = sessionData?.retailerId;
-        
-        if (authoritativeRetailerId) {
-          // Security Gate: Reject client-side spoofing attempt
-          if (input.retailerId && input.retailerId !== 'unknown' && input.retailerId !== authoritativeRetailerId) {
-            console.error(`[Security] Tenant mismatch! Client: ${input.retailerId}, Session: ${authoritativeRetailerId}`);
-            throw new Error("ACCESS_DENIED: Request parameters do not match authorized session tenant.");
-          }
-          authorizedRetailerId = authoritativeRetailerId;
-        }
-      }
-    } catch (e: any) {
-      if (e.message.startsWith("ACCESS_DENIED")) throw e;
-      console.warn("[Auth] Session validation deferred due to infrastructure friction:", e.message);
+
+  if (input.sessionId) {
+    if (!db) {
+      throw new Error(
+        "SESSION_VALIDATION_UNAVAILABLE: Cannot validate the supplied Shopper Session."
+      );
     }
+
+    const sessionDoc = await db
+      .collection('sessions')
+      .doc(input.sessionId)
+      .get();
+
+    if (!sessionDoc.exists) {
+      throw new Error(
+        "SESSION_NOT_FOUND: The supplied Shopper Session does not exist."
+      );
+    }
+
+    const session = ShopperSessionSchema.parse(sessionDoc.data());
+
+    if (session.sessionId !== input.sessionId) {
+      throw new Error(
+        "SESSION_INTEGRITY_ERROR: Shopper Session identity does not match the supplied sessionId."
+      );
+    }
+    const authoritativeRetailerId = session.retailerId;
+
+    if (
+      input.retailerId &&
+      input.retailerId !== 'unknown' &&
+      input.retailerId !== authoritativeRetailerId
+    ) {
+      console.error(
+        `[Security] Tenant mismatch! Client: ${input.retailerId}, Session: ${authoritativeRetailerId}`
+      );
+
+      throw new Error(
+        "ACCESS_DENIED: Request parameters do not match authorized session tenant."
+      );
+    }
+
+    authorizedRetailerId = authoritativeRetailerId;
   }
 
   let shopperProfileContext = "";

@@ -87,6 +87,7 @@ const beginQrShopperSessionFlow = ai.defineFlow(
           session.campaignId !== qr.campaignId ||
           session.activationId !== qr.activationId ||
           session.deploymentId !== qr.deploymentId ||
+          session.configurationVersion !== qr.configurationVersion ||
           session.environment !== qr.environment
         ) {
           throw new Error("SESSION_INTEGRITY_ERROR");

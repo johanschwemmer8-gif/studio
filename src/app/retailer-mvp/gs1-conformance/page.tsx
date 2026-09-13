@@ -91,7 +91,7 @@ export default function RetailerGs1ConformancePage() {
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                 <p className="text-[10px] leading-tight font-bold">GTIN is the only valid identifier for session anchoring.</p>
+                 <p className="text-[10px] leading-tight font-bold">GTIN is authoritative product identity and does not define Shopper Session identity.</p>
               </div>
               <div className="flex items-start gap-3">
                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
@@ -99,7 +99,7 @@ export default function RetailerGs1ConformancePage() {
               </div>
               <div className="flex items-start gap-3">
                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                 <p className="text-[10px] leading-tight font-bold">Unauthenticated scans create isolated behavioral sessions.</p>
+                 <p className="text-[10px] leading-tight font-bold">A QR scan records an exposure event; a Shopper Session begins only on qualifying interaction.</p>
               </div>
             </CardContent>
             <CardFooter>

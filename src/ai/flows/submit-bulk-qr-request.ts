@@ -1,50 +1,26 @@
 'use server';
 
 /**
- * @fileOverview Submit a QR Activation request.
+ * @fileOverview Submit canonical Bulk Activation work.
  *
  * ARCHITECTURE:
- * - One retailer-defined activation = one activation context.
- * - The QR represents the activation / Point of Decision.
- * - The QR is NOT the product identity.
- * - GTIN remains the authoritative product identifier.
- * - Target and Product Context are separate.
- *
- * This flow is the authoritative server-side entry point for creating
- * QR Activation requests.
- *
- * Lifecycle:
- *
- *   SUBMIT
- *      ↓
- *   bulkQrRequests/{requestId}
- *      ↓
- *   items/{qrCodeId} = PENDING
- *      ↓
- *   QUEUED
- *      ↓
- *   process-bulk-qr-queue
- *      ↓
- *   PROCESSING
- *      ↓
- *   qrcodes/{qrCodeId}
- *      ↓
- *   COMPLETED
+ * - bulkQrRequests is a technical orchestration envelope only.
+ * - One child item represents one canonical Activation work item.
+ * - Each work item may contain one or more Deployment intents.
+ * - No Activation, Deployment, QR identity, or tracking URL is created here.
+ * - Canonical business records are created later by the queue processor.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { db } from '@/lib/firebase-admin';
-import { getAuthorizedRetailerId } from '@/lib/auth-server';
+import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
+import { requireCapability } from '@/lib/authorization';
 import {
   SubmitBulkQrRequestInputSchema,
   type SubmitBulkQrRequestInput,
 } from '@/lib/schemas/bulk-qr-request';
 
-/**
- * Re-export the input type so existing consumers such as
- * src/ai/flows/index.ts can continue importing it from this flow.
- */
 export type { SubmitBulkQrRequestInput } from '@/lib/schemas/bulk-qr-request';
 
 const SubmitBulkQrRequestOutputSchema = z.object({
@@ -55,6 +31,8 @@ const SubmitBulkQrRequestOutputSchema = z.object({
 export type SubmitBulkQrRequestOutput = z.infer<
   typeof SubmitBulkQrRequestOutputSchema
 >;
+
+const ITEM_BATCH_SIZE = 400;
 
 export async function submitBulkQrRequest(
   input: SubmitBulkQrRequestInput
@@ -70,217 +48,91 @@ const submitBulkQrRequestFlow = ai.defineFlow(
   },
   async (data) => {
     // -------------------------------------------------------------------------
-    // 1. AUTHORISATION
+    // 1. AUTHENTICATION / AUTHORISATION
     // -------------------------------------------------------------------------
+    const actor = await verifyAuth(data.idToken);
 
     const authorizedRetailerId = await getAuthorizedRetailerId(
       data.idToken,
       data.retailerId
     );
 
+    requireCapability(actor.role, 'ACTIVATION_CREATE');
+
     if (!db) {
       throw new Error('Infrastructure Layer Unavailable.');
     }
 
     // -------------------------------------------------------------------------
-    // 2. VALIDATE ACTIVATION TARGET
+    // 2. CREATE TECHNICAL REQUEST ENVELOPE
     // -------------------------------------------------------------------------
-    //
-    // The shared schema keeps target optional temporarily during migration.
-    //
-    // A production activation submitted through this flow must nevertheless
-    // contain a meaningful target.
-    //
-    // A retailer may target:
-    //   Category
-    //   Category + Sub-category
-    //   Category + Sub-category + Product Type
-    //   Brand
-    //   Specific Product
-    //   Specific Product + GTIN
-    //
-    // Not every level is mandatory.
-
-    const target = data.target;
-
-    if (!target) {
-      throw new Error(
-        'Activation target is required. Select at least a category, product type, brand, or specific product.'
-      );
-    }
-
-    const hasTargetValue = Boolean(
-      target.category?.trim() ||
-        target.subCategory?.trim() ||
-        target.productType?.trim() ||
-        target.brandId?.trim() ||
-        target.brandName?.trim() ||
-        target.targetProductName?.trim() ||
-        target.targetProductGtin?.trim()
-    );
-
-    if (!hasTargetValue) {
-      throw new Error(
-        'Activation target cannot be empty. Select what the retailer wants to promote.'
-      );
-    }
-
-    // -------------------------------------------------------------------------
-    // 3. TARGET GTIN COMPATIBILITY
-    // -------------------------------------------------------------------------
-    //
-    // New activation model:
-    //   target.targetProductGtin
-    //
-    // Legacy consumers may still read:
-    //   options.gtin
-    //
-    // We preserve options.gtin temporarily but make the activation target
-    // authoritative whenever target.targetProductGtin is supplied.
-
-    const targetProductGtin =
-      target.targetProductGtin?.trim() ||
-      data.options?.gtin?.trim() ||
-      undefined;
-
-    // -------------------------------------------------------------------------
-    // 4. CREATE ACTIVATION REQUEST
-    // -------------------------------------------------------------------------
-
     const requestRef = db.collection('bulkQrRequests').doc();
-
     const now = new Date();
 
     try {
       await requestRef.set({
-        // Tenant / campaign relationship
         retailerId: authorizedRetailerId,
-        brandId: data.brandId,
-        campaignId: data.campaignId,
-
-        // ---------------------------------------------------------------------
-        // Activation target
-        // ---------------------------------------------------------------------
-        target: {
-          category: target.category || null,
-          subCategory: target.subCategory || null,
-          productType: target.productType || null,
-          brandId: target.brandId || null,
-          brandName: target.brandName || null,
-          targetProductName: target.targetProductName || null,
-          targetProductGtin: targetProductGtin || null,
-        },
-
-        // ---------------------------------------------------------------------
-        // Product decision/comparison context
-        // ---------------------------------------------------------------------
-        productGtins: data.productGtins || [],
-
-        // ---------------------------------------------------------------------
-        // Physical Point-of-Decision context
-        // ---------------------------------------------------------------------
-        storeId: data.storeId || null,
-        storeName: data.storeName || null,
-        location: data.location || null,
-
-        // ---------------------------------------------------------------------
-        // Shopper objective
-        // ---------------------------------------------------------------------
-        shopperObjective: data.shopperObjective || null,
-
-        // ---------------------------------------------------------------------
-        // Legacy compatibility
-        // ---------------------------------------------------------------------
-        productName:
-          data.productName ||
-          target.targetProductName ||
-          'Unnamed Activation',
-
-        // ---------------------------------------------------------------------
-        // QR generation / experience options
-        // ---------------------------------------------------------------------
-        options: data.options || {},
-
-        // ---------------------------------------------------------------------
-        // Processing state
-        // ---------------------------------------------------------------------
-        totalRequested: data.count,
+        totalRequested: data.items.length,
         itemsDone: 0,
-        status: 'QUEUED',
-
-        // ---------------------------------------------------------------------
-        // Data / standards state
-        // ---------------------------------------------------------------------
-        isGs1Compliant: true,
-        dataStatus: 'VERIFIED',
-
+        status: 'SUBMITTING',
         createdAt: now,
         updatedAt: now,
       });
 
       // -----------------------------------------------------------------------
-      // 5. CREATE QR ITEMS SERVER-SIDE
+      // 3. CREATE ONE TECHNICAL ITEM PER CANONICAL ACTIVATION WORK ITEM
       // -----------------------------------------------------------------------
       //
-      // The browser must NOT create QR identities.
-      //
-      // Each item receives a server-side Firestore document ID that becomes
-      // the QR identity used by the existing resolution/tracking pipeline.
-      //
-      // IMPORTANT:
-      // `count` represents the number of QR identities requested by the
-      // activation request. It does NOT mean one QR per product.
-      //
-      // The current bulk mechanism is retained so existing processing can be
-      // migrated without introducing a new collection or changing scan routes.
-
-      const batch = db.batch();
+      // Firestore write batches are deliberately bounded. The public request
+      // schema may contain thousands of work items, so a single batch would
+      // exceed Firestore's batch-write limit.
       const itemsCollection = requestRef.collection('items');
 
-      for (let index = 0; index < data.count; index += 1) {
-        const itemRef = itemsCollection.doc();
-        const qrCodeId = itemRef.id;
+      for (
+        let offset = 0;
+        offset < data.items.length;
+        offset += ITEM_BATCH_SIZE
+      ) {
+        const batch = db.batch();
+        const chunk = data.items.slice(offset, offset + ITEM_BATCH_SIZE);
 
-        const trackingUrl = `https://interactaoe.co.za/resolve/${qrCodeId}`;
+        for (const workItem of chunk) {
+          const itemRef = itemsCollection.doc();
 
-        batch.set(itemRef, {
-          qrCodeId,
+          batch.set(itemRef, {
+            itemId: itemRef.id,
+            requestId: requestRef.id,
+            retailerId: authorizedRetailerId,
 
-          // Activation/request relationship
-          requestId: requestRef.id,
-          retailerId: authorizedRetailerId,
-          campaignId: data.campaignId,
+            activation: workItem.activation,
+            deployments: workItem.deployments,
 
-          // Physical context
-          storeId: data.storeId || null,
-          storeName: data.storeName || null,
-          location: data.location || null,
+            status: 'PENDING',
+            retryCount: 0,
+            error: null,
 
-          // Target identity
-          targetProductGtin: targetProductGtin || null,
+            activationId: null,
+            deploymentIds: [],
+            qrCodeIds: [],
 
-          // Product decision context
-          productGtins: data.productGtins || [],
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
 
-          // Existing tracking pipeline
-          trackingUrl,
-          finalRedirectUrl:
-            data.options?.landingPageUrl ||
-            (targetProductGtin ? `/p/${targetProductGtin}` : ''),
-
-          // Processing state
-          status: 'PENDING',
-          retryCount: 0,
-
-          createdAt: now,
-          updatedAt: now,
-        });
+        await batch.commit();
       }
 
-      await batch.commit();
+      // -----------------------------------------------------------------------
+      // 4. QUEUE ONLY AFTER EVERY ITEM HAS BEEN PERSISTED
+      // -----------------------------------------------------------------------
+      await requestRef.update({
+        status: 'QUEUED',
+        updatedAt: new Date(),
+      });
 
       console.log(
-        `[QR Management] Activation queued: ${requestRef.id} for Tenant ${authorizedRetailerId}`
+        `[QR Management] Bulk Activation request queued: ${requestRef.id} for Tenant ${authorizedRetailerId}`
       );
 
       return {
@@ -291,12 +143,31 @@ const submitBulkQrRequestFlow = ai.defineFlow(
       const message =
         error instanceof Error ? error.message : 'Unknown persistence error';
 
+      try {
+        await requestRef.set(
+          {
+            retailerId: authorizedRetailerId,
+            totalRequested: data.items.length,
+            itemsDone: 0,
+            status: 'FAILED',
+            error: message,
+            updatedAt: new Date(),
+          },
+          { merge: true }
+        );
+      } catch (statusError) {
+        console.error(
+          '[QR Management] Failed to record bulk submission failure:',
+          statusError
+        );
+      }
+
       console.error(
-        `[QR Management] Activation persistence failure:`,
+        '[QR Management] Bulk Activation submission failure:',
         message
       );
 
-      throw new Error('Failed to create QR activation.');
+      throw new Error('Failed to submit Bulk Activation request.');
     }
   }
 );

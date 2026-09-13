@@ -2,32 +2,16 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import {
-  AuthorizationScope,
-  CanonicalRole,
-  Permissions,
-} from '@/lib/auth-types';
 
-/**
- * Platform operators are a completely separate authorization model from
- * retailer users (see firestore.rules: isPlatformOperator() is intentionally
- * independent of the retailer /users/{uid} profile).
- *
- * AuthUser.role therefore accepts either a retailer CanonicalRole OR the
- * literal 'platformOperator' role, and isPlatformOperator flags which case
- * applies so pages can branch on it if needed.
- */
-type AuthUser = User & {
+export type AuthUser = User & {
   retailerId?: string;
-  role?: CanonicalRole | 'platformOperator';
-  scope?: AuthorizationScope;
-  permissions?: Permissions;
+  role?: 'admin' | 'retailerAdmin' | 'storeManager' | 'analyst';
   isActive?: boolean;
-  isPlatformOperator?: boolean;
+  isPendingProvisioning?: boolean;
 };
 
 type AuthContextType = {
@@ -38,27 +22,6 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * Platform operators are implicitly granted full functional permissions.
- * They are not tied to a retailer/network scope, so retailer-side
- * permission checks are not meaningful for them, but we populate a
- * fully-permissive object so any UI that reads user.permissions.* does
- * not unexpectedly break for an operator.
- */
-const PLATFORM_OPERATOR_PERMISSIONS: Permissions = {
-  dashboard: true,
-  roi: true,
-  visualsReporting: true,
-  realTime: true,
-  abTesting: true,
-  systemIntegration: true,
-  retailMediaNetwork: true,
-  manageUsers: true,
-  manageOrganization: true,
-  approve: true,
-  export: true,
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,99 +29,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!auth || !db) {
-      console.warn('[Auth] Firebase services are not initialized.');
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
         setLoading(false);
         return;
       }
 
-      try {
-        const profileRef = doc(db, 'users', firebaseUser.uid);
-        const profileSnapshot = await getDoc(profileRef);
-
-        if (!profileSnapshot.exists()) {
-          /*
-           * No retailer-side profile. Before treating this as an
-           * unauthenticated identity, check whether this is a platform
-           * operator instead — a separate, independent authorization
-           * model (see firestore.rules: isPlatformOperator()).
-           */
-          const operatorRef = doc(db, 'platformOperators', firebaseUser.uid);
-          const operatorSnapshot = await getDoc(operatorRef);
-
-          if (operatorSnapshot.exists()) {
-            const operatorProfile = operatorSnapshot.data();
-
-            if (
-              operatorProfile.uid === firebaseUser.uid &&
-              operatorProfile.role === 'platformOperator' &&
-              operatorProfile.isActive === true
-            ) {
-              const operatorUser: AuthUser = Object.assign(firebaseUser, {
-                role: 'platformOperator' as const,
-                isActive: true,
-                isPlatformOperator: true,
-                permissions: PLATFORM_OPERATOR_PERMISSIONS,
+      // Live subscription to user profile
+      const profileRef = doc(db, 'users', firebaseUser.uid);
+      const unsubProfile = onSnapshot(profileRef, (docSnap) => {
+          if (docSnap.exists()) {
+              const profile = docSnap.data();
+              const authUser: AuthUser = Object.assign(firebaseUser, {
+                  retailerId: profile.retailerId,
+                  role: profile.role,
+                  isActive: profile.isActive,
+                  isPendingProvisioning: false
               });
-
-              setUser(operatorUser);
-              setLoading(false);
-              return;
-            }
-
-            console.error('[Auth] Invalid or inactive platform operator profile.');
-            setUser(null);
-            setLoading(false);
-            return;
+              setUser(authUser);
+          } else {
+              // Graceful Handling: User exists in Auth but not in Firestore yet
+              const authUser: AuthUser = Object.assign(firebaseUser, {
+                  isPendingProvisioning: true,
+                  role: undefined,
+                  retailerId: undefined
+              });
+              setUser(authUser);
           }
-
-          console.error('[Auth] Authoritative user profile not found.');
-          setUser(null);
           setLoading(false);
-          return;
-        }
-
-        const profile = profileSnapshot.data();
-
-        if (
-          profile.uid !== firebaseUser.uid ||
-          typeof profile.retailerId !== 'string' ||
-          typeof profile.role !== 'string' ||
-          !profile.scope ||
-          !profile.permissions ||
-          profile.isActive !== true
-        ) {
-          console.error('[Auth] Invalid or inactive authoritative user profile.');
-          setUser(null);
+      }, (error) => {
+          console.error('[Auth] Profile sync error:', error);
           setLoading(false);
-          return;
-        }
+      });
 
-        const authUser: AuthUser = Object.assign(firebaseUser, {
-          retailerId: profile.retailerId as string,
-          role: profile.role as CanonicalRole,
-          scope: profile.scope as AuthorizationScope,
-          permissions: profile.permissions as Permissions,
-          isActive: profile.isActive as boolean,
-          isPlatformOperator: false,
-        });
-
-        setUser(authUser);
-      } catch (error) {
-        console.error('[Auth] Failed to load authoritative user profile:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+      return () => unsubProfile();
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
   const signOut = async () => {
@@ -170,8 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
       </div>
     );
   }

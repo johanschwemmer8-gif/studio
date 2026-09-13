@@ -1,0 +1,118 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- AUTHENTICATION HELPERS ---
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getRetailerId() {
+      // Check token first, then fallback to user document for pilot resilience
+      return request.auth.token.retailerId != null 
+        ? request.auth.token.retailerId 
+        : get(/databases/$(database)/documents/users/$(request.auth.uid)).data.retailerId;
+    }
+
+    function isPlatformAdmin() {
+      // Hardened: check for 'admin' role in token OR user document.
+      // Bootstrap bypass removed to prevent unauthorized self-provisioning.
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    function isTenantOwner(retailerId) {
+      return isAuthenticated() && (getRetailerId() == retailerId || isPlatformAdmin());
+    }
+
+    // --- CONFIGURATION HUB ---
+
+    match /tenants/{tenantId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /configurations/{configId} {
+      allow read: if (configId.endsWith('_brand')) || (isAuthenticated());
+      allow write: if isPlatformAdmin() || (
+        isAuthenticated() && 
+        request.auth.token.role == 'retailerAdmin' && 
+        configId == getRetailerId() + '_org'
+      );
+    }
+
+    // --- IDENTITY & PRODUCT LAYER ---
+
+    match /products/{gtin} {
+      allow read: if true;
+      allow create: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(request.resource.data.retailerId));
+      allow update: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(resource.data.retailerId));
+      allow delete: if isPlatformAdmin() || (isAuthenticated() && isTenantOwner(resource.data.retailerId));
+    }
+
+    match /qrcodes/{qrId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
+    }
+
+    match /bulkQrRequests/{requestId} {
+      allow read: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
+      allow create: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
+      allow update, delete: if isPlatformAdmin() || isTenantOwner(request.resource.data.retailerId);
+
+      match /items/{itemId} {
+        allow read, write: if isPlatformAdmin() || isTenantOwner(get(/databases/$(database)/documents/bulkQrRequests/$(requestId)).data.retailerId);
+      }
+    }
+
+    // --- INTELLIGENCE LAYER (iNteract) ---
+
+    match /sessions/{sessionId} {
+      allow create, read, update: if true; 
+    }
+
+    match /events/{eventId} {
+      allow create: if true;
+      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
+    }
+
+    match /ai_conversations/{id} {
+      allow create: if true;
+      allow read: if isPlatformAdmin() || isTenantOwner(resource.data.retailerId);
+    }
+
+    // --- TRANSACTION LAYER ---
+
+    match /baskets/{id} {
+      allow read, write: if isAuthenticated() && (resource == null || resource.data.shopperId == request.auth.uid || request.resource.data.shopperId == request.auth.uid);
+    }
+
+    match /shoppers/{shopperId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == shopperId;
+    }
+
+    match /saved_products/{id} {
+      allow read, write: if isAuthenticated() && (resource == null || resource.data.shopperId == request.auth.uid || request.resource.data.shopperId == request.auth.uid);
+    }
+
+    // --- PLATFORM GOVERNANCE ---
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isPlatformAdmin());
+      allow write: if isPlatformAdmin();
+    }
+
+    match /auditLogs/{logId} {
+      allow read, write: if isPlatformAdmin();
+    }
+
+    // --- FALLBACK ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

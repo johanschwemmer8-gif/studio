@@ -15,8 +15,9 @@ import Image from 'next/image';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 import { Badge } from '@/components/ui/badge';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { BackButton } from '@/components/ui/back-button';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
 
@@ -50,6 +51,20 @@ function RetailerMvpLayoutContent({
 }) {
     const { user } = useAuth();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
+
+    const routesWithOwnBackNavigation = new Set([
+        '/retailer-mvp/ab-testing',
+        '/retailer-mvp/gs1-conformance',
+        '/retailer-mvp/system-integration/pos',
+        '/retailer-mvp/system-integration/crm',
+        '/retailer-mvp/system-integration/pim',
+    ]);
+
+    const showStandardBackButton =
+        pathname !== '/retailer-mvp' &&
+        pathname !== '/retailer-mvp/dashboard' &&
+        !routesWithOwnBackNavigation.has(pathname);
     
     const isPlatformAdmin = user?.role === 'admin';
     const isRetailerUser = ['retailerAdmin', 'storeManager', 'analyst'].includes(user?.role || '');
@@ -140,7 +155,15 @@ function RetailerMvpLayoutContent({
                     </div>
                 )}
                 </header>
-                <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">{children}</main>
+                <main className="p-4 sm:p-6 lg:p-8 bg-background flex-1">
+                      {showStandardBackButton && (
+                          <BackButton
+                              fallback="/retailer-mvp/dashboard"
+                              label="Back to Overview"
+                          />
+                      )}
+                      {children}
+                  </main>
                 <footer className="p-4 text-center text-xs text-muted-foreground border-t">
                     <div className="flex items-center justify-center gap-2">
                         <span>Powered by iNteract AOE. Persistent Retail Intelligence.</span>

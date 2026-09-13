@@ -118,9 +118,9 @@ export default function DocumentationPage() {
                             </AccordionContent>
                         </AccordionItem>
                          <AccordionItem value="item-3">
-                            <AccordionTrigger className="text-lg font-semibold">3. Managing QR Campaigns (Coming Soon)</AccordionTrigger>
+                            <AccordionTrigger className="text-lg font-semibold">3. QR Management</AccordionTrigger>
                             <AccordionContent>
-                                This section will walk you through creating, managing, and tracking your QR code campaigns.
+                                Use QR Management to create Campaigns and shelf Activations, operate physical Deployments, review Bulk Activation History, test experiences in the Interactive Test Laboratory, and manage reusable QR Templates.
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>

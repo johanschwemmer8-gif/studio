@@ -186,7 +186,7 @@ export default function ProductCatalogPage() {
                         Product Catalog
                     </h2>
                     <p className="text-muted-foreground max-w-2xl text-sm">
-                        Manage your participating pilot inventory. Products listed here are available for immediate QR Activation.
+                        Manage your participating pilot inventory. Products listed here can provide Product Context for shelf activations.
                     </p>
                 </div>
 

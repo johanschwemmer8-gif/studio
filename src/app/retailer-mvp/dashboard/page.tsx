@@ -93,7 +93,7 @@ function SetupGuide({ retailerId }: { retailerId: string }) {
     { label: "My Retail Network", href: "/retailer-mvp/organization", done: status.network, desc: "Define your stores and brands." },
     { label: "Brand & Experience", href: "/retailer-mvp/ui-management", done: status.brand, desc: "Upload logos and pick a template." },
     { label: "Product Catalog", href: "/retailer-mvp/products", done: status.catalog, desc: "Add products you want to activate." },
-    { label: "QR Activation", href: "/retailer-mvp/qr-management", done: status.qr, desc: "Create your first digital link." },
+    { label: "QR Management", href: "/retailer-mvp/qr-management", done: status.qr, desc: "Create and operate your in-store QR activations." },
     { label: "Learn the Platform", href: "/retailer-mvp/documentation", done: true, desc: "Review metrics and training guides.", optional: true },
   ];
 

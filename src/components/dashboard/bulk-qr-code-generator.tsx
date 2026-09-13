@@ -1387,7 +1387,7 @@ export default function BulkQRCodeGenerator() {
               asChild
               className="h-12 bg-green-600 px-8 font-black uppercase text-[10px] tracking-widest text-white hover:bg-green-500"
             >
-              <a href="#job-dashboard">
+              <a href="#bulk-activation-history">
                 View Request History
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>

@@ -28,6 +28,7 @@ import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDispla
 import { createCampaign, type CreateCampaignOutput } from './create-campaign';
 import { updateCampaign, type UpdateCampaignOutput } from './update-campaign';
 import { archiveCampaign, type ArchiveCampaignOutput } from './archive-campaign';
+import { listCampaignManagement, type CampaignManagementItem } from './list-campaign-management';
 import { createActivation, type CreateActivationOutput } from './create-activation';
 import { updateActivation, type UpdateActivationOutput } from './update-activation';
 import { submitActivation, type SubmitActivationOutput } from './submit-activation';
@@ -47,6 +48,7 @@ import {
     type ArchiveActivationInput,
 } from '@/lib/schemas/activation-command';
 import { createDeployment, type CreateDeploymentOutput } from './create-deployment';
+import { listDeploymentOperations, type DeploymentOperationsItem } from './list-deployment-operations';
 import { assignDeployment, type AssignDeploymentOutput } from './assign-deployment';
 import { markDeploymentPrinted, type MarkDeploymentPrintedOutput } from './mark-deployment-printed';
 import { markDeploymentDeployed, type MarkDeploymentDeployedOutput } from './mark-deployment-deployed';
@@ -114,6 +116,7 @@ export {
     createCampaign,
     updateCampaign,
     archiveCampaign,
+    listCampaignManagement,
     createActivation,
     updateActivation,
     submitActivation,
@@ -123,6 +126,7 @@ export {
     endActivation,
     archiveActivation,
     createDeployment,
+    listDeploymentOperations,
     assignDeployment,
     markDeploymentPrinted,
     markDeploymentDeployed,
@@ -171,6 +175,7 @@ export type {
     CreateCampaignInput, CreateCampaignOutput,
     UpdateCampaignInput, UpdateCampaignOutput,
     ArchiveCampaignInput, ArchiveCampaignOutput,
+    CampaignManagementItem,
     CreateActivationInput, CreateActivationOutput,
     UpdateActivationInput, UpdateActivationOutput,
     SubmitActivationInput, SubmitActivationOutput,
@@ -180,6 +185,7 @@ export type {
     EndActivationInput, EndActivationOutput,
     ArchiveActivationInput, ArchiveActivationOutput,
     CreateDeploymentInput, CreateDeploymentOutput,
+    DeploymentOperationsItem,
     AssignDeploymentInput, AssignDeploymentOutput,
     MarkDeploymentPrintedInput, MarkDeploymentPrintedOutput,
     MarkDeploymentDeployedInput, MarkDeploymentDeployedOutput,

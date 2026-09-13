@@ -1,15 +1,24 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { PlusCircle, Loader2, Image as ImageIcon, Trash2, Pencil, Copy, Send } from 'lucide-react';
+import * as React from 'react';
+import { Loader2, Palette, Plus } from 'lucide-react';
+
 import { getQrTemplates } from '@/ai/flows/get-qr-templates';
 import type { QrTemplate } from '@/lib/schemas/qr-templates';
+import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
+
+import BrandQrTemplateDesigner from './brand-qr-template-designer';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -17,210 +26,267 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import BrandQrTemplateDesigner from './brand-qr-template-designer';
-import { useAuth } from '@/context/auth-context';
 
+function TemplatePreview({
+  template,
+}: {
+  template: QrTemplate;
+}) {
+  const foreground = template.defaults.colorHex ?? '#000000';
+  const background = template.defaults.bgColorHex ?? '#FFFFFF';
 
-function TemplatePreview({ template }: { template: QrTemplate }) {
-    const defaults = template.defaults || {};
-    const colorHex = defaults.colorHex || '#000000';
-    const bgColorHex = defaults.bgColorHex || '#FFFFFF';
-    const logoPath = defaults.logoPath;
-
-    return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <div className="w-24 h-24 rounded-md border-2 flex items-center justify-center cursor-pointer" style={{ backgroundColor: bgColorHex }}>
-                        {logoPath ? (
-                            <Image src={logoPath} alt={`${template.name} logo`} width={64} height={64} className="object-contain" />
-                        ) : (
-                             <div className="w-16 h-16 rounded-sm" style={{ backgroundColor: colorHex }}></div>
-                        )}
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                     <p>Color: {colorHex}</p>
-                     <p>Background: {bgColorHex}</p>
-                     {logoPath && <p>Includes Logo</p>}
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    )
+  return (
+    <div
+      className="flex h-32 items-center justify-center rounded-lg border"
+      style={{ backgroundColor: background }}
+    >
+      <div
+        className="grid h-20 w-20 grid-cols-5 gap-1 rounded p-2"
+        style={{ backgroundColor: foreground }}
+        aria-label="Presentation preview"
+      >
+        {Array.from({ length: 25 }).map((_, index) => (
+          <span
+            key={index}
+            className="rounded-[1px]"
+            style={{
+              backgroundColor:
+                index % 3 === 0 || index % 7 === 0
+                  ? background
+                  : foreground,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function TemplateCard({ template, onEdit }: { template: QrTemplate, onEdit: (id: string) => void }) {
-    const { toast } = useToast();
-    
-    const handleAction = (action: string) => {
-        toast({
-            title: `${action} Clicked`,
-            description: `Action for "${template.name}" is not yet implemented.`,
-        });
-    };
+function TemplateCard({
+  template,
+}: {
+  template: QrTemplate;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">
+              {template.name}
+            </CardTitle>
+            <CardDescription>
+              {template.description ||
+                'Reusable QR presentation defaults.'}
+            </CardDescription>
+          </div>
 
-    return (
-        <Card className="flex flex-col">
-            <CardHeader>
-                <CardTitle>{template.name}</CardTitle>
-                <CardDescription>{template.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex items-center justify-center">
-                <TemplatePreview template={template} />
-            </CardContent>
-            <CardFooter className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleAction('Apply')}>
-                    <Send className="mr-2 h-3.5 w-3.5" /> Apply
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => onEdit(template.templateId)}>
-                    <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
-                </Button>
-                 <Button variant="outline" size="sm" onClick={() => handleAction('Duplicate')}>
-                    <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => handleAction('Delete')}>
-                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-                </Button>
-            </CardFooter>
-        </Card>
-    );
+          <Badge variant="outline">Presentation</Badge>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <TemplatePreview template={template} />
+
+        <div className="grid gap-2 text-sm">
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">
+              Foreground
+            </span>
+            <span>
+              {template.defaults.colorHex ?? 'Default'}
+            </span>
+          </div>
+
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">
+              Background
+            </span>
+            <span>
+              {template.defaults.bgColorHex ?? 'Default'}
+            </span>
+          </div>
+
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">
+              Error correction
+            </span>
+            <span>
+              {template.defaults.errorCorrection ?? 'Default'}
+            </span>
+          </div>
+
+          {template.defaults.aiTone ? (
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">
+                AI tone default
+              </span>
+              <span className="text-right">
+                {template.defaults.aiTone}
+              </span>
+            </div>
+          ) : null}
+
+          {template.defaults.aiGoal ? (
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">
+                AI goal default
+              </span>
+              <span className="text-right">
+                {template.defaults.aiGoal}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        <p className="break-all text-xs text-muted-foreground">
+          Template ID: {template.templateId}
+        </p>
+      </CardContent>
+    </Card>
+  );
 }
-
 
 export default function BrandQrTemplateGallery() {
-    const { user } = useAuth();
-    const [templates, setTemplates] = useState<QrTemplate[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isDesignerOpen, setIsDesignerOpen] = useState(false);
-    const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>(undefined);
-    const { toast } = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-    const retailerId = user?.retailerId || 'unknown';
+  const [templates, setTemplates] = React.useState<QrTemplate[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [loadFailed, setLoadFailed] = React.useState(false);
+  const [designerOpen, setDesignerOpen] = React.useState(false);
 
-    useEffect(() => {
-        const fetchTemplates = async () => {
-            if (retailerId === 'unknown') return;
-            try {
-                const idToken = await user?.getIdToken();
-                const result = await getQrTemplates({ idToken, retailerId });
-                setTemplates(result);
-            } catch (error: any) {
-                console.error('Failed to fetch templates:', error);
-                toast({
-                    title: 'Error Fetching Templates',
-                    description: error.message || 'Could not load QR templates.',
-                    variant: 'destructive',
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
+  const loadTemplates = React.useCallback(async () => {
+    const authenticatedUser = user;
+    const retailerId = authenticatedUser?.retailerId;
 
-        fetchTemplates();
-    }, [toast, retailerId, user]);
-    
-    const handleCreateNew = () => {
-        setEditingTemplateId(undefined);
-        setIsDesignerOpen(true);
-    };
+    if (!authenticatedUser || !retailerId) {
+      setTemplates([]);
+      setLoading(false);
+      return;
+    }
 
-    const handleEdit = (templateId: string) => {
-        setEditingTemplateId(templateId);
-        setIsDesignerOpen(true);
-    };
+    setLoading(true);
+    setLoadFailed(false);
 
-    const handleDesignerClose = (refresh?: boolean) => {
-        setIsDesignerOpen(false);
-        setEditingTemplateId(undefined);
-        if (refresh) {
-            setLoading(true);
-            user?.getIdToken().then(idToken => {
-              getQrTemplates({ idToken, retailerId })
-                  .then(setTemplates)
-                  .finally(() => setLoading(false));
-            });
-        }
-    };
-    
-    const globalTemplates = templates.filter(t => t.retailerId === 'GLOBAL');
-    const retailerTemplates = templates.filter(t => t.retailerId !== 'GLOBAL');
+    try {
+      const idToken = await authenticatedUser.getIdToken();
 
-    return (
-        <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight mb-2">Brand QR Templates</h2>
-                    <p className="text-muted-foreground max-w-3xl">Design and manage reusable QR code styles for each of your brands.</p>
-                </div>
-                 <Button onClick={handleCreateNew}>
-                    <PlusCircle className="mr-2" />
-                    Create New Template
-                </Button>
-            </div>
+      const result = await getQrTemplates({
+        idToken,
+        retailerId,
+      });
 
-            <Dialog open={isDesignerOpen} onOpenChange={setIsDesignerOpen}>
-                <DialogContent className="max-w-4xl grid-rows-[auto,1fr] p-0 max-h-[90vh]">
-                     <DialogHeader className="p-6 pb-0">
-                        <DialogTitle>{editingTemplateId ? 'Edit' : 'Create'} QR Template</DialogTitle>
-                        <DialogDescription>
-                            Design a reusable QR code style for your brand.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid-rows-1 overflow-y-auto p-6">
-                        <BrandQrTemplateDesigner
-                            templateId={editingTemplateId}
-                            onSave={() => handleDesignerClose(true)}
-                            onCancel={() => handleDesignerClose(false)}
-                        />
-                    </div>
-                </DialogContent>
-            </Dialog>
+      setTemplates(result);
+    } catch (error) {
+      console.error('[QR Templates] Read failed:', error);
 
-            <Separator />
+      setLoadFailed(true);
 
-            {loading ? (
-                <div className="text-center text-muted-foreground py-8">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                    <p>Loading templates...</p>
-                </div>
-            ) : (
-                <div className="space-y-8">
-                    {/* Retailer-specific templates */}
-                    <div>
-                        <h3 className="text-xl font-semibold mb-4">My Brand Templates</h3>
-                         {retailerTemplates.length > 0 ? (
-                             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {retailerTemplates.map(template => (
-                                    <TemplateCard key={template.templateId} template={template} onEdit={handleEdit} />
-                                ))}
-                            </div>
-                         ) : (
-                            <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                                <p className="text-muted-foreground">You haven't created any brand templates yet.</p>
-                                <p className="text-sm text-muted-foreground">Click "Create New Template" to get started.</p>
-                            </div>
-                         )}
-                    </div>
-                    
-                    <Separator />
-                    
-                    {/* Global templates */}
-                     <div>
-                        <h3 className="text-xl font-semibold mb-4">Global Templates</h3>
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {globalTemplates.map(template => (
-                                <TemplateCard key={template.templateId} template={template} onEdit={handleEdit} />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
+      toast({
+        title: 'Could not load QR Templates',
+        description:
+          'Canonical retailer templates could not be loaded.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast]);
+
+  React.useEffect(() => {
+    void loadTemplates();
+  }, [loadTemplates]);
+
+  function handleSaved() {
+    setDesignerOpen(false);
+    void loadTemplates();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">
+            QR Templates
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Create reusable presentation defaults for QR artifacts.
+            Templates are presentation configuration only and do not create
+            or replace QR identity.
+          </p>
         </div>
-    );
+
+        <Button
+          type="button"
+          onClick={() => setDesignerOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Create QR Template
+        </Button>
+      </div>
+
+      {loading ? (
+        <Card>
+          <CardContent className="flex items-center justify-center gap-2 py-14 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            Loading QR Templates...
+          </CardContent>
+        </Card>
+      ) : loadFailed ? (
+        <Card>
+          <CardContent className="py-14 text-center">
+            <p className="font-medium">
+              QR Templates could not be loaded.
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              No template data is shown because the canonical read failed.
+            </p>
+          </CardContent>
+        </Card>
+      ) : templates.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-14 text-center">
+            <Palette className="mb-4 h-10 w-10 text-muted-foreground" />
+            <p className="font-medium">
+              No QR Templates yet.
+            </p>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              Create a reusable presentation template without changing any
+              Campaign, Activation, Deployment, or QR identity.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {templates.map((template) => (
+            <TemplateCard
+              key={template.templateId}
+              template={template}
+            />
+          ))}
+        </div>
+      )}
+
+      <Dialog
+        open={designerOpen}
+        onOpenChange={setDesignerOpen}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create QR Template</DialogTitle>
+            <DialogDescription>
+              Save reusable presentation defaults. This operation does not
+              create a QR identity or modify an existing Deployment.
+            </DialogDescription>
+          </DialogHeader>
+
+          <BrandQrTemplateDesigner
+            onSave={handleSaved}
+            onCancel={() => setDesignerOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }

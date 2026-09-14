@@ -8,14 +8,15 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar';
 import RetailerSidebar from '@/components/dashboard/retailer-sidebar';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, FlaskConical, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { FlaskConical, ShieldCheck, Loader2 } from 'lucide-react';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
 
@@ -47,33 +48,29 @@ function RetailerMvpLayoutContent({
 }: {
   children: React.ReactNode;
 }) {
-    const { user } = useAuth();
-    const isTestEnvironment = user?.retailerId === TEST_RETAILER_ID;
-    const isProvisioned = !!user?.retailerId;
+    const { user, loading, accessType } = useAuth();
+    const router = useRouter();
 
-    // GLOBAL IDENTITY GUARD
-    // Prevents server flow failures by stopping unprovisioned users at the layout level.
-    if (!isProvisioned) {
+    const isRetailerAuthorized =
+        !!user &&
+        accessType === 'retailer' &&
+        !!user.retailerId &&
+        user.isActive === true;
+
+    const isTestEnvironment =
+        isRetailerAuthorized &&
+        user.retailerId === TEST_RETAILER_ID;
+
+    useEffect(() => {
+        if (!loading && !isRetailerAuthorized) {
+            router.replace('/');
+        }
+    }, [loading, isRetailerAuthorized, router]);
+
+    if (loading || !isRetailerAuthorized) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-background p-12 text-center space-y-6">
-                <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-                    <ShieldAlert className="h-10 w-10 text-destructive" />
-                </div>
-                <div className="space-y-2">
-                    <h1 className="text-2xl font-black uppercase tracking-tight">Identity Provisioning Required</h1>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                        Your account has not yet been associated with a specific retailer identity. 
-                        Please contact your Platform Administrator to assign your <code className="text-xs">retailerId</code>.
-                    </p>
-                </div>
-                <div className="flex gap-3">
-                    <Button asChild variant="outline">
-                        <Link href="/create-admin">Open User Management</Link>
-                    </Button>
-                    <Button variant="ghost" onClick={() => window.location.reload()}>
-                        Check Again
-                    </Button>
-                </div>
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
     }

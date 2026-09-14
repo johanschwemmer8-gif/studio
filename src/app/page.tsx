@@ -3,8 +3,9 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -45,6 +46,8 @@ function LoginPageContent() {
   
   const [isAdminResetOpen, setIsAdminResetOpen] = useState(false);
   const [isRetailerResetOpen, setIsRetailerResetOpen] = useState(false);
+  const [isAccessDeniedOpen, setIsAccessDeniedOpen] = useState(false);
+  const [accessDeniedMessage, setAccessDeniedMessage] = useState('');
 
   const router = useRouter();
   const { toast } = useToast();
@@ -60,18 +63,63 @@ function LoginPageContent() {
     const password = userType === 'admin' ? adminPassword : retailerPassword;
     const redirectPath = userType === 'admin' ? '/dashboard/admin' : '/retailer-mvp/dashboard';
 
-    if (!auth) {
+    if (!auth || !db) {
         setError("Firebase is not configured correctly. Please check your environment variables.");
         setIsLoading(false);
         return;
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const uid = credential.user.uid;
+
+      let isAuthorized = false;
+
+      if (userType === 'admin') {
+        const operatorSnapshot = await getDoc(doc(db, 'platformOperators', uid));
+
+        if (operatorSnapshot.exists()) {
+          const operator = operatorSnapshot.data();
+
+          isAuthorized =
+            operator.uid === uid &&
+            operator.role === 'platformOperator' &&
+            operator.isActive === true;
+        }
+      } else {
+        const retailerSnapshot = await getDoc(doc(db, 'users', uid));
+
+        if (retailerSnapshot.exists()) {
+          const retailer = retailerSnapshot.data();
+
+          isAuthorized =
+            retailer.uid === uid &&
+            typeof retailer.retailerId === 'string' &&
+            retailer.retailerId.trim().length > 0 &&
+            typeof retailer.role === 'string' &&
+            !!retailer.scope &&
+            !!retailer.permissions &&
+            retailer.isActive === true;
+        }
+      }
+
+      if (!isAuthorized) {
+        await firebaseSignOut(auth);
+
+        setAccessDeniedMessage(
+          userType === 'admin'
+            ? 'This account is not authorized for iNteract Admin access.'
+            : 'This account is not authorized for Retailer access.'
+        );
+        setIsAccessDeniedOpen(true);
+        return;
+      }
+
       toast({
         title: 'Login Successful',
         description: 'Welcome back!',
       });
+
       router.push(redirectPath);
     } catch (error: any) {
       setError(error.message);
@@ -125,6 +173,22 @@ function LoginPageContent() {
         backgroundRepeat: 'no-repeat',
       }}
     >
+      <Dialog open={isAccessDeniedOpen} onOpenChange={setIsAccessDeniedOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Access Denied</DialogTitle>
+            <DialogDescription>
+              {accessDeniedMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" onClick={() => setIsAccessDeniedOpen(false)}>
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Tabs defaultValue={view === 'retailer' ? 'retailer' : 'admin'} className="w-full max-w-sm">
         {view !== 'retailer' && (
           <TabsList className="grid w-full grid-cols-2">

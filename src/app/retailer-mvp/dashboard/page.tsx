@@ -287,7 +287,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
            {isAnalyticsLoading ? (
-               [...Array(4)].map((_, i) => <Skeleton className="h-32 rounded-xl" />)
+               [...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
            ) : analyticsError ? (
                <div className="lg:col-span-4">
                   <Alert variant="destructive" className="border-2">

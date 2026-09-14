@@ -99,16 +99,16 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, accessType, signOut } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (!loading && (!user || accessType !== 'platform')) {
+      router.replace('/');
     }
-  }, [user, loading, router]);
+  }, [user, loading, accessType, router]);
 
-  if (loading || !user) {
+  if (loading || !user || accessType !== 'platform') {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

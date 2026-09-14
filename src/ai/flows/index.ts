@@ -16,7 +16,6 @@ import { getScanEvents } from './get-scan-events';
 import { type GetScanEventsInput, type GetScanEventsOutput } from '@/lib/schemas/scan-events';
 import { getScanInteraction } from './get-scan-interaction';
 import { type GetScanInteractionInput, type GetScanInteractionOutput } from '@/lib/schemas/scan-interaction';
-import { importExternalQrCodes, type ImportExternalQrCodesInput, type ImportExternalQrCodesOutput } from './import-external-qr-codes';
 import { logABTestConversion, type LogABTestConversionInput } from './log-ab-test-conversion';
 import { logAdClick, type LogAdClickInput } from './log-ad-click';
 import { logPurchaseConversion, type LogPurchaseConversionInput } from './log-purchase-conversion';
@@ -104,7 +103,6 @@ export {
     getQrTemplates,
     getScanEvents,
     getScanInteraction,
-    importExternalQrCodes,
     logABTestConversion,
     logAdClick,
     logPurchaseConversion,
@@ -164,7 +162,6 @@ export type {
     QrTemplate,
     GetScanEventsInput, GetScanEventsOutput,
     GetScanInteractionInput, GetScanInteractionOutput,
-    ImportExternalQrCodesInput, ImportExternalQrCodesOutput,
     LogABTestConversionInput,
     LogAdClickInput,
     LogPurchaseConversionInput,

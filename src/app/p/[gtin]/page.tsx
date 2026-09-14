@@ -1,7 +1,7 @@
 
 'use client';
 
-import { notFound, useSearchParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import AiRecommendations from '@/components/product/ai-recommendations';
@@ -18,7 +18,16 @@ import ShopperProfileCta from '@/components/shopper/shopper-profile-cta';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, increment, onSnapshot } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  increment,
+  onSnapshot,
+} from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, use } from 'react';
 import { BackButton } from '@/components/ui/back-button';
@@ -27,9 +36,6 @@ import type { ShopperProduct } from '@/types/shopper-product';
 
 export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin: string }> }) {
   const { gtin } = use(params);
-  const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session');
-  
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -51,49 +57,6 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
                 return;
             }
 
-            // 2. If session is provided, verify tenant anchoring
-            if (sessionId && db) {
-                const sessSnap = await getDoc(doc(db, 'sessions', sessionId));
-                
-                // If session exists, use it to resolve branding and verify tenant
-                if (sessSnap.exists()) {
-                    const sessionData = sessSnap.data();
-                    const rid = sessionData.retailerId;
-
-                    // SECURITY GATE: Product must belong to the session retailer
-                    if (rid && rid !== 'unknown' && canonicalProduct.retailerId && canonicalProduct.retailerId !== rid) {
-                        console.error("[Security] Tenant Mismatch. Product:", canonicalProduct.retailerId, "Session:", rid);
-                        setError("TENANT_MISMATCH");
-                        setLoading(false);
-                        return;
-                    }
-
-                    // 3. Resolve Branded Experience
-                    if (rid && rid !== 'unknown') {
-                        const configRef = doc(db, 'configurations', `${rid}_brand`);
-                        const configSnap = await getDoc(configRef);
-                        if (configSnap.exists()) {
-                            setRetailerConfig(configSnap.data().data);
-                        }
-                    }
-
-                    // 4. Log View Event
-                    const eventId = `view_${Date.now()}`;
-                    setDoc(doc(db, 'events', eventId), {
-                        eventId,
-                        sessionId,
-                        gtin: canonicalProduct.gtin,
-                        retailerId: rid,
-                        eventType: 'view',
-                        timestamp: serverTimestamp(),
-                        metadata: { source: "experience_layer" }
-                    }).catch(() => {});
-                } else {
-                    // Stale session ID (common after a reset). We proceed without session-anchored branding.
-                    console.warn("[Session] Stale or missing session ID detected. Proceeding as anonymous.");
-                }
-            }
-
             setProduct(canonicalProduct);
         } catch (e: any) {
             console.error("Resolution failure:", e);
@@ -104,7 +67,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
     }
 
     resolveIdentityAndProduct();
-  }, [gtin, sessionId]);
+  }, [gtin]);
 
   if (loading) {
     return (
@@ -144,7 +107,7 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
           toast({ title: "Identification Required", description: "Please identify yourself to build your digital trolley." });
           return;
       }
-      if (!db || !sessionId) return;
+      if (!db) return;
 
       setIsAdding(true);
       try {
@@ -176,16 +139,6 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
                   updatedAt: serverTimestamp(),
               });
           }
-
-          const eventId = `cart_${Date.now()}`;
-          await setDoc(doc(db, 'events', eventId), {
-              eventId,
-              sessionId,
-              gtin: product.gtin,
-              retailerId: retailerConfig?.retailerId || product.retailerId || 'unknown',
-              eventType: 'add_to_cart',
-              timestamp: serverTimestamp(),
-          });
 
           toast({ title: "Added to Trolley", description: `"${product.name}" added.` });
       } catch (e) {

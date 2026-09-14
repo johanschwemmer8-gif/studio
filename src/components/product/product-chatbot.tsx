@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -20,8 +20,6 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import QrScannerCamera from '../qr-scanner-camera';
 import { useAuth } from '@/context/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import {
   Tooltip,
   TooltipContent,
@@ -40,9 +38,6 @@ type ProductChatbotProps = {
 
 export default function ProductChatbot({ product }: ProductChatbotProps) {
   const { user } = useAuth();
-  const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session');
-  
   const [isOpen, setIsOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -77,54 +72,6 @@ export default function ProductChatbot({ product }: ProductChatbotProps) {
           const result = await productChat(chatInput);
           setMessages((prev) => [...prev, { role: 'model', content: result.message }]);
 
-          if (db && sessionId) {
-              const conversationId = `convo_${Date.now()}`;
-              setDoc(doc(db, 'ai_conversations', conversationId), {
-                  conversationId,
-                  sessionId,
-                  shopperId: user?.uid || 'guest',
-                  gtin: product.gtin,
-                  transcript: [...newMessages, { role: 'model', content: result.message }],
-                  shopperContext: result.shopperContext,
-                  timestamp: serverTimestamp(),
-                  aiModel: 'gemini-2.5-flash',
-              }).catch(() => {});
-
-              if (result.rationale && result.rationale.confidence !== 'NONE') {
-                  const recId = `rec_${Date.now()}`;
-                  setDoc(doc(db, 'events', recId), {
-                      eventId: recId,
-                      sessionId,
-                      gtin: product.gtin,
-                      eventType: 'recommendation_event',
-                      timestamp: serverTimestamp(),
-                      metadata: result.rationale
-                  }).catch(() => {});
-              }
-
-              const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
-              
-              if (hasConsent && result.signals && result.signals.length > 0) {
-                  result.signals.forEach((signal) => {
-                      if (signal.evidenceType === 'inferred' && signal.confidence === 'HIGH') {
-                          signal.confidence = 'INFERRED';
-                      }
-
-                      const eventId = `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-                      setDoc(doc(db, 'events', eventId), {
-                          eventId,
-                          sessionId,
-                          gtin: product.gtin,
-                          eventType: 'interaction_signal',
-                          timestamp: serverTimestamp(),
-                          metadata: {
-                              ...signal,
-                              sourceMessage: "[PII REDACTED]",
-                          }
-                      }).catch(() => {});
-                  });
-              }
-          }
       } catch (err) {
           setMessages((prev) => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to ask another question or continue viewing product details." }]);
       }

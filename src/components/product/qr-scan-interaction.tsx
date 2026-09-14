@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useState, useTransition, useRef } from 'react';
-import { getScanInteraction, productChat, type GetScanInteractionOutput } from '@/ai/flows';
+import {
+  beginQrShopperSession,
+  getScanInteraction,
+  productChat,
+  type GetScanInteractionOutput,
+} from '@/ai/flows';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Sparkles, ShieldCheck, Loader2, Send, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
@@ -32,7 +35,8 @@ function TypingIndicator() {
 export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const { user } = useAuth();
   const [data, setData] = useState<GetScanInteractionOutput | null>(null);
-  const [clientDestinationUrl, setClientDestinationUrl] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionRetailerId, setSessionRetailerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -43,35 +47,12 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   useEffect(() => {
     const fetchInteraction = async () => {
       try {
-        let finalDest = 'https://interactaoe.co.za';
-        let resolvedRetailerId = 'unknown';
-        
-        // 1. Client-side fetch for the destination URL and retailer identity
-        if (db) {
-            const qrDoc = await getDoc(doc(db, 'qrcodes', qrId));
-            if (qrDoc.exists()) {
-                const qrData = qrDoc.data();
-                if (qrData.redirectUrl) {
-                    setClientDestinationUrl(qrData.redirectUrl);
-                    finalDest = qrData.redirectUrl;
-                }
-                resolvedRetailerId = qrData.retailerId || 'unknown';
-            }
-        }
-
-        // 2. Call the Genkit flow for the AI greeting
-        const result = await getScanInteraction({ qrId, shopperUid: user?.uid });
-        
-        if (db) {
-            const sessionId = `sess_${Date.now()}`;
-            setDoc(doc(db, 'sessions', sessionId), {
-                sessionId,
-                shopperId: user?.uid || 'guest',
-                startTime: serverTimestamp(),
-                entryQrId: qrId,
-                retailerId: resolvedRetailerId
-            }).catch(() => {});
-        }
+        // A scan/exposure does not create a Shopper Session.
+        // Bootstrap the experience through the canonical server-side resolver.
+        const result = await getScanInteraction({
+          qrId,
+          shopperUid: user?.uid,
+        });
 
         if (result) {
             setData(result);
@@ -111,7 +92,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     if (!userInput.trim() || isPendingChat || isTyping) return;
 
     const userMessage = userInput.trim();
-    const destination = clientDestinationUrl || data?.destinationUrl || 'https://interactaoe.co.za';
+    const destination = data?.destinationUrl || 'https://interactaoe.co.za';
     
     setUserInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
@@ -121,11 +102,28 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         try {
             const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
 
+            let activeSessionId = sessionId;
+            let activeRetailerId = sessionRetailerId;
+
+            if (!activeSessionId || !activeRetailerId) {
+                const session = await beginQrShopperSession({
+                    qrCodeId: qrId,
+                    ...(activeSessionId ? { sessionId: activeSessionId } : {}),
+                });
+
+                activeSessionId = session.sessionId;
+                activeRetailerId = session.retailerId;
+                setSessionId(session.sessionId);
+                setSessionRetailerId(session.retailerId);
+            }
+
             const res = await productChat({
                 url: destination,
                 history: [...messages, { role: 'user', content: userMessage }],
                 shopperUid: user?.uid,
-                hasConsent
+                hasConsent,
+                sessionId: activeSessionId,
+                retailerId: activeRetailerId,
             });
             setMessages(prev => [...prev, { role: 'model', content: res.message }]);
         } catch (e) {
@@ -137,7 +135,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   };
 
   const handleContinue = () => {
-    const destination = clientDestinationUrl || data?.destinationUrl || 'https://interactaoe.co.za';
+    const destination = data?.destinationUrl || 'https://interactaoe.co.za';
     window.location.href = destination;
   };
 

@@ -1,20 +1,42 @@
 'use server';
 
 /**
- * @fileOverview Product-centric QR Activation Flow (Reverted)
+ * @fileOverview Submit canonical Bulk Activation work.
+ *
+ * ARCHITECTURE:
+ * - bulkQrRequests is a technical orchestration envelope only.
+ * - One child item represents one canonical Activation work item.
+ * - Each work item may contain one or more Deployment intents.
+ * - No Activation, Deployment, QR identity, or tracking URL is created here.
+ * - Canonical business records are created later by the queue processor.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { db, admin } from '@/lib/firebase-admin';
-import { SubmitBulkQrRequestInputSchema } from '@/lib/schemas/bulk-qr-request';
+import { db } from '@/lib/firebase-admin';
+import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
+import { requireCapability } from '@/lib/authorization';
+import {
+  SubmitBulkQrRequestInputSchema,
+  type SubmitBulkQrRequestInput,
+} from '@/lib/schemas/bulk-qr-request';
+
+export type { SubmitBulkQrRequestInput } from '@/lib/schemas/bulk-qr-request';
 
 const SubmitBulkQrRequestOutputSchema = z.object({
   success: z.boolean(),
   requestId: z.string(),
 });
 
-export async function submitBulkQrRequest(input: z.infer<typeof SubmitBulkQrRequestInputSchema>) {
+export type SubmitBulkQrRequestOutput = z.infer<
+  typeof SubmitBulkQrRequestOutputSchema
+>;
+
+const ITEM_BATCH_SIZE = 400;
+
+export async function submitBulkQrRequest(
+  input: SubmitBulkQrRequestInput
+): Promise<SubmitBulkQrRequestOutput> {
   return submitBulkQrRequestFlow(input);
 }
 
@@ -25,50 +47,132 @@ const submitBulkQrRequestFlow = ai.defineFlow(
     outputSchema: SubmitBulkQrRequestOutputSchema,
   },
   async (data) => {
+    // -------------------------------------------------------------------------
+    // 1. AUTHENTICATION / AUTHORISATION
+    // -------------------------------------------------------------------------
+    const actor = await verifyAuth(data.idToken);
+
+    if ('error' in actor) {
+      throw new Error(actor.error);
+    }
+
+    const authorizedRetailerId = await getAuthorizedRetailerId(
+      data.idToken,
+      data.retailerId
+    );
+
+    requireCapability(actor.role, 'ACTIVATION_CREATE');
+
     if (!db) {
-        throw new Error('Firestore is not initialized.');
+      throw new Error('Infrastructure Layer Unavailable.');
     }
-    
-    const retailerId = data.retailerId;
-    const { campaignId, options, count } = data;
-    
+
+    // -------------------------------------------------------------------------
+    // 2. CREATE TECHNICAL REQUEST ENVELOPE
+    // -------------------------------------------------------------------------
     const requestRef = db.collection('bulkQrRequests').doc();
-    const batch = db.batch();
+    const now = new Date();
 
-    const requestData = {
-        retailerId,
-        campaignId,
-        totalRequested: count || 1,
-        status: 'QUEUED',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        options: options || {},
-        target: data.target || null,
-        productGtins: data.productGtins || [],
-        storeId: data.storeId || null,
-        storeName: data.storeName || null,
-        location: data.location || null,
-        productName: data.productName || null,
-    };
-    batch.set(requestRef, requestData);
+    try {
+      await requestRef.set({
+        retailerId: authorizedRetailerId,
+        submittedBy: actor.uid,
+        totalRequested: data.items.length,
+        itemsDone: 0,
+        status: 'SUBMITTING',
+        createdAt: now,
+        updatedAt: now,
+      });
 
-    const itemsCollection = requestRef.collection('items');
-    for (let i = 0; i < (count || 1); i++) {
-        const itemRef = itemsCollection.doc();
-        batch.set(itemRef, {
-            index: i,
-            qrCodeId: itemRef.id,
-            retailerId: retailerId,
+      // -----------------------------------------------------------------------
+      // 3. CREATE ONE TECHNICAL ITEM PER CANONICAL ACTIVATION WORK ITEM
+      // -----------------------------------------------------------------------
+      //
+      // Firestore write batches are deliberately bounded. The public request
+      // schema may contain thousands of work items, so a single batch would
+      // exceed Firestore's batch-write limit.
+      const itemsCollection = requestRef.collection('items');
+
+      for (
+        let offset = 0;
+        offset < data.items.length;
+        offset += ITEM_BATCH_SIZE
+      ) {
+        const batch = db.batch();
+        const chunk = data.items.slice(offset, offset + ITEM_BATCH_SIZE);
+
+        for (const workItem of chunk) {
+          const itemRef = itemsCollection.doc();
+
+          batch.set(itemRef, {
+            itemId: itemRef.id,
+            requestId: requestRef.id,
+            retailerId: authorizedRetailerId,
+
+            activation: workItem.activation,
+            deployments: workItem.deployments,
+
             status: 'PENDING',
-            targetProductGtin: options?.gtin || null,
-            productGtins: data.productGtins || [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        });
-    }
+            retryCount: 0,
+            error: null,
 
-    await batch.commit();
-    
-    return { success: true, requestId: requestRef.id };
+            activationId: null,
+            deploymentIds: [],
+            qrCodeIds: [],
+
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+
+        await batch.commit();
+      }
+
+      // -----------------------------------------------------------------------
+      // 4. QUEUE ONLY AFTER EVERY ITEM HAS BEEN PERSISTED
+      // -----------------------------------------------------------------------
+      await requestRef.update({
+        status: 'QUEUED',
+        updatedAt: new Date(),
+      });
+
+      console.log(
+        `[QR Management] Bulk Activation request queued: ${requestRef.id} for Tenant ${authorizedRetailerId}`
+      );
+
+      return {
+        success: true,
+        requestId: requestRef.id,
+      };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown persistence error';
+
+      try {
+        await requestRef.set(
+          {
+            retailerId: authorizedRetailerId,
+            totalRequested: data.items.length,
+            itemsDone: 0,
+            status: 'FAILED',
+            error: message,
+            updatedAt: new Date(),
+          },
+          { merge: true }
+        );
+      } catch (statusError) {
+        console.error(
+          '[QR Management] Failed to record bulk submission failure:',
+          statusError
+        );
+      }
+
+      console.error(
+        '[QR Management] Bulk Activation submission failure:',
+        message
+      );
+
+      throw new Error('Failed to submit Bulk Activation request.');
+    }
   }
 );

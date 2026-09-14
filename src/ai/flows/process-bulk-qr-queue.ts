@@ -1,22 +1,35 @@
 'use server';
 
 /**
- * @fileOverview Authoritative QR Identity Generation Pipeline (Gate 2 Hardened)
- * 
- * SYSTEM GATE: Gate 2 Architectural Invariants.
- * 
- * ARCHITECTURE CONTRACT:
- * 1. ONE ACTIVATION = ONE QR: This processor creates exactly one master qrcodes record per request item.
- * 2. PRIMARY OBJECT: The qrcodes record is the digital twin of the Point-of-Decision Activation.
- * 3. IDENTITY INTEGRITY: Copies POD and Target context from the parent activation.
- * 4. TRACEABILITY: Master records retain a direct link (requestId) back to the operational intent.
+ * @fileOverview Canonical Bulk Activation / Deployment queue processor.
+ *
+ * ARCHITECTURE:
+ *
+ *   bulkQrRequests/{requestId}
+ *        ↓
+ *   items/{itemId}
+ *        ↓
+ *   canonical Activation DRAFT
+ *        ↓
+ *   canonical Deployment(s) NOT_ASSIGNED
+ *
+ * IMPORTANT:
+ * - One bulk item defines one Activation.
+ * - One Activation may create one or more Deployments.
+ * - Stable business IDs are persisted on the queue item before records are created.
+ * - Retries recover the same Activation and Deployment identities.
+ * - This processor does NOT create, bind, activate, or deploy QR identities.
+ * - QR binding occurs later through the canonical Deployment / QR lifecycle.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import { createActivationInternal } from '@/lib/activation-internal';
+import { createDeploymentInternal } from '@/lib/deployment-internal';
+import { BulkActivationWorkItemSchema } from '@/lib/schemas/bulk-qr-request';
 
-if (!admin.apps.length) {
+if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
@@ -28,57 +41,211 @@ const ProcessBulkQrQueueOutputSchema = z.object({
   itemsRetried: z.number().optional(),
 });
 
-export type ProcessBulkQrQueueOutput = z.infer<typeof ProcessBulkQrQueueOutputSchema>;
+export type ProcessBulkQrQueueOutput = z.infer<
+  typeof ProcessBulkQrQueueOutputSchema
+>;
 
-const getBaseUrl = () => {
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_BASE_URL?.trim();
-  if (configuredBaseUrl) {
-    return configuredBaseUrl.replace(/\/+$/, '');
-  }
-  return 'https://interactaoe.co.za';
+type StableItemIdentities = {
+  activationId: string;
+  deploymentIds: string[];
 };
 
-const generateQrForItem = (
-  item: FirebaseFirestore.DocumentData,
+function requireNonEmptyString(value: unknown, fieldName: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`INVALID_BULK_REQUEST: ${fieldName} is required.`);
+  }
+
+  return value;
+}
+
+async function ensureStableItemIdentities(
+  itemRef: FirebaseFirestore.DocumentReference,
+  deploymentCount: number
+): Promise<StableItemIdentities> {
+  const db = admin.firestore();
+
+  return db.runTransaction(async (transaction) => {
+    const currentSnapshot = await transaction.get(itemRef);
+
+    if (currentSnapshot.exists === false) {
+      throw new Error('BULK_ITEM_NOT_FOUND');
+    }
+
+    const currentData = currentSnapshot.data() || {};
+
+    const existingActivationId =
+      typeof currentData.activationId === 'string' &&
+      currentData.activationId.trim().length > 0
+        ? currentData.activationId
+        : undefined;
+
+    const existingDeploymentIds = Array.isArray(currentData.deploymentIds)
+      ? currentData.deploymentIds
+      : [];
+
+    const activationId =
+      existingActivationId || db.collection('activations').doc().id;
+
+    const deploymentIds = Array.from(
+      { length: deploymentCount },
+      (_, index) => {
+        const existingId = existingDeploymentIds[index];
+
+        if (typeof existingId === 'string' && existingId.trim().length > 0) {
+          return existingId;
+        }
+
+        return db.collection('deployments').doc().id;
+      }
+    );
+
+    const identitiesAlreadyStable =
+      existingActivationId === activationId &&
+      existingDeploymentIds.length === deploymentCount &&
+      deploymentIds.every(
+        (deploymentId, index) =>
+          existingDeploymentIds[index] === deploymentId
+      );
+
+    if (identitiesAlreadyStable === false) {
+      transaction.update(itemRef, {
+        activationId,
+        deploymentIds,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    return {
+      activationId,
+      deploymentIds,
+    };
+  });
+}
+
+async function processCanonicalItem(
+  itemDoc: FirebaseFirestore.QueryDocumentSnapshot,
   requestData: FirebaseFirestore.DocumentData
-) => {
-  const qrCodeId = item.qrCodeId;
+): Promise<void> {
+  const retailerId = requireNonEmptyString(
+    requestData.retailerId,
+    'retailerId'
+  );
 
-  if (!qrCodeId) {
-    throw new Error('QR code ID is missing from activation item.');
+  const submittedBy = requireNonEmptyString(
+    requestData.submittedBy,
+    'submittedBy'
+  );
+
+  const itemData = itemDoc.data();
+
+  const workItem = BulkActivationWorkItemSchema.parse({
+    activation: itemData.activation,
+    deployments: itemData.deployments,
+  });
+
+  const stableIds = await ensureStableItemIdentities(
+    itemDoc.ref,
+    workItem.deployments.length
+  );
+
+  await createActivationInternal({
+    activationId: stableIds.activationId,
+    retailerId,
+    actorUid: submittedBy,
+    activation: workItem.activation,
+  });
+
+  for (let index = 0; index < workItem.deployments.length; index += 1) {
+    await createDeploymentInternal({
+      deploymentId: stableIds.deploymentIds[index],
+      retailerId,
+      activationId: stableIds.activationId,
+      actorUid: submittedBy,
+      deployment: workItem.deployments[index],
+    });
   }
 
-  const qrOptions = requestData.options || {};
-  const qrColor = qrOptions.colorHex ? String(qrOptions.colorHex).replace('#', '') : '000000';
-  const qrBgColor = qrOptions.bgColorHex ? String(qrOptions.bgColorHex).replace('#', '') : 'ffffff';
-  const qrError = qrOptions.logoPath ? 'H' : qrOptions.errorCorrection || 'M';
-
-  const trackingUrl = item.trackingUrl || `${getBaseUrl()}/resolve/${qrCodeId}`;
-  const encodedQrData = encodeURIComponent(trackingUrl);
-
-  let generatedQrUrl =
-    `https://api.qrserver.com/v1/create-qr-code/?` +
-    `size=512x512` +
-    `&data=${encodedQrData}` +
-    `&color=${qrColor}` +
-    `&bgcolor=${qrBgColor}` +
-    `&ecc=${qrError}`;
-
-  if (qrOptions.logoPath) {
-    generatedQrUrl += `&logo=${encodeURIComponent(qrOptions.logoPath)}`;
-  }
-
-  const storagePath = `qr/${requestData.retailerId}/${requestData.campaignId}/${qrCodeId}.png`;
-
-  return {
+  await itemDoc.ref.update({
     status: 'DONE',
-    storagePath,
-    signedUrl: generatedQrUrl,
-    trackingUrl,
-    checksum: '',
+    activationId: stableIds.activationId,
+    deploymentIds: stableIds.deploymentIds,
+    qrCodeIds: [],
     error: admin.firestore.FieldValue.delete(),
-  };
-};
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+async function refreshRequestStatus(
+  requestRef: FirebaseFirestore.DocumentReference
+): Promise<void> {
+  const itemsSnapshot = await requestRef.collection('items').get();
+
+  if (itemsSnapshot.empty) {
+    await requestRef.update({
+      status: 'FAILED',
+      error: 'BULK_REQUEST_EMPTY: No work items were found.',
+      itemsDone: 0,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  const itemData = itemsSnapshot.docs.map((doc) => doc.data());
+
+  const itemsDone = itemData.filter(
+    (item) => item.status === 'DONE'
+  ).length;
+
+  const allDone = itemsDone === itemData.length;
+
+  const hasExhaustedError = itemData.some(
+    (item) =>
+      item.status === 'ERROR' &&
+      typeof item.retryCount === 'number' &&
+      item.retryCount >= 3
+  );
+
+  if (allDone) {
+    await requestRef.update({
+      status: 'COMPLETED',
+      itemsDone,
+      error: admin.firestore.FieldValue.delete(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  if (hasExhaustedError) {
+    await requestRef.update({
+      status: 'FAILED',
+      itemsDone,
+      error:
+        'One or more bulk items exhausted their retry allowance.',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  await requestRef.update({
+    status: 'QUEUED',
+    itemsDone,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+async function recordItemError(
+  itemRef: FirebaseFirestore.DocumentReference,
+  error: unknown
+): Promise<void> {
+  const message =
+    error instanceof Error ? error.message : 'Unknown processing error';
+
+  await itemRef.update({
+    status: 'ERROR',
+    error: message,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
 
 const processBulkQrQueueFlow = ai.defineFlow(
   {
@@ -87,117 +254,162 @@ const processBulkQrQueueFlow = ai.defineFlow(
   },
   async () => {
     const db = admin.firestore();
+
     let itemsProcessedCount = 0;
+    let itemsRetriedCount = 0;
     let processedRequestId: string | undefined;
 
     const requestsRef = db.collection('bulkQrRequests');
-    const queuedRequestQuery = requestsRef.where('status', '==', 'QUEUED').orderBy('createdAt').limit(1);
+
+    const queuedRequestQuery = requestsRef
+      .where('status', '==', 'QUEUED')
+      .orderBy('createdAt')
+      .limit(1);
+
     const queuedSnapshot = await queuedRequestQuery.get();
 
-    if (!queuedSnapshot.empty) {
+    if (queuedSnapshot.empty === false) {
       const requestDoc = queuedSnapshot.docs[0];
       processedRequestId = requestDoc.id;
+
+      let lockAcquired = false;
 
       try {
         await db.runTransaction(async (transaction) => {
           const currentDoc = await transaction.get(requestDoc.ref);
-          if (!currentDoc.exists || currentDoc.data()?.status !== 'QUEUED') {
-            throw new Error('Activation request state mismatch.');
+
+          if (currentDoc.exists === false) {
+            throw new Error('Bulk request no longer exists.');
           }
+
+          if (currentDoc.data()?.status !== 'QUEUED') {
+            throw new Error('REQUEST_LOCKED');
+          }
+
           transaction.update(requestDoc.ref, {
             status: 'PROCESSING',
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
         });
 
+        lockAcquired = true;
+
         const lockedRequestDoc = await requestDoc.ref.get();
-        const requestData = lockedRequestDoc.data() || {};
-        const itemsRef = requestDoc.ref.collection('items');
-        const pendingItemsQuery = itemsRef.where('status', '==', 'PENDING').limit(100);
-        const pendingItemsSnapshot = await pendingItemsQuery.get();
 
-        if (!pendingItemsSnapshot.empty) {
-          itemsProcessedCount = pendingItemsSnapshot.size;
-          const batch = db.batch();
-
-          for (const itemDoc of pendingItemsSnapshot.docs) {
-            const itemData = itemDoc.data();
-            const updateData = generateQrForItem(itemData, requestData);
-
-            batch.update(itemDoc.ref, {
-              ...updateData,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-
-            // Authoritative Master QR Record (The Digital Twin of the Activation)
-            const qrMasterRef = db.collection('qrcodes').doc(itemData.qrCodeId);
-
-            batch.set(qrMasterRef, {
-                retailerId: requestData.retailerId,
-                campaignId: requestData.campaignId,
-                requestId: lockedRequestDoc.id,
-                qrCodeId: itemData.qrCodeId,
-
-                // Primary promotional intent (Target)
-                target: requestData.target || null,
-                targetProductGtin: itemData.targetProductGtin || requestData.target?.targetProductGtin || null,
-
-                // Decision context (Separated Context)
-                productContext: requestData.productContext || { productGtins: requestData.productGtins || [] },
-                productGtins: itemData.productGtins || requestData.productGtins || [],
-
-                // Physical Point-of-Decision (POD)
-                storeId: itemData.storeId || requestData.storeId || null,
-                storeName: itemData.storeName || requestData.storeName || null,
-                location: itemData.location || requestData.location || null,
-
-                shopperObjective: requestData.shopperObjective || null,
-                productName: requestData.productName || requestData.target?.targetProductName || null,
-
-                redirectUrl: itemData.finalRedirectUrl || '',
-                trackingUrl: updateData.trackingUrl,
-                signedUrl: updateData.signedUrl,
-
-                scanCount: 0,
-                status: 'ACTIVE',
-                options: requestData.options || {},
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                dataStatus: 'VERIFIED'
-              },
-              { merge: true }
-            );
-          }
-          await batch.commit();
+        if (lockedRequestDoc.exists === false) {
+          throw new Error('Bulk request disappeared during processing.');
         }
 
-        const allItemsSnapshot = await itemsRef.get();
-        const allItemsDone = !allItemsSnapshot.empty && allItemsSnapshot.docs.every(doc => doc.data().status === 'DONE');
+        const requestData = lockedRequestDoc.data() || {};
 
-        await requestDoc.ref.update({
-          status: allItemsDone ? 'COMPLETED' : 'QUEUED',
-          itemsDone: allItemsSnapshot.docs.filter(doc => doc.data().status === 'DONE').length,
+        requireNonEmptyString(requestData.retailerId, 'retailerId');
+        requireNonEmptyString(requestData.submittedBy, 'submittedBy');
+
+        const itemsRef = requestDoc.ref.collection('items');
+
+        const pendingItemsSnapshot = await itemsRef
+          .where('status', '==', 'PENDING')
+          .limit(100)
+          .get();
+
+        itemsProcessedCount = pendingItemsSnapshot.size;
+
+        for (const itemDoc of pendingItemsSnapshot.docs) {
+          try {
+            await processCanonicalItem(itemDoc, requestData);
+          } catch (error: unknown) {
+            await recordItemError(itemDoc.ref, error);
+          }
+        }
+
+        await refreshRequestStatus(requestDoc.ref);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown request error';
+
+        if (message === 'REQUEST_LOCKED') {
+          console.log(
+            `[QR Management] Bulk request ${processedRequestId} is already being processed by another worker.`
+          );
+        } else {
+          if (lockAcquired && processedRequestId) {
+            await requestsRef.doc(processedRequestId).update({
+              status: 'FAILED',
+              error: message,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+
+          console.error(
+            `[QR Management] Failed to process bulk request ${processedRequestId}:`,
+            message
+          );
+        }
+      }
+    }
+
+    const erroredItemsSnapshot = await db
+      .collectionGroup('items')
+      .where('status', '==', 'ERROR')
+      .where('retryCount', '<', 3)
+      .limit(50)
+      .get();
+
+    itemsRetriedCount = erroredItemsSnapshot.size;
+
+    for (const itemDoc of erroredItemsSnapshot.docs) {
+      const requestRef = itemDoc.ref.parent.parent;
+
+      if (requestRef == null) {
+        continue;
+      }
+
+      const requestDoc = await requestRef.get();
+
+      if (requestDoc.exists === false) {
+        continue;
+      }
+
+      const requestData = requestDoc.data() || {};
+
+      try {
+        await itemDoc.ref.update({
+          retryCount: admin.firestore.FieldValue.increment(1),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
+        await processCanonicalItem(itemDoc, requestData);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Processing error';
-        if (processedRequestId) {
-          await requestsRef.doc(processedRequestId).update({
-            status: 'FAILED',
-            error: message,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
-        console.error(`[Gate 2 Engine] Processing FAILED for ${processedRequestId}:`, message);
+        await recordItemError(itemDoc.ref, error);
       }
+
+      await refreshRequestStatus(requestRef);
+    }
+
+    const messages: string[] = [];
+
+    if (itemsProcessedCount > 0) {
+      messages.push(
+        `Processed ${itemsProcessedCount} canonical bulk item(s) for request ${processedRequestId}.`
+      );
+    }
+
+    if (itemsRetriedCount > 0) {
+      messages.push(
+        `Retried ${itemsRetriedCount} errored canonical bulk item(s).`
+      );
+    }
+
+    if (messages.length === 0) {
+      messages.push('No new or errored bulk items to process.');
     }
 
     return {
       success: true,
-      message: itemsProcessedCount > 0 ? `Processed ${itemsProcessedCount} activation item(s).` : 'No items to process.',
+      message: messages.join(' '),
       processedRequestId,
       itemsProcessed: itemsProcessedCount,
+      itemsRetried: itemsRetriedCount,
     };
   }
 );

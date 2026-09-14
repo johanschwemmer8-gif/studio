@@ -250,3 +250,95 @@ export function canAccessScope(
     allowed: true,
   };
 }
+
+/**
+ * Canonical QR Management domain capabilities.
+ *
+ * This capability layer complements the production hierarchy/scope
+ * authorization model above. It does not authenticate users, resolve
+ * tenants, or expand organizational scope.
+ */
+export const QR_DOMAIN_CAPABILITIES = [
+  'CAMPAIGN_CREATE',
+  'CAMPAIGN_UPDATE',
+  'CAMPAIGN_ARCHIVE',
+  'ACTIVATION_CREATE',
+  'ACTIVATION_UPDATE',
+  'ACTIVATION_SUBMIT',
+  'ACTIVATION_APPROVE',
+  'ACTIVATION_SCHEDULE',
+  'ACTIVATION_PAUSE',
+  'ACTIVATION_END',
+  'ACTIVATION_ARCHIVE',
+  'DEPLOYMENT_CREATE',
+  'DEPLOYMENT_ASSIGN',
+  'DEPLOYMENT_MARK_PRINTED',
+  'DEPLOYMENT_MARK_DEPLOYED',
+  'DEPLOYMENT_REPORT_PROBLEM',
+  'DEPLOYMENT_RESOLVE_PROBLEM',
+  'DEPLOYMENT_REMOVE',
+  'DEPLOYMENT_PACK_GENERATE',
+  'QR_GENERATE',
+  'QR_REPRINT',
+  'ANALYTICS_VIEW',
+] as const;
+
+export type AuthorizationCapability =
+  (typeof QR_DOMAIN_CAPABILITIES)[number];
+
+/**
+ * QR Management domain capabilities complement the production
+ * hierarchy/scope authorization model. They never authenticate a user,
+ * resolve tenancy, or expand organizational scope.
+ *
+ * Network-level administrative roles inherit the historical retailer-admin
+ * QR Management authority.
+ *
+ * Store managers retain the validated store-operational capability set.
+ *
+ * Other scoped management roles remain deliberately conservative until
+ * explicit domain-capability policy is separately approved. Their existing
+ * production hierarchy and functional permissions remain unchanged.
+ */
+const QR_DOMAIN_ROLE_CAPABILITIES: Record<
+  CanonicalRole,
+  readonly AuthorizationCapability[]
+> = {
+  networkOwner: QR_DOMAIN_CAPABILITIES,
+  networkAdmin: QR_DOMAIN_CAPABILITIES,
+
+  brandManager: ['ANALYTICS_VIEW'],
+  divisionManager: ['ANALYTICS_VIEW'],
+  regionalManager: ['ANALYTICS_VIEW'],
+  areaManager: ['ANALYTICS_VIEW'],
+
+  storeManager: [
+    'DEPLOYMENT_MARK_PRINTED',
+    'DEPLOYMENT_MARK_DEPLOYED',
+    'DEPLOYMENT_REPORT_PROBLEM',
+    'DEPLOYMENT_PACK_GENERATE',
+    'QR_REPRINT',
+    'ANALYTICS_VIEW',
+  ],
+
+  storeUser: ['ANALYTICS_VIEW'],
+  analyst: ['ANALYTICS_VIEW'],
+};
+
+export function hasCapability(
+  role: CanonicalRole,
+  capability: AuthorizationCapability
+): boolean {
+  return QR_DOMAIN_ROLE_CAPABILITIES[role].includes(capability);
+}
+
+export function requireCapability(
+  role: CanonicalRole,
+  capability: AuthorizationCapability
+): void {
+  if (!hasCapability(role, capability)) {
+    throw new Error(
+      `ACCESS_DENIED: Role '${role}' is not authorized for capability '${capability}'.`
+    );
+  }
+}

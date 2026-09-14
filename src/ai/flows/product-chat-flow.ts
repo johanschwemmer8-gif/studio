@@ -9,6 +9,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { getDb, admin } from '@/lib/firebase-admin';
 import { buildFactContext } from '@/ai/fact-context';
+import { ShopperSessionSchema } from '@/lib/schemas/shopper-session';
+import { deriveShopperSessionAuthority } from '@/lib/shopper-session-authority';
 import { 
   InteractionSignalSchema, 
   ShopperContextSchema, 
@@ -26,7 +28,7 @@ const ProductChatInputSchema = z.object({
   gtin: z.string().optional().describe('The canonical GS1 product identifier used for grounding.'),
   url: z.string().optional().describe("The destination URL associated with the scan."),
   history: z.array(ChatMessageSchema).describe("The chat history."),
-  shopperUid: z.string().optional().describe("The persistent ID of the shopper."),
+  shopperUid: z.string().optional().describe("Legacy shopper hint. Never authoritative for identity or persistence."),
   hasConsent: z.boolean().default(true).describe("Whether behavioural analysis consent is granted."),
   sessionId: z.string().optional().describe("The active session ID for event anchoring."),
   retailerId: z.string().optional().describe("The retailer ID for tenant isolation."),
@@ -68,16 +70,8 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
       }
   }
 
-  // 2. Identity Retrieval (Minimised Context)
-  if (input.shopperUid && db) {
-    try {
-      const shopperDoc = await db.collection('shoppers').doc(input.shopperUid).get();
-      const shopperName = shopperDoc.data()?.displayName || "Shopper";
-      shopperProfileContext = `SHOPPER: Recognized as ${shopperName}. Maintain relationship continuity.`;
-    } catch (e) {
-      console.warn("[Shopper Identity] Context omitted due to read failure.");
-    }
-  }
+  // 2. Shopper identity is not caller-authoritative.
+  // Anonymous interactions remain guest unless the canonical Session carries shopperId.
 
   const conversationHistory = input.history.map((msg) => ({
     role: msg.role,
@@ -125,15 +119,31 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
       // 3. PERSISTENCE LAYER: Only if database, session, and consent are available
       if (db && input.sessionId) {
           const sessionId = input.sessionId;
-          const gtin = input.gtin || '00000000000000';
-          const retailerId = input.retailerId || 'unknown';
+          const sessionSnapshot = await db.collection('sessions').doc(sessionId).get();
+
+          if (!sessionSnapshot.exists) {
+              throw new Error('SESSION_NOT_FOUND');
+          }
+
+          const session = ShopperSessionSchema.parse(sessionSnapshot.data());
+
+          const authority = deriveShopperSessionAuthority({
+              requestedSessionId: sessionId,
+              requestedRetailerId: input.retailerId,
+              requestedGtin: input.gtin,
+              session
+          });
+
+          const gtin = authority.gtin;
+          const retailerId = authority.retailerId;
+          const shopperId = authority.shopperId;
 
           // A. Log Conversation Node
           const conversationId = `convo_${Date.now()}`;
           db.collection('ai_conversations').doc(conversationId).set({
               conversationId,
               sessionId,
-              shopperId: input.shopperUid || 'guest',
+              shopperId,
               gtin,
               retailerId,
               transcript: [...input.history, { role: 'model', content: output.message }],

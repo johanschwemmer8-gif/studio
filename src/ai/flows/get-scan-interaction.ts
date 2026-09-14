@@ -13,9 +13,11 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { randomUUID } from 'node:crypto';
 
-import { getDb } from '@/lib/firebase-admin';
+import { admin, getDb } from '@/lib/firebase-admin';
 import { resolveProductionQr } from '@/lib/qr-resolution';
+import { QrExposureSchema } from '@/lib/schemas/qr-exposure';
 import {
   GetScanInteractionInputSchema,
   type GetScanInteractionInput,
@@ -86,6 +88,28 @@ function resolveDestination(
   return 'https://interactaoe.co.za';
 }
 
+
+function resolveUnambiguousExposureGtin(
+  activation: Awaited<ReturnType<typeof resolveProductionQr>>['activation']
+): string | undefined {
+  const gtins = new Set<string>();
+
+  if (
+    activation.target.level === 'PRODUCT' &&
+    activation.target.productGtin
+  ) {
+    gtins.add(activation.target.productGtin);
+  }
+
+  for (const product of activation.productContext) {
+    if (product.gtin) {
+      gtins.add(product.gtin);
+    }
+  }
+
+  return gtins.size === 1 ? Array.from(gtins)[0] : undefined;
+}
+
 export async function getScanInteraction(
   input: GetScanInteractionInput
 ): Promise<GetScanInteractionOutput> {
@@ -129,6 +153,25 @@ const getScanInteractionFlow = ai.defineFlow(
     }
 
     const { qr, activation, campaign } = await resolveProductionQr(qrId);
+
+    const exposureId = `exp_${randomUUID()}`;
+    const exposureGtin = resolveUnambiguousExposureGtin(activation);
+    const exposureData = {
+      exposureId,
+      retailerId: qr.retailerId,
+      campaignId: qr.campaignId,
+      activationId: qr.activationId,
+      deploymentId: qr.deploymentId,
+      qrCodeId: qr.qrCodeId,
+      configurationVersion: qr.configurationVersion,
+      environment: qr.environment,
+      timestamp: admin.firestore.Timestamp.now(),
+      ...(exposureGtin ? { gtin: exposureGtin } : {}),
+    };
+
+    QrExposureSchema.parse(exposureData);
+    await db.collection('qrExposures').doc(exposureId).create(exposureData);
+
     const experienceConfig = activation.experienceConfig;
 
     let shopperName: string | undefined;

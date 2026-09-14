@@ -190,16 +190,29 @@ service cloud.firestore {
         // --- INTELLIGENCE LAYER (iNteract) ---
 
     match /sessions/{sessionId} {
-      allow create, read, update: if true; 
+      // Canonical Shopper Sessions are created and mutated only by trusted
+      // server-side flows using the Admin SDK. Retailer clients may read only
+      // Sessions belonging to their own retailer.
+      allow read: if isSameRetailer(resource.data.retailerId);
+      allow create, update, delete: if false;
     }
 
     match /events/{eventId} {
-      allow create: if true;
+      // Canonical Decision Intelligence events are server-authoritative.
+      allow create, update, delete: if false;
       allow read: if isSameRetailer(resource.data.retailerId);
     }
 
+    match /qrExposures/{exposureId} {
+      // Canonical QR exposures are written only by trusted server-side flows.
+      // Retailer clients may read only exposures belonging to their own retailer.
+      allow read: if isSameRetailer(resource.data.retailerId);
+      allow create, update, delete: if false;
+    }
+
     match /ai_conversations/{id} {
-      allow create: if true;
+      // AI conversation persistence is server-authoritative.
+      allow create, update, delete: if false;
       allow read: if isSameRetailer(resource.data.retailerId);
     }
 

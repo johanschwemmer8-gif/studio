@@ -5,6 +5,7 @@ import { z } from 'genkit';
 import { admin, db } from '@/lib/firebase-admin';
 import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
 import { requireCapability } from '@/lib/authorization';
+import { requireQrStoreResourceAccess } from '@/lib/qr-resource-authorization';
 import { DeploymentSchema } from '@/lib/schemas/deployment';
 import {
   ReportDeploymentProblemInputSchema,
@@ -71,6 +72,8 @@ const reportDeploymentProblemFlow = ai.defineFlow(
         'ACCESS_DENIED: Deployment does not belong to the authorized retailer.'
       );
     }
+
+    requireQrStoreResourceAccess(actor, existingDeployment.storeId);
 
     if (existingDeployment.removedAt !== undefined) {
       throw new Error(

@@ -21,6 +21,7 @@ import QRCode from 'qrcode';
 import { admin, db } from '@/lib/firebase-admin';
 import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
 import { requireCapability } from '@/lib/authorization';
+import { requireQrStoreResourceAccess } from '@/lib/qr-resource-authorization';
 import { DeploymentSchema } from '@/lib/schemas/deployment';
 import { QrCodeSchema } from '@/lib/schemas/qr-code';
 import {
@@ -156,6 +157,8 @@ const regenerateQrCodeFlow = ai.defineFlow(
             'QR_INTEGRITY_ERROR: QR identity does not match the Deployment relationship chain.'
           );
         }
+
+        requireQrStoreResourceAccess(actor, deployment.storeId);
 
         if (deployment.removedAt !== undefined) {
           throw new Error(

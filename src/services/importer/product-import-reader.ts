@@ -1,12 +1,11 @@
 /**
  * Bulk Product Import File Reader
  *
- * Reads CSV and XLSX files into a neutral tabular structure.
+ * Reads CSV product import files into a neutral tabular structure.
  *
  * Responsibilities:
  * - Detect supported file type.
  * - Parse CSV using PapaParse.
- * - Parse XLSX using SheetJS.
  * - Preserve source column names.
  * - Preserve spreadsheet row numbers.
  *
@@ -19,9 +18,8 @@
  */
 
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
 
-export type ProductImportFileType = 'CSV' | 'XLSX';
+export type ProductImportFileType = 'CSV';
 
 export type ProductImportSourceRow = {
   rowNumber: number;
@@ -41,7 +39,6 @@ function getFileType(filename: string): ProductImportFileType | null {
   const extension = filename.toLowerCase().split('.').pop();
 
   if (extension === 'csv') return 'CSV';
-  if (extension === 'xlsx') return 'XLSX';
 
   return null;
 }
@@ -77,82 +74,6 @@ function readCsv(
   };
 }
 
-function readXlsx(
-  buffer: ArrayBuffer,
-  filename: string
-): ProductImportReadResult {
-  const workbook = XLSX.read(buffer, {
-    type: 'array',
-    cellDates: false,
-  });
-
-  const firstSheetName = workbook.SheetNames[0];
-
-  if (!firstSheetName) {
-    throw new Error('The Excel workbook does not contain a worksheet.');
-  }
-
-  const worksheet = workbook.Sheets[firstSheetName];
-
-  if (!worksheet) {
-    throw new Error('The selected Excel worksheet could not be read.');
-  }
-
-  const rawRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
-    header: 1,
-    defval: '',
-    raw: true,
-  });
-
-  if (rawRows.length === 0) {
-    return {
-      fileType: 'XLSX',
-      filename,
-      columns: [],
-      rows: [],
-    };
-  }
-
-  const headerRow = rawRows[0] || [];
-
-  const columns = headerRow.map(cleanColumnName);
-
-  if (columns.every((column) => !column)) {
-    throw new Error('The Excel worksheet does not contain a header row.');
-  }
-
-  const rows: ProductImportSourceRow[] = [];
-
-  for (let index = 1; index < rawRows.length; index += 1) {
-    const sourceRow = rawRows[index] || [];
-
-    const values: Record<string, unknown> = {};
-
-    columns.forEach((column, columnIndex) => {
-      if (!column) return;
-      values[column] = sourceRow[columnIndex] ?? '';
-    });
-
-    const hasValue = Object.values(values).some(
-      (value) => String(value ?? '').trim() !== ''
-    );
-
-    if (hasValue) {
-      rows.push({
-        rowNumber: index + 1,
-        values,
-      });
-    }
-  }
-
-  return {
-    fileType: 'XLSX',
-    filename,
-    columns,
-    rows,
-  };
-}
-
 export async function readProductImportFile(
   file: File
 ): Promise<ProductImportReadResult> {
@@ -178,17 +99,11 @@ export async function readProductImportFile(
 
   if (!fileType) {
     throw new Error(
-      'Unsupported file type. Please upload a CSV or XLSX file.'
+      'Unsupported file type. Please upload a CSV file.'
     );
   }
 
-  if (fileType === 'CSV') {
-    const content = await file.text();
+  const content = await file.text();
 
-    return readCsv(content, file.name);
-  }
-
-  const buffer = await file.arrayBuffer();
-
-  return readXlsx(buffer, file.name);
+  return readCsv(content, file.name);
 }

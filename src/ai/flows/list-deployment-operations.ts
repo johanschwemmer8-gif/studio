@@ -4,6 +4,7 @@ import { ai } from "@/ai/genkit";
 import { z } from "genkit";
 import { db } from "@/lib/firebase-admin";
 import { verifyAuth, getAuthorizedRetailerId } from "@/lib/auth-server";
+import { canAccessQrStoreResource } from "@/lib/qr-resource-authorization";
 import { DeploymentSchema } from "@/lib/schemas/deployment";
 import { ActivationSchema } from "@/lib/schemas/activation";
 import { CampaignSchema } from "@/lib/schemas/campaign";
@@ -96,7 +97,11 @@ const listDeploymentOperationsFlow = ai.defineFlow(
     outputSchema: ListDeploymentOperationsOutputSchema,
   },
   async (data) => {
-    await verifyAuth(data.idToken);
+    const actor = await verifyAuth(data.idToken);
+
+    if ("error" in actor) {
+      throw new Error(actor.error);
+    }
 
     const authorizedRetailerId = await getAuthorizedRetailerId(
       data.idToken,
@@ -116,6 +121,10 @@ const listDeploymentOperationsFlow = ai.defineFlow(
 
     for (const document of deploymentSnapshot.docs) {
       const deployment = DeploymentSchema.parse(document.data());
+
+      if (!canAccessQrStoreResource(actor, deployment.storeId)) {
+        continue;
+      }
 
       if (deployment.deploymentId !== document.id) {
         throw new Error("DEPLOYMENT_IDENTITY_MISMATCH");

@@ -57,19 +57,31 @@ const getScanEventsFlow = ai.defineFlow(
         return [];
     }
 
-    // 3. Map to Standard Schema
-    return snapshot.docs.map(doc => {
+    // 3. Return only canonical Session-first events.
+    // Legacy/incomplete records are excluded rather than assigned fabricated identity
+    // or chronology values.
+    return snapshot.docs.flatMap(doc => {
         const data = doc.data();
-        return {
+
+        if (
+            typeof data.sessionId !== 'string' || !data.sessionId ||
+            typeof data.gtin !== 'string' || !data.gtin ||
+            typeof data.campaignId !== 'string' || !data.campaignId ||
+            !(data.timestamp instanceof admin.firestore.Timestamp)
+        ) {
+            return [];
+        }
+
+        return [{
             eventId: doc.id,
-            sessionId: data.sessionId || 'legacy',
-            gtin: data.gtin || '00000000000000',
-            retailerId: data.retailerId,
-            campaignId: data.campaignId || 'unassigned',
-            timestamp: data.timestamp instanceof admin.firestore.Timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString(),
-            userAgent: data.userAgent || 'unknown',
-            referrer: data.referrer || '',
-        };
+            sessionId: data.sessionId,
+            gtin: data.gtin,
+            retailerId: authorizedRetailerId,
+            campaignId: data.campaignId,
+            timestamp: data.timestamp.toDate().toISOString(),
+            userAgent: typeof data.userAgent === 'string' && data.userAgent ? data.userAgent : 'unknown',
+            referrer: typeof data.referrer === 'string' ? data.referrer : '',
+        }];
     });
   }
 );

@@ -386,7 +386,7 @@ export default function BulkProductImportPage() {
             Bulk Product Import
           </h2>
           <p className="text-sm text-muted-foreground">
-            Import products from a CSV or XLSX file.
+            Import products from a CSV file.
           </p>
         </div>
       </div>
@@ -400,7 +400,7 @@ export default function BulkProductImportPage() {
           </h3>
 
           <p className="text-sm text-muted-foreground mt-2 max-w-md">
-            Select a CSV or XLSX file to begin. Your file will be read and
+            Select a CSV file to begin. Your file will be read and
             checked before any products are imported.
           </p>
 
@@ -408,7 +408,7 @@ export default function BulkProductImportPage() {
             <Input
               id="product-import-file"
               type="file"
-              accept=".csv,.xlsx"
+              accept=".csv"
               onChange={handleFileChange}
               disabled={isReading}
               className="max-w-sm"

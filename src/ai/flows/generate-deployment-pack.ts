@@ -20,6 +20,7 @@ import QRCode from "qrcode";
 import { db } from "@/lib/firebase-admin";
 import { verifyAuth, getAuthorizedRetailerId } from "@/lib/auth-server";
 import { requireCapability } from "@/lib/authorization";
+import { requireQrStoreResourceAccess } from "@/lib/qr-resource-authorization";
 import { CampaignSchema } from "@/lib/schemas/campaign";
 import { ActivationSchema } from "@/lib/schemas/activation";
 import {
@@ -126,6 +127,8 @@ const generateDeploymentPackFlow = ai.defineFlow(
         "ACCESS_DENIED: Deployment does not belong to the authorized retailer."
       );
     }
+
+    requireQrStoreResourceAccess(actor, deployment.storeId);
 
     if (deployment.removedAt !== undefined) {
       throw new Error(

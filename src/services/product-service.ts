@@ -59,6 +59,23 @@ export type CanonicalProductResult =
       error: string;
     };
 
+export type CanonicalProductUpdateInput = {
+  firestoreId: string;
+  retailerId: string;
+  retailerSku?: string;
+  barcode?: string;
+  name: string;
+  brand?: string;
+  description?: string;
+  category: string;
+  subcategory?: string;
+  department?: string;
+  price: number;
+  currency?: string;
+  promotionalPrice?: number;
+  imageUrl?: string;
+};
+
 /**
  * Creates a canonical iNteract product record.
  *
@@ -369,6 +386,91 @@ export async function createCanonicalProduct(
       success: false,
       error: error?.message || 'Failed to create product.'
     };
+  }
+}
+
+export async function updateCanonicalProduct(
+  input: CanonicalProductUpdateInput,
+  idToken: string
+): Promise<CanonicalProductResult> {
+  if (!idToken) return { success: false, error: 'Authentication required.' };
+  if (!input.retailerId) return { success: false, error: 'Retailer identity is required.' };
+  if (!input.firestoreId?.trim()) return { success: false, error: 'Product identity is required.' };
+
+  try {
+    const verifiedAuth = await verifyAuth(idToken);
+    if ('error' in verifiedAuth) {
+      return { success: false, error: verifiedAuth.error || 'Authentication failed.' };
+    }
+    if (!verifiedAuth.retailerId || verifiedAuth.retailerId === 'unknown') {
+      return { success: false, error: 'Account is not linked to a valid retailer.' };
+    }
+    if (verifiedAuth.retailerId !== input.retailerId) {
+      return { success: false, error: 'Access denied: retailer identity does not match your account.' };
+    }
+
+    const name = input.name?.trim();
+    const category = input.category?.trim();
+    if (!name) return { success: false, error: 'Product name is required.' };
+    if (!category) return { success: false, error: 'Product category is required.' };
+    if (typeof input.price !== 'number' || !Number.isFinite(input.price) || input.price < 0) {
+      return { success: false, error: 'Product price must be a valid number greater than or equal to zero.' };
+    }
+
+    const currency = (input.currency || 'ZAR').trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      return { success: false, error: 'Currency must be a valid three-letter ISO currency code.' };
+    }
+    if (input.promotionalPrice !== undefined &&
+        (!Number.isFinite(input.promotionalPrice) || input.promotionalPrice < 0)) {
+      return { success: false, error: 'Promotional price must be a valid number greater than or equal to zero.' };
+    }
+
+    const db = getDb();
+    if (!db) return { success: false, error: 'Product database is currently unavailable.' };
+
+    const productRef = db.collection('products').doc(input.firestoreId.trim());
+    const existing = await productRef.get();
+    if (!existing.exists) return { success: false, error: 'Product was not found.' };
+
+    const existingData = existing.data();
+    if (!existingData || existingData.retailerId !== verifiedAuth.retailerId) {
+      return { success: false, error: 'Access denied: product is outside your retailer catalog.' };
+    }
+
+    const now = admin.firestore.Timestamp.now();
+    const optionalText = (value?: string) => value?.trim() || null;
+    const updates: Record<string, unknown> = {
+      name,
+      category,
+      price: Number(input.price.toFixed(2)),
+      currency,
+      retailerSku: optionalText(input.retailerSku),
+      barcode: optionalText(input.barcode),
+      brand: optionalText(input.brand),
+      description: optionalText(input.description),
+      subcategory: optionalText(input.subcategory),
+      department: optionalText(input.department),
+      imageUrl: optionalText(input.imageUrl),
+      promotionalPrice: input.promotionalPrice === undefined ? null : Number(input.promotionalPrice.toFixed(2)),
+      updatedAt: now,
+      updatedBy: verifiedAuth.uid
+    };
+
+    await productRef.update(updates);
+    return {
+      success: true,
+      product: {
+        ...existingData,
+        ...updates,
+        productId: existingData.productId || input.firestoreId,
+        retailerId: existingData.retailerId,
+        ...(existingData.gtin ? { gtin: existingData.gtin } : {})
+      }
+    };
+  } catch (error: any) {
+    console.error('[ProductService] Failed to update canonical product:', error);
+    return { success: false, error: error?.message || 'Failed to update product.' };
   }
 }
 

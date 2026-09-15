@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
-import { addCanonicalProduct } from './actions';
+import { addCanonicalProduct, updateCatalogProduct } from './actions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,8 +45,11 @@ type Product = {
     brand?: string;
     description?: string;
     category: string;
+    subcategory?: string;
+    department?: string;
     price: number;
     currency?: string;
+    promotionalPrice?: number;
     imageUrl?: string;
 };
 
@@ -67,8 +70,11 @@ export default function ProductCatalogPage() {
         name: '',
         brand: '',
         description: '',
+        department: '',
         category: 'General',
+        subcategory: '',
         price: '',
+        promotionalPrice: '',
         currency: 'ZAR',
         imageUrl: ''
     });
@@ -142,8 +148,11 @@ export default function ProductCatalogPage() {
                     name: formData.name,
                     brand: formData.brand,
                     description: formData.description,
+                    department: formData.department,
                     category: formData.category,
+                    subcategory: formData.subcategory,
                     price: parseFloat(formData.price),
+                    promotionalPrice: formData.promotionalPrice ? parseFloat(formData.promotionalPrice) : undefined,
                     currency: formData.currency,
                     imageUrl: formData.imageUrl,
                     source: 'MANUAL'
@@ -174,8 +183,11 @@ export default function ProductCatalogPage() {
                 name: '',
                 brand: '',
                 description: '',
+                department: '',
                 category: 'General',
+                subcategory: '',
                 price: '',
+                promotionalPrice: '',
                 currency: 'ZAR',
                 imageUrl: ''
             });
@@ -192,37 +204,35 @@ export default function ProductCatalogPage() {
 
     const handleUpdateProduct = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!db || !editingProduct) return;
-
+        if (!editingProduct || !user || retailerId === 'unknown') return;
         setIsSaving(true);
-
         try {
-            const productRef = doc(db, 'products', editingProduct.firestoreId);
-
-            await updateDoc(productRef, {
+            const idToken = await user.getIdToken();
+            const result = await updateCatalogProduct({
+                firestoreId: editingProduct.firestoreId,
+                retailerId,
+                retailerSku: editingProduct.retailerSku || undefined,
+                barcode: editingProduct.barcode || undefined,
                 name: editingProduct.name,
-                retailerSku: editingProduct.retailerSku || null,
-                barcode: editingProduct.barcode || null,
-                description: editingProduct.description || '',
+                brand: editingProduct.brand || undefined,
+                description: editingProduct.description || undefined,
+                department: editingProduct.department || undefined,
                 category: editingProduct.category,
-                price: parseFloat(editingProduct.price.toString()) || 0,
-                imageUrl: editingProduct.imageUrl,
-                updatedAt: serverTimestamp()
-            });
+                subcategory: editingProduct.subcategory || undefined,
+                price: Number(editingProduct.price),
+                promotionalPrice: editingProduct.promotionalPrice === undefined ? undefined : Number(editingProduct.promotionalPrice),
+                currency: editingProduct.currency || 'ZAR',
+                imageUrl: editingProduct.imageUrl || undefined
+            }, idToken);
 
-            toast({
-                title: "Product Updated",
-                description: "Changes saved to Firestore."
-            });
-
+            if (!result.success) {
+                toast({ title: "Update Failed", description: result.error, variant: "destructive" });
+                return;
+            }
+            toast({ title: "Product Updated", description: "Changes saved through the canonical Product Service." });
             setEditingProduct(null);
         } catch (error: any) {
-            toast({
-                title: "Update Failed",
-                description: error.message,
-                variant: "destructive"
-            });
+            toast({ title: "Update Failed", description: error?.message || "Unable to update product.", variant: "destructive" });
         } finally {
             setIsSaving(false);
         }
@@ -386,6 +396,11 @@ export default function ProductCatalogPage() {
                                 </div>
 
                                 <div className="space-y-2">
+                                    <Label htmlFor="department" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Department</Label>
+                                    <Input id="department" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} className="h-11" />
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label
                                         htmlFor="category"
                                         className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
@@ -404,6 +419,11 @@ export default function ProductCatalogPage() {
                                         }
                                         className="h-11"
                                     />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="subcategory" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Subcategory</Label>
+                                    <Input id="subcategory" value={formData.subcategory} onChange={e => setFormData({ ...formData, subcategory: e.target.value })} className="h-11" />
                                 </div>
 
                                 <div className="space-y-2">
@@ -492,6 +512,11 @@ export default function ProductCatalogPage() {
                                         placeholder="https://..."
                                         className="h-11"
                                     />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="promotionalPrice" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Promotional Price</Label>
+                                    <Input id="promotionalPrice" type="number" min="0" step="0.01" value={formData.promotionalPrice} onChange={e => setFormData({ ...formData, promotionalPrice: e.target.value })} placeholder="Optional" className="h-11" />
                                 </div>
 
                                 {/* PRICE + CURRENCY */}
@@ -598,6 +623,12 @@ export default function ProductCatalogPage() {
                             <div className="grid gap-5 py-6">
 
                                 <div className="space-y-2">
+                                    <Label htmlFor="edit-gtin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">GTIN</Label>
+                                    <Input id="edit-gtin" value={editingProduct.gtin || ''} readOnly disabled className="h-11 font-mono" />
+                                    <p className="text-[10px] text-muted-foreground">Product identity is protected and cannot be changed here.</p>
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label
                                         htmlFor="edit-sku"
                                         className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
@@ -637,6 +668,16 @@ export default function ProductCatalogPage() {
                                         }
                                         className="h-11 font-mono"
                                     />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-brand" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Brand</Label>
+                                    <Input id="edit-brand" value={editingProduct.brand || ''} onChange={e => setEditingProduct({ ...editingProduct, brand: e.target.value })} className="h-11" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-department" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Department</Label>
+                                    <Input id="edit-department" value={editingProduct.department || ''} onChange={e => setEditingProduct({ ...editingProduct, department: e.target.value })} className="h-11" />
                                 </div>
 
                                 <div className="space-y-2">
@@ -711,6 +752,21 @@ export default function ProductCatalogPage() {
                                 </div>
 
                                 <div className="space-y-2">
+                                    <Label htmlFor="edit-subcategory" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Subcategory</Label>
+                                    <Input id="edit-subcategory" value={editingProduct.subcategory || ''} onChange={e => setEditingProduct({ ...editingProduct, subcategory: e.target.value })} className="h-11" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-promotional-price" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Promotional Price</Label>
+                                    <Input id="edit-promotional-price" type="number" min="0" step="0.01" value={editingProduct.promotionalPrice ?? ''} onChange={e => setEditingProduct({ ...editingProduct, promotionalPrice: e.target.value === '' ? undefined : Number(e.target.value) })} placeholder="Optional" className="h-11" />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="edit-currency" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Currency</Label>
+                                    <Input id="edit-currency" value={editingProduct.currency || 'ZAR'} onChange={e => setEditingProduct({ ...editingProduct, currency: e.target.value.toUpperCase() })} maxLength={3} required className="h-11 font-mono uppercase" />
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label
                                         htmlFor="edit-desc"
                                         className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
@@ -720,7 +776,7 @@ export default function ProductCatalogPage() {
 
                                     <Textarea
                                         id="edit-desc"
-                                        value={editingProduct.description}
+                                        value={editingProduct.description || ''}
                                         onChange={e =>
                                             setEditingProduct({
                                                 ...editingProduct,
@@ -741,7 +797,7 @@ export default function ProductCatalogPage() {
 
                                     <Input
                                         id="edit-image"
-                                        value={editingProduct.imageUrl}
+                                        value={editingProduct.imageUrl || ''}
                                         onChange={e =>
                                             setEditingProduct({
                                                 ...editingProduct,

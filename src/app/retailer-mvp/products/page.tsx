@@ -604,9 +604,9 @@ export default function ProductCatalogPage() {
                     !open && setEditingProduct(null)
                 }
             >
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
 
-                    <form onSubmit={handleUpdateProduct}>
+                    <form onSubmit={handleUpdateProduct} className="flex flex-col min-h-0 flex-1">
 
                         <DialogHeader>
                             <DialogTitle>Edit Product</DialogTitle>
@@ -620,7 +620,7 @@ export default function ProductCatalogPage() {
                         </DialogHeader>
 
                         {editingProduct && (
-                            <div className="grid gap-5 py-6">
+                            <div className="grid gap-5 py-6 flex-1 min-h-0 overflow-y-auto pr-2">
 
                                 <div className="space-y-2">
                                     <Label htmlFor="edit-gtin" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">GTIN</Label>

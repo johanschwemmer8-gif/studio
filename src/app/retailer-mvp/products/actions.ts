@@ -17,5 +17,16 @@ export async function updateCatalogProduct(
   input: CanonicalProductUpdateInput,
   idToken: string
 ) {
-  return updateCanonicalProduct(input, idToken);
+  const result = await updateCanonicalProduct(input, idToken);
+
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.error || "Failed to update product.",
+    };
+  }
+
+  return {
+    success: true,
+  };
 }

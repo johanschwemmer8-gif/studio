@@ -302,6 +302,14 @@ service cloud.firestore {
 
     // --- PLATFORM GOVERNANCE ---
 
+    // Auth Context probes this document before retailer authorization.
+    // A signed-in user may read only their own platform-operator record.
+    // Platform-operator writes remain server-authoritative.
+    match /platformOperators/{operatorId} {
+      allow read: if isAuthenticated() && request.auth.uid == operatorId;
+      allow write: if false;
+    }
+
     match /users/{userId} {
       allow read: if isAuthenticated() && (
         request.auth.uid == userId ||

@@ -340,7 +340,7 @@ function CampaignCard({
         {!isArchived ? (
           <div className="flex flex-wrap gap-2 pt-2">
             <Button asChild size="sm">
-              <Link href="/retailer-mvp/qr-management">
+              <Link href="/retailer-mvp/qr-management#activate-shelves">
                 <Store className="mr-2 h-4 w-4" />
                 Activate Shelves
               </Link>

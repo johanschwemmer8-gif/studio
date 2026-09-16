@@ -20,6 +20,7 @@ import {
   SubmitBulkQrRequestInputSchema,
   type SubmitBulkQrRequestInput,
 } from '@/lib/schemas/bulk-qr-request';
+import { processBulkQrRequest } from '@/ai/flows/process-bulk-qr-queue';
 
 export type { SubmitBulkQrRequestInput } from '@/lib/schemas/bulk-qr-request';
 
@@ -139,11 +140,6 @@ const submitBulkQrRequestFlow = ai.defineFlow(
       console.log(
         `[QR Management] Bulk Activation request queued: ${requestRef.id} for Tenant ${authorizedRetailerId}`
       );
-
-      return {
-        success: true,
-        requestId: requestRef.id,
-      };
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Unknown persistence error';
@@ -174,5 +170,26 @@ const submitBulkQrRequestFlow = ai.defineFlow(
 
       throw new Error('Failed to submit Bulk Activation request.');
     }
+
+    // -------------------------------------------------------------------------
+    // 5. INITIATE PROCESSING FOR THIS EXACT SERVER-CREATED REQUEST
+    // -------------------------------------------------------------------------
+    //
+    // Processing is deliberately outside the persistence failure boundary.
+    // The exact request is processed without global queue discovery or the
+    // generic worker's cross-request ERROR retry sweep.
+    try {
+      await processBulkQrRequest(requestRef);
+    } catch (processingError) {
+      console.error(
+        `[QR Management] Bulk Activation request ${requestRef.id} was queued but immediate processing could not be initiated:`,
+        processingError
+      );
+    }
+
+    return {
+      success: true,
+      requestId: requestRef.id,
+    };
   }
 );

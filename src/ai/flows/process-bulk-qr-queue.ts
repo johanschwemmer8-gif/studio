@@ -45,6 +45,12 @@ export type ProcessBulkQrQueueOutput = z.infer<
   typeof ProcessBulkQrQueueOutputSchema
 >;
 
+export type ProcessBulkQrRequestResult = {
+  processedRequestId: string;
+  itemsProcessed: number;
+  lockAcquired: boolean;
+};
+
 type StableItemIdentities = {
   activationId: string;
   deploymentIds: string[];
@@ -247,6 +253,99 @@ async function recordItemError(
   });
 }
 
+/**
+ * Process one exact technical Bulk Activation request.
+ *
+ * This server-side primitive does not discover another request and does not
+ * perform the generic worker's global ERROR retry sweep.
+ */
+export async function processBulkQrRequest(
+  requestRef: FirebaseFirestore.DocumentReference
+): Promise<ProcessBulkQrRequestResult> {
+  const db = admin.firestore();
+  const processedRequestId = requestRef.id;
+  let lockAcquired = false;
+  let itemsProcessed = 0;
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const currentDoc = await transaction.get(requestRef);
+
+      if (currentDoc.exists === false) {
+        throw new Error('BULK_REQUEST_NOT_FOUND');
+      }
+
+      if (currentDoc.data()?.status !== 'QUEUED') {
+        throw new Error('REQUEST_LOCKED');
+      }
+
+      transaction.update(requestRef, {
+        status: 'PROCESSING',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    lockAcquired = true;
+
+    const lockedRequestDoc = await requestRef.get();
+
+    if (lockedRequestDoc.exists === false) {
+      throw new Error('Bulk request disappeared during processing.');
+    }
+
+    const requestData = lockedRequestDoc.data() || {};
+
+    requireNonEmptyString(requestData.retailerId, 'retailerId');
+    requireNonEmptyString(requestData.submittedBy, 'submittedBy');
+
+    const pendingItemsSnapshot = await requestRef
+      .collection('items')
+      .where('status', '==', 'PENDING')
+      .limit(100)
+      .get();
+
+    itemsProcessed = pendingItemsSnapshot.size;
+
+    for (const itemDoc of pendingItemsSnapshot.docs) {
+      try {
+        await processCanonicalItem(itemDoc, requestData);
+      } catch (error: unknown) {
+        await recordItemError(itemDoc.ref, error);
+      }
+    }
+
+    await refreshRequestStatus(requestRef);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown request error';
+
+    if (message === 'REQUEST_LOCKED') {
+      console.log(
+        `[QR Management] Bulk request ${processedRequestId} is already being processed or is no longer QUEUED.`
+      );
+    } else {
+      if (lockAcquired) {
+        await requestRef.update({
+          status: 'FAILED',
+          error: message,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+
+      console.error(
+        `[QR Management] Failed to process bulk request ${processedRequestId}:`,
+        message
+      );
+    }
+  }
+
+  return {
+    processedRequestId,
+    itemsProcessed,
+    lockAcquired,
+  };
+}
+
 const processBulkQrQueueFlow = ai.defineFlow(
   {
     name: 'processBulkQrQueueFlow',
@@ -272,80 +371,8 @@ const processBulkQrQueueFlow = ai.defineFlow(
       const requestDoc = queuedSnapshot.docs[0];
       processedRequestId = requestDoc.id;
 
-      let lockAcquired = false;
-
-      try {
-        await db.runTransaction(async (transaction) => {
-          const currentDoc = await transaction.get(requestDoc.ref);
-
-          if (currentDoc.exists === false) {
-            throw new Error('Bulk request no longer exists.');
-          }
-
-          if (currentDoc.data()?.status !== 'QUEUED') {
-            throw new Error('REQUEST_LOCKED');
-          }
-
-          transaction.update(requestDoc.ref, {
-            status: 'PROCESSING',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        });
-
-        lockAcquired = true;
-
-        const lockedRequestDoc = await requestDoc.ref.get();
-
-        if (lockedRequestDoc.exists === false) {
-          throw new Error('Bulk request disappeared during processing.');
-        }
-
-        const requestData = lockedRequestDoc.data() || {};
-
-        requireNonEmptyString(requestData.retailerId, 'retailerId');
-        requireNonEmptyString(requestData.submittedBy, 'submittedBy');
-
-        const itemsRef = requestDoc.ref.collection('items');
-
-        const pendingItemsSnapshot = await itemsRef
-          .where('status', '==', 'PENDING')
-          .limit(100)
-          .get();
-
-        itemsProcessedCount = pendingItemsSnapshot.size;
-
-        for (const itemDoc of pendingItemsSnapshot.docs) {
-          try {
-            await processCanonicalItem(itemDoc, requestData);
-          } catch (error: unknown) {
-            await recordItemError(itemDoc.ref, error);
-          }
-        }
-
-        await refreshRequestStatus(requestDoc.ref);
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : 'Unknown request error';
-
-        if (message === 'REQUEST_LOCKED') {
-          console.log(
-            `[QR Management] Bulk request ${processedRequestId} is already being processed by another worker.`
-          );
-        } else {
-          if (lockAcquired && processedRequestId) {
-            await requestsRef.doc(processedRequestId).update({
-              status: 'FAILED',
-              error: message,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-          }
-
-          console.error(
-            `[QR Management] Failed to process bulk request ${processedRequestId}:`,
-            message
-          );
-        }
-      }
+      const result = await processBulkQrRequest(requestDoc.ref);
+      itemsProcessedCount = result.itemsProcessed;
     }
 
     const erroredItemsSnapshot = await db

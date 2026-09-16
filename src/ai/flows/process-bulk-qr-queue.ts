@@ -275,7 +275,9 @@ export async function processBulkQrRequest(
         throw new Error('BULK_REQUEST_NOT_FOUND');
       }
 
-      if (currentDoc.data()?.status !== 'QUEUED') {
+      const currentStatus = currentDoc.data()?.status;
+
+      if (currentStatus !== 'QUEUED' && currentStatus !== 'FAILED') {
         throw new Error('REQUEST_LOCKED');
       }
 
@@ -317,16 +319,21 @@ export async function processBulkQrRequest(
     const remainingCapacity = 100 - pendingItemsSnapshot.size;
 
     if (remainingCapacity > 0) {
-      const retryableItemsSnapshot = await requestRef
+      const erroredItemsSnapshot = await requestRef
         .collection('items')
         .where('status', '==', 'ERROR')
-        .where('retryCount', '<', 3)
-        .limit(remainingCapacity)
         .get();
 
-      itemsProcessed += retryableItemsSnapshot.size;
+      const retryableItems = erroredItemsSnapshot.docs
+        .filter((itemDoc) => {
+          const retryCount = itemDoc.data().retryCount;
+          return typeof retryCount !== 'number' || retryCount < 3;
+        })
+        .slice(0, remainingCapacity);
 
-      for (const itemDoc of retryableItemsSnapshot.docs) {
+      itemsProcessed += retryableItems.length;
+
+      for (const itemDoc of retryableItems) {
         try {
           await itemDoc.ref.update({
             retryCount: admin.firestore.FieldValue.increment(1),

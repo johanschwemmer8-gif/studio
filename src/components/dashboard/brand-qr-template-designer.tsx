@@ -2,12 +2,12 @@
 
 import * as React from 'react';
 import { CheckCircle2, ImageIcon, Loader2, Save, ShieldCheck, Upload, X } from 'lucide-react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
+import { getApp } from 'firebase/app';
 
 import { saveQrTemplate } from '@/ai/flows/save-qr-template';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { storage } from '@/lib/firebase';
 import { buildQrPresentationOptions } from '@/lib/qr-presentation-renderer';
 import type { QrTemplate } from '@/lib/schemas/qr-templates';
 import { Badge } from '@/components/ui/badge';
@@ -191,7 +191,8 @@ export default function BrandQrTemplateDesigner({ template, onSave, onCancel }: 
     try {
       setBusy(true);
       const extension = file.name.split('.').pop()?.toLowerCase() || 'png';
-      const logoRef = ref(storage, `retailer-assets/${retailerId}/qr-templates/brand-logo-${Date.now()}.${extension}`);
+      const firebaseStorage = getStorage(getApp());
+      const logoRef = ref(firebaseStorage, `retailer-assets/${retailerId}/qr-templates/brand-logo-${Date.now()}.${extension}`);
       await uploadBytes(logoRef, file, { contentType: file.type });
       setLogoPath(await getDownloadURL(logoRef));
       toast({ title: 'Logo uploaded', description: 'The retailer logo is ready for this QR Template.' });

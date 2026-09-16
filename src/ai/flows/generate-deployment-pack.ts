@@ -15,7 +15,7 @@
 
 import { ai } from "@/ai/genkit";
 import { z } from "genkit";
-import QRCode from "qrcode";
+import { renderQrPresentationArtifact } from "@/lib/qr-presentation-server-renderer";
 
 import { db } from "@/lib/firebase-admin";
 import { verifyAuth, getAuthorizedRetailerId } from "@/lib/auth-server";
@@ -28,6 +28,7 @@ import {
   DeploymentPlacementSchema,
 } from "@/lib/schemas/deployment";
 import { QrCodeSchema } from "@/lib/schemas/qr-code";
+import { QrTemplateSchema } from "@/lib/schemas/qr-templates";
 import {
   GenerateDeploymentPackInputSchema,
   type GenerateDeploymentPackInput,
@@ -258,12 +259,37 @@ const generateDeploymentPackFlow = ai.defineFlow(
       );
     }
 
-    const qrImageDataUrl = await QRCode.toDataURL(qrCode.trackingUrl, {
-      errorCorrectionLevel: "M",
-      type: "image/png",
-      width: 512,
-      margin: 4,
-    });
+    const templateSnapshot = await db
+      .collection("qrTemplates")
+      .doc(data.templateId)
+      .get();
+
+    if (templateSnapshot.exists === false) {
+      throw new Error("QR_TEMPLATE_NOT_FOUND");
+    }
+
+    const rawTemplate = templateSnapshot.data();
+
+    if (rawTemplate === undefined) {
+      throw new Error("QR_TEMPLATE_NOT_FOUND");
+    }
+
+    const qrTemplate = QrTemplateSchema.parse(rawTemplate);
+
+    if (
+      qrTemplate.templateId !== data.templateId ||
+      qrTemplate.retailerId !== authorizedRetailerId
+    ) {
+      throw new Error(
+        "ACCESS_DENIED: QR Template does not belong to the authorized retailer."
+      );
+    }
+
+    const qrImageDataUrl = await renderQrPresentationArtifact(
+      qrCode.trackingUrl,
+      qrTemplate.defaults,
+      512
+    );
 
     return {
       success: true,

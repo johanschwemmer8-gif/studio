@@ -21,7 +21,8 @@ export type BindQrToDeploymentInput = z.infer<
 /**
  * Command contract for reprinting an existing canonical QR identity.
  *
- * qrCodeId is the only QR relationship identifier accepted from the client.
+ * qrCodeId identifies the existing canonical QR identity to reprint.
+ * templateId is a presentation instruction only.
  * Campaign, Activation, Deployment, configuration, and tracking identity
  * are resolved and validated server-side from the canonical QR record.
  */
@@ -29,6 +30,7 @@ export const ReprintQrCodeInputSchema = z.object({
   idToken: z.string().min(1),
   retailerId: z.string().min(1),
   qrCodeId: z.string().min(1),
+  templateId: z.string().min(1),
 });
 
 export type ReprintQrCodeInput = z.infer<

@@ -45,6 +45,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 import { useAuth } from '@/context/auth-context';
@@ -53,6 +60,8 @@ import { useToast } from '@/hooks/use-toast';
 import { assignDeployment } from '@/ai/flows/assign-deployment';
 import { bindQrToDeployment } from '@/ai/flows/bind-qr-to-deployment';
 import { generateDeploymentPack } from '@/ai/flows/generate-deployment-pack';
+import { getQrTemplates } from '@/ai/flows/get-qr-templates';
+import type { QrTemplate } from '@/lib/schemas/qr-templates';
 import {
   listDeploymentOperations,
   type DeploymentOperationsItem,
@@ -118,15 +127,26 @@ function downloadDataUrl(dataUrl: string, filename: string) {
   document.body.removeChild(link);
 }
 
+function qrArtifactFilename(dataUrl: string, qrCodeId: string) {
+  const extension = dataUrl.startsWith('data:image/svg+xml') ? 'svg' : 'png';
+  return qrCodeId + '.' + extension;
+}
+
 function DeploymentCard({
   item,
   busyCommand,
+  qrTemplates,
+  selectedTemplateId,
+  onTemplateChange,
   onCommand,
   onReportProblem,
   onRemove,
 }: {
   item: DeploymentOperationsItem;
   busyCommand: string | null;
+  qrTemplates: QrTemplate[];
+  selectedTemplateId?: string;
+  onTemplateChange: (deploymentId: string, templateId: string) => void;
   onCommand: (item: DeploymentOperationsItem, command: CommandName) => void;
   onReportProblem: (item: DeploymentOperationsItem) => void;
   onRemove: (item: DeploymentOperationsItem) => void;
@@ -139,7 +159,8 @@ function DeploymentCard({
     command: CommandName,
     label: string,
     icon: React.ReactNode,
-    variant: 'default' | 'outline' | 'secondary' = 'outline'
+    variant: 'default' | 'outline' | 'secondary' = 'outline',
+    disabled = false
   ) {
     const active = busyCommand === `${item.deploymentId}:${command}`;
 
@@ -148,7 +169,7 @@ function DeploymentCard({
         type="button"
         size="sm"
         variant={variant}
-        disabled={busy}
+        disabled={busy || disabled}
         onClick={() => onCommand(item, command)}
       >
         {active ? (
@@ -291,13 +312,49 @@ function DeploymentCard({
                     )
                   : null}
 
+                {item.qrCodeId &&
+                ['READY_TO_PRINT', 'PRINTED', 'DEPLOYED'].includes(item.status) ? (
+                  <div className="w-full space-y-2 rounded-lg border bg-muted/20 p-3">
+                    <Label htmlFor={"qr-template-" + item.deploymentId}>
+                      QR Presentation
+                    </Label>
+                    <Select
+                      value={selectedTemplateId}
+                      onValueChange={(templateId) =>
+                        onTemplateChange(item.deploymentId, templateId)
+                      }
+                      disabled={busy || qrTemplates.length === 0}
+                    >
+                      <SelectTrigger id={"qr-template-" + item.deploymentId}>
+                        <SelectValue placeholder="Select a QR Template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {qrTemplates.map((template) => (
+                          <SelectItem
+                            key={template.templateId}
+                            value={template.templateId}
+                          >
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {qrTemplates.length === 0
+                        ? 'No saved QR Templates are available. Create a QR Template before generating or reprinting a branded QR artifact.'
+                        : 'The selected template controls only the printable QR appearance. QR identity and tracking URL remain unchanged.'}
+                    </p>
+                  </div>
+                ) : null}
+
                 {item.status === 'READY_TO_PRINT' ? (
                   <>
                     {actionButton(
                       'pack',
                       'Generate Deployment Pack',
                       <PackageCheck className="mr-2 h-4 w-4" />,
-                      'default'
+                      'default',
+                      selectedTemplateId === undefined
                     )}
 
                     {actionButton(
@@ -322,7 +379,9 @@ function DeploymentCard({
                   ? actionButton(
                       'reprint',
                       'Reprint QR',
-                      <RefreshCw className="mr-2 h-4 w-4" />
+                      <RefreshCw className="mr-2 h-4 w-4" />,
+                      'outline',
+                      selectedTemplateId === undefined
                     )
                   : null}
 
@@ -361,6 +420,8 @@ export function DeploymentOperations() {
   const { toast } = useToast();
 
   const [items, setItems] = React.useState<DeploymentOperationsItem[]>([]);
+  const [qrTemplates, setQrTemplates] = React.useState<QrTemplate[]>([]);
+  const [selectedTemplateIds, setSelectedTemplateIds] = React.useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadFailed, setLoadFailed] = React.useState(false);
   const [busyCommand, setBusyCommand] = React.useState<string | null>(null);
@@ -375,6 +436,26 @@ export function DeploymentOperations() {
   const [isRemoving, setIsRemoving] = React.useState(false);
 
   const [artifact, setArtifact] = React.useState<ArtifactPreview | null>(null);
+
+  const loadQrTemplates = React.useCallback(async () => {
+    const authenticatedUser = user;
+    const retailerId = authenticatedUser?.retailerId;
+
+    if (authenticatedUser == null || retailerId == null) {
+      setQrTemplates([]);
+      setSelectedTemplateIds({});
+      return;
+    }
+
+    try {
+      const idToken = await authenticatedUser.getIdToken();
+      const templates = await getQrTemplates({ idToken, retailerId });
+      setQrTemplates(templates);
+    } catch (error) {
+      console.error('Load QR Templates error:', error);
+      setQrTemplates([]);
+    }
+  }, [user]);
 
   const loadOperations = React.useCallback(async () => {
     const authenticatedUser = user;
@@ -420,6 +501,17 @@ export function DeploymentOperations() {
   React.useEffect(() => {
     void loadOperations();
   }, [loadOperations]);
+
+  React.useEffect(() => {
+    void loadQrTemplates();
+  }, [loadQrTemplates]);
+
+  function handleTemplateChange(deploymentId: string, templateId: string) {
+    setSelectedTemplateIds((current) => ({
+      ...current,
+      [deploymentId]: templateId,
+    }));
+  }
 
   async function getCommandContext() {
     const authenticatedUser = user;
@@ -474,9 +566,18 @@ export function DeploymentOperations() {
           break;
 
         case 'pack': {
+          const templateId = selectedTemplateIds[item.deploymentId];
+
+          if (templateId === undefined) {
+            throw new Error(
+              'Select a QR Presentation Template before generating the Deployment Pack.'
+            );
+          }
+
           const result = await generateDeploymentPack({
             ...context,
             deploymentId: item.deploymentId,
+            templateId,
           });
 
           setArtifact({
@@ -533,9 +634,18 @@ export function DeploymentOperations() {
             );
           }
 
+          const templateId = selectedTemplateIds[item.deploymentId];
+
+          if (templateId === undefined) {
+            throw new Error(
+              'Select a QR Presentation Template before reprinting the QR.'
+            );
+          }
+
           const result = await regenerateQrCode({
             ...context,
             qrCodeId: item.qrCodeId,
+            templateId,
           });
 
           setArtifact({
@@ -748,6 +858,9 @@ export function DeploymentOperations() {
                     key={item.deploymentId}
                     item={item}
                     busyCommand={busyCommand}
+                    qrTemplates={qrTemplates}
+                    selectedTemplateId={selectedTemplateIds[item.deploymentId]}
+                    onTemplateChange={handleTemplateChange}
                     onCommand={(deployment, command) =>
                       void runCommand(deployment, command)
                     }
@@ -786,6 +899,9 @@ export function DeploymentOperations() {
                     key={item.deploymentId}
                     item={item}
                     busyCommand={busyCommand}
+                    qrTemplates={qrTemplates}
+                    selectedTemplateId={selectedTemplateIds[item.deploymentId]}
+                    onTemplateChange={handleTemplateChange}
                     onCommand={(deployment, command) =>
                       void runCommand(deployment, command)
                     }
@@ -985,7 +1101,7 @@ export function DeploymentOperations() {
                 onClick={() =>
                   downloadDataUrl(
                     artifact.qrImageDataUrl,
-                    `${artifact.qrCodeId}.png`
+                    qrArtifactFilename(artifact.qrImageDataUrl, artifact.qrCodeId)
                   )
                 }
               >

@@ -5,18 +5,18 @@
  *
  * ARCHITECTURE:
  * - Reprinting preserves QR identity.
- * - The client supplies only qrCodeId.
+ * - The client supplies qrCodeId plus a presentation-only templateId.
  * - Campaign, Activation, Deployment, tenant, and tracking relationships
  *   are resolved and validated server-side.
  * - The existing canonical trackingUrl is rendered locally.
  * - Reprinting does not create or replace QR identity.
  * - Reprinting does not mutate the canonical QR document.
- * - The rendered PNG is a transient operational artifact.
+ * - The rendered presentation is a transient operational artifact.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import QRCode from 'qrcode';
+import { renderQrPresentationArtifact } from '@/lib/qr-presentation-server-renderer';
 
 import { admin, db } from '@/lib/firebase-admin';
 import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
@@ -24,6 +24,7 @@ import { requireCapability } from '@/lib/authorization';
 import { requireQrStoreResourceAccess } from '@/lib/qr-resource-authorization';
 import { DeploymentSchema } from '@/lib/schemas/deployment';
 import { QrCodeSchema } from '@/lib/schemas/qr-code';
+import { QrTemplateSchema } from '@/lib/schemas/qr-templates';
 import {
   ReprintQrCodeInputSchema,
   type ReprintQrCodeInput,
@@ -182,14 +183,36 @@ const regenerateQrCodeFlow = ai.defineFlow(
      * The QR image is derived from the existing stable trackingUrl and
      * therefore cannot create or replace QR identity.
      */
-    const qrImageDataUrl = await QRCode.toDataURL(
+    const templateSnapshot = await db
+      .collection('qrTemplates')
+      .doc(data.templateId)
+      .get();
+
+    if (templateSnapshot.exists === false) {
+      throw new Error('QR_TEMPLATE_NOT_FOUND');
+    }
+
+    const rawTemplate = templateSnapshot.data();
+
+    if (rawTemplate === undefined) {
+      throw new Error('QR_TEMPLATE_NOT_FOUND');
+    }
+
+    const qrTemplate = QrTemplateSchema.parse(rawTemplate);
+
+    if (
+      qrTemplate.templateId !== data.templateId ||
+      qrTemplate.retailerId !== authorizedRetailerId
+    ) {
+      throw new Error(
+        'ACCESS_DENIED: QR Template does not belong to the authorized retailer.'
+      );
+    }
+
+    const qrImageDataUrl = await renderQrPresentationArtifact(
       renderingContext.trackingUrl,
-      {
-        errorCorrectionLevel: 'M',
-        type: 'image/png',
-        width: 512,
-        margin: 4,
-      }
+      qrTemplate.defaults,
+      512
     );
 
     /*

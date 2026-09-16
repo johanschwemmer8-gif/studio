@@ -77,7 +77,9 @@ export type RemoveDeploymentInput = z.infer<
  * does not advance Deployment lifecycle state.
  */
 export const GenerateDeploymentPackInputSchema =
-  DeploymentLifecycleInputSchema;
+  DeploymentLifecycleInputSchema.extend({
+    templateId: z.string().min(1),
+  });
 
 export type GenerateDeploymentPackInput = z.infer<
   typeof GenerateDeploymentPackInputSchema

@@ -314,6 +314,32 @@ export async function processBulkQrRequest(
       }
     }
 
+    const remainingCapacity = 100 - pendingItemsSnapshot.size;
+
+    if (remainingCapacity > 0) {
+      const retryableItemsSnapshot = await requestRef
+        .collection('items')
+        .where('status', '==', 'ERROR')
+        .where('retryCount', '<', 3)
+        .limit(remainingCapacity)
+        .get();
+
+      itemsProcessed += retryableItemsSnapshot.size;
+
+      for (const itemDoc of retryableItemsSnapshot.docs) {
+        try {
+          await itemDoc.ref.update({
+            retryCount: admin.firestore.FieldValue.increment(1),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          await processCanonicalItem(itemDoc, requestData);
+        } catch (error: unknown) {
+          await recordItemError(itemDoc.ref, error);
+        }
+      }
+    }
+
     await refreshRequestStatus(requestRef);
   } catch (error: unknown) {
     const message =

@@ -131,31 +131,35 @@ export async function createActivationInternal(
 
   const now = admin.firestore.Timestamp.now();
 
-  const activationData = {
+  const activationData = ActivationSchema.parse({
     activationId,
     retailerId,
     campaignId: activation.campaignId,
     name: activation.name,
-    description: activation.description,
+    ...(activation.description !== undefined
+      ? { description: activation.description }
+      : {}),
     target: activation.target,
     productContext: activation.productContext,
     shopperObjective: activation.shopperObjective,
     experienceMode: activation.experienceMode,
     experienceConfig: activation.experienceConfig,
-    advancedInstructions: activation.advancedInstructions,
+    ...(activation.advancedInstructions !== undefined
+      ? { advancedInstructions: activation.advancedInstructions }
+      : {}),
     status: "DRAFT" as const,
     approvalRequired: activation.approvalRequired,
-    startAt,
-    endAt,
-    timezone: activation.timezone,
+    ...(startAt !== undefined ? { startAt } : {}),
+    ...(endAt !== undefined ? { endAt } : {}),
+    ...(activation.timezone !== undefined
+      ? { timezone: activation.timezone }
+      : {}),
     configurationVersion: 1,
     createdAt: now,
     createdBy: actorUid,
     updatedAt: now,
     updatedBy: actorUid,
-  };
-
-  ActivationSchema.parse(activationData);
+  });
 
   await activationRef.set(activationData);
 

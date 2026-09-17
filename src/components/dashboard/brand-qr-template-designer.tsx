@@ -25,7 +25,7 @@ type EyeStyle = 'square' | 'rounded' | 'leaf';
 type ErrorCorrection = 'L' | 'M' | 'Q' | 'H';
 
 type Props = { template?: QrTemplate; onSave: () => void; onCancel?: () => void };
-const PREVIEW_URL = 'https://interactaoe.co.za/qr-template-preview';
+const PREVIEW_URL = 'https://studio-1--interact-aoe-kidkn.us-east4.hosted.app/resolve/PREVIEW0000000000000';
 
 function luminance(hex: string) {
   if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return null;
@@ -329,7 +329,7 @@ export default function BrandQrTemplateDesigner({ template, onSave, onCancel }: 
 
         <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
           <Card>
-            <CardHeader><div className="flex items-center justify-between gap-3"><div><CardTitle>Live Preview</CardTitle><CardDescription>Real encoded QR using safe example content.</CardDescription></div><Badge variant="secondary">Preview Only</Badge></div></CardHeader>
+            <CardHeader><div className="flex items-center justify-between gap-3"><div><CardTitle>Live Preview</CardTitle><CardDescription>Real encoded QR using a production-shaped preview destination.</CardDescription></div><Badge variant="secondary">Preview Only</Badge></div></CardHeader>
             <CardContent className="space-y-4">
               <div className="relative flex min-h-[390px] items-center justify-center overflow-hidden rounded-xl border p-6" style={{ backgroundColor: bgColorHex }}>
                 {backgroundLogoEnabled && logoPath ? <img src={logoPath} alt="" aria-hidden="true" className="pointer-events-none absolute z-20 max-h-[55%] max-w-[55%] object-contain" style={{ opacity: backgroundLogoOpacity }} /> : null}
@@ -356,7 +356,7 @@ export default function BrandQrTemplateDesigner({ template, onSave, onCancel }: 
           <Card>
             <CardHeader>
               <CardTitle>Preview Destination</CardTitle>
-              <CardDescription>The live preview updates automatically. This safe example URL is not a deployed QR identity.</CardDescription>
+              <CardDescription>The live preview updates automatically using a production-shaped example URL. It is not a deployed QR identity.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">{PREVIEW_URL}</div>

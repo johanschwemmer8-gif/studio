@@ -6,9 +6,8 @@
  * be persisted into a PRODUCTION QR identity.
  */
 
-export function buildProductionQrTrackingUrl(
-  resolverBaseUrl: string | undefined,
-  qrCodeId: string
+export function getProductionQrResolverOrigin(
+  resolverBaseUrl: string | undefined
 ): string {
   if (!resolverBaseUrl?.trim()) {
     throw new Error(
@@ -56,11 +55,35 @@ export function buildProductionQrTrackingUrl(
     );
   }
 
+  return url.origin;
+}
+
+export function buildProductionQrTrackingUrl(
+  resolverBaseUrl: string | undefined,
+  qrCodeId: string
+): string {
+  const origin = getProductionQrResolverOrigin(resolverBaseUrl);
+
   if (!qrCodeId.trim()) {
     throw new Error(
       'QR_CONFIGURATION_ERROR: qrCodeId is required to construct a tracking URL.'
     );
   }
 
-  return `${url.origin}/resolve/${encodeURIComponent(qrCodeId)}`;
+  return `${origin}/resolve/${encodeURIComponent(qrCodeId)}`;
+}
+
+export function buildProductionQrRedirectUrl(
+  resolverBaseUrl: string | undefined,
+  path: string
+): URL {
+  const origin = getProductionQrResolverOrigin(resolverBaseUrl);
+
+  if (!path.startsWith('/') || path.startsWith('//')) {
+    throw new Error(
+      'QR_CONFIGURATION_ERROR: Production QR redirect path must be root-relative.'
+    );
+  }
+
+  return new URL(path, origin);
 }

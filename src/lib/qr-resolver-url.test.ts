@@ -1,4 +1,7 @@
-import { buildProductionQrTrackingUrl } from './qr-resolver-url';
+import {
+  buildProductionQrRedirectUrl,
+  buildProductionQrTrackingUrl,
+} from './qr-resolver-url';
 
 describe('buildProductionQrTrackingUrl', () => {
   test('builds the canonical production tracking URL', () => {
@@ -64,5 +67,66 @@ describe('buildProductionQrTrackingUrl', () => {
     expect(() =>
       buildProductionQrTrackingUrl('https://example.com', '')
     ).toThrow('qrCodeId is required');
+  });
+});
+
+describe('buildProductionQrRedirectUrl', () => {
+  const productionOrigin =
+    'https://studio-1--interact-aoe-kidkn.us-east4.hosted.app';
+
+  test('builds a canonical production scan redirect', () => {
+    expect(
+      buildProductionQrRedirectUrl(
+        productionOrigin,
+        '/scan/qr-123'
+      ).toString()
+    ).toBe(`${productionOrigin}/scan/qr-123`);
+  });
+
+  test('builds a canonical production error redirect', () => {
+    expect(
+      buildProductionQrRedirectUrl(
+        productionOrigin,
+        '/error?code=DEPLOYMENT_UNAVAILABLE'
+      ).toString()
+    ).toBe(
+      `${productionOrigin}/error?code=DEPLOYMENT_UNAVAILABLE`
+    );
+  });
+
+  test('rejects localhost as the redirect origin', () => {
+    expect(() =>
+      buildProductionQrRedirectUrl(
+        'http://localhost:8080',
+        '/scan/qr-123'
+      )
+    ).toThrow();
+  });
+
+  test('rejects a public non-HTTPS redirect origin', () => {
+    expect(() =>
+      buildProductionQrRedirectUrl(
+        'http://example.com',
+        '/scan/qr-123'
+      )
+    ).toThrow('must use HTTPS');
+  });
+
+  test('rejects a missing redirect origin', () => {
+    expect(() =>
+      buildProductionQrRedirectUrl(
+        undefined,
+        '/scan/qr-123'
+      )
+    ).toThrow('QR_RESOLVER_BASE_URL is required');
+  });
+
+  test('rejects a protocol-relative redirect path', () => {
+    expect(() =>
+      buildProductionQrRedirectUrl(
+        productionOrigin,
+        '//evil.example'
+      )
+    ).toThrow('must be root-relative');
   });
 });

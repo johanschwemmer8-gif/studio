@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { resolveProductionQr } from '@/lib/qr-resolution';
+import { buildProductionQrRedirectUrl } from '@/lib/qr-resolver-url';
 
 /**
  * CANONICAL QR IDENTITY GATEWAY
@@ -22,7 +23,10 @@ export async function GET(
     await resolveProductionQr(id);
 
     return NextResponse.redirect(
-      new URL(`/scan/${encodeURIComponent(id)}`, request.url),
+      buildProductionQrRedirectUrl(
+        process.env.QR_RESOLVER_BASE_URL,
+        `/scan/${encodeURIComponent(id)}`
+      ),
       302
     );
   } catch (error) {
@@ -33,7 +37,10 @@ export async function GET(
 
     const code = encodeURIComponent(message);
     return NextResponse.redirect(
-      new URL(`/error?code=${code}`, request.url),
+      buildProductionQrRedirectUrl(
+        process.env.QR_RESOLVER_BASE_URL,
+        `/error?code=${code}`
+      ),
       302
     );
   }

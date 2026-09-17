@@ -58,7 +58,26 @@ const regenerateQrCodeFlow = ai.defineFlow(
     outputSchema: RegenerateQrCodeOutputSchema,
   },
   async (data) => {
+    const diagnosticStartedAt = Date.now();
+
+    const diagnosticLog = (
+      stage: string,
+      details: Record<string, unknown> = {}
+    ) => {
+      console.log('[QR_REPRINT_DIAGNOSTIC]', {
+        stage,
+        elapsedMs: Date.now() - diagnosticStartedAt,
+        qrCodeId: data.qrCodeId,
+        templateId: data.templateId,
+        ...details,
+      });
+    };
+
+    diagnosticLog('START');
+
     const actor = await verifyAuth(data.idToken);
+
+    diagnosticLog('AUTH_COMPLETE');
 
     if ('error' in actor) {
       throw new Error(actor.error);
@@ -68,6 +87,8 @@ const regenerateQrCodeFlow = ai.defineFlow(
       data.idToken,
       data.retailerId
     );
+
+    diagnosticLog('RETAILER_AUTH_COMPLETE');
 
     requireCapability(actor.role, 'QR_REPRINT');
 
@@ -84,6 +105,8 @@ const regenerateQrCodeFlow = ai.defineFlow(
      *
      * The transaction deliberately performs no writes.
      */
+    diagnosticLog('CANONICAL_READ_START');
+
     const renderingContext = await db.runTransaction(
       async (transaction) => {
         const qrSnapshot = await transaction.get(qrRef);
@@ -179,15 +202,21 @@ const regenerateQrCodeFlow = ai.defineFlow(
       }
     );
 
+    diagnosticLog('CANONICAL_READ_COMPLETE');
+
     /*
      * Render only after canonical database validation has completed.
      * The QR image is derived from the existing stable trackingUrl and
      * therefore cannot create or replace QR identity.
      */
+    diagnosticLog('TEMPLATE_READ_START');
+
     const templateSnapshot = await db
       .collection('qrTemplates')
       .doc(data.templateId)
       .get();
+
+    diagnosticLog('TEMPLATE_READ_COMPLETE');
 
     if (templateSnapshot.exists === false) {
       throw new Error('QR_TEMPLATE_NOT_FOUND');
@@ -218,11 +247,24 @@ const regenerateQrCodeFlow = ai.defineFlow(
       );
     }
 
+    diagnosticLog('BRANDING_PREPARATION_START');
+
     const artifactDefaults = await prepareQrTemplateDefaultsForArtifact(
       qrTemplate.defaults,
       storageBucket,
       authorizedRetailerId
     );
+
+    diagnosticLog('BRANDING_PREPARATION_COMPLETE', {
+      centralLogoEmbedded:
+        artifactDefaults.logoPath?.startsWith('data:image/') === true,
+      backgroundLogoEnabled:
+        artifactDefaults.backgroundLogo.enabled === true,
+      backgroundLogoEmbedded:
+        artifactDefaults.backgroundLogo.logoPath?.startsWith('data:image/') === true,
+    });
+
+    diagnosticLog('RENDER_START');
 
     const qrImageDataUrl = await renderQrPresentationArtifact(
       renderingContext.trackingUrl,
@@ -230,11 +272,17 @@ const regenerateQrCodeFlow = ai.defineFlow(
       512
     );
 
+    diagnosticLog('RENDER_COMPLETE', {
+      artifactLength: qrImageDataUrl.length,
+    });
+
     /*
      * Audit only after rendering succeeds. A failed render must not be
      * recorded as a successful QR reprint.
      */
     const now = admin.firestore.Timestamp.now();
+
+    diagnosticLog('AUDIT_WRITE_START');
 
     await db.collection('auditLogs').add({
       type: 'QR_REPRINT',
@@ -246,6 +294,9 @@ const regenerateQrCodeFlow = ai.defineFlow(
       actorUid: actor.uid,
       timestamp: now,
     });
+
+    diagnosticLog('AUDIT_WRITE_COMPLETE');
+    diagnosticLog('COMPLETE');
 
     return {
       success: true,

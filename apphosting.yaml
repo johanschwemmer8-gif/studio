@@ -7,6 +7,12 @@ runConfig:
   maxInstances: 1
 
 env:
+  # Canonical public origin used when issuing production QR tracking URLs.
+  - variable: QR_RESOLVER_BASE_URL
+    value: "https://studio-1--interact-aoe-kidkn.us-east4.hosted.app"
+    availability:
+      - RUNTIME
+
   # App Hosting's buildpack runs npm ci directly. Explicitly preserve
   # the project's legacy peer-dependency resolution policy.
   - variable: NPM_CONFIG_LEGACY_PEER_DEPS

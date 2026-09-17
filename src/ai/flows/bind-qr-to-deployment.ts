@@ -2,6 +2,7 @@
 
 import { ai } from "@/ai/genkit";
 import { z } from "genkit";
+import { buildProductionQrTrackingUrl } from '@/lib/qr-resolver-url';
 import { admin, db } from "@/lib/firebase-admin";
 import { verifyAuth, getAuthorizedRetailerId } from "@/lib/auth-server";
 import { requireCapability } from "@/lib/authorization";
@@ -182,10 +183,10 @@ const bindQrToDeploymentFlow = ai.defineFlow(
       const qrRef = db.collection("qrcodes").doc();
       const now = admin.firestore.Timestamp.now();
 
-      const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:9002";
-
-      const trackingUrl = `${baseUrl.replace(/\/$/, "")}/resolve/${qrRef.id}`;
+      const trackingUrl = buildProductionQrTrackingUrl(
+        process.env.QR_RESOLVER_BASE_URL,
+        qrRef.id
+      );
 
       const qrData = {
         qrCodeId: qrRef.id,

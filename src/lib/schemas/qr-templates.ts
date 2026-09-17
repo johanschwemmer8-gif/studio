@@ -86,6 +86,8 @@ export const QrTemplateDefaultsSchema = z.object({
   quietZone: z.number().int().min(4).max(20).default(4),
 });
 
+export type QrTemplateDefaults = z.infer<typeof QrTemplateDefaultsSchema>;
+
 export const QrTemplateSchema = z.object({
   templateId: z.string().min(1),
   name: z.string().trim().min(1).max(120),

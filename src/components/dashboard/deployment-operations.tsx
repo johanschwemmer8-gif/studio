@@ -57,6 +57,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
+import { approveActivation } from '@/ai/flows/approve-activation';
 import { assignDeployment } from '@/ai/flows/assign-deployment';
 import { bindQrToDeployment } from '@/ai/flows/bind-qr-to-deployment';
 import { generateDeploymentPack } from '@/ai/flows/generate-deployment-pack';
@@ -72,6 +73,8 @@ import { regenerateQrCode } from '@/ai/flows/regenerate-qr-code';
 import { removeDeployment } from '@/ai/flows/remove-deployment';
 import { reportDeploymentProblem } from '@/ai/flows/report-deployment-problem';
 import { resolveDeploymentProblem } from '@/ai/flows/resolve-deployment-problem';
+import { scheduleActivation } from '@/ai/flows/schedule-activation';
+import { submitActivation } from '@/ai/flows/submit-activation';
 
 type ArtifactPreview = {
   title: string;
@@ -95,6 +98,8 @@ type CommandName =
   | 'reprint'
   | 'resolve'
   | 'remove';
+
+type ActivationCommandName = 'submit' | 'approve';
 
 function formatStatus(status: string): string {
   return status.replaceAll('_', ' ');
@@ -139,6 +144,9 @@ function DeploymentCard({
   selectedTemplateId,
   onTemplateChange,
   onCommand,
+  onActivationCommand,
+  onOpenSchedule,
+  activationBusyCommand,
   onReportProblem,
   onRemove,
 }: {
@@ -148,12 +156,20 @@ function DeploymentCard({
   selectedTemplateId?: string;
   onTemplateChange: (deploymentId: string, templateId: string) => void;
   onCommand: (item: DeploymentOperationsItem, command: CommandName) => void;
+  onActivationCommand: (
+    item: DeploymentOperationsItem,
+    command: ActivationCommandName
+  ) => void;
+  onOpenSchedule: (item: DeploymentOperationsItem) => void;
+  activationBusyCommand: string | null;
   onReportProblem: (item: DeploymentOperationsItem) => void;
   onRemove: (item: DeploymentOperationsItem) => void;
 }) {
   const removed = Boolean(item.removedAt);
   const problem = item.status === 'PROBLEM_REPORTED';
   const busy = busyCommand?.startsWith(`${item.deploymentId}:`) ?? false;
+  const activationBusy =
+    activationBusyCommand?.startsWith(`${item.activationId}:`) ?? false;
 
   function actionButton(
     command: CommandName,
@@ -224,7 +240,12 @@ function DeploymentCard({
 
           <div>
             <p className="font-medium">Activation</p>
-            <p className="text-muted-foreground">{item.activationName}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <p className="text-muted-foreground">{item.activationName}</p>
+              <Badge variant="outline">
+                {formatStatus(item.activationStatus)}
+              </Badge>
+            </div>
           </div>
 
           <div>
@@ -259,6 +280,100 @@ function DeploymentCard({
             </div>
           ) : null}
         </div>
+
+        {!removed ? (
+          <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium">Activation Operations</p>
+                <p className="text-sm text-muted-foreground">
+                  Shopper availability is governed separately from the physical
+                  Deployment lifecycle.
+                </p>
+              </div>
+              <Badge variant="outline">
+                {formatStatus(item.activationStatus)}
+              </Badge>
+            </div>
+
+            {item.activationStatus === 'DRAFT' &&
+            !item.activationSubmittedAt ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  This Activation has not yet been submitted for operation.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={activationBusy}
+                  onClick={() => onActivationCommand(item, 'submit')}
+                >
+                  {activationBusyCommand === `${item.activationId}:submit` ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Submit Activation
+                </Button>
+              </div>
+            ) : null}
+
+            {item.activationStatus === 'PENDING_APPROVAL' &&
+            item.activationApprovalRequired &&
+            !item.activationApprovedAt ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  This Activation requires approval before it can be activated
+                  or scheduled.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={activationBusy}
+                  onClick={() => onActivationCommand(item, 'approve')}
+                >
+                  {activationBusyCommand === `${item.activationId}:approve` ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Approve Activation
+                </Button>
+              </div>
+            ) : null}
+
+            {item.activationStatus === 'DRAFT' &&
+            Boolean(item.activationSubmittedAt) &&
+            (!item.activationApprovalRequired ||
+              Boolean(item.activationApprovedAt)) ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  This Activation is authorised to be activated now or
+                  scheduled for a future start.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={activationBusy}
+                  onClick={() => onOpenSchedule(item)}
+                >
+                  Activate / Schedule
+                </Button>
+              </div>
+            ) : null}
+
+            {item.activationStatus === 'ACTIVE' ? (
+              <p className="text-sm text-muted-foreground">
+                This Activation is operational for shopper resolution.
+              </p>
+            ) : null}
+
+            {item.activationStatus === 'SCHEDULED' ? (
+              <p className="text-sm text-muted-foreground">
+                This Activation is scheduled to become operational
+                {item.activationStartAt
+                  ? ` at ${new Date(item.activationStartAt).toLocaleString()}.`
+                  : '.'}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {problem ? (
           <Alert variant="destructive">
@@ -425,6 +540,19 @@ export function DeploymentOperations() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadFailed, setLoadFailed] = React.useState(false);
   const [busyCommand, setBusyCommand] = React.useState<string | null>(null);
+  const [activationBusyCommand, setActivationBusyCommand] =
+    React.useState<string | null>(null);
+  const [scheduleTarget, setScheduleTarget] =
+    React.useState<DeploymentOperationsItem | null>(null);
+  const [scheduleMode, setScheduleMode] =
+    React.useState<'now' | 'later'>('now');
+  const [scheduleStartAt, setScheduleStartAt] = React.useState('');
+  const [scheduleEndAt, setScheduleEndAt] = React.useState('');
+  const [scheduleTimezone, setScheduleTimezone] = React.useState(
+    Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  );
+  const [isSchedulingActivation, setIsSchedulingActivation] =
+    React.useState(false);
 
   const [problemTarget, setProblemTarget] =
     React.useState<DeploymentOperationsItem | null>(null);
@@ -700,6 +828,134 @@ export function DeploymentOperations() {
     }
   }
 
+  async function runActivationCommand(
+    item: DeploymentOperationsItem,
+    command: ActivationCommandName
+  ) {
+    const commandKey = `${item.activationId}:${command}`;
+    setActivationBusyCommand(commandKey);
+
+    try {
+      const context = await getCommandContext();
+
+      if (command === 'submit') {
+        await submitActivation({
+          ...context,
+          activationId: item.activationId,
+        });
+
+        toast({
+          title: 'Activation submitted',
+          description: item.activationApprovalRequired
+            ? 'The Activation is now pending approval.'
+            : 'The Activation is ready to be activated or scheduled.',
+        });
+      } else if (command === 'approve') {
+        await approveActivation({
+          ...context,
+          activationId: item.activationId,
+        });
+
+        toast({
+          title: 'Activation approved',
+          description: 'The Activation is ready to be activated or scheduled.',
+        });
+      } else {
+        throw new Error('Unsupported Activation command.');
+      }
+
+      await loadOperations();
+    } catch (error) {
+      console.error(
+        `[Deployment Operations] Activation command ${command} failed:`,
+        error
+      );
+
+      toast({
+        title: 'Activation action failed',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'The Activation command failed.',
+        variant: 'destructive',
+      });
+    } finally {
+      setActivationBusyCommand(null);
+    }
+  }
+
+  async function handleScheduleActivation() {
+    if (!scheduleTarget) {
+      return;
+    }
+
+    if (scheduleMode === 'later' && !scheduleStartAt) {
+      toast({
+        title: 'Start time required',
+        description: 'Choose when this Activation should become operational.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSchedulingActivation(true);
+
+    try {
+      const context = await getCommandContext();
+      const startAt =
+        scheduleMode === 'now' ? new Date() : new Date(scheduleStartAt);
+      const endAt = scheduleEndAt ? new Date(scheduleEndAt) : undefined;
+
+      if (Number.isNaN(startAt.getTime())) {
+        throw new Error('Choose a valid Activation start date and time.');
+      }
+
+      if (endAt && Number.isNaN(endAt.getTime())) {
+        throw new Error('Choose a valid Activation end date and time.');
+      }
+
+      const result = await scheduleActivation({
+        ...context,
+        activationId: scheduleTarget.activationId,
+        startAt: startAt.toISOString(),
+        ...(endAt ? { endAt: endAt.toISOString() } : {}),
+        timezone: scheduleTimezone,
+      });
+
+      toast({
+        title:
+          result.status === 'ACTIVE'
+            ? 'Activation is active'
+            : 'Activation scheduled',
+        description:
+          result.status === 'ACTIVE'
+            ? 'The shopper Activation is now operational.'
+            : 'The Activation will become operational at its scheduled start time.',
+      });
+
+      setScheduleTarget(null);
+      setScheduleStartAt('');
+      setScheduleEndAt('');
+      await loadOperations();
+    } catch (error) {
+      console.error(
+        '[Deployment Operations] Failed to schedule Activation:',
+        error
+      );
+
+      toast({
+        title: 'Activation could not be scheduled',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'The Activation scheduling command failed.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSchedulingActivation(false);
+    }
+  }
+
   async function handleReportProblem() {
     if (!problemTarget) {
       return;
@@ -864,6 +1120,16 @@ export function DeploymentOperations() {
                     onCommand={(deployment, command) =>
                       void runCommand(deployment, command)
                     }
+                    onActivationCommand={(deployment, command) =>
+                      void runActivationCommand(deployment, command)
+                    }
+                    onOpenSchedule={(deployment) => {
+                      setScheduleTarget(deployment);
+                      setScheduleMode('now');
+                      setScheduleStartAt('');
+                      setScheduleEndAt('');
+                    }}
+                    activationBusyCommand={activationBusyCommand}
                     onReportProblem={(deployment) => {
                       setProblemReason('');
                       setProblemTarget(deployment);
@@ -905,6 +1171,9 @@ export function DeploymentOperations() {
                     onCommand={(deployment, command) =>
                       void runCommand(deployment, command)
                     }
+                    onActivationCommand={() => undefined}
+                    onOpenSchedule={() => undefined}
+                    activationBusyCommand={activationBusyCommand}
                     onReportProblem={() => undefined}
                     onRemove={() => undefined}
                   />
@@ -914,6 +1183,122 @@ export function DeploymentOperations() {
           </section>
         </>
       )}
+
+      <Dialog
+        open={Boolean(scheduleTarget)}
+        onOpenChange={(open) => {
+          if (!open && !isSchedulingActivation) {
+            setScheduleTarget(null);
+            setScheduleStartAt('');
+            setScheduleEndAt('');
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Activate or Schedule Activation</DialogTitle>
+            <DialogDescription>
+              Choose when {scheduleTarget?.activationName ?? 'this Activation'} should
+              become operational for shopper resolution. The server remains
+              authoritative over the resulting lifecycle state.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="activation-timing">Activation timing</Label>
+              <Select
+                value={scheduleMode}
+                onValueChange={(value: 'now' | 'later') => {
+                  setScheduleMode(value);
+                  if (value === 'now') {
+                    setScheduleStartAt('');
+                  }
+                }}
+              >
+                <SelectTrigger id="activation-timing">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="now">Activate now</SelectItem>
+                  <SelectItem value="later">Schedule for later</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {scheduleMode === 'later' ? (
+              <div className="grid gap-2">
+                <Label htmlFor="activation-start-at">
+                  Start date and time
+                </Label>
+                <input
+                  id="activation-start-at"
+                  type="datetime-local"
+                  value={scheduleStartAt}
+                  onChange={(event) => setScheduleStartAt(event.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                The server will use the current time when you confirm.
+              </p>
+            )}
+
+            <div className="grid gap-2">
+              <Label htmlFor="activation-end-at">
+                End date and time (optional)
+              </Label>
+              <input
+                id="activation-end-at"
+                type="datetime-local"
+                value={scheduleEndAt}
+                onChange={(event) => setScheduleEndAt(event.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="activation-timezone">Timezone</Label>
+              <input
+                id="activation-timezone"
+                type="text"
+                value={scheduleTimezone}
+                onChange={(event) => setScheduleTimezone(event.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSchedulingActivation}
+              onClick={() => {
+                setScheduleTarget(null);
+                setScheduleStartAt('');
+                setScheduleEndAt('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                isSchedulingActivation ||
+                (scheduleMode === 'later' && !scheduleStartAt)
+              }
+              onClick={() => void handleScheduleActivation()}
+            >
+              {isSchedulingActivation ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Activate / Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={Boolean(problemTarget)}

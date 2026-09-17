@@ -67,6 +67,12 @@ const DeploymentOperationsItemSchema = z.object({
     productGtin: z.string().optional(),
   }),
   activationConfigurationVersion: z.number().int().positive(),
+  activationApprovalRequired: z.boolean(),
+  activationSubmittedAt: z.string().optional(),
+  activationApprovedAt: z.string().optional(),
+  activationStartAt: z.string().optional(),
+  activationEndAt: z.string().optional(),
+  activationTimezone: z.string().min(1).optional(),
 
   qrCodeId: z.string().min(1).optional(),
   qrStatus: z.string().min(1).optional(),
@@ -254,6 +260,20 @@ const listDeploymentOperationsFlow = ai.defineFlow(
         activationStatus: activation.status,
         activationTarget: activation.target,
         activationConfigurationVersion: activation.configurationVersion,
+        activationApprovalRequired: activation.approvalRequired,
+        activationSubmittedAt: activation.submittedAt
+          ? timestampToIso(activation.submittedAt)
+          : undefined,
+        activationApprovedAt: activation.approvedAt
+          ? timestampToIso(activation.approvedAt)
+          : undefined,
+        activationStartAt: activation.startAt
+          ? timestampToIso(activation.startAt)
+          : undefined,
+        activationEndAt: activation.endAt
+          ? timestampToIso(activation.endAt)
+          : undefined,
+        activationTimezone: activation.timezone,
 
         ...qrProjection,
       });

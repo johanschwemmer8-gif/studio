@@ -25,7 +25,7 @@ type EyeStyle = 'square' | 'rounded' | 'leaf';
 type ErrorCorrection = 'L' | 'M' | 'Q' | 'H';
 
 type Props = { template?: QrTemplate; onSave: () => void; onCancel?: () => void };
-const PREVIEW_URL = 'https://studio-1--interact-aoe-kidkn.us-east4.hosted.app/resolve/PREVIEW0000000000000';
+const PREVIEW_URL = 'https://studio-1--interact-aoe-kidkn.us-east4.hosted.app/qr-template-preview?sample=PREVIEW0000000000000';
 
 function luminance(hex: string) {
   if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return null;

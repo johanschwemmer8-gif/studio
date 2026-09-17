@@ -13,6 +13,12 @@ env:
     availability:
       - RUNTIME
 
+  # Trusted Firebase Storage bucket for retailer QR presentation assets.
+  - variable: QR_TEMPLATE_STORAGE_BUCKET
+    value: "interact-aoe-kidkn.firebasestorage.app"
+    availability:
+      - RUNTIME
+
   # App Hosting's buildpack runs npm ci directly. Explicitly preserve
   # the project's legacy peer-dependency resolution policy.
   - variable: NPM_CONFIG_LEGACY_PEER_DEPS

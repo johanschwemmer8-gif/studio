@@ -16,6 +16,7 @@
 import { ai } from "@/ai/genkit";
 import { z } from "genkit";
 import { renderQrPresentationArtifact } from "@/lib/qr-presentation-server-renderer";
+import { prepareQrTemplateDefaultsForArtifact } from "@/lib/qr-artifact-branding";
 
 import { db } from "@/lib/firebase-admin";
 import { verifyAuth, getAuthorizedRetailerId } from "@/lib/auth-server";
@@ -285,9 +286,23 @@ const generateDeploymentPackFlow = ai.defineFlow(
       );
     }
 
+    const storageBucket = process.env.QR_TEMPLATE_STORAGE_BUCKET;
+
+    if (!storageBucket) {
+      throw new Error(
+        "QR_TEMPLATE_STORAGE_BUCKET is required for QR artifact branding."
+      );
+    }
+
+    const artifactDefaults = await prepareQrTemplateDefaultsForArtifact(
+      qrTemplate.defaults,
+      storageBucket,
+      authorizedRetailerId
+    );
+
     const qrImageDataUrl = await renderQrPresentationArtifact(
       qrCode.trackingUrl,
-      qrTemplate.defaults,
+      artifactDefaults,
       512
     );
 

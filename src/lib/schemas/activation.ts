@@ -23,6 +23,28 @@ export const ActivationProductContextSchema = z.object({
 
 export type ActivationProductContext = z.infer<typeof ActivationProductContextSchema>;
 
+/**
+ * Optional sponsored-media configuration for an Activation.
+ *
+ * ARCHITECTURE:
+ * - Sponsored media belongs to the Activation shopper experience.
+ * - It does not define Campaign, Deployment, QR, or Product identity.
+ * - Absence of this object means that the Activation has no sponsored media.
+ * - Shopper presentation and Ari-priority rules are enforced by the
+ *   shopper-experience layer, not by QR identity.
+ */
+export const ActivationSponsoredMediaSchema = z.object({
+  format: z.enum(['VIDEO', 'BRAND_STRIP']),
+  sponsorName: z.string().trim().min(1),
+  mediaUrl: z.string().url(),
+  headline: z.string().trim().min(1).optional(),
+  destinationUrl: z.string().url().optional(),
+});
+
+export type ActivationSponsoredMedia = z.infer<
+  typeof ActivationSponsoredMediaSchema
+>;
+
 export const ActivationExperienceConfigSchema = z.object({
   tone: z.string().optional(),
   persona: z.string().optional(),
@@ -30,6 +52,15 @@ export const ActivationExperienceConfigSchema = z.object({
   greeting: z.string().optional(),
   scanDestination: z.enum(['AI', 'URL']).optional(),
   landingPageUrl: z.string().url().optional(),
+
+  /**
+   * Canonical sponsored-media configuration.
+   *
+   * Legacy/general media fields below remain supported for backward
+   * compatibility and are not the authority for sponsored-media behaviour.
+   */
+  sponsoredMedia: ActivationSponsoredMediaSchema.optional(),
+
   mediaType: z.string().optional(),
   mediaUrl: z.string().url().optional(),
   headline: z.string().optional(),

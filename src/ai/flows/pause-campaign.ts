@@ -8,28 +8,31 @@ import { requireCapability } from '@/lib/authorization';
 import { requireCampaignTransition } from '@/lib/campaign-lifecycle';
 import { CampaignSchema } from '@/lib/schemas/campaign';
 import {
-  ArchiveCampaignInputSchema,
-  type ArchiveCampaignInput,
+  PauseCampaignInputSchema,
+  type PauseCampaignInput,
 } from '@/lib/schemas/campaign-command';
 
-const ArchiveCampaignOutputSchema = z.object({
+const PauseCampaignOutputSchema = z.object({
   success: z.boolean(),
   campaignId: z.string(),
+  status: z.literal('PAUSED'),
 });
 
-export type ArchiveCampaignOutput = z.infer<typeof ArchiveCampaignOutputSchema>;
+export type PauseCampaignOutput = z.infer<
+  typeof PauseCampaignOutputSchema
+>;
 
-export async function archiveCampaign(
-  input: ArchiveCampaignInput
-): Promise<ArchiveCampaignOutput> {
-  return archiveCampaignFlow(input);
+export async function pauseCampaign(
+  input: PauseCampaignInput
+): Promise<PauseCampaignOutput> {
+  return pauseCampaignFlow(input);
 }
 
-const archiveCampaignFlow = ai.defineFlow(
+const pauseCampaignFlow = ai.defineFlow(
   {
-    name: 'archiveCampaignFlow',
-    inputSchema: ArchiveCampaignInputSchema,
-    outputSchema: ArchiveCampaignOutputSchema,
+    name: 'pauseCampaignFlow',
+    inputSchema: PauseCampaignInputSchema,
+    outputSchema: PauseCampaignOutputSchema,
   },
   async (data) => {
     const actor = await verifyAuth(data.idToken);
@@ -43,45 +46,40 @@ const archiveCampaignFlow = ai.defineFlow(
       data.retailerId
     );
 
-    requireCapability(actor.role, 'CAMPAIGN_ARCHIVE');
+    requireCapability(actor.role, 'CAMPAIGN_UPDATE');
 
     if (!db) {
       throw new Error('Infrastructure Layer Unavailable.');
     }
 
     const campaignRef = db.collection('campaigns').doc(data.campaignId);
-    const campaignSnapshot = await campaignRef.get();
+    const snapshot = await campaignRef.get();
 
-    if (!campaignSnapshot.exists) {
+    if (!snapshot.exists) {
       throw new Error('CAMPAIGN_NOT_FOUND');
     }
 
-    const existingCampaign = campaignSnapshot.data();
+    const rawCampaign = snapshot.data();
 
-    if (!existingCampaign) {
+    if (!rawCampaign) {
       throw new Error('CAMPAIGN_NOT_FOUND');
     }
+
+    const existingCampaign = CampaignSchema.parse(rawCampaign);
 
     if (existingCampaign.retailerId !== authorizedRetailerId) {
-      throw new Error('ACCESS_DENIED: Campaign does not belong to the authorized retailer.');
+      throw new Error(
+        'ACCESS_DENIED: Campaign does not belong to the authorized retailer.'
+      );
     }
 
-    if (existingCampaign.status === 'ARCHIVED') {
-      return {
-        success: true,
-        campaignId: data.campaignId,
-      };
-    }
-
-    requireCampaignTransition(existingCampaign.status, 'ARCHIVED');
+    requireCampaignTransition(existingCampaign.status, 'PAUSED');
 
     const now = admin.firestore.Timestamp.now();
 
     const candidateCampaign = {
       ...existingCampaign,
-      status: 'ARCHIVED' as const,
-      archivedAt: now,
-      archivedBy: actor.uid,
+      status: 'PAUSED' as const,
       updatedAt: now,
       updatedBy: actor.uid,
     };
@@ -89,16 +87,15 @@ const archiveCampaignFlow = ai.defineFlow(
     CampaignSchema.parse(candidateCampaign);
 
     await campaignRef.update({
-      status: 'ARCHIVED',
-      archivedAt: now,
-      archivedBy: actor.uid,
-      updatedAt: now,
-      updatedBy: actor.uid,
+      status: candidateCampaign.status,
+      updatedAt: candidateCampaign.updatedAt,
+      updatedBy: candidateCampaign.updatedBy,
     });
 
     return {
       success: true,
       campaignId: data.campaignId,
+      status: 'PAUSED' as const,
     };
   }
 );

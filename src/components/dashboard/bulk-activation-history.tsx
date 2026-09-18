@@ -127,8 +127,19 @@ export function BulkActivationHistory() {
 
       {items.map((item) => (
         <Card key={item.requestId}>
-          <CardContent className="grid gap-4 p-5 md:grid-cols-5">
+          <CardContent className="grid gap-4 p-5 md:grid-cols-6">
             <div className="md:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Campaign Name
+              </p>
+              <p className="text-sm font-bold">
+                {item.campaignNames.length > 0
+                  ? item.campaignNames.join(', ')
+                  : 'Legacy / Unavailable'}
+              </p>
+            </div>
+
+            <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Request ID
               </p>

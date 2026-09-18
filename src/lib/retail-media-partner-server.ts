@@ -24,6 +24,28 @@ export type ListRetailMediaPartnersInput = {
   idToken?: string;
 };
 
+const UpdateRetailMediaPartnerInputSchema = z.object({
+  idToken: z.string().min(1).optional(),
+  partnerId: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  logoUrl: z.string().url().optional(),
+  websiteUrl: z.string().url().optional(),
+});
+
+export type UpdateRetailMediaPartnerInput = z.infer<
+  typeof UpdateRetailMediaPartnerInputSchema
+>;
+
+const SetRetailMediaPartnerStatusInputSchema = z.object({
+  idToken: z.string().min(1).optional(),
+  partnerId: z.string().trim().min(1),
+  status: z.enum(['ACTIVE', 'INACTIVE']),
+});
+
+export type SetRetailMediaPartnerStatusInput = z.infer<
+  typeof SetRetailMediaPartnerStatusInputSchema
+>;
+
 function requireRetailMediaRetailerAuth(
   auth: Awaited<ReturnType<typeof verifyAuth>>
 ) {
@@ -116,4 +138,98 @@ export async function listRetailMediaPartners(
 
     return parsed.data;
   });
+}
+
+
+async function getAuthorizedRetailMediaPartner(
+  partnerId: string,
+  auth: ReturnType<typeof requireRetailMediaRetailerAuth>
+): Promise<{
+  partner: RetailMediaPartner;
+  partnerRef: FirebaseFirestore.DocumentReference;
+}> {
+  const db = getDb();
+  if (db == null) {
+    throw new Error('INFRASTRUCTURE_UNAVAILABLE');
+  }
+
+  const partnerRef = db.collection('retailMediaPartners').doc(partnerId);
+  const snapshot = await partnerRef.get();
+
+  if (!snapshot.exists) {
+    throw new Error('RETAIL_MEDIA_PARTNER_NOT_FOUND');
+  }
+
+  const parsed = RetailMediaPartnerSchema.safeParse(snapshot.data());
+
+  if (!parsed.success) {
+    throw new Error('RETAIL_MEDIA_PARTNER_INTEGRITY_ERROR');
+  }
+
+  if (parsed.data.partnerId !== partnerId) {
+    throw new Error('RETAIL_MEDIA_PARTNER_IDENTITY_MISMATCH');
+  }
+
+  if (parsed.data.retailerId !== auth.retailerId) {
+    throw new Error('RETAIL_MEDIA_PARTNER_SCOPE_MISMATCH');
+  }
+
+  return {
+    partner: parsed.data,
+    partnerRef,
+  };
+}
+
+export async function updateRetailMediaPartner(
+  input: UpdateRetailMediaPartnerInput
+): Promise<RetailMediaPartner> {
+  const parsedInput = UpdateRetailMediaPartnerInputSchema.parse(input);
+
+  const auth = requireRetailMediaRetailerAuth(
+    await verifyAuth(parsedInput.idToken)
+  );
+
+  const { partner, partnerRef } = await getAuthorizedRetailMediaPartner(
+    parsedInput.partnerId,
+    auth
+  );
+
+  const updated = RetailMediaPartnerSchema.parse({
+    ...partner,
+    name: parsedInput.name,
+    logoUrl: parsedInput.logoUrl,
+    websiteUrl: parsedInput.websiteUrl,
+    updatedAt: admin.firestore.Timestamp.now(),
+    updatedBy: auth.uid,
+  });
+
+  await partnerRef.set(updated);
+
+  return updated;
+}
+
+export async function setRetailMediaPartnerStatus(
+  input: SetRetailMediaPartnerStatusInput
+): Promise<RetailMediaPartner> {
+  const parsedInput = SetRetailMediaPartnerStatusInputSchema.parse(input);
+
+  const auth = requireRetailMediaRetailerAuth(
+    await verifyAuth(parsedInput.idToken)
+  );
+
+  const { partner, partnerRef } = await getAuthorizedRetailMediaPartner(
+    parsedInput.partnerId,
+    auth
+  );
+
+  const updated = RetailMediaPartnerSchema.parse({
+    ...partner,
+    status: parsedInput.status,
+    updatedAt: admin.firestore.Timestamp.now(),
+    updatedBy: auth.uid,
+  });
+
+  await partnerRef.set(updated);
+
+  return updated;
 }

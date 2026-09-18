@@ -280,3 +280,183 @@ describe('Retail Media Partner retailer service', () => {
     );
   });
 });
+
+describe('Retail Media Partner controlled mutation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const storedPartner = {
+    partnerId: 'partner-nike',
+    retailerId: 'retailer-a',
+    name: 'Nike',
+    status: 'ACTIVE' as const,
+    createdAt: {
+      seconds: 1,
+      nanoseconds: 0,
+      toDate: () => new Date(1000),
+    },
+    createdBy: 'creator-1',
+    updatedAt: {
+      seconds: 1,
+      nanoseconds: 0,
+      toDate: () => new Date(1000),
+    },
+    updatedBy: 'creator-1',
+  };
+
+  function mockPartnerDocument(data = storedPartner) {
+    const set = jest.fn().mockResolvedValue(undefined);
+    const get = jest.fn().mockResolvedValue({
+      exists: true,
+      data: () => data,
+    });
+    const doc = jest.fn(() => ({
+      get,
+      set,
+    }));
+
+    mockGetDb.mockReturnValue({
+      collection: jest.fn(() => ({
+        doc,
+      })),
+    } as any);
+
+    return { get, set, doc };
+  }
+
+  it('updates Partner metadata only after authoritative retailer scope validation', async () => {
+    const { updateRetailMediaPartner } = await import(
+      './retail-media-partner-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+    const { set } = mockPartnerDocument();
+
+    const result = await updateRetailMediaPartner({
+      idToken: 'token',
+      partnerId: 'partner-nike',
+      name: 'Nike South Africa',
+      websiteUrl: 'https://www.nike.com/za/',
+    });
+
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        partnerId: 'partner-nike',
+        retailerId: 'retailer-a',
+        name: 'Nike South Africa',
+        status: 'ACTIVE',
+        createdBy: 'creator-1',
+        updatedBy: 'retailer-user-1',
+      })
+    );
+
+    expect(result.name).toBe('Nike South Africa');
+    expect(result.retailerId).toBe('retailer-a');
+  });
+
+  it('denies mutation when Partner belongs to another retailer', async () => {
+    const { updateRetailMediaPartner } = await import(
+      './retail-media-partner-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const { set } = mockPartnerDocument({
+      ...storedPartner,
+      retailerId: 'retailer-b',
+    });
+
+    await expect(
+      updateRetailMediaPartner({
+        idToken: 'token',
+        partnerId: 'partner-nike',
+        name: 'Compromised Name',
+      })
+    ).rejects.toThrow('RETAIL_MEDIA_PARTNER_SCOPE_MISMATCH');
+
+    expect(set).not.toHaveBeenCalled();
+  });
+
+  it('denies mutation when stored Partner identity does not match requested partnerId', async () => {
+    const { updateRetailMediaPartner } = await import(
+      './retail-media-partner-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const { set } = mockPartnerDocument({
+      ...storedPartner,
+      partnerId: 'partner-puma',
+    });
+
+    await expect(
+      updateRetailMediaPartner({
+        idToken: 'token',
+        partnerId: 'partner-nike',
+        name: 'Compromised Name',
+      })
+    ).rejects.toThrow('RETAIL_MEDIA_PARTNER_IDENTITY_MISMATCH');
+
+    expect(set).not.toHaveBeenCalled();
+  });
+
+  it('changes Partner lifecycle status without changing ownership', async () => {
+    const { setRetailMediaPartnerStatus } = await import(
+      './retail-media-partner-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+    const { set } = mockPartnerDocument();
+
+    const result = await setRetailMediaPartnerStatus({
+      idToken: 'token',
+      partnerId: 'partner-nike',
+      status: 'INACTIVE',
+    });
+
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        partnerId: 'partner-nike',
+        retailerId: 'retailer-a',
+        status: 'INACTIVE',
+        createdBy: 'creator-1',
+        updatedBy: 'retailer-user-1',
+      })
+    );
+
+    expect(result.status).toBe('INACTIVE');
+  });
+
+  it('fails closed when the Partner does not exist', async () => {
+    const { setRetailMediaPartnerStatus } = await import(
+      './retail-media-partner-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const set = jest.fn();
+    const get = jest.fn().mockResolvedValue({
+      exists: false,
+    });
+
+    mockGetDb.mockReturnValue({
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          get,
+          set,
+        })),
+      })),
+    } as any);
+
+    await expect(
+      setRetailMediaPartnerStatus({
+        idToken: 'token',
+        partnerId: 'missing-partner',
+        status: 'INACTIVE',
+      })
+    ).rejects.toThrow('RETAIL_MEDIA_PARTNER_NOT_FOUND');
+
+    expect(set).not.toHaveBeenCalled();
+  });
+});

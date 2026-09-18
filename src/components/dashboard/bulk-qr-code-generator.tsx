@@ -1146,7 +1146,13 @@ function BulkRequestReview({
     </Card>
   );
 }
-export default function BulkQRCodeGenerator() {
+type BulkQRCodeGeneratorProps = {
+  onViewRequestHistory?: () => void;
+};
+
+export default function BulkQRCodeGenerator({
+  onViewRequestHistory,
+}: BulkQRCodeGeneratorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -1384,13 +1390,13 @@ export default function BulkQRCodeGenerator() {
             </Button>
 
             <Button
-              asChild
+              type="button"
+              onClick={onViewRequestHistory}
+              disabled={!onViewRequestHistory}
               className="h-12 bg-green-600 px-8 font-black uppercase text-[10px] tracking-widest text-white hover:bg-green-500"
             >
-              <a href="#bulk-activation-history">
-                View Request History
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              View Request History
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </CardContent>

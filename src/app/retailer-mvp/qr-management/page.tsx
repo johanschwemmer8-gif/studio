@@ -26,6 +26,7 @@ import BrandQrTemplateGallery from '@/components/dashboard/brand-qr-template-gal
 import SingleQrTestGenerator from '@/components/dashboard/single-qr-test-generator';
 import { CampaignManagement } from '@/components/dashboard/campaign-management';
 import { DeploymentOperations } from '@/components/dashboard/deployment-operations';
+import { BulkActivationHistory } from '@/components/dashboard/bulk-activation-history';
 
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
@@ -282,7 +283,9 @@ export default function QrManagementPage() {
                 </p>
               </div>
 
-              <BulkQRCodeGenerator />
+              <BulkQRCodeGenerator
+                onViewRequestHistory={() => setActiveArea('history')}
+              />
             </section>
           </div>
         ) : null}
@@ -313,7 +316,7 @@ export default function QrManagementPage() {
               </p>
             </div>
 
-
+            <BulkActivationHistory />
           </section>
         ) : null}
 

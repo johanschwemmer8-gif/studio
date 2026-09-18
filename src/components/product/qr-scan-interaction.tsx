@@ -9,7 +9,14 @@ import {
 } from '@/ai/flows';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Sparkles, ShieldCheck, Loader2, Send, MessageSquare } from 'lucide-react';
+import {
+  Sparkles,
+  ShieldCheck,
+  Loader2,
+  Send,
+  MessageSquare,
+  X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
@@ -41,10 +48,13 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [userInput, setUserInput] = useState('');
+  const [sponsoredMediaDismissed, setSponsoredMediaDismissed] = useState(false);
   const [isPendingChat, startChatTransition] = useTransition();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setSponsoredMediaDismissed(false);
+
     const fetchInteraction = async () => {
       try {
         // A scan/exposure does not create a Shopper Session.
@@ -229,6 +239,87 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             </Button>
         </form>
         
+      </div>
+
+      {data?.sponsoredMedia && !sponsoredMediaDismissed && (
+        <aside
+          className={cn(
+            "relative shrink-0 border-t bg-background",
+            data.sponsoredMedia.format === "VIDEO"
+              ? "max-h-[25svh]"
+              : "max-h-[12.5svh]"
+          )}
+          aria-label={`Sponsored content from ${data.sponsoredMedia.sponsorName}`}
+        >
+          <div className="relative mx-auto h-full w-full max-w-md overflow-hidden">
+            <div className="absolute left-3 top-2 z-20 rounded-full bg-background/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm">
+              Sponsored · {data.sponsoredMedia.sponsorName}
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className="absolute right-2 top-2 z-30 h-8 w-8 rounded-full shadow-md"
+              onClick={() => setSponsoredMediaDismissed(true)}
+              aria-label="Dismiss sponsored content"
+              title="Dismiss sponsored content"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+
+            {data.sponsoredMedia.format === "VIDEO" ? (
+              <video
+                key={`${qrId}-${data.sponsoredMedia.mediaUrl}`}
+                src={data.sponsoredMedia.mediaUrl}
+                autoPlay
+                muted
+                playsInline
+                controls
+                preload="metadata"
+                className="max-h-[25svh] w-full object-contain"
+              />
+            ) : (
+              <div className="flex max-h-[12.5svh] min-h-16 items-center justify-center overflow-hidden">
+                <img
+                  src={data.sponsoredMedia.mediaUrl}
+                  alt={
+                    data.sponsoredMedia.headline ||
+                    `${data.sponsoredMedia.sponsorName} sponsored content`
+                  }
+                  className="max-h-[12.5svh] w-full object-contain"
+                />
+              </div>
+            )}
+
+            {(data.sponsoredMedia.headline ||
+              data.sponsoredMedia.destinationUrl) && (
+              <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 bg-background/90 px-3 py-2 backdrop-blur-sm">
+                {data.sponsoredMedia.headline ? (
+                  <p className="truncate text-xs font-semibold">
+                    {data.sponsoredMedia.headline}
+                  </p>
+                ) : (
+                  <span />
+                )}
+
+                {data.sponsoredMedia.destinationUrl && (
+                  <a
+                    href={data.sponsoredMedia.destinationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-xs font-bold text-primary underline-offset-4 hover:underline"
+                  >
+                    Learn more
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
+
+      <div className="shrink-0 bg-background px-4 pb-4 pt-3">
         <Button
           onClick={handleContinue}
           size="lg"

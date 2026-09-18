@@ -6,6 +6,11 @@ import { admin, db } from '@/lib/firebase-admin';
 import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
 import { requireCapability } from '@/lib/authorization';
 import { ActivationSchema } from '@/lib/schemas/activation';
+import { CampaignSchema } from '@/lib/schemas/campaign';
+import {
+  requireCampaignAllowsActivationSchedule,
+  requireCampaignAllowsActiveActivation,
+} from '@/lib/campaign-activation-eligibility';
 import {
   ScheduleActivationInputSchema,
   type ScheduleActivationInput,
@@ -126,6 +131,46 @@ const scheduleActivationFlow = ai.defineFlow(
       startAt.toMillis() <= now.toMillis()
         ? 'ACTIVE'
         : 'SCHEDULED';
+
+    const campaignRef = db
+      .collection('campaigns')
+      .doc(existingActivation.campaignId);
+
+    const campaignSnapshot = await campaignRef.get();
+
+    if (campaignSnapshot.exists === false) {
+      throw new Error('CAMPAIGN_NOT_FOUND');
+    }
+
+    const rawCampaign = campaignSnapshot.data();
+
+    if (rawCampaign === undefined) {
+      throw new Error('CAMPAIGN_NOT_FOUND');
+    }
+
+    const campaign = CampaignSchema.parse(rawCampaign);
+
+    if (
+      campaign.campaignId !== existingActivation.campaignId ||
+      campaign.retailerId !== authorizedRetailerId
+    ) {
+      throw new Error(
+        'ACTIVATION_CAMPAIGN_INTEGRITY_ERROR: Parent Campaign identity does not match the Activation.'
+      );
+    }
+
+    requireCampaignAllowsActivationSchedule(
+      campaign,
+      startAt,
+      endAt
+    );
+
+    if (nextStatus === 'ACTIVE') {
+      requireCampaignAllowsActiveActivation(
+        campaign,
+        now
+      );
+    }
 
     const candidateActivation = {
       ...existingActivation,

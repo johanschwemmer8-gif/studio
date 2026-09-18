@@ -87,7 +87,57 @@ const activationItemFormSchema = z.object({
   assistantGoal: z.string().optional(),
   scanDestination: z.enum(["ai", "url"]).default("ai"),
   landingPageUrl: z.string().optional().or(z.literal("")),
+  sponsoredMediaFormat: z.enum(["none", "video", "brand_strip"]).default("none"),
+  sponsorName: z.string().optional(),
+  sponsoredMediaUrl: z.string().optional().or(z.literal("")),
+  sponsoredHeadline: z.string().optional(),
+  sponsoredDestinationUrl: z.string().optional().or(z.literal("")),
   deployments: z.array(deploymentFormSchema).min(1, "At least one Deployment is required"),
+}).superRefine((item, ctx) => {
+  if (item.sponsoredMediaFormat === "none") {
+    return;
+  }
+
+  if (!item.sponsorName?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["sponsorName"],
+      message: "Sponsor / Brand Name is required for sponsored media.",
+    });
+  }
+
+  if (!item.sponsoredMediaUrl?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["sponsoredMediaUrl"],
+      message: "Media URL is required for sponsored media.",
+    });
+  } else {
+    const result = z.string().url().safeParse(item.sponsoredMediaUrl.trim());
+
+    if (!result.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sponsoredMediaUrl"],
+        message: "Enter a valid Media URL.",
+      });
+    }
+  }
+
+  if (item.sponsoredDestinationUrl?.trim()) {
+    const result = z
+      .string()
+      .url()
+      .safeParse(item.sponsoredDestinationUrl.trim());
+
+    if (!result.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sponsoredDestinationUrl"],
+        message: "Enter a valid Destination URL.",
+      });
+    }
+  }
 });
 
 const createDefaultDeployment = () => ({
@@ -113,6 +163,11 @@ const createDefaultActivationItem = () => ({
   assistantGoal: "",
   scanDestination: "ai" as const,
   landingPageUrl: "",
+  sponsoredMediaFormat: "none" as const,
+  sponsorName: "",
+  sponsoredMediaUrl: "",
+  sponsoredHeadline: "",
+  sponsoredDestinationUrl: "",
   deployments: [createDefaultDeployment()],
 });
 const bulkFormSchema = z.object({
@@ -215,6 +270,20 @@ function buildBulkActivationWorkItem(
           item.scanDestination === "url"
             ? item.landingPageUrl || undefined
             : undefined,
+        sponsoredMedia:
+          item.sponsoredMediaFormat !== "none"
+            ? {
+                format:
+                  item.sponsoredMediaFormat === "video"
+                    ? ("VIDEO" as const)
+                    : ("BRAND_STRIP" as const),
+                sponsorName: item.sponsorName?.trim() || "",
+                mediaUrl: item.sponsoredMediaUrl?.trim() || "",
+                headline: item.sponsoredHeadline?.trim() || undefined,
+                destinationUrl:
+                  item.sponsoredDestinationUrl?.trim() || undefined,
+              }
+            : undefined,
       },
       approvalRequired: item.approvalRequired,
     },
@@ -275,6 +344,9 @@ function ActivationItemCard({
   const selectedTargetGtin = form.watch(`items.${index}.targetProductGtin`);
   const selectedContextGtins = form.watch(`items.${index}.productGtins`);
   const scanDestination = form.watch(`items.${index}.scanDestination`);
+  const sponsoredMediaFormat = form.watch(
+    `items.${index}.sponsoredMediaFormat`
+  );
 
   const categories = Array.from(
     new Set(
@@ -768,6 +840,123 @@ function ActivationItemCard({
           )}
         </div>
       </div>
+
+      <div className="space-y-4 border-t pt-4">
+        <div>
+          <h4 className="text-sm font-semibold">
+            Retailer / Brand Campaign Setup
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            Optionally attach Activation-specific sponsored media to the Ari
+            shopper experience. Sponsored media does not change Campaign,
+            Deployment, Product or QR identity.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest">
+              Sponsored Media
+            </Label>
+
+            <Controller
+              control={form.control}
+              name={`items.${index}.sponsoredMediaFormat`}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="brand_strip">Brand Strip</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+
+            <p className="text-xs text-muted-foreground">
+              Ari remains the primary shopper experience. Sponsored media is
+              optional and Activation-specific.
+            </p>
+          </div>
+
+          {sponsoredMediaFormat !== "none" && (
+            <>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest">
+                  Sponsor / Brand Name
+                </Label>
+                <Input
+                  {...form.register(`items.${index}.sponsorName`)}
+                  placeholder="e.g. Sunlight"
+                  className="bg-white"
+                />
+                {form.formState.errors.items?.[index]?.sponsorName?.message && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.items[index]?.sponsorName?.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest">
+                  {sponsoredMediaFormat === "video"
+                    ? "Video URL"
+                    : "Brand Strip Image URL"}
+                </Label>
+                <Input
+                  {...form.register(`items.${index}.sponsoredMediaUrl`)}
+                  placeholder="https://..."
+                  className="bg-white"
+                />
+                {form.formState.errors.items?.[index]?.sponsoredMediaUrl
+                  ?.message && (
+                  <p className="text-xs text-destructive">
+                    {
+                      form.formState.errors.items[index]?.sponsoredMediaUrl
+                        ?.message
+                    }
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest">
+                  Headline
+                </Label>
+                <Input
+                  {...form.register(`items.${index}.sponsoredHeadline`)}
+                  placeholder="Optional sponsored message"
+                  className="bg-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest">
+                  Destination URL
+                </Label>
+                <Input
+                  {...form.register(`items.${index}.sponsoredDestinationUrl`)}
+                  placeholder="Optional https://..."
+                  className="bg-white"
+                />
+                {form.formState.errors.items?.[index]?.sponsoredDestinationUrl
+                  ?.message && (
+                  <p className="text-xs text-destructive">
+                    {
+                      form.formState.errors.items[index]
+                        ?.sponsoredDestinationUrl?.message
+                    }
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       <div className="space-y-4 border-t pt-4">
         <div>
           <h4 className="text-sm font-semibold">Deployments</h4>

@@ -119,7 +119,6 @@ export async function getScanInteraction(
       "I'm synchronizing your shopping guidance now.",
     ],
     destinationUrl: 'https://interactaoe.co.za',
-    retailerLogoUrl: '',
   };
 
   try {
@@ -148,7 +147,6 @@ const getScanInteractionFlow = ai.defineFlow(
           "I'm currently operating in simulation mode while we synchronize with the store network.",
         ],
         destinationUrl: 'https://interactaoe.co.za',
-        retailerLogoUrl: '',
       };
     }
 
@@ -177,7 +175,7 @@ const getScanInteractionFlow = ai.defineFlow(
     let shopperName: string | undefined;
     let pastInterests: string[] = [];
     let retailerName = 'iNteract';
-    let retailerLogoUrl = '';
+    let retailerLogoUrl: string | undefined;
 
     if (shopperUid) {
       try {
@@ -219,7 +217,7 @@ const getScanInteractionFlow = ai.defineFlow(
       if (retailerDoc.exists) {
         const retailerData = retailerDoc.data()!;
         retailerName = retailerData.name || 'iNteract';
-        retailerLogoUrl = retailerData.logoUrl || '';
+        retailerLogoUrl = retailerData.logoUrl || undefined;
       }
     } catch {
       console.warn('[Retailer Context] Metadata unavailable.');

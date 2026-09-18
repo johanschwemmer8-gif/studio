@@ -52,6 +52,18 @@ import {
 import { createCampaign } from '@/ai/flows/create-campaign';
 import { updateCampaign } from '@/ai/flows/update-campaign';
 import { archiveCampaign } from '@/ai/flows/archive-campaign';
+import { scheduleCampaign } from '@/ai/flows/schedule-campaign';
+import { activateCampaign } from '@/ai/flows/activate-campaign';
+import { pauseCampaign } from '@/ai/flows/pause-campaign';
+import { resumeCampaign } from '@/ai/flows/resume-campaign';
+import { endCampaign } from '@/ai/flows/end-campaign';
+
+type CampaignLifecycleAction =
+  | 'SCHEDULE'
+  | 'ACTIVATE'
+  | 'PAUSE'
+  | 'RESUME'
+  | 'END';
 
 type CampaignFormState = {
   name: string;
@@ -261,10 +273,17 @@ function CampaignCard({
   campaign,
   onEdit,
   onArchive,
+  onLifecycleAction,
+  lifecycleBusy,
 }: {
   campaign: CampaignManagementItem;
   onEdit: (campaign: CampaignManagementItem) => void;
   onArchive: (campaign: CampaignManagementItem) => void;
+  onLifecycleAction: (
+    campaign: CampaignManagementItem,
+    action: CampaignLifecycleAction
+  ) => void;
+  lifecycleBusy: boolean;
 }) {
   const isArchived = campaign.status === 'ARCHIVED';
   const startAt = formatDateTime(campaign.startAt, campaign.timezone);
@@ -339,12 +358,91 @@ function CampaignCard({
 
         {!isArchived ? (
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button asChild size="sm">
-              <Link href="/retailer-mvp/qr-management#activate-shelves">
-                <Store className="mr-2 h-4 w-4" />
-                Activate Shelves
-              </Link>
-            </Button>
+            {campaign.status === 'SCHEDULED' ||
+            campaign.status === 'ACTIVE' ? (
+              <Button asChild size="sm">
+                <Link href="/retailer-mvp/qr-management#activate-shelves">
+                  <Store className="mr-2 h-4 w-4" />
+                  Activate Shelves
+                </Link>
+              </Button>
+            ) : null}
+
+            {campaign.status === 'DRAFT' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onLifecycleAction(campaign, 'SCHEDULE')}
+                disabled={lifecycleBusy}
+              >
+                {lifecycleBusy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Schedule
+              </Button>
+            ) : null}
+
+            {campaign.status === 'SCHEDULED' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onLifecycleAction(campaign, 'ACTIVATE')}
+                disabled={lifecycleBusy}
+              >
+                {lifecycleBusy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Activate
+              </Button>
+            ) : null}
+
+            {campaign.status === 'ACTIVE' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onLifecycleAction(campaign, 'PAUSE')}
+                disabled={lifecycleBusy}
+              >
+                {lifecycleBusy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Pause
+              </Button>
+            ) : null}
+
+            {campaign.status === 'PAUSED' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onLifecycleAction(campaign, 'RESUME')}
+                disabled={lifecycleBusy}
+              >
+                {lifecycleBusy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Resume
+              </Button>
+            ) : null}
+
+            {campaign.status === 'ACTIVE' ||
+            campaign.status === 'PAUSED' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onLifecycleAction(campaign, 'END')}
+                disabled={lifecycleBusy}
+              >
+                {lifecycleBusy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                End
+              </Button>
+            ) : null}
 
             <Button
               type="button"
@@ -399,6 +497,8 @@ export function CampaignManagement() {
   const [isCreating, setIsCreating] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
+  const [lifecycleBusyCampaignId, setLifecycleBusyCampaignId] =
+    React.useState<string | null>(null);
 
   const loadCampaigns = React.useCallback(async () => {
     const authenticatedUser = user;
@@ -635,6 +735,115 @@ export function CampaignManagement() {
     }
   }
 
+  async function handleLifecycleAction(
+    campaign: CampaignManagementItem,
+    action: CampaignLifecycleAction
+  ) {
+    const authenticatedUser = user;
+    const retailerId = authenticatedUser?.retailerId;
+
+    if (!authenticatedUser || !retailerId) {
+      toast({
+        title: 'Campaign could not be changed',
+        description: 'An authenticated retailer context is required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (action === 'SCHEDULE' && !campaign.startAt) {
+      toast({
+        title: 'Campaign needs a start time',
+        description:
+          'Edit the Campaign and set its start date and time before scheduling it.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLifecycleBusyCampaignId(campaign.campaignId);
+
+    try {
+      const idToken = await authenticatedUser.getIdToken();
+
+      switch (action) {
+        case 'SCHEDULE':
+          await scheduleCampaign({
+            idToken,
+            retailerId,
+            campaignId: campaign.campaignId,
+            startAt: campaign.startAt!,
+            endAt: campaign.endAt,
+            timezone: campaign.timezone,
+          });
+          break;
+
+        case 'ACTIVATE':
+          await activateCampaign({
+            idToken,
+            retailerId,
+            campaignId: campaign.campaignId,
+          });
+          break;
+
+        case 'PAUSE':
+          await pauseCampaign({
+            idToken,
+            retailerId,
+            campaignId: campaign.campaignId,
+          });
+          break;
+
+        case 'RESUME':
+          await resumeCampaign({
+            idToken,
+            retailerId,
+            campaignId: campaign.campaignId,
+          });
+          break;
+
+        case 'END':
+          await endCampaign({
+            idToken,
+            retailerId,
+            campaignId: campaign.campaignId,
+          });
+          break;
+      }
+
+      const successTitle: Record<CampaignLifecycleAction, string> = {
+        SCHEDULE: 'Campaign scheduled',
+        ACTIVATE: 'Campaign activated',
+        PAUSE: 'Campaign paused',
+        RESUME: 'Campaign resumed',
+        END: 'Campaign ended',
+      };
+
+      toast({
+        title: successTitle[action],
+        description: 'Campaign lifecycle status was updated successfully.',
+      });
+
+      await loadCampaigns();
+    } catch (error) {
+      console.error(
+        `[Campaign Management] Failed lifecycle action ${action}:`,
+        error
+      );
+
+      toast({
+        title: 'Campaign could not be changed',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'The Campaign lifecycle command failed.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLifecycleBusyCampaignId(null);
+    }
+  }
+
   async function handleArchive() {
     const authenticatedUser = user;
     const retailerId = authenticatedUser?.retailerId;
@@ -769,6 +978,10 @@ export function CampaignManagement() {
                     campaign={campaign}
                     onEdit={beginEdit}
                     onArchive={setArchiveTarget}
+                    onLifecycleAction={handleLifecycleAction}
+                    lifecycleBusy={
+                      lifecycleBusyCampaignId === campaign.campaignId
+                    }
                   />
                 ))}
               </div>
@@ -799,6 +1012,10 @@ export function CampaignManagement() {
                     campaign={campaign}
                     onEdit={beginEdit}
                     onArchive={setArchiveTarget}
+                    onLifecycleAction={handleLifecycleAction}
+                    lifecycleBusy={
+                      lifecycleBusyCampaignId === campaign.campaignId
+                    }
                   />
                 ))}
               </div>

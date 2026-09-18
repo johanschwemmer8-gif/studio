@@ -110,7 +110,9 @@ export async function resolveSponsoredMediaForProductionQr(
 
   if (
     creative.format !== sponsoredMedia.format ||
-    creative.mediaUrl !== sponsoredMedia.mediaUrl
+    creative.mediaUrl !== sponsoredMedia.mediaUrl ||
+    creative.headline !== sponsoredMedia.headline ||
+    creative.destinationUrl !== sponsoredMedia.destinationUrl
   ) {
     throw new Error('SPONSORED_CREATIVE_PRESENTATION_MISMATCH');
   }

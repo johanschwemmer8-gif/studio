@@ -179,4 +179,31 @@ describe('resolveSponsoredMediaForProductionQr', () => {
       resolveSponsoredMediaForProductionQr('qr_nike')
     ).rejects.toThrow('SPONSORED_CREATIVE_PRESENTATION_MISMATCH');
   });
+
+  it('rejects a sponsored creative headline mismatch', async () => {
+    mockGetDb.mockReturnValue(
+      firestore(
+        partner(),
+        creative({ headline: 'Different headline' })
+      )
+    );
+
+    await expect(
+      resolveSponsoredMediaForProductionQr('qr_nike')
+    ).rejects.toThrow('SPONSORED_CREATIVE_PRESENTATION_MISMATCH');
+  });
+
+  it('rejects a sponsored creative destinationUrl mismatch', async () => {
+    mockGetDb.mockReturnValue(
+      firestore(
+        partner(),
+        creative({ destinationUrl: 'https://example.com/different' })
+      )
+    );
+
+    await expect(
+      resolveSponsoredMediaForProductionQr('qr_nike')
+    ).rejects.toThrow('SPONSORED_CREATIVE_PRESENTATION_MISMATCH');
+  });
+
 });

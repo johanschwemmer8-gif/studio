@@ -23,6 +23,7 @@ import { useAuth } from '@/context/auth-context';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
+import { recordSponsoredMediaEvent } from '@/lib/sponsored-media-event-server';
 
 type Message = {
     role: 'user' | 'model';
@@ -51,6 +52,8 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const [sponsoredMediaDismissed, setSponsoredMediaDismissed] = useState(false);
   const [isPendingChat, startChatTransition] = useTransition();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sponsoredMediaRef = useRef<HTMLElement>(null);
+  const sponsoredImpressionRecordedRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSponsoredMediaDismissed(false);
@@ -95,6 +98,88 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
           scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    const sponsoredMedia = data?.sponsoredMedia;
+    const element = sponsoredMediaRef.current;
+
+    if (
+      !sponsoredMedia ||
+      !sponsoredMedia.presentationId ||
+      sponsoredMediaDismissed ||
+      !element
+    ) {
+      return;
+    }
+
+    const presentationId = sponsoredMedia.presentationId;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+
+        if (
+          !entry?.isIntersecting ||
+          entry.intersectionRatio < 0.5 ||
+          sponsoredImpressionRecordedRef.current === presentationId
+        ) {
+          return;
+        }
+
+        sponsoredImpressionRecordedRef.current = presentationId;
+        observer.disconnect();
+
+        void recordSponsoredMediaEvent({
+          qrId,
+          eventType: 'IMPRESSION',
+          presentationId,
+        }).catch(() => {
+          // Retail Media measurement must never interrupt Ari.
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [data?.sponsoredMedia, qrId, sponsoredMediaDismissed]);
+
+  const handleSponsoredMediaDismiss = () => {
+    const presentationId = data?.sponsoredMedia?.presentationId;
+
+    // Ari wins: dismiss immediately, independent of measurement.
+    setSponsoredMediaDismissed(true);
+
+    if (!presentationId) {
+      return;
+    }
+
+    void recordSponsoredMediaEvent({
+      qrId,
+      eventType: 'DISMISSED',
+      presentationId,
+    }).catch(() => {
+      // Retail Media measurement must never interrupt Ari.
+    });
+  };
+
+  const handleSponsoredMediaClick = () => {
+    const presentationId = data?.sponsoredMedia?.presentationId;
+
+    if (!presentationId) {
+      return;
+    }
+
+    // Navigation is owned by the anchor; measurement is best-effort only.
+    void recordSponsoredMediaEvent({
+      qrId,
+      eventType: 'CLICKED',
+      presentationId,
+    }).catch(() => {
+      // Retail Media measurement must never interrupt shopper navigation.
+    });
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,6 +328,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
       {data?.sponsoredMedia && !sponsoredMediaDismissed && (
         <aside
+          ref={sponsoredMediaRef}
           className={cn(
             "relative shrink-0 border-t bg-background",
             data.sponsoredMedia.format === "VIDEO"
@@ -261,7 +347,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
               variant="secondary"
               size="icon"
               className="absolute right-2 top-2 z-30 h-8 w-8 rounded-full shadow-md"
-              onClick={() => setSponsoredMediaDismissed(true)}
+              onClick={handleSponsoredMediaDismiss}
               aria-label="Dismiss sponsored content"
               title="Dismiss sponsored content"
             >
@@ -306,6 +392,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                 {data.sponsoredMedia.destinationUrl && (
                   <a
                     href={data.sponsoredMedia.destinationUrl}
+                    onClick={handleSponsoredMediaClick}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0 text-xs font-bold text-primary underline-offset-4 hover:underline"

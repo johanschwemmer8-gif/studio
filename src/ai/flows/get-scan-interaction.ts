@@ -258,6 +258,7 @@ const getScanInteractionFlow = ai.defineFlow(
         mediaUrl: experienceConfig.mediaUrl,
         headline: experienceConfig.headline,
         subhead: experienceConfig.subhead,
+        sponsoredMedia: experienceConfig.sponsoredMedia,
       };
     } catch {
       return {
@@ -271,6 +272,7 @@ const getScanInteractionFlow = ai.defineFlow(
         mediaUrl: experienceConfig.mediaUrl,
         headline: experienceConfig.headline,
         subhead: experienceConfig.subhead,
+        sponsoredMedia: experienceConfig.sponsoredMedia,
       };
     }
   }

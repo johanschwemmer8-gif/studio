@@ -16,5 +16,21 @@ export const GetScanInteractionOutputSchema = z.object({
   mediaUrl: z.string().url().optional().or(z.literal('')),
   headline: z.string().optional(),
   subhead: z.string().optional(),
+
+  /**
+   * Activation-specific sponsored media.
+   *
+   * This is shopper-experience configuration only. It does not define
+   * Campaign, Deployment, QR, Product, or shopper-session identity.
+   */
+  sponsoredMedia: z
+    .object({
+      format: z.enum(['VIDEO', 'BRAND_STRIP']),
+      sponsorName: z.string().trim().min(1),
+      mediaUrl: z.string().url(),
+      headline: z.string().trim().min(1).optional(),
+      destinationUrl: z.string().url().optional(),
+    })
+    .optional(),
 });
 export type GetScanInteractionOutput = z.infer<typeof GetScanInteractionOutputSchema>;

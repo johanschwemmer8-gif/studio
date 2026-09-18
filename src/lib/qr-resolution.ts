@@ -3,6 +3,7 @@ import { ActivationSchema, type Activation } from '@/lib/schemas/activation';
 import { CampaignSchema, type Campaign } from '@/lib/schemas/campaign';
 import { DeploymentSchema, type Deployment } from '@/lib/schemas/deployment';
 import { QrCodeSchema, type QrCode } from '@/lib/schemas/qr-code';
+import { requireCampaignShopperLive } from '@/lib/campaign-shopper-live-eligibility';
 
 export type ResolvedProductionQr = {
   qr: QrCode;
@@ -102,7 +103,8 @@ export async function resolveProductionQr(
     throw new Error('ACTIVATION_INTEGRITY_ERROR');
   }
 
-  const nowMillis = admin.firestore.Timestamp.now().toMillis();
+  const now = admin.firestore.Timestamp.now();
+  const nowMillis = now.toMillis();
 
   if (
     activation.status === 'DRAFT' ||
@@ -163,23 +165,10 @@ export async function resolveProductionQr(
     throw new Error('CAMPAIGN_INTEGRITY_ERROR');
   }
 
-  if (campaign.status === 'ARCHIVED') {
-    throw new Error('CAMPAIGN_ARCHIVED');
-  }
-
-  if (
-    campaign.startAt !== undefined &&
-    timestampToMillis(campaign.startAt) > nowMillis
-  ) {
-    throw new Error('CAMPAIGN_NOT_STARTED');
-  }
-
-  if (
-    campaign.endAt !== undefined &&
-    timestampToMillis(campaign.endAt) < nowMillis
-  ) {
-    throw new Error('CAMPAIGN_ENDED');
-  }
+  requireCampaignShopperLive(
+    campaign,
+    now
+  );
 
   return {
     qr,

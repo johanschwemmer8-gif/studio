@@ -18,6 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { admin, getDb } from '@/lib/firebase-admin';
 import { resolveProductionQr } from '@/lib/qr-resolution';
 import { QrExposureSchema } from '@/lib/schemas/qr-exposure';
+import { establishSponsoredMediaEligibility } from '@/lib/sponsored-media-eligibility';
 import {
   GetScanInteractionInputSchema,
   type GetScanInteractionInput,
@@ -172,6 +173,29 @@ const getScanInteractionFlow = ai.defineFlow(
 
     const experienceConfig = activation.experienceConfig;
 
+    let sponsoredMediaPresentationId: string | undefined;
+
+    if (
+      experienceConfig.sponsoredMedia?.partnerId &&
+      experienceConfig.sponsoredMedia?.creativeId
+    ) {
+      const eligibility = await establishSponsoredMediaEligibility(qrId);
+      sponsoredMediaPresentationId = eligibility.presentationId;
+    }
+
+    const shopperSponsoredMedia = experienceConfig.sponsoredMedia
+      ? {
+          format: experienceConfig.sponsoredMedia.format,
+          sponsorName: experienceConfig.sponsoredMedia.sponsorName,
+          mediaUrl: experienceConfig.sponsoredMedia.mediaUrl,
+          headline: experienceConfig.sponsoredMedia.headline,
+          destinationUrl: experienceConfig.sponsoredMedia.destinationUrl,
+          ...(sponsoredMediaPresentationId
+            ? { presentationId: sponsoredMediaPresentationId }
+            : {}),
+        }
+      : undefined;
+
     let shopperName: string | undefined;
     let pastInterests: string[] = [];
     let retailerName = 'iNteract';
@@ -256,7 +280,7 @@ const getScanInteractionFlow = ai.defineFlow(
         mediaUrl: experienceConfig.mediaUrl,
         headline: experienceConfig.headline,
         subhead: experienceConfig.subhead,
-        sponsoredMedia: experienceConfig.sponsoredMedia,
+        sponsoredMedia: shopperSponsoredMedia,
       };
     } catch {
       return {
@@ -270,7 +294,7 @@ const getScanInteractionFlow = ai.defineFlow(
         mediaUrl: experienceConfig.mediaUrl,
         headline: experienceConfig.headline,
         subhead: experienceConfig.subhead,
-        sponsoredMedia: experienceConfig.sponsoredMedia,
+        sponsoredMedia: shopperSponsoredMedia,
       };
     }
   }

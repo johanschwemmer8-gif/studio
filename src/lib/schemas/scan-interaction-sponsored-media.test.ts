@@ -21,11 +21,41 @@ describe('GetScanInteractionOutputSchema sponsored media', () => {
         mediaUrl: 'https://example.com/sunlight-video.mp4',
         headline: 'Tough on grease',
         destinationUrl: 'https://example.com/sunlight',
+        presentationId: 'smp_presentation_1',
       },
     });
 
     expect(result.sponsoredMedia?.format).toBe('VIDEO');
     expect(result.sponsoredMedia?.sponsorName).toBe('Sunlight');
+    expect(result.sponsoredMedia?.presentationId).toBe('smp_presentation_1');
+  });
+
+  it('continues to accept legacy 15A sponsored media without presentation identity', () => {
+    const result = GetScanInteractionOutputSchema.parse({
+      ...baseResponse,
+      sponsoredMedia: {
+        format: 'VIDEO',
+        sponsorName: 'Legacy Sponsor',
+        mediaUrl: 'https://example.com/legacy-sponsored-video.mp4',
+      },
+    });
+
+    expect(result.sponsoredMedia?.sponsorName).toBe('Legacy Sponsor');
+    expect(result.sponsoredMedia?.presentationId).toBeUndefined();
+  });
+
+  it('rejects a blank sponsored-media presentation identity', () => {
+    expect(() =>
+      GetScanInteractionOutputSchema.parse({
+        ...baseResponse,
+        sponsoredMedia: {
+          format: 'VIDEO',
+          sponsorName: 'Sunlight',
+          mediaUrl: 'https://example.com/sunlight-video.mp4',
+          presentationId: '   ',
+        },
+      })
+    ).toThrow();
   });
 
   it('accepts canonical BRAND_STRIP sponsored media', () => {

@@ -1,6 +1,8 @@
 import { admin, getDb } from './firebase-admin';
 import { resolveProductionQr } from './qr-resolution';
-import { recordSponsoredMediaEvent } from './sponsored-media-event-server';
+import {
+  recordSponsoredMediaEvent,
+} from './sponsored-media-event-server';
 
 jest.mock('./firebase-admin', () => ({
   admin: {

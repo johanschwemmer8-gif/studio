@@ -30,6 +30,13 @@ export const GetScanInteractionOutputSchema = z.object({
       mediaUrl: z.string().url(),
       headline: z.string().trim().min(1).optional(),
       destinationUrl: z.string().url().optional(),
+
+      /**
+       * Opaque Retail Media presentation-opportunity identity.
+       * Present only when canonical 15B eligibility was established.
+       * This is not a Shopper Session, Partner, Creative, or QR identity.
+       */
+      presentationId: z.string().trim().min(1).optional(),
     })
     .optional(),
 });

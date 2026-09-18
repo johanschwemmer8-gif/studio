@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 
 import { admin, getDb } from './firebase-admin';
-import { resolveProductionQr } from './qr-resolution';
+import { resolveSponsoredMediaForProductionQr } from './sponsored-media-resolution';
 import {
   RetailMediaPartnerSchema,
 } from './schemas/retail-media-partner';
@@ -106,86 +106,10 @@ export async function recordSponsoredMediaEvent(
     throw new Error('INFRASTRUCTURE_UNAVAILABLE');
   }
 
-  const { qr, activation } = await resolveProductionQr(parsedInput.qrId);
-
-  const sponsoredMedia = activation.experienceConfig.sponsoredMedia;
-
-  if (!sponsoredMedia) {
-    throw new Error('SPONSORED_MEDIA_NOT_CONFIGURED');
-  }
-
-  /*
-   * Objective 15A backward compatibility:
-   * legacy sponsored media may continue to render without canonical
-   * Retail Media identity, but it must not create canonical 15B events.
-   */
-  if (!sponsoredMedia.partnerId || !sponsoredMedia.creativeId) {
-    throw new Error('SPONSORED_MEDIA_NOT_MEASURABLE');
-  }
-
-  const partnerSnapshot = await db
-    .collection('retailMediaPartners')
-    .doc(sponsoredMedia.partnerId)
-    .get();
-
-  if (!partnerSnapshot.exists) {
-    throw new Error('RETAIL_MEDIA_PARTNER_NOT_FOUND');
-  }
-
-  const partnerData = partnerSnapshot.data();
-
-  if (partnerData === undefined) {
-    throw new Error('RETAIL_MEDIA_PARTNER_NOT_FOUND');
-  }
-
-  const partner = RetailMediaPartnerSchema.parse(partnerData);
-
-  if (
-    partner.partnerId !== sponsoredMedia.partnerId ||
-    partner.retailerId !== qr.retailerId
-  ) {
-    throw new Error('RETAIL_MEDIA_PARTNER_INTEGRITY_ERROR');
-  }
-
-  if (partner.status !== 'ACTIVE') {
-    throw new Error('RETAIL_MEDIA_PARTNER_INACTIVE');
-  }
-
-  const creativeSnapshot = await db
-    .collection('sponsoredCreatives')
-    .doc(sponsoredMedia.creativeId)
-    .get();
-
-  if (!creativeSnapshot.exists) {
-    throw new Error('SPONSORED_CREATIVE_NOT_FOUND');
-  }
-
-  const creativeData = creativeSnapshot.data();
-
-  if (creativeData === undefined) {
-    throw new Error('SPONSORED_CREATIVE_NOT_FOUND');
-  }
-
-  const creative = SponsoredCreativeSchema.parse(creativeData);
-
-  if (
-    creative.creativeId !== sponsoredMedia.creativeId ||
-    creative.retailerId !== qr.retailerId ||
-    creative.partnerId !== sponsoredMedia.partnerId
-  ) {
-    throw new Error('SPONSORED_CREATIVE_INTEGRITY_ERROR');
-  }
-
-  if (creative.status !== 'ACTIVE') {
-    throw new Error('SPONSORED_CREATIVE_INACTIVE');
-  }
-
-  if (
-    creative.format !== sponsoredMedia.format ||
-    creative.mediaUrl !== sponsoredMedia.mediaUrl
-  ) {
-    throw new Error('SPONSORED_CREATIVE_PRESENTATION_MISMATCH');
-  }
+  const {
+    qrContext: { qr },
+    creative,
+  } = await resolveSponsoredMediaForProductionQr(parsedInput.qrId);
 
   assertEventSemantics(
     creative.format,

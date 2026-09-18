@@ -5,6 +5,7 @@ import { z } from "genkit";
 import { db } from "@/lib/firebase-admin";
 import { verifyAuth, getAuthorizedRetailerId } from "@/lib/auth-server";
 import { CampaignSchema } from "@/lib/schemas/campaign";
+import { campaignIsEligibleForActivationSelector } from "@/lib/campaign-activation-selector-eligibility";
 
 const ListRetailerCampaignsInputSchema = z.object({
   idToken: z.string().min(1),
@@ -64,7 +65,7 @@ const listRetailerCampaignsFlow = ai.defineFlow(
         throw new Error("CAMPAIGN_IDENTITY_MISMATCH");
       }
 
-      if (campaign.status === "ARCHIVED") {
+      if (!campaignIsEligibleForActivationSelector(campaign)) {
         continue;
       }
 

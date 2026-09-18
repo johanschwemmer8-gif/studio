@@ -1,6 +1,6 @@
 'use server';
 
-import { randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 import { z } from 'zod';
 
 import { admin, getDb } from './firebase-admin';
@@ -117,7 +117,31 @@ export async function recordSponsoredMediaEvent(
     parsedInput.playbackOrdinal
   );
 
-  const eventId = `sme_${randomUUID()}`;
+  if (
+    parsedInput.eventType === 'REPLAYED' &&
+    (parsedInput.playbackOrdinal === undefined ||
+      parsedInput.playbackOrdinal < 2)
+  ) {
+    throw new Error('INVALID_REPLAY_PLAYBACK_ORDINAL');
+  }
+
+  const presentationDigest = createHash('sha256')
+    .update(parsedInput.presentationId)
+    .digest('hex');
+
+  const eligibleEventId = `sme_eligible_${presentationDigest}`;
+
+  const eventIdentity = [
+    parsedInput.presentationId,
+    parsedInput.eventType,
+    parsedInput.playbackOrdinal ?? 0,
+  ].join(':');
+
+  const eventDigest = createHash('sha256')
+    .update(eventIdentity)
+    .digest('hex');
+
+  const eventId = `sme_event_${eventDigest}`;
 
   const eventData = {
     eventId,
@@ -141,10 +165,77 @@ export async function recordSponsoredMediaEvent(
 
   SponsoredMediaEventSchema.parse(eventData);
 
-  await db
-    .collection('sponsoredMediaEvents')
-    .doc(eventId)
-    .create(eventData);
+  const events = db.collection('sponsoredMediaEvents');
+  const eligibleRef = events.doc(eligibleEventId);
+  const eventRef = events.doc(eventId);
+
+  await db.runTransaction(async (transaction) => {
+    const eligibleSnapshot = await transaction.get(eligibleRef);
+
+    if (eligibleSnapshot.exists === false) {
+      throw new Error('SPONSORED_MEDIA_PRESENTATION_NOT_ESTABLISHED');
+    }
+
+    const rawEligible = eligibleSnapshot.data();
+
+    if (rawEligible === undefined) {
+      throw new Error('SPONSORED_MEDIA_PRESENTATION_NOT_ESTABLISHED');
+    }
+
+    const eligibleEvent = SponsoredMediaEventSchema.parse(rawEligible);
+
+    if (
+      eligibleEvent.eventType !== 'ELIGIBLE' ||
+      eligibleEvent.presentationId !== parsedInput.presentationId ||
+      eligibleEvent.retailerId !== qr.retailerId ||
+      eligibleEvent.campaignId !== qr.campaignId ||
+      eligibleEvent.activationId !== qr.activationId ||
+      eligibleEvent.deploymentId !== qr.deploymentId ||
+      eligibleEvent.qrCodeId !== qr.qrCodeId ||
+      eligibleEvent.partnerId !== creative.partnerId ||
+      eligibleEvent.creativeId !== creative.creativeId ||
+      eligibleEvent.format !== creative.format ||
+      eligibleEvent.configurationVersion !== qr.configurationVersion ||
+      eligibleEvent.environment !== qr.environment
+    ) {
+      throw new Error('SPONSORED_MEDIA_PRESENTATION_CONTEXT_MISMATCH');
+    }
+
+    const existingEventSnapshot = await transaction.get(eventRef);
+
+    if (existingEventSnapshot.exists) {
+      const existingRaw = existingEventSnapshot.data();
+
+      if (existingRaw === undefined) {
+        throw new Error('SPONSORED_MEDIA_EVENT_INTEGRITY_ERROR');
+      }
+
+      const existingEvent = SponsoredMediaEventSchema.parse(existingRaw);
+
+      if (
+        existingEvent.eventId !== eventId ||
+        existingEvent.presentationId !== parsedInput.presentationId ||
+        existingEvent.eventType !== parsedInput.eventType ||
+        existingEvent.retailerId !== qr.retailerId ||
+        existingEvent.campaignId !== qr.campaignId ||
+        existingEvent.activationId !== qr.activationId ||
+        existingEvent.deploymentId !== qr.deploymentId ||
+        existingEvent.qrCodeId !== qr.qrCodeId ||
+        existingEvent.partnerId !== creative.partnerId ||
+        existingEvent.creativeId !== creative.creativeId ||
+        existingEvent.format !== creative.format ||
+        existingEvent.configurationVersion !== qr.configurationVersion ||
+        existingEvent.environment !== qr.environment ||
+        existingEvent.playbackOrdinal !== parsedInput.playbackOrdinal
+      ) {
+        throw new Error('SPONSORED_MEDIA_EVENT_INTEGRITY_ERROR');
+      }
+
+      return;
+    }
+
+    transaction.create(eventRef, eventData);
+  });
 
   return { eventId };
 }

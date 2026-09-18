@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { z } from 'zod';
 
 import { admin, getDb } from './firebase-admin';
@@ -41,7 +41,10 @@ export async function establishSponsoredMediaEligibility(
   } = await resolveSponsoredMediaForProductionQr(parsedQrId);
 
   const presentationId = `smp_${randomUUID()}`;
-  const eventId = `sme_${randomUUID()}`;
+  const presentationDigest = createHash('sha256')
+    .update(presentationId)
+    .digest('hex');
+  const eventId = `sme_eligible_${presentationDigest}`;
 
   const eventData = {
     eventId,

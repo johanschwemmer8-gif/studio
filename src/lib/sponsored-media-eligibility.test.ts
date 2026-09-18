@@ -59,7 +59,7 @@ describe('establishSponsoredMediaEligibility', () => {
 
     const result = await establishSponsoredMediaEligibility('qr_1');
 
-    expect(result.eventId).toMatch(/^sme_/);
+    expect(result.eventId).toMatch(/^sme_eligible_[a-f0-9]{64}$/);
     expect(result.presentationId).toMatch(/^smp_/);
 
     expect(create).toHaveBeenCalledTimes(1);

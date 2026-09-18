@@ -91,11 +91,36 @@ function validCreative(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function validEligibleEvent(
+  overrides: Record<string, unknown> = {}
+) {
+  return {
+    eventId: 'eligible-event-id-replaced-by-harness',
+    presentationId: 'smp_test_presentation',
+    eventType: 'ELIGIBLE',
+    retailerId: 'retailer_a',
+    campaignId: 'campaign_1',
+    activationId: 'activation_1',
+    deploymentId: 'deployment_1',
+    qrCodeId: 'qr_nike',
+    partnerId: 'partner_nike',
+    creativeId: 'creative_nike_video',
+    format: 'VIDEO',
+    configurationVersion: 3,
+    environment: 'PRODUCTION',
+    timestamp,
+    ...overrides,
+  };
+}
+
 function firestore(
   partner: Record<string, unknown> | undefined = validPartner(),
-  creative: Record<string, unknown> | undefined = validCreative()
+  creative: Record<string, unknown> | undefined = validCreative(),
+  eligible: Record<string, unknown> | null = validEligibleEvent(),
+  existingObservedEvent?: Record<string, unknown>
 ) {
-  const create = jest.fn().mockResolvedValue(undefined);
+  const create = jest.fn();
+  const eventRefs = new Map<string, { id: string }>();
 
   const collection = jest.fn((name: string) => {
     if (name === 'retailMediaPartners') {
@@ -122,18 +147,59 @@ function firestore(
 
     if (name === 'sponsoredMediaEvents') {
       return {
-        doc: jest.fn(() => ({
-          create,
-        })),
+        doc: jest.fn((id: string) => {
+          const ref = { id };
+          eventRefs.set(id, ref);
+          return ref;
+        }),
       };
     }
 
     throw new Error(`Unexpected collection: ${name}`);
   });
 
-  return {
-    db: { collection },
+  const transaction = {
+    get: jest.fn(async (ref: { id: string }) => {
+      if (ref.id.startsWith('sme_eligible_')) {
+        const eligibleWithActualId =
+          eligible === null
+            ? undefined
+            : {
+                ...eligible,
+                eventId: ref.id,
+              };
+
+        return {
+          exists: eligibleWithActualId !== undefined,
+          data: () => eligibleWithActualId,
+        };
+      }
+
+      if (ref.id.startsWith('sme_event_')) {
+        return {
+          exists: existingObservedEvent !== undefined,
+          data: () => existingObservedEvent,
+        };
+      }
+
+      throw new Error(`Unexpected event ref: ${ref.id}`);
+    }),
     create,
+  };
+
+  const runTransaction = jest.fn(
+    async (callback: (tx: any) => unknown) =>
+      callback(transaction)
+  );
+
+  return {
+    db: {
+      collection,
+      runTransaction,
+    },
+    create,
+    transaction,
+    runTransaction,
   };
 }
 
@@ -151,7 +217,7 @@ describe('recordSponsoredMediaEvent', () => {
     const result = await recordSponsoredMediaEvent({
       qrId: 'qr_nike',
       eventType: 'IMPRESSION',
-      presentationId: 'presentation_1',
+      presentationId: 'smp_test_presentation',
     });
 
     expect(result.eventId).toMatch(/^sme_/);
@@ -159,8 +225,11 @@ describe('recordSponsoredMediaEvent', () => {
 
     expect(store.create).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: expect.stringMatching(/^sme_event_[a-f0-9]{64}$/),
+      }),
+      expect.objectContaining({
         eventType: 'IMPRESSION',
-        presentationId: 'presentation_1',
+        presentationId: 'smp_test_presentation',
         retailerId: 'retailer_a',
         campaignId: 'campaign_1',
         activationId: 'activation_1',
@@ -183,7 +252,7 @@ describe('recordSponsoredMediaEvent', () => {
       recordSponsoredMediaEvent({
         qrId: 'qr_nike',
         eventType: 'ELIGIBLE' as never,
-        presentationId: 'presentation_1',
+        presentationId: 'smp_test_presentation',
       })
     ).rejects.toThrow();
 
@@ -221,7 +290,7 @@ describe('recordSponsoredMediaEvent', () => {
       recordSponsoredMediaEvent({
         qrId: 'qr_nike',
         eventType: 'IMPRESSION',
-        presentationId: 'presentation_1',
+        presentationId: 'smp_test_presentation',
       })
     ).rejects.toThrow('RETAIL_MEDIA_PARTNER_INACTIVE');
 
@@ -239,7 +308,7 @@ describe('recordSponsoredMediaEvent', () => {
       recordSponsoredMediaEvent({
         qrId: 'qr_nike',
         eventType: 'IMPRESSION',
-        presentationId: 'presentation_1',
+        presentationId: 'smp_test_presentation',
       })
     ).rejects.toThrow('SPONSORED_CREATIVE_INTEGRITY_ERROR');
 
@@ -257,7 +326,7 @@ describe('recordSponsoredMediaEvent', () => {
       recordSponsoredMediaEvent({
         qrId: 'qr_nike',
         eventType: 'IMPRESSION',
-        presentationId: 'presentation_1',
+        presentationId: 'smp_test_presentation',
       })
     ).rejects.toThrow('SPONSORED_CREATIVE_INACTIVE');
 
@@ -275,7 +344,7 @@ describe('recordSponsoredMediaEvent', () => {
       recordSponsoredMediaEvent({
         qrId: 'qr_nike',
         eventType: 'IMPRESSION',
-        presentationId: 'presentation_1',
+        presentationId: 'smp_test_presentation',
       })
     ).rejects.toThrow('SPONSORED_CREATIVE_PRESENTATION_MISMATCH');
 
@@ -290,7 +359,7 @@ describe('recordSponsoredMediaEvent', () => {
       recordSponsoredMediaEvent({
         qrId: 'qr_nike',
         eventType: 'STARTED',
-        presentationId: 'presentation_1',
+        presentationId: 'smp_test_presentation',
       })
     ).rejects.toThrow('PLAYBACK_ORDINAL_REQUIRED');
 
@@ -304,11 +373,14 @@ describe('recordSponsoredMediaEvent', () => {
     await recordSponsoredMediaEvent({
       qrId: 'qr_nike',
       eventType: 'COMPLETED',
-      presentationId: 'presentation_1',
+      presentationId: 'smp_test_presentation',
       playbackOrdinal: 1,
     });
 
     expect(store.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: expect.stringMatching(/^sme_event_[a-f0-9]{64}$/),
+      }),
       expect.objectContaining({
         eventType: 'COMPLETED',
         playbackOrdinal: 1,
@@ -343,7 +415,7 @@ describe('recordSponsoredMediaEvent', () => {
       recordSponsoredMediaEvent({
         qrId: 'qr_nike',
         eventType: 'REPLAYED',
-        presentationId: 'presentation_1',
+        presentationId: 'smp_test_presentation',
         playbackOrdinal: 2,
       })
     ).rejects.toThrow('INVALID_SPONSORED_MEDIA_EVENT');
@@ -358,14 +430,126 @@ describe('recordSponsoredMediaEvent', () => {
     await recordSponsoredMediaEvent({
       qrId: 'qr_nike',
       eventType: 'DISMISSED',
-      presentationId: 'presentation_1',
+      presentationId: 'smp_test_presentation',
     });
 
-    const event = store.create.mock.calls[0][0];
+    const event = store.create.mock.calls[0][1];
 
     expect(event).not.toHaveProperty('sessionId');
     expect(event).not.toHaveProperty('shopperId');
     expect(event).not.toHaveProperty('shopperUid');
     expect(event).not.toHaveProperty('uid');
+  });
+
+  it('rejects a presentationId that was never established server-side', async () => {
+    const store = firestore(
+      validPartner(),
+      validCreative(),
+      null
+    );
+    mockGetDb.mockReturnValue(store.db);
+
+    await expect(
+      recordSponsoredMediaEvent({
+        qrId: 'qr_nike',
+        eventType: 'IMPRESSION',
+        presentationId: 'smp_forged_presentation',
+      })
+    ).rejects.toThrow('SPONSORED_MEDIA_PRESENTATION_NOT_ESTABLISHED');
+
+    expect(store.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an established presentation whose canonical context no longer matches', async () => {
+    const store = firestore(
+      validPartner(),
+      validCreative(),
+      validEligibleEvent({
+        campaignId: 'campaign_other',
+      })
+    );
+    mockGetDb.mockReturnValue(store.db);
+
+    await expect(
+      recordSponsoredMediaEvent({
+        qrId: 'qr_nike',
+        eventType: 'IMPRESSION',
+        presentationId: 'smp_test_presentation',
+      })
+    ).rejects.toThrow('SPONSORED_MEDIA_PRESENTATION_CONTEXT_MISMATCH');
+
+    expect(store.create).not.toHaveBeenCalled();
+  });
+
+  it('returns the same deterministic eventId without creating a duplicate measurement', async () => {
+    const firstStore = firestore();
+    mockGetDb.mockReturnValue(firstStore.db);
+
+    const first = await recordSponsoredMediaEvent({
+      qrId: 'qr_nike',
+      eventType: 'IMPRESSION',
+      presentationId: 'smp_test_presentation',
+    });
+
+    expect(firstStore.create).toHaveBeenCalledTimes(1);
+
+    const firstEvent = firstStore.create.mock.calls[0][1];
+
+    const retryStore = firestore(
+      validPartner(),
+      validCreative(),
+      validEligibleEvent(),
+      firstEvent
+    );
+    mockGetDb.mockReturnValue(retryStore.db);
+
+    const retry = await recordSponsoredMediaEvent({
+      qrId: 'qr_nike',
+      eventType: 'IMPRESSION',
+      presentationId: 'smp_test_presentation',
+    });
+
+    expect(retry.eventId).toBe(first.eventId);
+    expect(retryStore.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects REPLAYED for the initial playback ordinal', async () => {
+    const store = firestore();
+    mockGetDb.mockReturnValue(store.db);
+
+    await expect(
+      recordSponsoredMediaEvent({
+        qrId: 'qr_nike',
+        eventType: 'REPLAYED',
+        presentationId: 'smp_test_presentation',
+        playbackOrdinal: 1,
+      })
+    ).rejects.toThrow('INVALID_REPLAY_PLAYBACK_ORDINAL');
+
+    expect(store.create).not.toHaveBeenCalled();
+  });
+
+  it('records REPLAYED for a deliberate subsequent playback', async () => {
+    const store = firestore();
+    mockGetDb.mockReturnValue(store.db);
+
+    await recordSponsoredMediaEvent({
+      qrId: 'qr_nike',
+      eventType: 'REPLAYED',
+      presentationId: 'smp_test_presentation',
+      playbackOrdinal: 2,
+    });
+
+    expect(store.create).toHaveBeenCalledTimes(1);
+    expect(store.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: expect.stringMatching(/^sme_event_[a-f0-9]{64}$/),
+      }),
+      expect.objectContaining({
+        eventType: 'REPLAYED',
+        presentationId: 'smp_test_presentation',
+        playbackOrdinal: 2,
+      })
+    );
   });
 });

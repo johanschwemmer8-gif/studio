@@ -34,12 +34,34 @@ export type ActivationProductContext = z.infer<typeof ActivationProductContextSc
  *   shopper-experience layer, not by QR identity.
  */
 export const ActivationSponsoredMediaSchema = z.object({
+  /**
+   * Canonical Retail Media identity association.
+   *
+   * Both values are optional for backward compatibility with sponsored media
+   * created before Objective 15B. When either identity is present, both must
+   * be present so Partner and Creative attribution cannot enter a partial
+   * identity state.
+   *
+   * sponsorName remains presentation/backward-compatibility data and is not
+   * authorization or measurement identity.
+   */
+  partnerId: z.string().trim().min(1).optional(),
+  creativeId: z.string().trim().min(1).optional(),
+
   format: z.enum(['VIDEO', 'BRAND_STRIP']),
   sponsorName: z.string().trim().min(1),
   mediaUrl: z.string().url(),
   headline: z.string().trim().min(1).optional(),
   destinationUrl: z.string().url().optional(),
-});
+}).refine(
+  (media) =>
+    (media.partnerId === undefined && media.creativeId === undefined) ||
+    (media.partnerId !== undefined && media.creativeId !== undefined),
+  {
+    message:
+      'Sponsored media partnerId and creativeId must either both be present or both be absent.',
+  }
+);
 
 export type ActivationSponsoredMedia = z.infer<
   typeof ActivationSponsoredMediaSchema

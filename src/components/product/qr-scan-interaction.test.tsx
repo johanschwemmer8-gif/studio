@@ -239,3 +239,185 @@ describe('QrScanInteraction sponsored media measurement', () => {
     expect(mockBeginQrShopperSession).not.toHaveBeenCalled();
   });
 });
+
+describe('QrScanInteraction sponsored VIDEO lifecycle measurement', () => {
+  const canonicalVideoResult = {
+    ...canonicalResult,
+    sponsoredMedia: {
+      format: 'VIDEO' as const,
+      sponsorName: 'Nike',
+      mediaUrl: 'https://example.com/nike.mp4',
+      headline: 'Nike Video',
+      presentationId: 'smp_video_presentation',
+    },
+  };
+
+  const legacyVideoResult = {
+    ...canonicalResult,
+    sponsoredMedia: {
+      format: 'VIDEO' as const,
+      sponsorName: 'Nike',
+      mediaUrl: 'https://example.com/nike.mp4',
+      headline: 'Nike Video',
+    },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    observerCallback = null;
+
+    mockRecordSponsoredMediaEvent.mockResolvedValue({
+      eventId: 'sme_video_test',
+    } as Awaited<ReturnType<typeof recordSponsoredMediaEvent>>);
+  });
+
+  it('records the initial actual video play as STARTED ordinal 1', async () => {
+    mockGetScanInteraction.mockResolvedValue(
+      canonicalVideoResult as Awaited<ReturnType<typeof getScanInteraction>>
+    );
+
+    const { container } = render(
+      <QrScanInteraction qrId="qr-video-test" />
+    );
+
+    await screen.findByLabelText('Sponsored content from Nike');
+
+    const video = container.querySelector('video');
+    expect(video).not.toBeNull();
+
+    fireEvent.play(video!);
+
+    expect(mockRecordSponsoredMediaEvent).toHaveBeenCalledWith({
+      qrId: 'qr-video-test',
+      eventType: 'STARTED',
+      presentationId: 'smp_video_presentation',
+      playbackOrdinal: 1,
+    });
+
+    expect(mockBeginQrShopperSession).not.toHaveBeenCalled();
+  });
+
+  it('does not treat pause and resume as a replay or new playback', async () => {
+    mockGetScanInteraction.mockResolvedValue(
+      canonicalVideoResult as Awaited<ReturnType<typeof getScanInteraction>>
+    );
+
+    const { container } = render(
+      <QrScanInteraction qrId="qr-video-test" />
+    );
+
+    await screen.findByLabelText('Sponsored content from Nike');
+
+    const video = container.querySelector('video');
+    expect(video).not.toBeNull();
+
+    fireEvent.play(video!);
+    fireEvent.pause(video!);
+    fireEvent.play(video!);
+
+    const playbackCalls = mockRecordSponsoredMediaEvent.mock.calls
+      .map(([input]) => input)
+      .filter(
+        input =>
+          input.eventType === 'STARTED' ||
+          input.eventType === 'REPLAYED'
+      );
+
+    expect(playbackCalls).toEqual([
+      {
+        qrId: 'qr-video-test',
+        eventType: 'STARTED',
+        presentationId: 'smp_video_presentation',
+        playbackOrdinal: 1,
+      },
+    ]);
+
+    expect(mockBeginQrShopperSession).not.toHaveBeenCalled();
+  });
+
+  it('records completion and deliberate replay with the next playback ordinal', async () => {
+    mockGetScanInteraction.mockResolvedValue(
+      canonicalVideoResult as Awaited<ReturnType<typeof getScanInteraction>>
+    );
+
+    const { container } = render(
+      <QrScanInteraction qrId="qr-video-test" />
+    );
+
+    await screen.findByLabelText('Sponsored content from Nike');
+
+    const video = container.querySelector('video');
+    expect(video).not.toBeNull();
+
+    fireEvent.play(video!);
+    fireEvent.ended(video!);
+    fireEvent.play(video!);
+    fireEvent.ended(video!);
+
+    const playbackCalls = mockRecordSponsoredMediaEvent.mock.calls
+      .map(([input]) => input)
+      .filter(
+        input =>
+          input.eventType === 'STARTED' ||
+          input.eventType === 'COMPLETED' ||
+          input.eventType === 'REPLAYED'
+      );
+
+    expect(playbackCalls).toEqual([
+      {
+        qrId: 'qr-video-test',
+        eventType: 'STARTED',
+        presentationId: 'smp_video_presentation',
+        playbackOrdinal: 1,
+      },
+      {
+        qrId: 'qr-video-test',
+        eventType: 'COMPLETED',
+        presentationId: 'smp_video_presentation',
+        playbackOrdinal: 1,
+      },
+      {
+        qrId: 'qr-video-test',
+        eventType: 'REPLAYED',
+        presentationId: 'smp_video_presentation',
+        playbackOrdinal: 2,
+      },
+      {
+        qrId: 'qr-video-test',
+        eventType: 'STARTED',
+        presentationId: 'smp_video_presentation',
+        playbackOrdinal: 2,
+      },
+      {
+        qrId: 'qr-video-test',
+        eventType: 'COMPLETED',
+        presentationId: 'smp_video_presentation',
+        playbackOrdinal: 2,
+      },
+    ]);
+
+    expect(mockBeginQrShopperSession).not.toHaveBeenCalled();
+  });
+
+  it('does not emit canonical playback events for legacy 15A video', async () => {
+    mockGetScanInteraction.mockResolvedValue(
+      legacyVideoResult as Awaited<ReturnType<typeof getScanInteraction>>
+    );
+
+    const { container } = render(
+      <QrScanInteraction qrId="qr-video-test" />
+    );
+
+    await screen.findByLabelText('Sponsored content from Nike');
+
+    const video = container.querySelector('video');
+    expect(video).not.toBeNull();
+
+    fireEvent.play(video!);
+    fireEvent.ended(video!);
+    fireEvent.play(video!);
+
+    expect(mockRecordSponsoredMediaEvent).not.toHaveBeenCalled();
+    expect(mockBeginQrShopperSession).not.toHaveBeenCalled();
+  });
+});

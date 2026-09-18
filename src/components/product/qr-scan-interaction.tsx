@@ -54,6 +54,10 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const sponsoredMediaRef = useRef<HTMLElement>(null);
   const sponsoredImpressionRecordedRef = useRef<string | null>(null);
+  const sponsoredVideoPresentationRef = useRef<string | null>(null);
+  const sponsoredVideoPlaybackOrdinalRef = useRef(0);
+  const sponsoredVideoCurrentPlaybackStartedRef = useRef(false);
+  const sponsoredVideoCompletedRef = useRef(false);
 
   useEffect(() => {
     setSponsoredMediaDismissed(false);
@@ -178,6 +182,93 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
       presentationId,
     }).catch(() => {
       // Retail Media measurement must never interrupt shopper navigation.
+    });
+  };
+
+  const handleSponsoredVideoPlay = () => {
+    const sponsoredMedia = data?.sponsoredMedia;
+    const presentationId = sponsoredMedia?.presentationId;
+
+    if (
+      !sponsoredMedia ||
+      sponsoredMedia.format !== 'VIDEO' ||
+      !presentationId
+    ) {
+      return;
+    }
+
+    if (sponsoredVideoPresentationRef.current !== presentationId) {
+      sponsoredVideoPresentationRef.current = presentationId;
+      sponsoredVideoPlaybackOrdinalRef.current = 0;
+      sponsoredVideoCurrentPlaybackStartedRef.current = false;
+      sponsoredVideoCompletedRef.current = false;
+    }
+
+    // A repeated play event during the same playback, including pause/resume,
+    // is not a new playback and is not a replay.
+    if (
+      sponsoredVideoCurrentPlaybackStartedRef.current &&
+      !sponsoredVideoCompletedRef.current
+    ) {
+      return;
+    }
+
+    const isReplay = sponsoredVideoCompletedRef.current;
+
+    sponsoredVideoPlaybackOrdinalRef.current += 1;
+    const playbackOrdinal = sponsoredVideoPlaybackOrdinalRef.current;
+
+    sponsoredVideoCurrentPlaybackStartedRef.current = true;
+    sponsoredVideoCompletedRef.current = false;
+
+    if (isReplay) {
+      void recordSponsoredMediaEvent({
+        qrId,
+        eventType: 'REPLAYED',
+        presentationId,
+        playbackOrdinal,
+      }).catch(() => {
+        // Retail Media measurement must never interrupt Ari or playback.
+      });
+    }
+
+    void recordSponsoredMediaEvent({
+      qrId,
+      eventType: 'STARTED',
+      presentationId,
+      playbackOrdinal,
+    }).catch(() => {
+      // Retail Media measurement must never interrupt Ari or playback.
+    });
+  };
+
+  const handleSponsoredVideoEnded = () => {
+    const sponsoredMedia = data?.sponsoredMedia;
+    const presentationId = sponsoredMedia?.presentationId;
+
+    if (
+      !sponsoredMedia ||
+      sponsoredMedia.format !== 'VIDEO' ||
+      !presentationId ||
+      sponsoredVideoPresentationRef.current !== presentationId ||
+      !sponsoredVideoCurrentPlaybackStartedRef.current ||
+      sponsoredVideoCompletedRef.current
+    ) {
+      return;
+    }
+
+    const playbackOrdinal = sponsoredVideoPlaybackOrdinalRef.current;
+
+    sponsoredVideoCompletedRef.current = true;
+    sponsoredVideoCurrentPlaybackStartedRef.current = false;
+
+    void recordSponsoredMediaEvent({
+      qrId,
+      eventType: 'COMPLETED',
+      presentationId,
+      playbackOrdinal,
+    }).catch(() => {
+      // Retail Media measurement must never interrupt Ari or playback.
     });
   };
 
@@ -363,6 +454,8 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
                 playsInline
                 controls
                 preload="metadata"
+                onPlay={handleSponsoredVideoPlay}
+                onEnded={handleSponsoredVideoEnded}
                 className="max-h-[25svh] w-full object-contain"
               />
             ) : (

@@ -410,12 +410,24 @@ function DeploymentCard({
             ) : (
               <>
                 {item.status === 'NOT_ASSIGNED'
-                  ? actionButton(
-                      'assign',
-                      'Begin Preparation',
-                      <Wrench className="mr-2 h-4 w-4" />,
-                      'default'
-                    )
+                  ? ['SCHEDULED', 'ACTIVE'].includes(item.activationStatus)
+                    ? actionButton(
+                        'assign',
+                        'Begin Preparation',
+                        <Wrench className="mr-2 h-4 w-4" />,
+                        'default'
+                      )
+                    : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled
+                          title="Activate or schedule this Activation before preparing its Deployment."
+                        >
+                          <Wrench className="mr-2 h-4 w-4" />
+                          Begin Preparation
+                        </Button>
+                      )
                   : null}
 
                 {item.status === 'ASSIGNED'

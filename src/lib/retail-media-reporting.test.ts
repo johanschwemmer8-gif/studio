@@ -40,7 +40,9 @@ describe('aggregateRetailMediaMetrics', () => {
       eligible: 0,
       impressions: 0,
       deliveryRate: null,
+      videoImpressions: 0,
       videoStarts: 0,
+      startRate: null,
       videoCompletions: 0,
       completionRate: null,
       dismissals: 0,
@@ -77,7 +79,9 @@ describe('aggregateRetailMediaMetrics', () => {
       eligible: 2,
       impressions: 1,
       deliveryRate: 0.5,
+      videoImpressions: 1,
       videoStarts: 1,
+      startRate: 1,
       videoCompletions: 1,
       completionRate: 1,
       dismissals: 1,
@@ -118,7 +122,9 @@ describe('aggregateRetailMediaMetrics', () => {
 
     const result = aggregateRetailMediaMetrics(events);
 
+    expect(result.videoImpressions).toBe(1);
     expect(result.videoStarts).toBe(1);
+    expect(result.startRate).toBe(1);
     expect(result.videoCompletions).toBe(1);
     expect(result.completionRate).toBe(1);
     expect(result.replays).toBe(1);
@@ -180,7 +186,9 @@ describe('aggregateRetailMediaMetrics', () => {
 
     const result = aggregateRetailMediaMetrics(events);
 
+    expect(result.videoImpressions).toBe(0);
     expect(result.videoStarts).toBe(0);
+    expect(result.startRate).toBeNull();
     expect(result.videoCompletions).toBe(0);
     expect(result.completionRate).toBeNull();
     expect(result.replays).toBe(0);

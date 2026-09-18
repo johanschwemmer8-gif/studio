@@ -4,7 +4,9 @@ export type RetailMediaMetrics = {
   eligible: number;
   impressions: number;
   deliveryRate: number | null;
+  videoImpressions: number;
   videoStarts: number;
+  startRate: number | null;
   videoCompletions: number;
   completionRate: number | null;
   dismissals: number;
@@ -46,6 +48,12 @@ export function aggregateRetailMediaMetrics(
 
   const impressions = events.filter(
     event => event.eventType === 'IMPRESSION'
+  ).length;
+
+  const videoImpressions = events.filter(
+    event =>
+      event.eventType === 'IMPRESSION' &&
+      event.format === 'VIDEO'
   ).length;
 
   const videoStarts = events.filter(
@@ -92,7 +100,9 @@ export function aggregateRetailMediaMetrics(
     eligible,
     impressions,
     deliveryRate: rate(impressions, eligible),
+    videoImpressions,
     videoStarts,
+    startRate: rate(videoStarts, videoImpressions),
     videoCompletions,
     completionRate: rate(videoCompletions, videoStarts),
     dismissals,

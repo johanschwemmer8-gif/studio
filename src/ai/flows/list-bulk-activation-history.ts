@@ -16,6 +16,7 @@ const ListBulkActivationHistoryInputSchema = z.object({
 const BulkActivationHistoryItemSchema = z.object({
   requestId: z.string().min(1),
   status: z.enum([
+    'DRAFT',
     'SUBMITTING',
     'QUEUED',
     'PROCESSING',

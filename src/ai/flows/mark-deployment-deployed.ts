@@ -7,7 +7,10 @@ import { verifyAuth, getAuthorizedRetailerId } from '@/lib/auth-server';
 import { requireCapability } from '@/lib/authorization';
 import { requireQrStoreResourceAccess } from '@/lib/qr-resource-authorization';
 import { DeploymentSchema } from '@/lib/schemas/deployment';
+import { ActivationSchema } from '@/lib/schemas/activation';
+import { CampaignSchema } from '@/lib/schemas/campaign';
 import { QrCodeSchema } from '@/lib/schemas/qr-code';
+import { requireParentsAllowDeployment } from '@/lib/deployment-parent-eligibility';
 import {
   MarkDeploymentDeployedInputSchema,
   type MarkDeploymentDeployedInput,
@@ -95,6 +98,78 @@ const markDeploymentDeployedFlow = ai.defineFlow(
       );
     }
 
+    const activationRef = db
+      .collection('activations')
+      .doc(existingDeployment.activationId);
+
+    const activationSnapshot = await transaction.get(activationRef);
+
+    if (activationSnapshot.exists === false) {
+      throw new Error(
+        'ACTIVATION_NOT_FOUND: Deployment references an Activation that does not exist.'
+      );
+    }
+
+    const rawActivation = activationSnapshot.data();
+
+    if (rawActivation === undefined) {
+      throw new Error(
+        'ACTIVATION_NOT_FOUND: Deployment references an unreadable Activation.'
+      );
+    }
+
+    const activation = ActivationSchema.parse(rawActivation);
+
+    if (
+      activation.activationId !== existingDeployment.activationId ||
+      activation.campaignId !== existingDeployment.campaignId ||
+      activation.retailerId !== authorizedRetailerId
+    ) {
+      throw new Error(
+        'DEPLOYMENT_ACTIVATION_INTEGRITY_ERROR: Activation does not match the Deployment relationship chain.'
+      );
+    }
+
+    const campaignRef = db
+      .collection('campaigns')
+      .doc(existingDeployment.campaignId);
+
+    const campaignSnapshot = await transaction.get(campaignRef);
+
+    if (campaignSnapshot.exists === false) {
+      throw new Error(
+        'CAMPAIGN_NOT_FOUND: Deployment references a Campaign that does not exist.'
+      );
+    }
+
+    const rawCampaign = campaignSnapshot.data();
+
+    if (rawCampaign === undefined) {
+      throw new Error(
+        'CAMPAIGN_NOT_FOUND: Deployment references an unreadable Campaign.'
+      );
+    }
+
+    const campaign = CampaignSchema.parse(rawCampaign);
+
+    if (
+      campaign.campaignId !== existingDeployment.campaignId ||
+      campaign.retailerId !== authorizedRetailerId ||
+      activation.campaignId !== campaign.campaignId
+    ) {
+      throw new Error(
+        'DEPLOYMENT_CAMPAIGN_INTEGRITY_ERROR: Campaign does not match the Deployment relationship chain.'
+      );
+    }
+
+    const now = admin.firestore.Timestamp.now();
+
+    requireParentsAllowDeployment(
+      campaign,
+      activation,
+      now
+    );
+
     const qrRef = db.collection('qrcodes').doc(existingDeployment.qrCodeId);
     const qrSnapshot = await transaction.get(qrRef);
 
@@ -127,7 +202,6 @@ const markDeploymentDeployedFlow = ai.defineFlow(
       throw new Error('INVALID_QR_TRANSITION: Only ASSIGNED QR identities can transition to DEPLOYED.');
     }
 
-    const now = admin.firestore.Timestamp.now();
     const nextDeploymentStatus: 'DEPLOYED' = 'DEPLOYED';
     const nextQrStatus: 'DEPLOYED' = 'DEPLOYED';
 

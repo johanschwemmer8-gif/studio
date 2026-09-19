@@ -153,6 +153,15 @@ export default function RetailerSidebar({
               </SidebarMenuItem>
 
               <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Retail Media Partners">
+                  <Link href="/retailer-mvp/retail-media-partners">
+                    <Building2 className="h-4 w-4" />
+                    <span>Retail Media Partners</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="A/B Testing & Experimentation">
                   <Link href="/retailer-mvp/ab-testing">
                     <FlaskConical className="h-4 w-4" />

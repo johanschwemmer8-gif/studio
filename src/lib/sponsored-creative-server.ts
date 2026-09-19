@@ -140,8 +140,12 @@ export async function createSponsoredCreative(
     partnerId: parsedInput.partnerId,
     format: parsedInput.format,
     mediaUrl: parsedInput.mediaUrl,
-    headline: parsedInput.headline,
-    destinationUrl: parsedInput.destinationUrl,
+    ...(parsedInput.headline !== undefined
+      ? { headline: parsedInput.headline }
+      : {}),
+    ...(parsedInput.destinationUrl !== undefined
+      ? { destinationUrl: parsedInput.destinationUrl }
+      : {}),
     status: 'DRAFT',
     createdAt: timestamp,
     createdBy: auth.uid,
@@ -265,12 +269,22 @@ export async function updateDraftSponsoredCreative(
     throw new Error('SPONSORED_CREATIVE_NOT_EDITABLE');
   }
 
+  const {
+    headline: _existingHeadline,
+    destinationUrl: _existingDestinationUrl,
+    ...creativeWithoutOptionalPresentation
+  } = creative;
+
   const updated = SponsoredCreativeSchema.parse({
-    ...creative,
+    ...creativeWithoutOptionalPresentation,
     format: parsedInput.format,
     mediaUrl: parsedInput.mediaUrl,
-    headline: parsedInput.headline,
-    destinationUrl: parsedInput.destinationUrl,
+    ...(parsedInput.headline !== undefined
+      ? { headline: parsedInput.headline }
+      : {}),
+    ...(parsedInput.destinationUrl !== undefined
+      ? { destinationUrl: parsedInput.destinationUrl }
+      : {}),
     updatedAt: admin.firestore.Timestamp.now(),
     updatedBy: auth.uid,
   });

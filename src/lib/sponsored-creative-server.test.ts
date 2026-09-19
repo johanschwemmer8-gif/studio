@@ -199,6 +199,55 @@ describe('Sponsored Creative retailer service', () => {
     expect(creativeSet).not.toHaveBeenCalled();
   });
 
+  it('omits absent optional presentation fields from the Firestore create document', async () => {
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const set = jest.fn().mockResolvedValue(undefined);
+    const creativeDoc = jest.fn(() => ({
+      id: 'creative-no-optionals',
+      set,
+    }));
+
+    const partnerGet = jest.fn().mockResolvedValue({
+      exists: true,
+      data: () => partner,
+    });
+
+    const collection = jest.fn((name: string) => {
+      if (name === 'retailMediaPartners') {
+        return {
+          doc: jest.fn(() => ({
+            get: partnerGet,
+          })),
+        };
+      }
+
+      if (name === 'sponsoredCreatives') {
+        return {
+          doc: creativeDoc,
+        };
+      }
+
+      throw new Error(`Unexpected collection: ${name}`);
+    });
+
+    mockGetDb.mockReturnValue({
+      collection,
+    } as any);
+
+    await createSponsoredCreative({
+      idToken: 'token',
+      partnerId: 'partner-nike',
+      format: 'VIDEO',
+      mediaUrl: 'https://example.com/nike.mp4',
+    });
+
+    const written = set.mock.calls[0][0];
+
+    expect(written).not.toHaveProperty('headline');
+    expect(written).not.toHaveProperty('destinationUrl');
+  });
+
   it('denies creation without Retail Media permission', async () => {
     mockVerifyAuth.mockResolvedValue({
       ...retailerAuth,
@@ -485,6 +534,64 @@ describe('Sponsored Creative controlled lifecycle', () => {
     ).rejects.toThrow('SPONSORED_CREATIVE_NOT_EDITABLE');
 
     expect(set).not.toHaveBeenCalled();
+  });
+
+  it('removes omitted optional presentation fields without writing undefined values', async () => {
+    const { updateDraftSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const storedCreative = {
+      ...creative,
+      headline: 'Air Jordan',
+      destinationUrl: 'https://www.nike.com/air-jordan',
+    };
+
+    const set = jest.fn().mockResolvedValue(undefined);
+
+    const collection = jest.fn((name: string) => {
+      if (name === 'retailMediaPartners') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({
+              exists: true,
+              data: () => partner,
+            }),
+          })),
+        };
+      }
+
+      if (name === 'sponsoredCreatives') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({
+              exists: true,
+              data: () => storedCreative,
+            }),
+            set,
+          })),
+        };
+      }
+
+      throw new Error(`Unexpected collection: ${name}`);
+    });
+
+    mockGetDb.mockReturnValue({ collection } as any);
+
+    await updateDraftSponsoredCreative({
+      idToken: 'token',
+      creativeId: 'creative-air-jordan',
+      partnerId: 'partner-nike',
+      format: 'VIDEO',
+      mediaUrl: 'https://example.com/air-jordan-v2.mp4',
+    });
+
+    const written = set.mock.calls[0][0];
+
+    expect(written).not.toHaveProperty('headline');
+    expect(written).not.toHaveProperty('destinationUrl');
   });
 
   it('activates only a DRAFT Creative', async () => {

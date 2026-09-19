@@ -123,6 +123,32 @@ describe('Retail Media Partner retailer service', () => {
     );
   });
 
+  it('omits absent optional URLs from the Firestore create document', async () => {
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const set = jest.fn().mockResolvedValue(undefined);
+    const collection = jest.fn(() => ({
+      doc: jest.fn(() => ({
+        id: 'partner-no-urls',
+        set,
+      })),
+    }));
+
+    mockGetDb.mockReturnValue({
+      collection,
+    } as any);
+
+    await createRetailMediaPartner({
+      idToken: 'token',
+      name: 'Nike',
+    });
+
+    const written = set.mock.calls[0][0];
+
+    expect(written).not.toHaveProperty('logoUrl');
+    expect(written).not.toHaveProperty('websiteUrl');
+  });
+
   it('denies creation without Retail Media permission', async () => {
     mockVerifyAuth.mockResolvedValue({
       ...retailerAuth,
@@ -305,7 +331,12 @@ describe('Retail Media Partner controlled mutation', () => {
     updatedBy: 'creator-1',
   };
 
-  function mockPartnerDocument(data = storedPartner) {
+  function mockPartnerDocument(
+    data: typeof storedPartner & {
+      logoUrl?: string;
+      websiteUrl?: string;
+    } = storedPartner
+  ) {
     const set = jest.fn().mockResolvedValue(undefined);
     const get = jest.fn().mockResolvedValue({
       exists: true,
@@ -353,6 +384,31 @@ describe('Retail Media Partner controlled mutation', () => {
 
     expect(result.name).toBe('Nike South Africa');
     expect(result.retailerId).toBe('retailer-a');
+  });
+
+  it('removes omitted optional URLs without writing undefined values', async () => {
+    const { updateRetailMediaPartner } = await import(
+      './retail-media-partner-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const { set } = mockPartnerDocument({
+      ...storedPartner,
+      logoUrl: 'https://example.com/nike-logo.png',
+      websiteUrl: 'https://www.nike.com',
+    });
+
+    await updateRetailMediaPartner({
+      idToken: 'token',
+      partnerId: 'partner-nike',
+      name: 'Nike',
+    });
+
+    const written = set.mock.calls[0][0];
+
+    expect(written).not.toHaveProperty('logoUrl');
+    expect(written).not.toHaveProperty('websiteUrl');
   });
 
   it('denies mutation when Partner belongs to another retailer', async () => {

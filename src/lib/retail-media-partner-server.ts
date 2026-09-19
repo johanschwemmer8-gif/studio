@@ -91,8 +91,12 @@ export async function createRetailMediaPartner(
     retailerId: auth.retailerId,
     name: parsedInput.name,
     status: 'ACTIVE',
-    logoUrl: parsedInput.logoUrl,
-    websiteUrl: parsedInput.websiteUrl,
+    ...(parsedInput.logoUrl !== undefined
+      ? { logoUrl: parsedInput.logoUrl }
+      : {}),
+    ...(parsedInput.websiteUrl !== undefined
+      ? { websiteUrl: parsedInput.websiteUrl }
+      : {}),
     createdAt: timestamp,
     createdBy: auth.uid,
     updatedAt: timestamp,
@@ -194,11 +198,21 @@ export async function updateRetailMediaPartner(
     auth
   );
 
+  const {
+    logoUrl: _existingLogoUrl,
+    websiteUrl: _existingWebsiteUrl,
+    ...partnerWithoutOptionalUrls
+  } = partner;
+
   const updated = RetailMediaPartnerSchema.parse({
-    ...partner,
+    ...partnerWithoutOptionalUrls,
     name: parsedInput.name,
-    logoUrl: parsedInput.logoUrl,
-    websiteUrl: parsedInput.websiteUrl,
+    ...(parsedInput.logoUrl !== undefined
+      ? { logoUrl: parsedInput.logoUrl }
+      : {}),
+    ...(parsedInput.websiteUrl !== undefined
+      ? { websiteUrl: parsedInput.websiteUrl }
+      : {}),
     updatedAt: admin.firestore.Timestamp.now(),
     updatedBy: auth.uid,
   });

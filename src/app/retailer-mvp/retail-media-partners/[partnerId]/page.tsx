@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   FileVideo2,
   Loader2,
+  Pencil,
   Plus,
   RefreshCw,
 } from 'lucide-react';
@@ -24,8 +25,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  activateSponsoredCreative,
   createSponsoredCreative,
   listSponsoredCreatives,
+  retireSponsoredCreative,
+  updateDraftSponsoredCreative,
 } from '@/lib/sponsored-creative-server';
 import type {
   SponsoredCreative,
@@ -64,6 +68,9 @@ export default function RetailMediaPartnerCreativesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<CreativeFormState>(emptyForm);
+  const [editingCreativeId, setEditingCreativeId] = useState<string | null>(
+    null
+  );
 
   const loadCreatives = useCallback(async () => {
     if (!user || !partnerId) {
@@ -101,7 +108,28 @@ export default function RetailMediaPartnerCreativesPage() {
     }
   }, [authLoading, loadCreatives]);
 
-  const handleCreate = async () => {
+  const resetForm = () => {
+    setEditingCreativeId(null);
+    setForm(emptyForm);
+  };
+
+  const beginEdit = (creative: SponsoredCreative) => {
+    if (creative.status !== 'DRAFT') {
+      return;
+    }
+
+    setEditingCreativeId(creative.creativeId);
+    setForm({
+      format: creative.format,
+      mediaUrl: creative.mediaUrl,
+      headline: creative.headline ?? '',
+      destinationUrl: creative.destinationUrl ?? '',
+    });
+    setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSave = async () => {
     if (!user || !partnerId) {
       setError('A valid Retail Media Partner is required.');
       return;
@@ -120,25 +148,99 @@ export default function RetailMediaPartnerCreativesPage() {
     try {
       const idToken = await user.getIdToken();
 
-      await createSponsoredCreative({
-        idToken,
-        partnerId,
-        format: form.format,
-        mediaUrl,
-        headline: optionalText(form.headline),
-        destinationUrl: optionalText(form.destinationUrl),
-      });
+      if (editingCreativeId) {
+        await updateDraftSponsoredCreative({
+          idToken,
+          creativeId: editingCreativeId,
+          partnerId,
+          format: form.format,
+          mediaUrl,
+          headline: optionalText(form.headline),
+          destinationUrl: optionalText(form.destinationUrl),
+        });
+      } else {
+        await createSponsoredCreative({
+          idToken,
+          partnerId,
+          format: form.format,
+          mediaUrl,
+          headline: optionalText(form.headline),
+          destinationUrl: optionalText(form.destinationUrl),
+        });
+      }
 
-      setForm(emptyForm);
+      resetForm();
       await loadCreatives();
-    } catch (createError) {
+    } catch (saveError) {
       console.error(
-        '[Sponsored Creatives] Failed to create Creative:',
-        createError
+        '[Sponsored Creatives] Failed to save Creative:',
+        saveError
       );
       setError(
-        'Could not create the Sponsored Creative. Check the entered details and try again.'
+        'Could not save the Sponsored Creative. Check the entered details and try again.'
       );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleActivate = async (creative: SponsoredCreative) => {
+    if (!user || !partnerId || creative.status !== 'DRAFT') {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const idToken = await user.getIdToken();
+
+      await activateSponsoredCreative({
+        idToken,
+        creativeId: creative.creativeId,
+        partnerId,
+      });
+
+      if (editingCreativeId === creative.creativeId) {
+        resetForm();
+      }
+
+      await loadCreatives();
+    } catch (activateError) {
+      console.error(
+        '[Sponsored Creatives] Failed to activate Creative:',
+        activateError
+      );
+      setError('Could not activate the Sponsored Creative.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRetire = async (creative: SponsoredCreative) => {
+    if (!user || !partnerId || creative.status !== 'ACTIVE') {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const idToken = await user.getIdToken();
+
+      await retireSponsoredCreative({
+        idToken,
+        creativeId: creative.creativeId,
+        partnerId,
+      });
+
+      await loadCreatives();
+    } catch (retireError) {
+      console.error(
+        '[Sponsored Creatives] Failed to retire Creative:',
+        retireError
+      );
+      setError('Could not retire the Sponsored Creative.');
     } finally {
       setSaving(false);
     }
@@ -203,10 +305,15 @@ export default function RetailMediaPartnerCreativesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Create Sponsored Creative</CardTitle>
+          <CardTitle>
+            {editingCreativeId
+              ? 'Edit Draft Creative'
+              : 'Create Sponsored Creative'}
+          </CardTitle>
           <CardDescription>
-            Create a DRAFT asset first. DRAFT Creatives can be reviewed and
-            edited before they become eligible for shopper presentation.
+            DRAFT Creatives can be reviewed and edited before they become
+            eligible for shopper presentation. Once ACTIVE, shopper-facing
+            content is frozen to preserve measurement integrity.
           </CardDescription>
         </CardHeader>
 
@@ -284,18 +391,35 @@ export default function RetailMediaPartnerCreativesPage() {
             </div>
           </div>
 
-          <Button
-            type="button"
-            onClick={() => void handleCreate()}
-            disabled={saving}
-          >
-            {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="mr-2 h-4 w-4" />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : editingCreativeId ? (
+                <Pencil className="mr-2 h-4 w-4" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              {editingCreativeId
+                ? 'Save Draft Changes'
+                : 'Create Draft Creative'}
+            </Button>
+
+            {editingCreativeId && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetForm}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
             )}
-            Create Draft Creative
-          </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -360,6 +484,50 @@ export default function RetailMediaPartnerCreativesPage() {
                       <p className="mt-2 text-xs text-muted-foreground">
                         Creative ID: {creative.creativeId}
                       </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {creative.status === 'DRAFT' && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => beginEdit(creative)}
+                            disabled={saving}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </Button>
+
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => void handleActivate(creative)}
+                            disabled={saving}
+                          >
+                            Activate
+                          </Button>
+                        </>
+                      )}
+
+                      {creative.status === 'ACTIVE' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleRetire(creative)}
+                          disabled={saving}
+                        >
+                          Retire
+                        </Button>
+                      )}
+
+                      {creative.status === 'RETIRED' && (
+                        <span className="text-xs text-muted-foreground">
+                          Historical creative — no further changes permitted.
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -95,7 +95,7 @@ const activationItemFormSchema = z.object({
   assistantGoal: z.string().optional(),
   scanDestination: z.enum(["ai", "url"]).default("ai"),
   landingPageUrl: z.string().optional().or(z.literal("")),
-  sponsoredMediaFormat: z.enum(["none", "video", "brand_strip"]).default("none"),
+  sponsoredMediaFormat: z.enum(["none", "sponsored"]).default("none"),
   sponsoredMediaPartnerId: z.string().optional(),
   sponsoredCreativeId: z.string().optional(),
   sponsorName: z.string().optional(),
@@ -108,45 +108,20 @@ const activationItemFormSchema = z.object({
     return;
   }
 
-  if (!item.sponsorName?.trim()) {
+  if (!item.sponsoredMediaPartnerId?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ["sponsorName"],
-      message: "Sponsor / Brand Name is required for sponsored media.",
+      path: ["sponsoredMediaPartnerId"],
+      message: "Select a Retail Media Partner.",
     });
   }
 
-  if (!item.sponsoredMediaUrl?.trim()) {
+  if (!item.sponsoredCreativeId?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ["sponsoredMediaUrl"],
-      message: "Media URL is required for sponsored media.",
+      path: ["sponsoredCreativeId"],
+      message: "Select a Sponsored Creative.",
     });
-  } else {
-    const result = z.string().url().safeParse(item.sponsoredMediaUrl.trim());
-
-    if (!result.success) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["sponsoredMediaUrl"],
-        message: "Enter a valid Media URL.",
-      });
-    }
-  }
-
-  if (item.sponsoredDestinationUrl?.trim()) {
-    const result = z
-      .string()
-      .url()
-      .safeParse(item.sponsoredDestinationUrl.trim());
-
-    if (!result.success) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["sponsoredDestinationUrl"],
-        message: "Enter a valid Destination URL.",
-      });
-    }
   }
 });
 
@@ -259,7 +234,8 @@ function buildProductContext(
 }
 function buildBulkActivationWorkItem(
   item: ActivationItemValues,
-  products: RetailerProduct[]
+  products: RetailerProduct[],
+  sponsoredCreative?: SponsoredCreative
 ) {
   const target = resolveActivationTarget(item, products);
   const productContext = buildProductContext(item, products);
@@ -286,9 +262,7 @@ function buildBulkActivationWorkItem(
           item.sponsoredMediaFormat !== "none"
             ? {
                 format:
-                  item.sponsoredMediaFormat === "video"
-                    ? ("VIDEO" as const)
-                    : ("BRAND_STRIP" as const),
+                  sponsoredCreative?.format ?? ("BRAND_STRIP" as const),
                 partnerId:
                   item.sponsoredMediaPartnerId?.trim() || undefined,
                 creativeId:
@@ -368,6 +342,24 @@ function ActivationItemCard({
   const scanDestination = form.watch(`items.${index}.scanDestination`);
   const sponsoredMediaFormat = form.watch(
     `items.${index}.sponsoredMediaFormat`
+  );
+  const selectedSponsoredMediaPartnerId = form.watch(
+    `items.${index}.sponsoredMediaPartnerId`
+  );
+  const selectedSponsoredCreativeId = form.watch(
+    `items.${index}.sponsoredCreativeId`
+  );
+
+  const selectedRetailMediaPartner = retailMediaPartners.find(
+    (partner) => partner.partnerId === selectedSponsoredMediaPartnerId
+  );
+
+  const availableSponsoredCreatives = sponsoredCreatives.filter(
+    (creative) => creative.partnerId === selectedSponsoredMediaPartnerId
+  );
+
+  const selectedSponsoredCreative = availableSponsoredCreatives.find(
+    (creative) => creative.creativeId === selectedSponsoredCreativeId
   );
 
   const categories = Array.from(
@@ -885,14 +877,29 @@ function ActivationItemCard({
               control={form.control}
               name={`items.${index}.sponsoredMediaFormat`}
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+
+                    if (value === "none") {
+                      form.setValue(
+                        `items.${index}.sponsoredMediaPartnerId`,
+                        ""
+                      );
+                      form.setValue(
+                        `items.${index}.sponsoredCreativeId`,
+                        ""
+                      );
+                    }
+                  }}
+                >
                   <SelectTrigger className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="video">Video</SelectItem>
-                    <SelectItem value="brand_strip">Brand Strip</SelectItem>
+                    <SelectItem value="sponsored">Sponsored</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -904,76 +911,138 @@ function ActivationItemCard({
             </p>
           </div>
 
-          {sponsoredMediaFormat !== "none" && (
+          {sponsoredMediaFormat === "sponsored" && (
             <>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest">
-                  Sponsor / Brand Name
+                  Retail Media Partner
                 </Label>
-                <Input
-                  {...form.register(`items.${index}.sponsorName`)}
-                  placeholder="e.g. Sunlight"
-                  className="bg-white"
-                />
-                {form.formState.errors.items?.[index]?.sponsorName?.message && (
-                  <p className="text-xs text-destructive">
-                    {form.formState.errors.items[index]?.sponsorName?.message}
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest">
-                  {sponsoredMediaFormat === "video"
-                    ? "Video URL"
-                    : "Brand Strip Image URL"}
-                </Label>
-                <Input
-                  {...form.register(`items.${index}.sponsoredMediaUrl`)}
-                  placeholder="https://..."
-                  className="bg-white"
-                />
-                {form.formState.errors.items?.[index]?.sponsoredMediaUrl
-                  ?.message && (
-                  <p className="text-xs text-destructive">
-                    {
-                      form.formState.errors.items[index]?.sponsoredMediaUrl
-                        ?.message
-                    }
-                  </p>
-                )}
-              </div>
+                <Controller
+                  control={form.control}
+                  name={`items.${index}.sponsoredMediaPartnerId`}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || ""}
+                      disabled={loadingRetailMedia}
+                      onValueChange={(value) => {
+                        field.onChange(value);
 
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest">
-                  Headline
-                </Label>
-                <Input
-                  {...form.register(`items.${index}.sponsoredHeadline`)}
-                  placeholder="Optional sponsored message"
-                  className="bg-white"
+                        form.setValue(
+                          `items.${index}.sponsoredCreativeId`,
+                          ""
+                        );
+                      }}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue
+                          placeholder={
+                            loadingRetailMedia
+                              ? "Loading Partners..."
+                              : "Select Partner"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {retailMediaPartners.map((partner) => (
+                          <SelectItem
+                            key={partner.partnerId}
+                            value={partner.partnerId}
+                          >
+                            {partner.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest">
-                  Destination URL
-                </Label>
-                <Input
-                  {...form.register(`items.${index}.sponsoredDestinationUrl`)}
-                  placeholder="Optional https://..."
-                  className="bg-white"
-                />
-                {form.formState.errors.items?.[index]?.sponsoredDestinationUrl
-                  ?.message && (
+                {form.formState.errors.items?.[index]
+                  ?.sponsoredMediaPartnerId?.message && (
                   <p className="text-xs text-destructive">
                     {
                       form.formState.errors.items[index]
-                        ?.sponsoredDestinationUrl?.message
+                        ?.sponsoredMediaPartnerId?.message
                     }
                   </p>
                 )}
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest">
+                  Sponsored Creative
+                </Label>
+
+                <Controller
+                  control={form.control}
+                  name={`items.${index}.sponsoredCreativeId`}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || ""}
+                      disabled={
+                        loadingRetailMedia ||
+                        !selectedSponsoredMediaPartnerId
+                      }
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue
+                          placeholder={
+                            !selectedSponsoredMediaPartnerId
+                              ? "Select Partner first"
+                              : availableSponsoredCreatives.length === 0
+                                ? "No ACTIVE Creatives"
+                                : "Select Creative"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSponsoredCreatives.map((creative) => (
+                          <SelectItem
+                            key={creative.creativeId}
+                            value={creative.creativeId}
+                          >
+                            {creative.headline ||
+                              (creative.format === "VIDEO"
+                                ? "Video Creative"
+                                : "Brand Strip Creative")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+
+                {form.formState.errors.items?.[index]
+                  ?.sponsoredCreativeId?.message && (
+                  <p className="text-xs text-destructive">
+                    {
+                      form.formState.errors.items[index]
+                        ?.sponsoredCreativeId?.message
+                    }
+                  </p>
+                )}
+              </div>
+
+              {selectedRetailMediaPartner && selectedSponsoredCreative ? (
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-xs font-semibold">
+                    {selectedRetailMediaPartner.name}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {selectedSponsoredCreative.format === "VIDEO"
+                      ? "Video"
+                      : "Brand Strip"}
+                    {selectedSponsoredCreative.headline
+                      ? ` · ${selectedSponsoredCreative.headline}`
+                      : ""}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Creative content is controlled by the selected canonical
+                    Retail Media Partner and Sponsored Creative.
+                  </p>
+                </div>
+              ) : null}
             </>
           )}
         </div>
@@ -1580,9 +1649,40 @@ export default function BulkQRCodeGenerator({
       const result = await submitBulkQrRequest({
         idToken,
         retailerId: data.retailerId,
-        items: data.items.map((item) =>
-          buildBulkActivationWorkItem(item, products)
-        ),
+        items: data.items.map((item) => {
+          if (item.sponsoredMediaFormat === "none") {
+            return buildBulkActivationWorkItem(item, products);
+          }
+
+          const partner = retailMediaPartners.find(
+            (candidate) =>
+              candidate.partnerId === item.sponsoredMediaPartnerId
+          );
+
+          const creative = sponsoredCreatives.find(
+            (candidate) =>
+              candidate.creativeId === item.sponsoredCreativeId &&
+              candidate.partnerId === item.sponsoredMediaPartnerId
+          );
+
+          if (!partner || !creative) {
+            throw new Error(
+              "The selected Retail Media Partner or Sponsored Creative is no longer available."
+            );
+          }
+
+          return buildBulkActivationWorkItem(
+            {
+              ...item,
+              sponsorName: partner.name,
+              sponsoredMediaUrl: creative.mediaUrl,
+              sponsoredHeadline: creative.headline || "",
+              sponsoredDestinationUrl: creative.destinationUrl || "",
+            },
+            products,
+            creative
+          );
+        }),
       });
 
       if (!result.success) {

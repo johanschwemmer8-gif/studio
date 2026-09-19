@@ -377,6 +377,20 @@ export default function RetailMediaPartnersPage() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      onClick={() =>
+                        window.location.assign(
+                          `/retailer-mvp/retail-media-partners/${partner.partnerId}`
+                        )
+                      }
+                      disabled={saving}
+                    >
+                      Manage Creatives
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => beginEdit(partner)}
                       disabled={saving}
                     >

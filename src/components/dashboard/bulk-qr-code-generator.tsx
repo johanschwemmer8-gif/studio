@@ -53,6 +53,14 @@ import {
   type RetailerStoreOption,
 } from '@/ai/flows/list-retailer-stores';
 import { useAuth } from '@/context/auth-context';
+import {
+  listRetailMediaPartners,
+} from '@/lib/retail-media-partner-server';
+import {
+  listSponsoredCreatives,
+} from '@/lib/sponsored-creative-server';
+import type { RetailMediaPartner } from '@/lib/schemas/retail-media-partner';
+import type { SponsoredCreative } from '@/lib/schemas/sponsored-creative';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -88,6 +96,8 @@ const activationItemFormSchema = z.object({
   scanDestination: z.enum(["ai", "url"]).default("ai"),
   landingPageUrl: z.string().optional().or(z.literal("")),
   sponsoredMediaFormat: z.enum(["none", "video", "brand_strip"]).default("none"),
+  sponsoredMediaPartnerId: z.string().optional(),
+  sponsoredCreativeId: z.string().optional(),
   sponsorName: z.string().optional(),
   sponsoredMediaUrl: z.string().optional().or(z.literal("")),
   sponsoredHeadline: z.string().optional(),
@@ -164,6 +174,8 @@ const createDefaultActivationItem = () => ({
   scanDestination: "ai" as const,
   landingPageUrl: "",
   sponsoredMediaFormat: "none" as const,
+  sponsoredMediaPartnerId: "",
+  sponsoredCreativeId: "",
   sponsorName: "",
   sponsoredMediaUrl: "",
   sponsoredHeadline: "",
@@ -277,6 +289,10 @@ function buildBulkActivationWorkItem(
                   item.sponsoredMediaFormat === "video"
                     ? ("VIDEO" as const)
                     : ("BRAND_STRIP" as const),
+                partnerId:
+                  item.sponsoredMediaPartnerId?.trim() || undefined,
+                creativeId:
+                  item.sponsoredCreativeId?.trim() || undefined,
                 sponsorName: item.sponsorName?.trim() || "",
                 mediaUrl: item.sponsoredMediaUrl?.trim() || "",
                 headline: item.sponsoredHeadline?.trim() || undefined,
@@ -310,6 +326,9 @@ type ActivationItemCardProps = {
     storeName: string;
     status?: string;
   }>;
+  retailMediaPartners: RetailMediaPartner[];
+  sponsoredCreatives: SponsoredCreative[];
+  loadingRetailMedia: boolean;
   loadingProducts: boolean;
   loadingCampaigns: boolean;
   loadingStores: boolean;
@@ -323,6 +342,9 @@ function ActivationItemCard({
   products,
   campaigns,
   stores,
+  retailMediaPartners,
+  sponsoredCreatives,
+  loadingRetailMedia,
   loadingProducts,
   loadingCampaigns,
   loadingStores,
@@ -1357,6 +1379,13 @@ export default function BulkQRCodeGenerator({
   const [stores, setStores] = useState<RetailerStoreOption[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
   const [loadingStores, setLoadingStores] = useState(true);
+  const [retailMediaPartners, setRetailMediaPartners] = useState<
+    RetailMediaPartner[]
+  >([]);
+  const [sponsoredCreatives, setSponsoredCreatives] = useState<
+    SponsoredCreative[]
+  >([]);
+  const [loadingRetailMedia, setLoadingRetailMedia] = useState(true);
 
   const bulkForm = useForm<BulkFormValues>({
     resolver: zodResolver(bulkFormSchema),
@@ -1474,6 +1503,70 @@ export default function BulkQRCodeGenerator({
 
     fetchRetailerSelectors(authenticatedUser, retailerId);
   }, [user?.retailerId, user, toast]);
+  useEffect(() => {
+    const authenticatedUser = user;
+
+    if (!authenticatedUser) {
+      setRetailMediaPartners([]);
+      setSponsoredCreatives([]);
+      setLoadingRetailMedia(false);
+      return;
+    }
+
+    async function fetchRetailMediaSelectors(
+      currentUser: NonNullable<typeof authenticatedUser>
+    ) {
+      setLoadingRetailMedia(true);
+
+      try {
+        const idToken = await currentUser.getIdToken();
+
+        const partnerOptions = await listRetailMediaPartners({
+          idToken,
+        });
+
+        const activePartners = partnerOptions.filter(
+          (partner) => partner.status === 'ACTIVE'
+        );
+
+        const creativeGroups = await Promise.all(
+          activePartners.map((partner) =>
+            listSponsoredCreatives({
+              idToken,
+              partnerId: partner.partnerId,
+            })
+          )
+        );
+
+        setRetailMediaPartners(activePartners);
+        setSponsoredCreatives(
+          creativeGroups
+            .flat()
+            .filter((creative) => creative.status === 'ACTIVE')
+        );
+      } catch (error) {
+        console.error(
+          '[QR Activation] Failed to load Retail Media selectors:',
+          error
+        );
+
+        setRetailMediaPartners([]);
+        setSponsoredCreatives([]);
+
+        toast({
+          title: 'Could not load Retail Media Partners',
+          description:
+            'Canonical Partner and Sponsored Creative records could not be loaded.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoadingRetailMedia(false);
+      }
+    }
+
+    fetchRetailMediaSelectors(authenticatedUser);
+  }, [user, toast]);
+
   const bulkOnSubmit = async (data: BulkFormValues) => {
     setIsSubmitting(true);
 
@@ -1628,6 +1721,9 @@ export default function BulkQRCodeGenerator({
               products={products}
               campaigns={campaigns}
               stores={stores}
+              retailMediaPartners={retailMediaPartners}
+              sponsoredCreatives={sponsoredCreatives}
+              loadingRetailMedia={loadingRetailMedia}
               loadingProducts={loadingProducts}
               loadingCampaigns={loadingCampaigns}
               loadingStores={loadingStores}

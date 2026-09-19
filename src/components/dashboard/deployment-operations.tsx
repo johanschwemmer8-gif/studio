@@ -1210,11 +1210,42 @@ export function DeploymentOperations() {
           <DialogHeader>
             <DialogTitle>Activate or Schedule Activation</DialogTitle>
             <DialogDescription>
-              Choose when {scheduleTarget?.activationName ?? 'this Activation'} should
-              become operational for shopper resolution. The server remains
-              authoritative over the resulting lifecycle state.
+              Choose when this Activation should become operational for shopper
+              resolution. The server remains authoritative over the resulting
+              lifecycle state.
             </DialogDescription>
           </DialogHeader>
+
+          {scheduleTarget ? (
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <p className="font-medium">Campaign</p>
+                  <p className="text-muted-foreground">
+                    {scheduleTarget.campaignName}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Activation</p>
+                  <p className="text-muted-foreground">
+                    {scheduleTarget.activationName}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Store</p>
+                  <p className="text-muted-foreground">
+                    {scheduleTarget.storeName}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Deployment ID</p>
+                  <p className="break-all text-muted-foreground">
+                    {scheduleTarget.deploymentId}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div className="grid gap-4">
             <div className="grid gap-2">

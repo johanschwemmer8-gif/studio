@@ -9,6 +9,7 @@ import { DeploymentSchema } from "@/lib/schemas/deployment";
 import { ActivationSchema } from "@/lib/schemas/activation";
 import { CampaignSchema } from "@/lib/schemas/campaign";
 import { QrCodeSchema } from "@/lib/schemas/qr-code";
+import { compareDeploymentOperations } from "@/lib/deployment-operations-ordering";
 
 const ListDeploymentOperationsInputSchema = z.object({
   idToken: z.string().min(1),
@@ -279,14 +280,6 @@ const listDeploymentOperationsFlow = ai.defineFlow(
       });
     }
 
-    return deployments.sort((a, b) => {
-      const storeComparison = a.storeName.localeCompare(b.storeName);
-
-      if (storeComparison !== 0) {
-        return storeComparison;
-      }
-
-      return a.deploymentId.localeCompare(b.deploymentId);
-    });
+    return deployments.sort(compareDeploymentOperations);
   }
 );

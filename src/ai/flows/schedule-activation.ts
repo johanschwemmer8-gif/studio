@@ -159,33 +159,7 @@ const scheduleActivationFlow = ai.defineFlow(
       );
     }
 
-    console.info('[Gate 8 Schedule Diagnostic]', {
-      activationId: data.activationId,
-      campaignId: campaign.campaignId,
-      requestedStartAt: data.startAt,
-      requestedEndAt: data.endAt ?? null,
-      requestedTimezone: data.timezone,
-      parsedStartAtSeconds: startAt.seconds,
-      parsedStartAtNanoseconds: startAt.nanoseconds,
-      parsedStartAtIso: startAt.toDate().toISOString(),
-      parsedEndAtSeconds: endAt?.seconds ?? null,
-      parsedEndAtNanoseconds: endAt?.nanoseconds ?? null,
-      parsedEndAtIso: endAt?.toDate().toISOString() ?? null,
-      campaignStartAtSeconds: campaign.startAt?.seconds ?? null,
-      campaignStartAtNanoseconds: campaign.startAt?.nanoseconds ?? null,
-      campaignEndAtSeconds: campaign.endAt?.seconds ?? null,
-      campaignEndAtNanoseconds: campaign.endAt?.nanoseconds ?? null,
-      activationStartMillis: startAt.toMillis(),
-      activationEndMillis: endAt?.toMillis() ?? null,
-      campaignStartMillis: campaign.startAt
-        ? campaign.startAt.seconds * 1000 +
-          Math.floor(campaign.startAt.nanoseconds / 1_000_000)
-        : null,
-      campaignEndMillis: campaign.endAt
-        ? campaign.endAt.seconds * 1000 +
-          Math.floor(campaign.endAt.nanoseconds / 1_000_000)
-        : null,
-    });
+
 
     requireCampaignAllowsActivationSchedule(
       campaign,

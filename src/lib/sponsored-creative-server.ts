@@ -32,6 +32,30 @@ export type ListSponsoredCreativesInput = z.infer<
   typeof ListSponsoredCreativesInputSchema
 >;
 
+const UpdateDraftSponsoredCreativeInputSchema = z.object({
+  idToken: z.string().min(1).optional(),
+  creativeId: z.string().trim().min(1),
+  partnerId: z.string().trim().min(1),
+  format: z.enum(['VIDEO', 'BRAND_STRIP']),
+  mediaUrl: z.string().url(),
+  headline: z.string().trim().min(1).optional(),
+  destinationUrl: z.string().url().optional(),
+});
+
+export type UpdateDraftSponsoredCreativeInput = z.infer<
+  typeof UpdateDraftSponsoredCreativeInputSchema
+>;
+
+const SponsoredCreativeLifecycleInputSchema = z.object({
+  idToken: z.string().min(1).optional(),
+  creativeId: z.string().trim().min(1),
+  partnerId: z.string().trim().min(1),
+});
+
+export type SponsoredCreativeLifecycleInput = z.infer<
+  typeof SponsoredCreativeLifecycleInputSchema
+>;
+
 function requireRetailMediaRetailerAuth(
   auth: Awaited<ReturnType<typeof verifyAuth>>
 ) {
@@ -173,4 +197,151 @@ export async function listSponsoredCreatives(
 
     return parsed.data;
   });
+}
+
+
+async function getAuthorizedSponsoredCreative(
+  creativeId: string,
+  partnerId: string,
+  auth: ReturnType<typeof requireRetailMediaRetailerAuth>
+): Promise<{
+  creative: SponsoredCreative;
+  creativeRef: FirebaseFirestore.DocumentReference;
+}> {
+  await requireAuthorizedPartner(partnerId, auth);
+
+  const db = getDb();
+
+  if (db == null) {
+    throw new Error('INFRASTRUCTURE_UNAVAILABLE');
+  }
+
+  const creativeRef = db.collection('sponsoredCreatives').doc(creativeId);
+  const snapshot = await creativeRef.get();
+
+  if (!snapshot.exists) {
+    throw new Error('SPONSORED_CREATIVE_NOT_FOUND');
+  }
+
+  const parsed = SponsoredCreativeSchema.safeParse(snapshot.data());
+
+  if (!parsed.success) {
+    throw new Error('SPONSORED_CREATIVE_INTEGRITY_ERROR');
+  }
+
+  if (parsed.data.creativeId !== creativeId) {
+    throw new Error('SPONSORED_CREATIVE_IDENTITY_MISMATCH');
+  }
+
+  if (
+    parsed.data.retailerId !== auth.retailerId ||
+    parsed.data.partnerId !== partnerId
+  ) {
+    throw new Error('SPONSORED_CREATIVE_SCOPE_MISMATCH');
+  }
+
+  return {
+    creative: parsed.data,
+    creativeRef,
+  };
+}
+
+export async function updateDraftSponsoredCreative(
+  input: UpdateDraftSponsoredCreativeInput
+): Promise<SponsoredCreative> {
+  const parsedInput = UpdateDraftSponsoredCreativeInputSchema.parse(input);
+
+  const auth = requireRetailMediaRetailerAuth(
+    await verifyAuth(parsedInput.idToken)
+  );
+
+  const { creative, creativeRef } = await getAuthorizedSponsoredCreative(
+    parsedInput.creativeId,
+    parsedInput.partnerId,
+    auth
+  );
+
+  if (creative.status !== 'DRAFT') {
+    throw new Error('SPONSORED_CREATIVE_NOT_EDITABLE');
+  }
+
+  const updated = SponsoredCreativeSchema.parse({
+    ...creative,
+    format: parsedInput.format,
+    mediaUrl: parsedInput.mediaUrl,
+    headline: parsedInput.headline,
+    destinationUrl: parsedInput.destinationUrl,
+    updatedAt: admin.firestore.Timestamp.now(),
+    updatedBy: auth.uid,
+  });
+
+  await creativeRef.set(updated);
+
+  return updated;
+}
+
+export async function activateSponsoredCreative(
+  input: SponsoredCreativeLifecycleInput
+): Promise<SponsoredCreative> {
+  const parsedInput = SponsoredCreativeLifecycleInputSchema.parse(input);
+
+  const auth = requireRetailMediaRetailerAuth(
+    await verifyAuth(parsedInput.idToken)
+  );
+
+  const { creative, creativeRef } = await getAuthorizedSponsoredCreative(
+    parsedInput.creativeId,
+    parsedInput.partnerId,
+    auth
+  );
+
+  if (creative.status !== 'DRAFT') {
+    throw new Error('SPONSORED_CREATIVE_CANNOT_ACTIVATE');
+  }
+
+  const updated = SponsoredCreativeSchema.parse({
+    ...creative,
+    status: 'ACTIVE',
+    updatedAt: admin.firestore.Timestamp.now(),
+    updatedBy: auth.uid,
+  });
+
+  await creativeRef.set(updated);
+
+  return updated;
+}
+
+export async function retireSponsoredCreative(
+  input: SponsoredCreativeLifecycleInput
+): Promise<SponsoredCreative> {
+  const parsedInput = SponsoredCreativeLifecycleInputSchema.parse(input);
+
+  const auth = requireRetailMediaRetailerAuth(
+    await verifyAuth(parsedInput.idToken)
+  );
+
+  const { creative, creativeRef } = await getAuthorizedSponsoredCreative(
+    parsedInput.creativeId,
+    parsedInput.partnerId,
+    auth
+  );
+
+  if (creative.status === 'RETIRED') {
+    throw new Error('SPONSORED_CREATIVE_ALREADY_RETIRED');
+  }
+
+  const timestamp = admin.firestore.Timestamp.now();
+
+  const updated = SponsoredCreativeSchema.parse({
+    ...creative,
+    status: 'RETIRED',
+    updatedAt: timestamp,
+    updatedBy: auth.uid,
+    retiredAt: timestamp,
+    retiredBy: auth.uid,
+  });
+
+  await creativeRef.set(updated);
+
+  return updated;
 }

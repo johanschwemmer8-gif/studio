@@ -385,3 +385,285 @@ describe('Sponsored Creative retailer service', () => {
     );
   });
 });
+
+describe('Sponsored Creative controlled lifecycle', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function mockCreativeDocument(
+    storedCreative: Record<string, unknown> = creative
+  ) {
+    const set = jest.fn().mockResolvedValue(undefined);
+
+    const collection = jest.fn((name: string) => {
+      if (name === 'retailMediaPartners') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({
+              exists: true,
+              data: () => partner,
+            }),
+          })),
+        };
+      }
+
+      if (name === 'sponsoredCreatives') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({
+              exists: true,
+              data: () => storedCreative,
+            }),
+            set,
+          })),
+        };
+      }
+
+      throw new Error(`Unexpected collection: ${name}`);
+    });
+
+    mockGetDb.mockReturnValue({ collection } as any);
+
+    return { set };
+  }
+
+  it('allows shopper-facing fields to change while Creative is DRAFT', async () => {
+    const { updateDraftSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+    const { set } = mockCreativeDocument();
+
+    const result = await updateDraftSponsoredCreative({
+      idToken: 'token',
+      creativeId: 'creative-air-jordan',
+      partnerId: 'partner-nike',
+      format: 'BRAND_STRIP',
+      mediaUrl: 'https://example.com/air-jordan-strip.png',
+      headline: 'New Air Jordan',
+      destinationUrl: 'https://example.com/air-jordan',
+    });
+
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creativeId: 'creative-air-jordan',
+        retailerId: 'retailer-a',
+        partnerId: 'partner-nike',
+        status: 'DRAFT',
+        format: 'BRAND_STRIP',
+        mediaUrl: 'https://example.com/air-jordan-strip.png',
+        headline: 'New Air Jordan',
+        updatedBy: 'retailer-user-1',
+      })
+    );
+
+    expect(result.status).toBe('DRAFT');
+  });
+
+  it('prevents shopper-facing edits once Creative is ACTIVE', async () => {
+    const { updateDraftSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const { set } = mockCreativeDocument({
+      ...creative,
+      status: 'ACTIVE',
+    });
+
+    await expect(
+      updateDraftSponsoredCreative({
+        idToken: 'token',
+        creativeId: 'creative-air-jordan',
+        partnerId: 'partner-nike',
+        format: 'VIDEO',
+        mediaUrl: 'https://example.com/replacement.mp4',
+      })
+    ).rejects.toThrow('SPONSORED_CREATIVE_NOT_EDITABLE');
+
+    expect(set).not.toHaveBeenCalled();
+  });
+
+  it('activates only a DRAFT Creative', async () => {
+    const { activateSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+    const { set } = mockCreativeDocument();
+
+    const result = await activateSponsoredCreative({
+      idToken: 'token',
+      creativeId: 'creative-air-jordan',
+      partnerId: 'partner-nike',
+    });
+
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creativeId: 'creative-air-jordan',
+        retailerId: 'retailer-a',
+        partnerId: 'partner-nike',
+        status: 'ACTIVE',
+      })
+    );
+
+    expect(result.status).toBe('ACTIVE');
+  });
+
+  it('prevents ACTIVE to ACTIVE lifecycle activation', async () => {
+    const { activateSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const { set } = mockCreativeDocument({
+      ...creative,
+      status: 'ACTIVE',
+    });
+
+    await expect(
+      activateSponsoredCreative({
+        idToken: 'token',
+        creativeId: 'creative-air-jordan',
+        partnerId: 'partner-nike',
+      })
+    ).rejects.toThrow('SPONSORED_CREATIVE_CANNOT_ACTIVATE');
+
+    expect(set).not.toHaveBeenCalled();
+  });
+
+  it('retires an ACTIVE Creative and records retirement audit fields', async () => {
+    const { retireSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const { set } = mockCreativeDocument({
+      ...creative,
+      status: 'ACTIVE',
+    });
+
+    const result = await retireSponsoredCreative({
+      idToken: 'token',
+      creativeId: 'creative-air-jordan',
+      partnerId: 'partner-nike',
+    });
+
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creativeId: 'creative-air-jordan',
+        retailerId: 'retailer-a',
+        partnerId: 'partner-nike',
+        status: 'RETIRED',
+        retiredBy: 'retailer-user-1',
+        updatedBy: 'retailer-user-1',
+      })
+    );
+
+    expect(result.status).toBe('RETIRED');
+    expect(result.retiredAt).toBeDefined();
+  });
+
+  it('treats RETIRED as terminal', async () => {
+    const { retireSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const { set } = mockCreativeDocument({
+      ...creative,
+      status: 'RETIRED',
+      retiredAt: creative.updatedAt,
+      retiredBy: 'retailer-user-1',
+    });
+
+    await expect(
+      retireSponsoredCreative({
+        idToken: 'token',
+        creativeId: 'creative-air-jordan',
+        partnerId: 'partner-nike',
+      })
+    ).rejects.toThrow('SPONSORED_CREATIVE_ALREADY_RETIRED');
+
+    expect(set).not.toHaveBeenCalled();
+  });
+
+  it('denies Creative mutation through another Partner identity', async () => {
+    const { activateSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const set = jest.fn();
+
+    const collection = jest.fn((name: string) => {
+      if (name === 'retailMediaPartners') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({
+              exists: true,
+              data: () => ({
+                ...partner,
+                partnerId: 'partner-puma',
+                name: 'Puma',
+              }),
+            }),
+          })),
+        };
+      }
+
+      if (name === 'sponsoredCreatives') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn(),
+            set,
+          })),
+        };
+      }
+
+      throw new Error(`Unexpected collection: ${name}`);
+    });
+
+    mockGetDb.mockReturnValue({ collection } as any);
+
+    await expect(
+      activateSponsoredCreative({
+        idToken: 'token',
+        creativeId: 'creative-air-jordan',
+        partnerId: 'partner-nike',
+      })
+    ).rejects.toThrow('RETAIL_MEDIA_PARTNER_IDENTITY_MISMATCH');
+
+    expect(set).not.toHaveBeenCalled();
+  });
+
+  it('denies Creative mutation when stored Creative belongs to another Partner', async () => {
+    const { activateSponsoredCreative } = await import(
+      './sponsored-creative-server'
+    );
+
+    mockVerifyAuth.mockResolvedValue(retailerAuth);
+
+    const { set } = mockCreativeDocument({
+      ...creative,
+      partnerId: 'partner-puma',
+    });
+
+    await expect(
+      activateSponsoredCreative({
+        idToken: 'token',
+        creativeId: 'creative-air-jordan',
+        partnerId: 'partner-nike',
+      })
+    ).rejects.toThrow('SPONSORED_CREATIVE_SCOPE_MISMATCH');
+
+    expect(set).not.toHaveBeenCalled();
+  });
+});

@@ -68,6 +68,7 @@ service cloud.firestore {
           && (
             configId == currentRetailerId() + '_org'
             || configId == currentRetailerId() + '_brand'
+            || configId == currentRetailerId() + '_reporting_calendar'
           )
         );
     }

@@ -811,10 +811,19 @@ export default function AuthoritativeOverview() {
                   Reporting Calendar required
                 </AlertTitle>
                 <AlertDescription>
-                  Trend periods are not displayed until an
-                  authoritative retailer Reporting Calendar has been
-                  configured. No UTC or financial-year default is
-                  assumed.
+                  <div className="space-y-3">
+                    <p>
+                      Trend periods are not displayed until an
+                      authoritative retailer Reporting Calendar has been
+                      configured. No UTC or financial-year default is
+                      assumed.
+                    </p>
+                    <Button asChild type="button" variant="outline" size="sm">
+                      <a href="/retailer-mvp/organization#reporting-calendar">
+                        Configure Reporting Calendar
+                      </a>
+                    </Button>
+                  </div>
                 </AlertDescription>
               </Alert>
             ) : trendLoading ? (

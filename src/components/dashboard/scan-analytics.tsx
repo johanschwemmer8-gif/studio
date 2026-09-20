@@ -246,9 +246,7 @@ export function ScanAnalytics() {
       return;
     }
 
-    setLoadState(current =>
-      statistics ? current : 'LOADING'
-    );
+    setLoadState('LOADING');
     setErrorMessage(null);
 
     try {
@@ -265,7 +263,7 @@ export function ScanAnalytics() {
         'Authoritative Scan Statistics could not be loaded. No metric values have been substituted.'
       );
     }
-  }, [statistics, user]);
+  }, [user]);
 
   const loadTrend = useCallback(async () => {
     if (!user) {

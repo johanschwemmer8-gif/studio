@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { getProfitRoiEvidence } from '@/lib/profit-roi-evidence-server';
+import { interpretProfitRoiSnapshot } from '@/lib/profit-roi-interpretation';
 import { useAuth } from '@/context/auth-context';
 import type {
   ProfitRoiEvidenceReason,
@@ -199,7 +200,7 @@ function MetricCard({
       <CardHeader className="space-y-1 pb-2">
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="text-sm">{title}</CardTitle>
-          <Badge variant="outline">E{metric.evidenceLevel}</Badge>
+          <Badge variant="outline">{metric.evidenceLevel}</Badge>
         </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
@@ -229,7 +230,7 @@ function FunnelStage({
     <div className="rounded-lg border p-4">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-medium">{label}</span>
-        <Badge variant="outline">E{metric.evidenceLevel}</Badge>
+        <Badge variant="outline">{metric.evidenceLevel}</Badge>
       </div>
       <div className="mt-2 text-xl font-bold">{formatMetric(metric)}</div>
       <div className="mt-1 text-xs text-muted-foreground">
@@ -336,6 +337,8 @@ export function AuthoritativeProfitRoi() {
       </Alert>
     );
   }
+
+  const interpretation = interpretProfitRoiSnapshot(snapshot);
 
   const { investment, retailMedia, commerce, profit, reconciliation, funnel } =
     snapshot;
@@ -677,30 +680,60 @@ export function AuthoritativeProfitRoi() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5" />
           <div>
-            <h2 className="text-xl font-semibold">
-              Evidence-Bound Summary
-            </h2>
+            <h2 className="text-xl font-semibold">Evidence-Bound Summary</h2>
             <p className="text-sm text-muted-foreground">
-              Deterministic summary of the evidence currently available. AI
-              interpretation will be introduced only through the separately
-              controlled evidence-bound summarisation layer.
+              Deterministic financial interpretation derived only from the authoritative Profit &amp; ROI snapshot.
             </p>
           </div>
         </div>
 
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
-          <AlertTitle>Current evidence position</AlertTitle>
-          <AlertDescription>
-            Attributed commerce is reported only where deterministic
-            session-to-transaction evidence exists. Incremental sales, profit
-            and ROI remain unavailable whenever their required baseline,
-            counterfactual, margin, investment or Retail Media evidence is not
-            authoritative.
-          </AlertDescription>
+          <AlertTitle>
+            {interpretation.status === 'AVAILABLE'
+              ? 'Authoritative interpretation available'
+              : interpretation.status === 'NO_ACTIVITY'
+                ? 'No activity'
+                : interpretation.status === 'LIMITED_EVIDENCE'
+                  ? 'Limited evidence'
+                  : 'Interpretation unavailable'}
+          </AlertTitle>
+          <AlertDescription>{interpretation.statusDetail}</AlertDescription>
         </Alert>
-      </section>
 
+        {[
+          ['Factual Observations', interpretation.factualObservations],
+          ['Identified Indicators', interpretation.identifiedIndicators],
+          ['Suggested Actions', interpretation.suggestedActions],
+        ].map(([title, statements]) => {
+          const items = statements as typeof interpretation.factualObservations;
+          return items.length > 0 ? (
+            <Card key={title as string}>
+              <CardHeader>
+                <CardTitle>{title as string}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {items.map((item) => (
+                  <div
+                    key={item.statementId}
+                    className="space-y-2 border-b pb-4 last:border-b-0 last:pb-0"
+                  >
+                    <p className="text-sm">{item.text}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{item.evidenceLevel}</Badge>
+                      {item.supportingMetricIds.map((metricId) => (
+                        <Badge key={metricId} variant="secondary">
+                          {metricId.replaceAll('_', ' ')}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null;
+        })}
+      </section>
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5" />

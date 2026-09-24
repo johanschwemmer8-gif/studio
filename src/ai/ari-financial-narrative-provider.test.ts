@@ -95,6 +95,27 @@ describe('Ari financial narrative provider', () => {
     });
   });
 
+  test('fails closed within the bounded provider timeout when generation hangs', async () => {
+    jest.useFakeTimers();
+
+    try {
+      mockGenerate.mockImplementation(
+        () => new Promise(() => {})
+      );
+
+      const pending = enhanceAriFinancialNarrative(interpretation());
+      const rejection = expect(pending).rejects.toThrow(
+        'ARI_FINANCIAL_PROVIDER_TIMEOUT'
+      );
+
+      await jest.advanceTimersByTimeAsync(8000);
+
+      await rejection;
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test('fails closed when provider returns no structured output', async () => {
     mockGenerate.mockResolvedValue({
       output: null,

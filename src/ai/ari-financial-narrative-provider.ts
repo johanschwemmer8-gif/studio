@@ -7,6 +7,7 @@ import {
 import type { ProfitRoiInterpretation } from '@/lib/schemas/profit-roi-interpretation';
 
 const ARI_FINANCIAL_MODEL = 'googleai/gemini-2.5-flash';
+const ARI_FINANCIAL_PROVIDER_TIMEOUT_MS = 8000;
 
 function buildPrompt(interpretation: ProfitRoiInterpretation): string {
   return `You are Ari, iNteract's retailer financial intelligence assistant.
@@ -43,7 +44,7 @@ ${JSON.stringify(interpretation)}`;
 export async function enhanceAriFinancialNarrative(
   interpretation: ProfitRoiInterpretation
 ): Promise<AriFinancialNarrative> {
-  const response = await ai.generate({
+  const generation = ai.generate({
     model: ARI_FINANCIAL_MODEL,
     prompt: buildPrompt(interpretation),
     output: {
@@ -51,11 +52,29 @@ export async function enhanceAriFinancialNarrative(
     },
   });
 
-  if (!response.output) {
-    throw new Error('ARI_FINANCIAL_PROVIDER_EMPTY_OUTPUT');
-  }
+  let timeout: ReturnType<typeof setTimeout> | undefined;
 
-  return AriFinancialNarrativeSchema.parse(response.output);
+  try {
+    const response = await Promise.race([
+      generation,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('ARI_FINANCIAL_PROVIDER_TIMEOUT')),
+          ARI_FINANCIAL_PROVIDER_TIMEOUT_MS
+        );
+      }),
+    ]);
+
+    if (!response.output) {
+      throw new Error('ARI_FINANCIAL_PROVIDER_EMPTY_OUTPUT');
+    }
+
+    return AriFinancialNarrativeSchema.parse(response.output);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
 }
 
 export const ariFinancialNarrativeProvider: AriFinancialNarrativeProvider = {

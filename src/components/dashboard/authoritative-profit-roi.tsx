@@ -306,7 +306,7 @@ export function AuthoritativeProfitRoi() {
 
       try {
         const ariResult =
-          await getAriFinancialIntelligence(result);
+          await getAriFinancialIntelligence(idToken, granularity);
         setAriIntelligence(ariResult);
       } catch (ariError) {
         console.error(

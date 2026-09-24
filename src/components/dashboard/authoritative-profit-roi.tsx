@@ -18,6 +18,8 @@ import {
 
 import { getProfitRoiEvidence } from '@/lib/profit-roi-evidence-server';
 import { getProfitRoiAnalysis } from '@/ai/flows/get-profit-roi-analysis';
+import { getAriFinancialIntelligence } from '@/ai/flows/get-ari-financial-intelligence';
+import { buildAriFinancialIntelligence } from '@/lib/ari-financial-intelligence';
 import { interpretProfitRoiSnapshot } from '@/lib/profit-roi-interpretation';
 import { useAuth } from '@/context/auth-context';
 import type {
@@ -28,6 +30,7 @@ import type {
 } from '@/lib/schemas/profit-roi';
 import type { OverviewPeriodGranularity } from '@/lib/schemas/overview-intelligence';
 import type { ProfitRoiAnalysis } from '@/lib/schemas/profit-roi-analysis';
+import type { AriFinancialIntelligence } from '@/lib/schemas/ari-financial-intelligence';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -273,6 +276,8 @@ export function AuthoritativeProfitRoi() {
 
   const [snapshot, setSnapshot] = useState<ProfitRoiSnapshot | null>(null);
   const [analysis, setAnalysis] = useState<ProfitRoiAnalysis | null>(null);
+  const [ariIntelligence, setAriIntelligence] =
+    useState<AriFinancialIntelligence | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('LOADING');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [granularity, setGranularity] =
@@ -295,11 +300,32 @@ export function AuthoritativeProfitRoi() {
 
       setSnapshot(result);
       setAnalysis(analysisResult);
+
+      const deterministicInterpretation =
+        interpretProfitRoiSnapshot(result);
+
+      try {
+        const ariResult =
+          await getAriFinancialIntelligence(result);
+        setAriIntelligence(ariResult);
+      } catch (ariError) {
+        console.error(
+          'Ari financial enhancement unavailable; deterministic Ari remains active:',
+          ariError
+        );
+        setAriIntelligence(
+          await buildAriFinancialIntelligence(
+            deterministicInterpretation
+          )
+        );
+      }
+
       setLoadState('READY');
     } catch (error) {
       console.error('Profit & ROI evidence load failed:', error);
       setSnapshot(null);
       setAnalysis(null);
+      setAriIntelligence(null);
       setLoadError(errorMessage(error));
       setLoadState('ERROR');
     }
@@ -908,63 +934,149 @@ export function AuthoritativeProfitRoi() {
       </section>
 
       <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5" />
-          <div>
-            <h2 className="text-xl font-semibold">Evidence-Bound Summary</h2>
-            <p className="text-sm text-muted-foreground">
-              Deterministic financial interpretation derived only from the authoritative Profit &amp; ROI snapshot.
-            </p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5" />
+            <div>
+              <h2 className="text-xl font-semibold">
+                Ari Financial Intelligence
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Evidence-grounded financial interpretation derived from the
+                authoritative Profit &amp; ROI snapshot.
+              </p>
+            </div>
           </div>
+
+          {ariIntelligence ? (
+            <Badge variant="outline">
+              {ariIntelligence.mode === 'ENHANCED'
+                ? 'Ari Enhanced Interpretation'
+                : 'Ari Authoritative Interpretation'}
+            </Badge>
+          ) : null}
         </div>
 
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
           <AlertTitle>
             {interpretation.status === 'AVAILABLE'
-              ? 'Authoritative interpretation available'
+              ? 'Authoritative financial intelligence available'
               : interpretation.status === 'NO_ACTIVITY'
                 ? 'No activity'
                 : interpretation.status === 'LIMITED_EVIDENCE'
                   ? 'Limited evidence'
-                  : 'Interpretation unavailable'}
+                  : 'Financial intelligence evidence-constrained'}
           </AlertTitle>
           <AlertDescription>{interpretation.statusDetail}</AlertDescription>
         </Alert>
 
-        {[
-          ['Factual Observations', interpretation.factualObservations],
-          ['Identified Indicators', interpretation.identifiedIndicators],
-          ['Suggested Actions', interpretation.suggestedActions],
-        ].map(([title, statements]) => {
-          const items = statements as typeof interpretation.factualObservations;
-          return items.length > 0 ? (
-            <Card key={title as string}>
-              <CardHeader>
-                <CardTitle>{title as string}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {items.map((item) => (
-                  <div
-                    key={item.statementId}
-                    className="space-y-2 border-b pb-4 last:border-b-0 last:pb-0"
-                  >
-                    <p className="text-sm">{item.text}</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{item.evidenceLevel}</Badge>
-                      {item.supportingMetricIds.map((metricId) => (
-                        <Badge key={metricId} variant="secondary">
-                          {metricId.replaceAll('_', ' ')}
-                        </Badge>
-                      ))}
-                    </div>
+        {ariIntelligence ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Ari Summary</CardTitle>
+              <CardDescription>
+                Ari interprets authoritative evidence only. Financial
+                measurements and evidence eligibility are established before
+                Ari interpretation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <p className="text-sm leading-6">
+                {ariIntelligence.narrative.summary}
+              </p>
+
+              {ariIntelligence.narrative.observations.length > 0 ? (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">Observations</h3>
+                  <div className="space-y-2">
+                    {ariIntelligence.narrative.observations.map(
+                      (observation, index) => (
+                        <p
+                          key={`${index}-${observation}`}
+                          className="text-sm text-muted-foreground"
+                        >
+                          {observation}
+                        </p>
+                      )
+                    )}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : null;
-        })}
+                </div>
+              ) : null}
+
+              {ariIntelligence.narrative.actions.length > 0 ? (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold">
+                    Evidence Actions
+                  </h3>
+                  <div className="space-y-2">
+                    {ariIntelligence.narrative.actions.map(
+                      (action, index) => (
+                        <p
+                          key={`${index}-${action}`}
+                          className="text-sm text-muted-foreground"
+                        >
+                          {action}
+                        </p>
+                      )
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold">
+              Authoritative Evidence Trace
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Deterministic statements retained with their supporting metric
+              and evidence level.
+            </p>
+          </div>
+
+          {[
+            ['Factual Observations', interpretation.factualObservations],
+            ['Identified Indicators', interpretation.identifiedIndicators],
+            ['Suggested Actions', interpretation.suggestedActions],
+          ].map(([title, statements]) => {
+            const items =
+              statements as typeof interpretation.factualObservations;
+
+            return items.length > 0 ? (
+              <Card key={title as string}>
+                <CardHeader>
+                  <CardTitle>{title as string}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {items.map((item) => (
+                    <div
+                      key={item.statementId}
+                      className="space-y-2 border-b pb-4 last:border-b-0 last:pb-0"
+                    >
+                      <p className="text-sm">{item.text}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">
+                          {item.evidenceLevel}
+                        </Badge>
+                        {item.supportingMetricIds.map((metricId) => (
+                          <Badge key={metricId} variant="secondary">
+                            {metricId.replaceAll('_', ' ')}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            ) : null;
+          })}
+        </div>
       </section>
+
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5" />

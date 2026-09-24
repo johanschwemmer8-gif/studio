@@ -1,6 +1,5 @@
 'use server';
 
-import { ariFinancialNarrativeProvider } from '@/ai/ari-financial-narrative-provider';
 import { buildAriFinancialIntelligence } from '@/lib/ari-financial-intelligence';
 import { getProfitRoiEvidence } from '@/lib/profit-roi-evidence-server';
 import { interpretProfitRoiSnapshot } from '@/lib/profit-roi-interpretation';
@@ -24,8 +23,13 @@ export async function getAriFinancialIntelligence(
   const snapshot = await getProfitRoiEvidence(idToken, granularity);
   const interpretation = interpretProfitRoiSnapshot(snapshot);
 
-  return buildAriFinancialIntelligence(
-    interpretation,
-    ariFinancialNarrativeProvider
-  );
+  // Production financial Ari is intentionally deterministic-only.
+  //
+  // The authoritative financial snapshot is established server-side and
+  // interpreted deterministically before Ari presentation. Generative
+  // narrative enhancement remains implemented separately but is not enabled
+  // on this financial authority boundary until semantic claim validation can
+  // guarantee that model-generated wording cannot introduce unsupported
+  // financial claims.
+  return buildAriFinancialIntelligence(interpretation);
 }

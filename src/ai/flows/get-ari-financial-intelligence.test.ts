@@ -10,14 +10,7 @@ jest.mock('@/lib/ari-financial-intelligence', () => ({
   buildAriFinancialIntelligence: jest.fn(),
 }));
 
-jest.mock('@/ai/ari-financial-narrative-provider', () => ({
-  ariFinancialNarrativeProvider: {
-    enhance: jest.fn(),
-  },
-}));
-
 import { getAriFinancialIntelligence } from '@/ai/flows/get-ari-financial-intelligence';
-import { ariFinancialNarrativeProvider } from '@/ai/ari-financial-narrative-provider';
 import { buildAriFinancialIntelligence } from '@/lib/ari-financial-intelligence';
 import { getProfitRoiEvidence } from '@/lib/profit-roi-evidence-server';
 import { interpretProfitRoiSnapshot } from '@/lib/profit-roi-interpretation';
@@ -54,13 +47,13 @@ describe('getAriFinancialIntelligence authoritative server boundary', () => {
 
     const result = await getAriFinancialIntelligence(
       'verified-id-token',
-      'FINANCIAL_YTD'
+      'YTD'
     );
 
     expect(mockGetProfitRoiEvidence).toHaveBeenCalledTimes(1);
     expect(mockGetProfitRoiEvidence).toHaveBeenCalledWith(
       'verified-id-token',
-      'FINANCIAL_YTD'
+      'YTD'
     );
 
     expect(mockInterpretProfitRoiSnapshot).toHaveBeenCalledTimes(1);
@@ -70,8 +63,7 @@ describe('getAriFinancialIntelligence authoritative server boundary', () => {
 
     expect(mockBuildAriFinancialIntelligence).toHaveBeenCalledTimes(1);
     expect(mockBuildAriFinancialIntelligence).toHaveBeenCalledWith(
-      deterministicInterpretation,
-      ariFinancialNarrativeProvider
+      deterministicInterpretation
     );
 
     expect(result).toBe(ariResult);

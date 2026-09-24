@@ -1,5 +1,8 @@
 import { getDb } from './firebase-admin';
-import { resolveOrganizationScope } from './organization-scope-server';
+import {
+  listOrganizationScopeChildren,
+  resolveOrganizationScope,
+} from './organization-scope-server';
 
 jest.mock('./firebase-admin', () => ({
   getDb: jest.fn(),
@@ -271,5 +274,179 @@ describe('resolveOrganizationScope', () => {
         networkId: 'network_a',
       })
     ).rejects.toThrow('ORGANIZATION_TENANT_MISMATCH');
+  });
+});
+
+describe('listOrganizationScopeChildren', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('lists immediate brands beneath network scope', async () => {
+    mockOrganization();
+
+    const result = await listOrganizationScopeChildren('retailer_a', {
+      level: 'network',
+      networkId: 'network_a',
+    });
+
+    expect(result).toEqual([
+      {
+        scope: {
+          level: 'brand',
+          networkId: 'network_a',
+          brandId: 'brand_a',
+        },
+        displayName: 'Brand A',
+      },
+      {
+        scope: {
+          level: 'brand',
+          networkId: 'network_a',
+          brandId: 'brand_b',
+        },
+        displayName: 'Brand B',
+      },
+    ]);
+  });
+
+  test('lists immediate divisions beneath brand scope', async () => {
+    mockOrganization();
+
+    const result = await listOrganizationScopeChildren('retailer_a', {
+      level: 'brand',
+      networkId: 'network_a',
+      brandId: 'brand_a',
+    });
+
+    expect(result).toEqual([
+      {
+        scope: {
+          level: 'division',
+          networkId: 'network_a',
+          brandId: 'brand_a',
+          divisionId: 'division_a',
+        },
+        displayName: 'Division A',
+      },
+    ]);
+  });
+
+  test('lists immediate regions beneath division scope', async () => {
+    mockOrganization();
+
+    const result = await listOrganizationScopeChildren('retailer_a', {
+      level: 'division',
+      networkId: 'network_a',
+      brandId: 'brand_a',
+      divisionId: 'division_a',
+    });
+
+    expect(result[0]).toEqual({
+      scope: {
+        level: 'region',
+        networkId: 'network_a',
+        brandId: 'brand_a',
+        divisionId: 'division_a',
+        regionId: 'region_a',
+      },
+      displayName: 'Region A',
+    });
+  });
+
+  test('lists immediate areas beneath region scope', async () => {
+    mockOrganization();
+
+    const result = await listOrganizationScopeChildren('retailer_a', {
+      level: 'region',
+      networkId: 'network_a',
+      brandId: 'brand_a',
+      divisionId: 'division_a',
+      regionId: 'region_a',
+    });
+
+    expect(result.map(item => item.displayName)).toEqual([
+      'Area A',
+      'Area B',
+    ]);
+
+    expect(result[0]?.scope).toEqual({
+      level: 'area',
+      networkId: 'network_a',
+      brandId: 'brand_a',
+      divisionId: 'division_a',
+      regionId: 'region_a',
+      areaId: 'area_a',
+    });
+  });
+
+  test('lists immediate stores beneath area scope', async () => {
+    mockOrganization();
+
+    const result = await listOrganizationScopeChildren('retailer_a', {
+      level: 'area',
+      networkId: 'network_a',
+      brandId: 'brand_a',
+      divisionId: 'division_a',
+      regionId: 'region_a',
+      areaId: 'area_a',
+    });
+
+    expect(result).toEqual([
+      {
+        scope: {
+          level: 'store',
+          networkId: 'network_a',
+          brandId: 'brand_a',
+          divisionId: 'division_a',
+          regionId: 'region_a',
+          areaId: 'area_a',
+          storeId: 'store_a',
+        },
+        displayName: 'Store A',
+      },
+      {
+        scope: {
+          level: 'store',
+          networkId: 'network_a',
+          brandId: 'brand_a',
+          divisionId: 'division_a',
+          regionId: 'region_a',
+          areaId: 'area_a',
+          storeId: 'store_b',
+        },
+        displayName: 'Store B',
+      },
+    ]);
+  });
+
+  test('returns no children beneath terminal store scope', async () => {
+    mockOrganization();
+
+    const result = await listOrganizationScopeChildren('retailer_a', {
+      level: 'store',
+      networkId: 'network_a',
+      brandId: 'brand_a',
+      divisionId: 'division_a',
+      regionId: 'region_a',
+      areaId: 'area_a',
+      storeId: 'store_a',
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  test('fails closed when the parent hierarchy path is invalid', async () => {
+    mockOrganization();
+
+    await expect(
+      listOrganizationScopeChildren('retailer_a', {
+        level: 'region',
+        networkId: 'network_a',
+        brandId: 'brand_a',
+        divisionId: 'division_b',
+        regionId: 'region_b',
+      })
+    ).rejects.toThrow('AUTHORIZED_DIVISION_SCOPE_NOT_FOUND');
   });
 });

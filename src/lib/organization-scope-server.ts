@@ -68,14 +68,16 @@ export type ResolvedOrganizationScope = {
   storeIds: string[];
 };
 
+export type OrganizationScopeChild = {
+  scope: OrganizationScope;
+  displayName: string;
+};
+
 function scopeResolutionError(code: string): never {
   throw new Error(code);
 }
 
-export async function resolveOrganizationScope(
-  retailerId: string,
-  scope: OrganizationScope
-): Promise<ResolvedOrganizationScope> {
+async function loadOrganization(retailerId: string) {
   const db = getDb();
 
   if (!db) {
@@ -101,7 +103,14 @@ export async function resolveOrganizationScope(
     scopeResolutionError('ORGANIZATION_TENANT_MISMATCH');
   }
 
-  const organization = parsed.data.data;
+  return parsed.data.data;
+}
+
+export async function resolveOrganizationScope(
+  retailerId: string,
+  scope: OrganizationScope
+): Promise<ResolvedOrganizationScope> {
+  const organization = await loadOrganization(retailerId);
 
   const allStoreIds = organization.brands.flatMap(brand =>
     brand.divisions.flatMap(division =>
@@ -210,4 +219,110 @@ export async function resolveOrganizationScope(
     scope,
     storeIds: [store.id],
   };
+}
+
+export async function listOrganizationScopeChildren(
+  retailerId: string,
+  scope: OrganizationScope
+): Promise<OrganizationScopeChild[]> {
+  const organization = await loadOrganization(retailerId);
+
+  if (scope.level === 'store') {
+    return [];
+  }
+
+  if (scope.level === 'network') {
+    return organization.brands.map(brand => ({
+      scope: {
+        level: 'brand' as const,
+        networkId: scope.networkId,
+        brandId: brand.id,
+      },
+      displayName: brand.name,
+    }));
+  }
+
+  const brand = scope.brandId
+    ? organization.brands.find(item => item.id === scope.brandId)
+    : undefined;
+
+  if (!brand) {
+    scopeResolutionError('AUTHORIZED_BRAND_SCOPE_NOT_FOUND');
+  }
+
+  if (scope.level === 'brand') {
+    return brand.divisions.map(division => ({
+      scope: {
+        level: 'division' as const,
+        networkId: scope.networkId,
+        brandId: brand.id,
+        divisionId: division.id,
+      },
+      displayName: division.name,
+    }));
+  }
+
+  const division = scope.divisionId
+    ? brand.divisions.find(item => item.id === scope.divisionId)
+    : undefined;
+
+  if (!division) {
+    scopeResolutionError('AUTHORIZED_DIVISION_SCOPE_NOT_FOUND');
+  }
+
+  if (scope.level === 'division') {
+    return division.regions.map(region => ({
+      scope: {
+        level: 'region' as const,
+        networkId: scope.networkId,
+        brandId: brand.id,
+        divisionId: division.id,
+        regionId: region.id,
+      },
+      displayName: region.name,
+    }));
+  }
+
+  const region = scope.regionId
+    ? division.regions.find(item => item.id === scope.regionId)
+    : undefined;
+
+  if (!region) {
+    scopeResolutionError('AUTHORIZED_REGION_SCOPE_NOT_FOUND');
+  }
+
+  if (scope.level === 'region') {
+    return region.areas.map(area => ({
+      scope: {
+        level: 'area' as const,
+        networkId: scope.networkId,
+        brandId: brand.id,
+        divisionId: division.id,
+        regionId: region.id,
+        areaId: area.id,
+      },
+      displayName: area.name,
+    }));
+  }
+
+  const area = scope.areaId
+    ? region.areas.find(item => item.id === scope.areaId)
+    : undefined;
+
+  if (!area) {
+    scopeResolutionError('AUTHORIZED_AREA_SCOPE_NOT_FOUND');
+  }
+
+  return area.stores.map(store => ({
+    scope: {
+      level: 'store' as const,
+      networkId: scope.networkId,
+      brandId: brand.id,
+      divisionId: division.id,
+      regionId: region.id,
+      areaId: area.id,
+      storeId: store.id,
+    },
+    displayName: store.name,
+  }));
 }

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { getProfitRoiEvidence } from '@/lib/profit-roi-evidence-server';
+import { getProfitRoiAnalysis } from '@/ai/flows/get-profit-roi-analysis';
 import { interpretProfitRoiSnapshot } from '@/lib/profit-roi-interpretation';
 import { useAuth } from '@/context/auth-context';
 import type {
@@ -26,6 +27,7 @@ import type {
   ProfitRoiSnapshot,
 } from '@/lib/schemas/profit-roi';
 import type { OverviewPeriodGranularity } from '@/lib/schemas/overview-intelligence';
+import type { ProfitRoiAnalysis } from '@/lib/schemas/profit-roi-analysis';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -270,6 +272,7 @@ export function AuthoritativeProfitRoi() {
   const { user } = useAuth();
 
   const [snapshot, setSnapshot] = useState<ProfitRoiSnapshot | null>(null);
+  const [analysis, setAnalysis] = useState<ProfitRoiAnalysis | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('LOADING');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [granularity, setGranularity] =
@@ -285,13 +288,18 @@ export function AuthoritativeProfitRoi() {
 
     try {
       const idToken = await user.getIdToken();
-      const result = await getProfitRoiEvidence(idToken, granularity);
+      const [result, analysisResult] = await Promise.all([
+        getProfitRoiEvidence(idToken, granularity),
+        getProfitRoiAnalysis(idToken, granularity),
+      ]);
 
       setSnapshot(result);
+      setAnalysis(analysisResult);
       setLoadState('READY');
     } catch (error) {
       console.error('Profit & ROI evidence load failed:', error);
       setSnapshot(null);
+      setAnalysis(null);
       setLoadError(errorMessage(error));
       setLoadState('ERROR');
     }
@@ -674,6 +682,229 @@ export function AuthoritativeProfitRoi() {
             description="Net financial benefit divided by authoritative SaaS investment."
           />
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5" />
+          <div>
+            <h2 className="text-xl font-semibold">
+              Financial Analysis
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Historical and organizational financial evidence. Every value
+              retains its own authoritative evidence status; unavailable
+              evidence is never converted to zero.
+            </p>
+          </div>
+        </div>
+
+        {!analysis ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Financial analysis unavailable</AlertTitle>
+            <AlertDescription>
+              Authoritative trend and organizational breakdown evidence could
+              not be established for this reporting context.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Trend</CardTitle>
+                <CardDescription>
+                  Independent authoritative results for each{' '}
+                  {granularity.toLowerCase()} reporting period. Missing or
+                  insufficient evidence is shown as its evidence status rather
+                  than as a numerical value.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1100px] text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="p-2 font-medium">Period</th>
+                        <th className="p-2 font-medium">SaaS Investment</th>
+                        <th className="p-2 font-medium">RMN Revenue</th>
+                        <th className="p-2 font-medium">Licence Offset</th>
+                        <th className="p-2 font-medium">Attributed Sales</th>
+                        <th className="p-2 font-medium">Incremental Sales</th>
+                        <th className="p-2 font-medium">
+                          Incremental Profit
+                        </th>
+                        <th className="p-2 font-medium">
+                          Net Financial Benefit
+                        </th>
+                        <th className="p-2 font-medium">ROI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analysis.trend.points.map(point => (
+                        <tr
+                          key={`${point.reportingPeriod.startAt}-${point.reportingPeriod.endAt}`}
+                          className="border-b align-top last:border-0"
+                        >
+                          <td className="whitespace-nowrap p-2">
+                            <div className="font-medium">
+                              {formatDate(point.reportingPeriod.startAt)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              to {formatDate(point.reportingPeriod.endAt)}
+                            </div>
+                          </td>
+                          <td className="p-2">
+                            {formatMetric(point.metrics.saasInvestment)}
+                          </td>
+                          <td className="p-2">
+                            {formatMetric(point.metrics.retailMediaRevenue)}
+                          </td>
+                          <td className="p-2">
+                            {formatMetric(
+                              point.metrics.licenceCostOffsetPercentage
+                            )}
+                          </td>
+                          <td className="p-2">
+                            {formatMetric(point.metrics.attributedSales)}
+                          </td>
+                          <td className="p-2">
+                            {formatMetric(point.metrics.incrementalSales)}
+                          </td>
+                          <td className="p-2">
+                            {formatMetric(
+                              point.metrics.incrementalProfitContribution
+                            )}
+                          </td>
+                          <td className="p-2">
+                            {formatMetric(
+                              point.metrics.netFinancialBenefit
+                            )}
+                          </td>
+                          <td className="p-2">
+                            {formatMetric(point.metrics.roiPercentage)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {analysis.trend.points.length === 0 && (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    No authoritative historical reporting periods are
+                    available.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Breakdown</CardTitle>
+                <CardDescription>
+                  Immediate authorized organizational scopes for the selected
+                  reporting period. Child results are independently measured
+                  and are not summed to manufacture the parent result.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {analysis.breakdown.rows.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <p className="font-medium">
+                      No lower organizational scope
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      The current scope is terminal or has no authorized child
+                      scopes available for financial analysis.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[1100px] text-sm">
+                      <thead>
+                        <tr className="border-b text-left">
+                          <th className="p-2 font-medium">Scope</th>
+                          <th className="p-2 font-medium">SaaS Investment</th>
+                          <th className="p-2 font-medium">RMN Revenue</th>
+                          <th className="p-2 font-medium">Licence Offset</th>
+                          <th className="p-2 font-medium">Attributed Sales</th>
+                          <th className="p-2 font-medium">
+                            Incremental Sales
+                          </th>
+                          <th className="p-2 font-medium">
+                            Incremental Profit
+                          </th>
+                          <th className="p-2 font-medium">
+                            Net Financial Benefit
+                          </th>
+                          <th className="p-2 font-medium">ROI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {analysis.breakdown.rows.map(row => (
+                          <tr
+                            key={[
+                              row.scope.level,
+                              row.scope.networkId,
+                              row.scope.brandId,
+                              row.scope.divisionId,
+                              row.scope.regionId,
+                              row.scope.areaId,
+                              row.scope.storeId,
+                            ]
+                              .filter(Boolean)
+                              .join(':')}
+                            className="border-b align-top last:border-0"
+                          >
+                            <td className="p-2">
+                              <div className="font-medium">
+                                {row.displayName}
+                              </div>
+                              <div className="text-xs capitalize text-muted-foreground">
+                                {row.scope.level}
+                              </div>
+                            </td>
+                            <td className="p-2">
+                              {formatMetric(row.metrics.saasInvestment)}
+                            </td>
+                            <td className="p-2">
+                              {formatMetric(row.metrics.retailMediaRevenue)}
+                            </td>
+                            <td className="p-2">
+                              {formatMetric(
+                                row.metrics.licenceCostOffsetPercentage
+                              )}
+                            </td>
+                            <td className="p-2">
+                              {formatMetric(row.metrics.attributedSales)}
+                            </td>
+                            <td className="p-2">
+                              {formatMetric(row.metrics.incrementalSales)}
+                            </td>
+                            <td className="p-2">
+                              {formatMetric(
+                                row.metrics.incrementalProfitContribution
+                              )}
+                            </td>
+                            <td className="p-2">
+                              {formatMetric(
+                                row.metrics.netFinancialBenefit
+                              )}
+                            </td>
+                            <td className="p-2">
+                              {formatMetric(row.metrics.roiPercentage)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </section>
 
       <section className="space-y-4">

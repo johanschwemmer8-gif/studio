@@ -241,6 +241,12 @@ export default function ProductCatalogPage() {
     const handleDeleteProduct = async (firestoreId: string) => {
         if (!db) return;
 
+        const confirmed = window.confirm(
+            "Delete this product? This action cannot be undone."
+        );
+
+        if (!confirmed) return;
+
         try {
             await deleteDoc(doc(db, 'products', firestoreId));
 

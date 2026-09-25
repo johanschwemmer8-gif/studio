@@ -7,6 +7,10 @@ runConfig:
   maxInstances: 1
 
 env:
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+    availability:
+      - RUNTIME
   # Canonical public origin used when issuing production QR tracking URLs.
   - variable: QR_RESOLVER_BASE_URL
     value: "https://studio-1--interact-aoe-kidkn.us-east4.hosted.app"

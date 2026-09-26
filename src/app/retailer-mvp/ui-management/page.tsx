@@ -18,6 +18,7 @@ import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Palette, LayoutTemplate, Loader2 } from 'lucide-react';
 import PhoneMockup from '@/components/dashboard/phone-mockup';
+import { ShopperPhoneFrame } from '@/components/dashboard/shopper-experience/shopper-phone-frame';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ShopperExperienceRenderer } from '@/components/dashboard/shopper-experience/shopper-experience-renderer';
@@ -51,6 +52,7 @@ function MobileLandingPagePreview({ settings }: { settings: any }) {
             <ShopperExperienceRenderer
                 templateId={templateId}
                 mode="preview"
+                ariImageUrl="/brand/ari/ari-master.png"
                 branding={{
                     logoUrl:
                         typeof logoUrl === "string" && logoUrl
@@ -69,6 +71,7 @@ function MobileLandingPagePreview({ settings }: { settings: any }) {
         </div>
     );
 }
+
 
 export default function UiManagementPage() {
   const { user } = useAuth();
@@ -222,30 +225,69 @@ export default function UiManagementPage() {
                         <LayoutTemplate className="text-primary h-5 w-5"/>
                         Template Gallery
                     </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                        Explore each shopper experience as it will appear on a mobile device.
+                    </p>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {templates.map(template => (
-                        <div key={template.id} onClick={() => setSettings(p => ({ ...p, selectedTemplate: template.id }))} className="cursor-pointer">
-                            <div className={cn(
-                                "w-full aspect-[9/19.5] rounded-md border-2 p-2 bg-muted/50 transition-all",
-                                settings.selectedTemplate === template.id ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-muted-foreground"
-                            )}>
-                                <div className="pointer-events-none h-full w-full overflow-hidden">
-                                    <ShopperExperienceRenderer
-                                        templateId={template.id}
-                                        mode="preview"
-                                        branding={{
-                                            logoUrl: settings.logoUrl || undefined,
-                                            logoWidth: settings.logoWidth,
-                                            logoAlign: settings.logoAlign === "flex-start" || settings.logoAlign === "flex-end" ? settings.logoAlign : "center",
-                                            logoPadding: settings.logoPadding,
-                                        }}
-                                    />
+
+                <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                    {templates.map(template => {
+                        const isSelected = settings.selectedTemplate === template.id;
+
+                        return (
+                            <div
+                                key={template.id}
+                                className={cn(
+                                    "rounded-xl border-2 p-6 transition-all",
+                                    isSelected
+                                        ? "border-primary ring-2 ring-primary/20"
+                                        : "border-border"
+                                )}
+                            >
+                                <div className="flex justify-center">
+                                    <ShopperPhoneFrame>
+                                        <div className="pointer-events-none h-full w-full overflow-hidden">
+                                            <ShopperExperienceRenderer
+                                                templateId={template.id}
+                                                mode="preview"
+                                                ariImageUrl="/brand/ari/ari-master.png"
+                                                branding={{
+                                                    logoUrl: settings.logoUrl || undefined,
+                                                    logoWidth: settings.logoWidth,
+                                                    logoAlign:
+                                                        settings.logoAlign === "flex-start" ||
+                                                        settings.logoAlign === "flex-end"
+                                                            ? settings.logoAlign
+                                                            : "center",
+                                                    logoPadding: settings.logoPadding,
+                                                }}
+                                            />
+                                        </div>
+                                    </ShopperPhoneFrame>
+                                </div>
+
+                                <div className="mt-5 text-center">
+                                    <p className="text-xs font-black uppercase tracking-wider">
+                                        {template.name}
+                                    </p>
+
+                                    <Button
+                                        type="button"
+                                        variant={isSelected ? "default" : "outline"}
+                                        className="mt-3"
+                                        onClick={() =>
+                                            setSettings(p => ({
+                                                ...p,
+                                                selectedTemplate: template.id,
+                                            }))
+                                        }
+                                    >
+                                        {isSelected ? "Selected" : "Select Template"}
+                                    </Button>
                                 </div>
                             </div>
-                            <p className="text-center text-[10px] font-black uppercase mt-2">{template.name}</p>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </CardContent>
             </Card>
 

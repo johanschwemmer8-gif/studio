@@ -5,6 +5,7 @@ import { ProductSpotlight } from "./templates/product-spotlight";
 import { ConversationFirst } from "./templates/conversation-first";
 import { CompareAndDecide } from "./templates/compare-and-decide";
 import { VisualDiscovery } from "./templates/visual-discovery";
+import { ExpertAdvisor } from "./templates/expert-advisor";
 import type {
     ShopperExperienceProps,
     ShopperTemplateId,
@@ -50,6 +51,8 @@ export function ShopperExperienceRenderer({
             return <VisualDiscovery {...experienceProps} />;
 
         case "template6":
+            return <ExpertAdvisor {...experienceProps} />;
+
         case "template7":
         case "template8":
         case "template9":

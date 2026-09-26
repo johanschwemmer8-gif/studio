@@ -21,9 +21,19 @@ export function ShopperHeader({
     onMinimize,
 }: ShopperHeaderProps) {
     const hasLeadingAction = Boolean(onBack || onMinimize);
+    const logoWidth = Math.min(Math.max(branding.logoWidth ?? 128, 40), 220);
+    const logoMaxHeight = Math.min(Math.max(branding.logoMaxHeight ?? 32, 16), 48);
+    const logoPadding = Math.min(Math.max(branding.logoPadding ?? 0, 0), 12);
+    const headerBackgroundColor =
+        /^#[0-9A-Fa-f]{6}$/.test(branding.headerBackgroundColor ?? "")
+            ? branding.headerBackgroundColor
+            : "#07162f";
 
     return (
-        <header className="relative flex h-[66px] items-center bg-[#07162f] px-4 pt-2 text-white">
+        <header
+            className="relative flex h-[66px] items-center px-4 pt-2 text-white"
+            style={{ backgroundColor: headerBackgroundColor }}
+        >
             {hasLeadingAction && (
                 <button
                     type="button"
@@ -47,9 +57,7 @@ export function ShopperHeader({
                 className="flex min-w-0 flex-1 items-center"
                 style={{
                     justifyContent: branding.logoAlign ?? "flex-start",
-                    padding: branding.logoPadding
-                        ? `${branding.logoPadding}px`
-                        : undefined,
+                    padding: logoPadding ? `${logoPadding}px` : undefined,
                 }}
             >
                 {branding.logoUrl ? (
@@ -57,11 +65,10 @@ export function ShopperHeader({
                         src={branding.logoUrl}
                         alt="Retailer"
                         style={{
-                            width: branding.logoWidth
-                                ? `${branding.logoWidth}px`
-                                : undefined,
+                            width: `${logoWidth}px`,
+                            maxHeight: `${logoMaxHeight}px`,
                         }}
-                        className="max-h-8 max-w-[145px] object-contain"
+                        className="max-w-full object-contain"
                     />
                 ) : (
                     <div>

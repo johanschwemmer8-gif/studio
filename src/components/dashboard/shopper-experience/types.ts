@@ -18,8 +18,10 @@ export type ShopperExperienceProduct = {
 export type ShopperExperienceBranding = {
     logoUrl?: string;
     logoWidth?: number;
+    logoMaxHeight?: number;
     logoAlign?: 'flex-start' | 'center' | 'flex-end';
     logoPadding?: number;
+    headerBackgroundColor?: string;
 };
 
 export type ShopperExperienceProps = {

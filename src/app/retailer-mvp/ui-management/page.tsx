@@ -59,6 +59,7 @@ function MobileLandingPagePreview({ settings }: { settings: any }) {
                             ? logoUrl
                             : undefined,
                     logoWidth: Number(logoWidth) || 128,
+                    logoMaxHeight: Number(settings.logoMaxHeight) || 32,
                     logoAlign:
                         logoAlign === "flex-start" ||
                         logoAlign === "center" ||
@@ -66,6 +67,10 @@ function MobileLandingPagePreview({ settings }: { settings: any }) {
                             ? logoAlign
                             : "center",
                     logoPadding: Number(logoPadding) || 0,
+                    headerBackgroundColor:
+                        typeof settings.headerBackgroundColor === "string"
+                            ? settings.headerBackgroundColor
+                            : "#07162f",
                 }}
             />
         </div>
@@ -87,8 +92,10 @@ export default function UiManagementPage() {
   const [settings, setSettings] = useState({
       logoUrl: '',
       logoWidth: 128,
+      logoMaxHeight: 32,
       logoAlign: 'center',
       logoPadding: 0,
+      headerBackgroundColor: '#07162f',
       selectedTemplate: 'template1',
       landingPageUrl: '',
       scanDestination: 'ai' as 'url' | 'ai',
@@ -100,7 +107,19 @@ export default function UiManagementPage() {
     const docRef = doc(db, 'configurations', `${user.retailerId}_brand`);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
-            setSettings(docSnap.data().data);
+            const saved = docSnap.data().data ?? {};
+            setSettings(prev => ({
+                ...prev,
+                ...saved,
+                logoWidth: Number(saved.logoWidth) || 128,
+                logoMaxHeight: Number(saved.logoMaxHeight) || 32,
+                logoAlign: saved.logoAlign || 'center',
+                logoPadding: Number(saved.logoPadding) || 0,
+                headerBackgroundColor:
+                    typeof saved.headerBackgroundColor === 'string'
+                        ? saved.headerBackgroundColor
+                        : '#07162f',
+            }));
         }
         setIsFetching(false);
     });
@@ -173,8 +192,13 @@ export default function UiManagementPage() {
           const brandSettings = {
               logoUrl: typeof settings.logoUrl === 'string' ? settings.logoUrl : '',
               logoWidth: Number(settings.logoWidth) || 128,
+              logoMaxHeight: Number(settings.logoMaxHeight) || 32,
               logoAlign: settings.logoAlign || 'center',
               logoPadding: Number(settings.logoPadding) || 0,
+              headerBackgroundColor:
+                  typeof settings.headerBackgroundColor === 'string'
+                      ? settings.headerBackgroundColor
+                      : '#07162f',
               selectedTemplate: settings.selectedTemplate || 'template1',
               landingPageUrl: typeof settings.landingPageUrl === 'string' ? settings.landingPageUrl : '',
               scanDestination: settings.scanDestination === 'url' ? 'url' : 'ai',
@@ -254,12 +278,15 @@ export default function UiManagementPage() {
                                                 branding={{
                                                     logoUrl: settings.logoUrl || undefined,
                                                     logoWidth: settings.logoWidth,
+                                                    logoMaxHeight: settings.logoMaxHeight,
                                                     logoAlign:
                                                         settings.logoAlign === "flex-start" ||
                                                         settings.logoAlign === "flex-end"
                                                             ? settings.logoAlign
                                                             : "center",
                                                     logoPadding: settings.logoPadding,
+                                                    headerBackgroundColor:
+                                                        settings.headerBackgroundColor,
                                                 }}
                                             />
                                         </div>
@@ -297,46 +324,239 @@ export default function UiManagementPage() {
                         <Palette className="text-primary h-5 w-5"/>
                         Branding Controls
                     </CardTitle>
+                    <CardDescription>
+                        Configure how your retailer identity appears in the shopper experience.
+                    </CardDescription>
                 </CardHeader>
+
                 <CardContent className="space-y-6">
                     <div>
-                        <Label htmlFor="logo-upload-landing" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Brand Logo</Label>
-                        <Input id="logo-upload-landing" type="file" accept="image/*" onChange={handleLogoUpload} className="mt-2" />
+                        <Label
+                            htmlFor="logo-upload-landing"
+                            className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+                        >
+                            Brand Logo
+                        </Label>
+                        <Input
+                            id="logo-upload-landing"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="mt-2"
+                        />
+                        <p className="mt-2 text-xs text-muted-foreground">
+                            Upload or replace the logo used in the shopper header.
+                        </p>
                     </div>
-                    
-                     <div className="space-y-4">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Logo Scaling</Label>
-                        <div className="p-4 border rounded-lg space-y-4">
-                            <div>
-                                <Label className="text-[10px] font-bold">Width: {settings.logoWidth}px</Label>
-                                <Slider value={[settings.logoWidth]} onValueChange={(v) => setSettings(p => ({ ...p, logoWidth: v[0] }))} min={50} max={250} step={1} />
+
+                    <Separator />
+
+                    <div className="space-y-4">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            Logo Size
+                        </Label>
+
+                        <div className="space-y-5 rounded-lg border p-4">
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-[10px] font-bold">
+                                        Width
+                                    </Label>
+                                    <span className="text-xs text-muted-foreground">
+                                        {settings.logoWidth}px
+                                    </span>
+                                </div>
+                                <Slider
+                                    value={[settings.logoWidth]}
+                                    onValueChange={(v) =>
+                                        setSettings(p => ({
+                                            ...p,
+                                            logoWidth: v[0],
+                                        }))
+                                    }
+                                    min={40}
+                                    max={220}
+                                    step={1}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-[10px] font-bold">
+                                        Maximum Height
+                                    </Label>
+                                    <span className="text-xs text-muted-foreground">
+                                        {settings.logoMaxHeight}px
+                                    </span>
+                                </div>
+                                <Slider
+                                    value={[settings.logoMaxHeight]}
+                                    onValueChange={(v) =>
+                                        setSettings(p => ({
+                                            ...p,
+                                            logoMaxHeight: v[0],
+                                        }))
+                                    }
+                                    min={16}
+                                    max={48}
+                                    step={1}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-[10px] font-bold">
+                                        Surrounding Padding
+                                    </Label>
+                                    <span className="text-xs text-muted-foreground">
+                                        {settings.logoPadding}px
+                                    </span>
+                                </div>
+                                <Slider
+                                    value={[settings.logoPadding]}
+                                    onValueChange={(v) =>
+                                        setSettings(p => ({
+                                            ...p,
+                                            logoPadding: v[0],
+                                        }))
+                                    }
+                                    min={0}
+                                    max={12}
+                                    step={1}
+                                />
                             </div>
                         </div>
                     </div>
-                     <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Logo Alignment</Label>
-                        <RadioGroup value={settings.logoAlign} onValueChange={(v) => setSettings(p => ({ ...p, logoAlign: v }))} className="flex gap-4">
-                             <RadioGroupItem value="flex-start" id="align-start" className="sr-only" />
-                             <Label htmlFor="align-start" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
+
+                    <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            Logo Alignment
+                        </Label>
+
+                        <RadioGroup
+                            value={settings.logoAlign}
+                            onValueChange={(v) =>
+                                setSettings(p => ({ ...p, logoAlign: v }))
+                            }
+                            className="flex gap-4"
+                        >
+                            <RadioGroupItem
+                                value="flex-start"
+                                id="align-start"
+                                className="sr-only"
+                            />
+                            <Label
+                                htmlFor="align-start"
+                                className="flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-md border p-3 has-[:checked]:bg-primary has-[:checked]:text-primary-foreground"
+                            >
                                 <AlignHorizontalJustifyStart className="h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase">Left</span>
+                                <span className="text-[10px] font-black uppercase">
+                                    Left
+                                </span>
                             </Label>
-                             <RadioGroupItem value="center" id="align-center" className="sr-only" />
-                             <Label htmlFor="align-center" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
+
+                            <RadioGroupItem
+                                value="center"
+                                id="align-center"
+                                className="sr-only"
+                            />
+                            <Label
+                                htmlFor="align-center"
+                                className="flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-md border p-3 has-[:checked]:bg-primary has-[:checked]:text-primary-foreground"
+                            >
                                 <AlignHorizontalJustifyCenter className="h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase">Center</span>
+                                <span className="text-[10px] font-black uppercase">
+                                    Centre
+                                </span>
                             </Label>
-                             <RadioGroupItem value="flex-end" id="align-end" className="sr-only" />
-                             <Label htmlFor="align-end" className="flex flex-col items-center gap-2 p-3 border rounded-md has-[:checked]:bg-primary has-[:checked]:text-primary-foreground cursor-pointer">
+
+                            <RadioGroupItem
+                                value="flex-end"
+                                id="align-end"
+                                className="sr-only"
+                            />
+                            <Label
+                                htmlFor="align-end"
+                                className="flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-md border p-3 has-[:checked]:bg-primary has-[:checked]:text-primary-foreground"
+                            >
                                 <AlignHorizontalJustifyEnd className="h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase">Right</span>
+                                <span className="text-[10px] font-black uppercase">
+                                    Right
+                                </span>
                             </Label>
                         </RadioGroup>
                     </div>
+
+                    <div className="space-y-2">
+                        <Label
+                            htmlFor="header-background"
+                            className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+                        >
+                            Header Background
+                        </Label>
+
+                        <div className="flex items-center gap-3">
+                            <Input
+                                id="header-background"
+                                type="color"
+                                value={settings.headerBackgroundColor}
+                                onChange={(e) =>
+                                    setSettings(p => ({
+                                        ...p,
+                                        headerBackgroundColor: e.target.value,
+                                    }))
+                                }
+                                className="h-10 w-16 cursor-pointer p-1"
+                            />
+
+                            <Input
+                                value={settings.headerBackgroundColor}
+                                onChange={(e) =>
+                                    setSettings(p => ({
+                                        ...p,
+                                        headerBackgroundColor: e.target.value,
+                                    }))
+                                }
+                                maxLength={7}
+                                className="font-mono"
+                                aria-label="Header background hex colour"
+                            />
+                        </div>
+
+                        <p className="text-xs text-muted-foreground">
+                            Choose a header colour that provides clear contrast with your logo.
+                        </p>
+                    </div>
                 </CardContent>
-                <CardFooter>
-                    <Button onClick={handleSaveSettings} disabled={isSaving} className="font-bold uppercase text-[10px] tracking-widest h-10 px-8">
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />} 
+
+                <CardFooter className="flex flex-wrap gap-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                            setSettings(p => ({
+                                ...p,
+                                logoWidth: 128,
+                                logoMaxHeight: 32,
+                                logoAlign: 'center',
+                                logoPadding: 0,
+                                headerBackgroundColor: '#07162f',
+                            }))
+                        }
+                    >
+                        Reset Branding
+                    </Button>
+
+                    <Button
+                        onClick={handleSaveSettings}
+                        disabled={isSaving}
+                        className="h-10 px-8 text-[10px] font-bold uppercase tracking-widest"
+                    >
+                        {isSaving ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                        ) : (
+                            <Save className="mr-2 h-4 w-4"/>
+                        )}
                         Apply Branding
                     </Button>
                 </CardFooter>

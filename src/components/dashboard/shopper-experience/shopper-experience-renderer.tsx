@@ -4,6 +4,7 @@ import { AriSignature } from "./templates/ari-signature";
 import { ProductSpotlight } from "./templates/product-spotlight";
 import { ConversationFirst } from "./templates/conversation-first";
 import { CompareAndDecide } from "./templates/compare-and-decide";
+import { VisualDiscovery } from "./templates/visual-discovery";
 import type {
     ShopperExperienceProps,
     ShopperTemplateId,
@@ -46,6 +47,8 @@ export function ShopperExperienceRenderer({
             return <CompareAndDecide {...experienceProps} />;
 
         case "template5":
+            return <VisualDiscovery {...experienceProps} />;
+
         case "template6":
         case "template7":
         case "template8":

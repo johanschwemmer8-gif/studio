@@ -2,6 +2,7 @@
 
 import { AriSignature } from "./templates/ari-signature";
 import { ProductSpotlight } from "./templates/product-spotlight";
+import { ConversationFirst } from "./templates/conversation-first";
 import type {
     ShopperExperienceProps,
     ShopperTemplateId,
@@ -21,8 +22,8 @@ export type ShopperExperienceRendererProps = ShopperExperienceProps & {
  *   are not determined here.
  * - Preview must not fabricate authoritative runtime identity.
  *
- * Templates 1-2 have dedicated presentation compositions.
- * Templates 3-9 deliberately fall back to Ari Signature until their
+ * Templates 1-3 have dedicated presentation compositions.
+ * Templates 4-9 deliberately fall back to Ari Signature until their
  * presentation compositions are implemented on top of the shared
  * shopper capability architecture.
  */
@@ -38,6 +39,8 @@ export function ShopperExperienceRenderer({
             return <ProductSpotlight {...experienceProps} />;
 
         case "template3":
+            return <ConversationFirst {...experienceProps} />;
+
         case "template4":
         case "template5":
         case "template6":

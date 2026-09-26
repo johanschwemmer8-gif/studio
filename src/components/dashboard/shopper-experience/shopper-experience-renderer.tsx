@@ -6,6 +6,7 @@ import { ConversationFirst } from "./templates/conversation-first";
 import { CompareAndDecide } from "./templates/compare-and-decide";
 import { VisualDiscovery } from "./templates/visual-discovery";
 import { ExpertAdvisor } from "./templates/expert-advisor";
+import { QuickAssist } from "./templates/quick-assist";
 import type {
     ShopperExperienceProps,
     ShopperTemplateId,
@@ -54,6 +55,8 @@ export function ShopperExperienceRenderer({
             return <ExpertAdvisor {...experienceProps} />;
 
         case "template7":
+            return <QuickAssist {...experienceProps} />;
+
         case "template8":
         case "template9":
             return <AriSignature {...experienceProps} />;

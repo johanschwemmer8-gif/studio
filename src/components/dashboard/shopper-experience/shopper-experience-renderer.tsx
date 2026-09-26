@@ -3,6 +3,7 @@
 import { AriSignature } from "./templates/ari-signature";
 import { ProductSpotlight } from "./templates/product-spotlight";
 import { ConversationFirst } from "./templates/conversation-first";
+import { CompareAndDecide } from "./templates/compare-and-decide";
 import type {
     ShopperExperienceProps,
     ShopperTemplateId,
@@ -42,6 +43,8 @@ export function ShopperExperienceRenderer({
             return <ConversationFirst {...experienceProps} />;
 
         case "template4":
+            return <CompareAndDecide {...experienceProps} />;
+
         case "template5":
         case "template6":
         case "template7":

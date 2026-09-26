@@ -20,7 +20,9 @@ import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizon
 import PhoneMockup from '@/components/dashboard/phone-mockup';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { Template1, Template2, Template3, Template4, Template5, Template6, Template7, Template8, Template9 } from '@/components/dashboard/ui-templates';
+import { ShopperExperienceRenderer } from '@/components/dashboard/shopper-experience/shopper-experience-renderer';
+import { SHOPPER_TEMPLATE_REGISTRY } from '@/components/dashboard/shopper-experience/template-registry';
+import type { ShopperTemplateId } from '@/components/dashboard/shopper-experience/types';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
 import { getApp } from 'firebase/app';
@@ -29,32 +31,41 @@ import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
 import { HubNav } from '@/components/dashboard/hub-nav';
 
 function MobileLandingPagePreview({ settings }: { settings: any }) {
-    const { logoUrl, logoWidth, logoAlign, logoPadding, selectedTemplate } = settings;
+    const {
+        logoUrl,
+        logoWidth,
+        logoAlign,
+        logoPadding,
+        selectedTemplate,
+    } = settings;
 
-    const renderTemplate = () => {
-        const props = { 
-            logoPreview: logoUrl, 
-            logoWidth: logoWidth || 128, 
-            logoAlign: logoAlign || 'flex-start', 
-            logoPadding: logoPadding || 0 
-        };
-        switch(selectedTemplate) {
-            case 'template1': return <Template1 {...props} />;
-            case 'template2': return <Template2 {...props} />;
-            case 'template3': return <Template3 {...props} />;
-            case 'template4': return <Template4 {...props} />;
-            case 'template5': return <Template5 {...props} />;
-            case 'template6': return <Template6 {...props} />;
-            case 'template7': return <Template7 {...props} />;
-            case 'template8': return <Template8 {...props} />;
-            case 'template9': return <Template9 {...props} />;
-            default: return <Template1 {...props} />;
-        }
-    }
+    const templateId: ShopperTemplateId =
+        SHOPPER_TEMPLATE_REGISTRY.some(
+            (template) => template.id === selectedTemplate
+        )
+            ? (selectedTemplate as ShopperTemplateId)
+            : "template1";
 
     return (
-        <div className="bg-background text-foreground h-full w-full overflow-y-auto">
-           {renderTemplate()}
+        <div className="h-full w-full overflow-hidden bg-background text-foreground">
+            <ShopperExperienceRenderer
+                templateId={templateId}
+                mode="preview"
+                branding={{
+                    logoUrl:
+                        typeof logoUrl === "string" && logoUrl
+                            ? logoUrl
+                            : undefined,
+                    logoWidth: Number(logoWidth) || 128,
+                    logoAlign:
+                        logoAlign === "flex-start" ||
+                        logoAlign === "center" ||
+                        logoAlign === "flex-end"
+                            ? logoAlign
+                            : "center",
+                    logoPadding: Number(logoPadding) || 0,
+                }}
+            />
         </div>
     );
 }
@@ -189,17 +200,7 @@ export default function UiManagementPage() {
       );
   }
 
-  const templates = [
-      { id: 'template1', name: 'Minimalist', component: Template1 },
-      { id: 'template2', name: 'Image Focus', component: Template2 },
-      { id: 'template3', name: 'Dark Mode', component: Template3 },
-      { id: 'template4', name: 'Card-Based', component: Template4 },
-      { id: 'template5', name: 'Vibrant', component: Template5 },
-      { id: 'template6', name: 'Corporate', component: Template6 },
-      { id: 'template7', name: 'Big Image', component: Template7 },
-      { id: 'template8', name: 'Text Focus', component: Template8 },
-      { id: 'template9', name: 'Action', component: Template9 },
-  ];
+  const templates = SHOPPER_TEMPLATE_REGISTRY;
 
   return (
     <div className="space-y-8">
@@ -229,7 +230,18 @@ export default function UiManagementPage() {
                                 "w-full aspect-[9/19.5] rounded-md border-2 p-2 bg-muted/50 transition-all",
                                 settings.selectedTemplate === template.id ? "border-primary ring-2 ring-primary ring-offset-2" : "border-transparent hover:border-muted-foreground"
                             )}>
-                                <template.component logoPreview={settings.logoUrl} logoWidth={settings.logoWidth} logoAlign={settings.logoAlign} logoPadding={settings.logoPadding} isThumbnail={true} />
+                                <div className="pointer-events-none h-full w-full overflow-hidden">
+                                    <ShopperExperienceRenderer
+                                        templateId={template.id}
+                                        mode="preview"
+                                        branding={{
+                                            logoUrl: settings.logoUrl || undefined,
+                                            logoWidth: settings.logoWidth,
+                                            logoAlign: settings.logoAlign === "flex-start" || settings.logoAlign === "flex-end" ? settings.logoAlign : "center",
+                                            logoPadding: settings.logoPadding,
+                                        }}
+                                    />
+                                </div>
                             </div>
                             <p className="text-center text-[10px] font-black uppercase mt-2">{template.name}</p>
                         </div>

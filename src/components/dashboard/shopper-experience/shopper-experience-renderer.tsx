@@ -8,6 +8,7 @@ import { VisualDiscovery } from "./templates/visual-discovery";
 import { ExpertAdvisor } from "./templates/expert-advisor";
 import { QuickAssist } from "./templates/quick-assist";
 import { BrandImmersive } from "./templates/brand-immersive";
+import { RetailMediaPremium } from "./templates/retail-media-premium";
 import type {
     ShopperExperienceProps,
     ShopperTemplateId,
@@ -27,10 +28,9 @@ export type ShopperExperienceRendererProps = ShopperExperienceProps & {
  *   are not determined here.
  * - Preview must not fabricate authoritative runtime identity.
  *
- * Templates 1-3 have dedicated presentation compositions.
- * Templates 4-9 deliberately fall back to Ari Signature until their
- * presentation compositions are implemented on top of the shared
- * shopper capability architecture.
+ * Templates 1-9 have dedicated presentation compositions.
+ * All compositions operate on top of the shared shopper capability
+ * architecture and do not redefine authoritative runtime domains.
  */
 export function ShopperExperienceRenderer({
     templateId,
@@ -62,7 +62,7 @@ export function ShopperExperienceRenderer({
             return <BrandImmersive {...experienceProps} />;
 
         case "template9":
-            return <AriSignature {...experienceProps} />;
+            return <RetailMediaPremium {...experienceProps} />;
 
         default: {
             const exhaustiveCheck: never = templateId;

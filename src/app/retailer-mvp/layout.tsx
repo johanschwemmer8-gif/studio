@@ -12,31 +12,57 @@ import Link from 'next/link';
 import { FlaskConical, ShieldCheck, Loader2 } from 'lucide-react';
 import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
-import { ThemeProvider, useTheme } from '@/context/theme-context';
+import { ThemeProvider } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
 
 function SidebarLogo() {
-    const { logoUrl, logoWidth } = useTheme();
+    const { user } = useAuth();
+    const [retailerLogoUrl, setRetailerLogoUrl] = useState('');
+
+    useEffect(() => {
+        if (!user?.retailerId || !db) {
+            setRetailerLogoUrl('');
+            return;
+        }
+
+        const docRef = doc(db, 'configurations', `${user.retailerId}_org`);
+
+        return onSnapshot(docRef, (docSnap) => {
+            const logoUrl = docSnap.exists()
+                ? docSnap.data()?.data?.retailerLogoUrl
+                : '';
+
+            setRetailerLogoUrl(
+                typeof logoUrl === 'string' ? logoUrl : ''
+            );
+        });
+    }, [user?.retailerId]);
 
     return (
-         <Link href="/retailer-mvp/dashboard" className="flex items-center justify-center gap-2 px-2 h-12">
-            {logoUrl ? (
-                <Image 
-                    src={logoUrl} 
-                    alt="Retailer Logo" 
-                    width={logoWidth} 
-                    height={logoWidth / (128/50)} // Maintain aspect ratio
-                    className="h-auto"
-                    style={{ width: `${logoWidth}px` }}
+        <Link
+            href="/retailer-mvp/dashboard"
+            className="flex h-12 items-center justify-center gap-2 px-2"
+        >
+            {retailerLogoUrl ? (
+                <Image
+                    src={retailerLogoUrl}
+                    alt="Retailer Logo"
+                    width={160}
+                    height={50}
+                    className="max-h-10 w-auto max-w-[160px] object-contain"
                 />
             ) : (
-                 <div className="w-32 h-12 bg-muted rounded-md flex items-center justify-center">
-                    <span className="text-sm text-muted-foreground font-bold">iNteract</span>
+                <div className="flex h-12 w-32 items-center justify-center rounded-md bg-muted">
+                    <span className="text-sm font-bold text-muted-foreground">
+                        iNteract
+                    </span>
                 </div>
             )}
         </Link>

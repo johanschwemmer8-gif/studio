@@ -28,6 +28,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getApp } from 'firebase/app';
 import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 const storeSchema = z.object({
@@ -75,6 +77,8 @@ const brandSchema = z.object({
 });
 
 const organizationSchema = z.object({
+  retailerName: z.string().default(''),
+  retailerLogoUrl: z.string().default(''),
   brands: z.array(brandSchema),
 });
 
@@ -82,6 +86,8 @@ export type OrganizationValues = z.infer<typeof organizationSchema>;
 
 function ensureOrganizationIds(data: any): OrganizationValues {
   return {
+    retailerName: typeof data?.retailerName === 'string' ? data.retailerName : '',
+    retailerLogoUrl: typeof data?.retailerLogoUrl === 'string' ? data.retailerLogoUrl : '',
     brands: Array.isArray(data?.brands)
       ? data.brands.map((brand: any) => ({
           ...brand,
@@ -120,10 +126,13 @@ export function OrganizationManager() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
 
   const form = useForm<OrganizationValues>({
     resolver: zodResolver(organizationSchema),
     defaultValues: {
+      retailerName: '',
+      retailerLogoUrl: '',
       brands: [],
     },
   });
@@ -158,6 +167,26 @@ export function OrganizationManager() {
 
     return () => unsubscribe();
   }, [user?.retailerId, form]);
+
+
+  const handleRetailerLogoUpload = async (file: File) => {
+    if (!user?.retailerId) return;
+
+    setIsLogoUploading(true);
+    try {
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const storage = getStorage(getApp());
+      const logoRef = ref(storage, `retailer-assets/${user.retailerId}/organization/retailer-logo-${Date.now()}.${extension}`);
+      await uploadBytes(logoRef, file);
+      const downloadUrl = await getDownloadURL(logoRef);
+      form.setValue('retailerLogoUrl', downloadUrl, { shouldDirty: true, shouldValidate: true });
+      toast({ title: 'Logo Uploaded', description: 'Save the Retail Network to apply this logo to the Retailer MVP.' });
+    } catch (e: any) {
+      toast({ title: 'Logo Upload Failed', description: e.message || 'Firebase Storage upload failed.', variant: 'destructive' });
+    } finally {
+      setIsLogoUploading(false);
+    }
+  };
 
   const onSubmit = async (data: OrganizationValues) => {
     if (!user?.retailerId || !db) {
@@ -204,6 +233,62 @@ export function OrganizationManager() {
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-20">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            Retailer Identity
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Configure the identity used inside your authenticated Retailer MVP workspace. This is separate from shopper-facing Brand & Experience branding.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Retailer / Organisation Name</label>
+            <Input
+              {...form.register('retailerName')}
+              placeholder="e.g. Woolworths"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Retailer MVP Logo</label>
+            <p className="text-xs text-muted-foreground">
+              This logo identifies your retailer inside the Retailer MVP. It does not change the shopper experience logo.
+            </p>
+
+            {form.watch('retailerLogoUrl') && (
+              <div className="flex min-h-20 items-center rounded-md border bg-muted/30 p-4">
+                <img
+                  src={form.watch('retailerLogoUrl')}
+                  alt="Retailer workspace logo"
+                  className="max-h-14 max-w-[220px] object-contain"
+                />
+              </div>
+            )}
+
+            <Input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={isLogoUploading}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void handleRetailerLogoUpload(file);
+                event.target.value = '';
+              }}
+            />
+
+            {isLogoUploading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Uploading retailer logo...
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold flex items-center gap-2">
             <Building2 className="text-primary" /> Setup My Network

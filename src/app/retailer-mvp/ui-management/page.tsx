@@ -82,18 +82,9 @@ export default function UiManagementPage() {
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
 
-      console.log("[LOGO DEBUG] handleLogoUpload called");
-      console.log("[LOGO DEBUG] file:", file?.name, file?.type, file?.size);
-      console.log("[LOGO DEBUG] retailerId:", user?.retailerId);
       const firebaseStorage = getStorage(getApp());
-      console.log("[LOGO DEBUG] storage initialized:", !!firebaseStorage);
 
       if (!file || !user?.retailerId) {
-          console.error("[LOGO DEBUG] Upload aborted by guard", {
-              hasFile: !!file,
-              retailerId: user?.retailerId,
-              hasStorage: !!firebaseStorage
-          });
           return;
       }
 
@@ -141,16 +132,17 @@ export default function UiManagementPage() {
       try {
           const docRef = doc(db, 'configurations', `${user.retailerId}_brand`);
 
+          const clamp = (value: unknown, min: number, max: number, fallback: number) => Math.min(Math.max(Number(value) || fallback, min), max);
+          const logoAlign = settings.logoAlign === 'flex-start' || settings.logoAlign === 'flex-end' ? settings.logoAlign : 'center';
+          const headerBackgroundColor = /^#[0-9A-Fa-f]{6}$/.test(settings.headerBackgroundColor ?? '') ? settings.headerBackgroundColor : '#07162f';
+
           const brandSettings = {
               logoUrl: typeof settings.logoUrl === 'string' ? settings.logoUrl : '',
-              logoWidth: Number(settings.logoWidth) || 128,
-              logoMaxHeight: Number(settings.logoMaxHeight) || 32,
-              logoAlign: settings.logoAlign || 'center',
-              logoPadding: Number(settings.logoPadding) || 0,
-              headerBackgroundColor:
-                  typeof settings.headerBackgroundColor === 'string'
-                      ? settings.headerBackgroundColor
-                      : '#07162f',
+              logoWidth: clamp(settings.logoWidth, 40, 220, 128),
+              logoMaxHeight: clamp(settings.logoMaxHeight, 16, 48, 32),
+              logoAlign,
+              logoPadding: clamp(settings.logoPadding, 0, 12, 0),
+              headerBackgroundColor,
               selectedTemplate: settings.selectedTemplate || 'template1',
               landingPageUrl: typeof settings.landingPageUrl === 'string' ? settings.landingPageUrl : '',
               scanDestination: settings.scanDestination === 'url' ? 'url' : 'ai',
@@ -297,7 +289,7 @@ export default function UiManagementPage() {
                             className="mt-2"
                         />
                         <p className="mt-2 text-xs text-muted-foreground">
-                            Upload or replace the logo used in the shopper header.
+                            Upload or replace the logo used in the shopper header. For best results, use a PNG with a transparent background.
                         </p>
                     </div>
 

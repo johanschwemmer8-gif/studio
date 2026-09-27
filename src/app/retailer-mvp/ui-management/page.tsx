@@ -17,7 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, Save, Palette, LayoutTemplate, Loader2 } from 'lucide-react';
-import PhoneMockup from '@/components/dashboard/phone-mockup';
 import { ShopperPhoneFrame } from '@/components/dashboard/shopper-experience/shopper-phone-frame';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -30,53 +29,6 @@ import { getApp } from 'firebase/app';
 import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, getStorage } from 'firebase/storage';
 import { HubNav } from '@/components/dashboard/hub-nav';
-
-function MobileLandingPagePreview({ settings }: { settings: any }) {
-    const {
-        logoUrl,
-        logoWidth,
-        logoAlign,
-        logoPadding,
-        selectedTemplate,
-    } = settings;
-
-    const templateId: ShopperTemplateId =
-        SHOPPER_TEMPLATE_REGISTRY.some(
-            (template) => template.id === selectedTemplate
-        )
-            ? (selectedTemplate as ShopperTemplateId)
-            : "template1";
-
-    return (
-        <div className="h-full w-full overflow-hidden bg-background text-foreground">
-            <ShopperExperienceRenderer
-                templateId={templateId}
-                mode="preview"
-                ariImageUrl="/brand/ari/ari-master.png"
-                branding={{
-                    logoUrl:
-                        typeof logoUrl === "string" && logoUrl
-                            ? logoUrl
-                            : undefined,
-                    logoWidth: Number(logoWidth) || 128,
-                    logoMaxHeight: Number(settings.logoMaxHeight) || 32,
-                    logoAlign:
-                        logoAlign === "flex-start" ||
-                        logoAlign === "center" ||
-                        logoAlign === "flex-end"
-                            ? logoAlign
-                            : "center",
-                    logoPadding: Number(logoPadding) || 0,
-                    headerBackgroundColor:
-                        typeof settings.headerBackgroundColor === "string"
-                            ? settings.headerBackgroundColor
-                            : "#07162f",
-                }}
-            />
-        </div>
-    );
-}
-
 
 export default function UiManagementPage() {
   const { user } = useAuth();
@@ -241,8 +193,8 @@ export default function UiManagementPage() {
        <HubNav items={brandHubItems} />
        <Separator />
        
-      <div className="grid lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-2 space-y-6">
+      <div>
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -254,7 +206,7 @@ export default function UiManagementPage() {
                     </p>
                 </CardHeader>
 
-                <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                <CardContent className="grid grid-cols-1 gap-10">
                     {templates.map(template => {
                         const isSelected = settings.selectedTemplate === template.id;
 
@@ -563,20 +515,6 @@ export default function UiManagementPage() {
             </Card>
         </div>
 
-        <div className="lg:col-span-1">
-            <Card className="sticky top-6">
-                <CardHeader>
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <LayoutTemplate className="h-4 w-4" /> Shopper Preview
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex justify-center">
-                    <PhoneMockup>
-                       <MobileLandingPagePreview settings={settings} />
-                    </PhoneMockup>
-                </CardContent>
-            </Card>
-        </div>
       </div>
     </div>
   );

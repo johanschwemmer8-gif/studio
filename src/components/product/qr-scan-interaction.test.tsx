@@ -29,6 +29,7 @@ jest.mock('@/components/dashboard/shopper-experience/shopper-experience-renderer
       data-session-id={props.sessionId ?? ''}
       data-logo-url={props.branding?.logoUrl ?? ''}
       data-header-background={props.branding?.headerBackgroundColor ?? ''}
+      data-ari-image-url={props.ariImageUrl ?? ''}
     >
       <button
         type="button"
@@ -178,6 +179,10 @@ describe('QrScanInteraction canonical live shopper experience', () => {
     expect(renderer).toHaveAttribute(
       'data-header-background',
       '#07162f'
+    );
+    expect(renderer).toHaveAttribute(
+      'data-ari-image-url',
+      '/brand/ari/ari-master.png'
     );
     expect(renderer).toHaveAttribute('data-session-id', '');
 

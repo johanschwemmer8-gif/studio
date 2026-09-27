@@ -72,6 +72,17 @@ const canonicalResult = {
   retailerName: 'Retailer A',
   destinationUrl: 'https://interactaoe.co.za',
   messages: [],
+  shopperPresentation: {
+    selectedTemplate: 'template1' as const,
+    branding: {
+      logoUrl: '',
+      logoWidth: 128,
+      logoMaxHeight: 32,
+      logoAlign: 'center' as const,
+      logoPadding: 0,
+      headerBackgroundColor: '#07162f',
+    },
+  },
   sponsoredMedia: {
     format: 'BRAND_STRIP' as const,
     sponsorName: 'Nike',

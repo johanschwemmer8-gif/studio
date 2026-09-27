@@ -90,6 +90,82 @@ function resolveDestination(
 }
 
 
+const DEFAULT_SHOPPER_PRESENTATION: GetScanInteractionOutput['shopperPresentation'] = {
+  selectedTemplate: 'template1',
+  branding: {
+    logoUrl: '',
+    logoWidth: 128,
+    logoMaxHeight: 32,
+    logoAlign: 'center',
+    logoPadding: 0,
+    headerBackgroundColor: '#07162f',
+  },
+};
+
+function normalizeShopperPresentation(
+  value: unknown
+): GetScanInteractionOutput['shopperPresentation'] {
+  const data =
+    value && typeof value === 'object'
+      ? value as Record<string, unknown>
+      : {};
+
+  const templates = new Set([
+    'template1', 'template2', 'template3',
+    'template4', 'template5', 'template6',
+    'template7', 'template8', 'template9',
+  ]);
+
+  const clamp = (
+    value: unknown,
+    min: number,
+    max: number,
+    fallback: number
+  ) => {
+    const number = Number(value);
+    return Number.isFinite(number)
+      ? Math.min(Math.max(number, min), max)
+      : fallback;
+  };
+
+  const logoAlign =
+    data.logoAlign === 'flex-start' ||
+    data.logoAlign === 'flex-end' ||
+    data.logoAlign === 'center'
+      ? data.logoAlign
+      : 'center';
+
+  const headerBackgroundColor =
+    typeof data.headerBackgroundColor === 'string' &&
+    /^#[0-9A-Fa-f]{6}$/.test(data.headerBackgroundColor)
+      ? data.headerBackgroundColor
+      : '#07162f';
+
+  return {
+    selectedTemplate:
+      typeof data.selectedTemplate === 'string' &&
+      templates.has(data.selectedTemplate)
+        ? data.selectedTemplate as GetScanInteractionOutput['shopperPresentation']['selectedTemplate']
+        : 'template1',
+    branding: {
+      logoUrl: (() => {
+        if (typeof data.logoUrl !== 'string' || data.logoUrl === '') return '';
+        try {
+          new URL(data.logoUrl);
+          return data.logoUrl;
+        } catch {
+          return '';
+        }
+      })(),
+      logoWidth: clamp(data.logoWidth, 40, 220, 128),
+      logoMaxHeight: clamp(data.logoMaxHeight, 16, 48, 32),
+      logoAlign,
+      logoPadding: clamp(data.logoPadding, 0, 12, 0),
+      headerBackgroundColor,
+    },
+  };
+}
+
 function resolveUnambiguousExposureGtin(
   activation: Awaited<ReturnType<typeof resolveProductionQr>>['activation']
 ): string | undefined {
@@ -120,6 +196,7 @@ export async function getScanInteraction(
       "I'm synchronizing your shopping guidance now.",
     ],
     destinationUrl: 'https://interactaoe.co.za',
+    shopperPresentation: DEFAULT_SHOPPER_PRESENTATION,
   };
 
   try {
@@ -148,10 +225,30 @@ const getScanInteractionFlow = ai.defineFlow(
           "I'm currently operating in simulation mode while we synchronize with the store network.",
         ],
         destinationUrl: 'https://interactaoe.co.za',
+        shopperPresentation: DEFAULT_SHOPPER_PRESENTATION,
       };
     }
 
     const { qr, activation, campaign } = await resolveProductionQr(qrId);
+
+    let shopperPresentation = DEFAULT_SHOPPER_PRESENTATION;
+
+    try {
+      const brandDoc = await db
+        .collection('configurations')
+        .doc(`${qr.retailerId}_brand`)
+        .get();
+
+      if (brandDoc.exists) {
+        shopperPresentation = normalizeShopperPresentation(
+          brandDoc.data()?.data
+        );
+      }
+    } catch {
+      console.warn(
+        '[Shopper Presentation] Retailer branding unavailable; defaults active.'
+      );
+    }
 
     const exposureId = `exp_${randomUUID()}`;
     const exposureGtin = resolveUnambiguousExposureGtin(activation);
@@ -276,6 +373,7 @@ const getScanInteractionFlow = ai.defineFlow(
           ],
         destinationUrl: resolveDestination(experienceConfig),
         retailerLogoUrl,
+        shopperPresentation,
         mediaType: resolveMediaType(experienceConfig.mediaType),
         mediaUrl: experienceConfig.mediaUrl,
         headline: experienceConfig.headline,
@@ -290,6 +388,7 @@ const getScanInteractionFlow = ai.defineFlow(
         ],
         destinationUrl: resolveDestination(experienceConfig),
         retailerLogoUrl,
+        shopperPresentation,
         mediaType: resolveMediaType(experienceConfig.mediaType),
         mediaUrl: experienceConfig.mediaUrl,
         headline: experienceConfig.headline,

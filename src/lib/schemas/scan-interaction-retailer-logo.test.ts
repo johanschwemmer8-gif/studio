@@ -4,6 +4,17 @@ describe('GetScanInteractionOutputSchema retailer logo', () => {
   const baseResponse = {
     messages: ['Hello! Ari here.'],
     destinationUrl: 'https://interactaoe.co.za',
+    shopperPresentation: {
+      selectedTemplate: 'template1',
+      branding: {
+        logoUrl: '',
+        logoWidth: 128,
+        logoMaxHeight: 32,
+        logoAlign: 'center',
+        logoPadding: 0,
+        headerBackgroundColor: '#07162f',
+      },
+    },
   };
 
   it('accepts an absent retailer logo', () => {

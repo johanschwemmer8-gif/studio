@@ -19,6 +19,7 @@ export function ProductSpotlight({
     ariImageUrl,
     sessionId,
     initialMediaMode = "none",
+    onSubmitConversationMessage,
 }: ShopperExperienceProps) {
     const standardExperience = ({
         openConversation,
@@ -236,6 +237,7 @@ export function ProductSpotlight({
                 />
             )}
             initialMediaMode={initialMediaMode}
+            onSubmitConversationMessage={onSubmitConversationMessage}
         />
     );
 }

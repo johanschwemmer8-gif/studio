@@ -19,6 +19,7 @@ export function VisualDiscovery({
     ariImageUrl,
     sessionId,
     initialMediaMode = "none",
+    onSubmitConversationMessage,
 }: ShopperExperienceProps) {
     const standardExperience = ({
         openConversation,
@@ -262,6 +263,7 @@ export function VisualDiscovery({
                 />
             )}
             initialMediaMode={initialMediaMode}
+            onSubmitConversationMessage={onSubmitConversationMessage}
         />
     );
 }

@@ -19,6 +19,7 @@ export function ExpertAdvisor({
     ariImageUrl,
     sessionId,
     initialMediaMode = "none",
+    onSubmitConversationMessage,
 }: ShopperExperienceProps) {
     const standardExperience = ({
         openConversation,
@@ -241,6 +242,7 @@ export function ExpertAdvisor({
                 />
             )}
             initialMediaMode={initialMediaMode}
+            onSubmitConversationMessage={onSubmitConversationMessage}
         />
     );
 }

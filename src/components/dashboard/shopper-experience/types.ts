@@ -2,6 +2,11 @@ import type { PaidMediaMode } from "./presentation-state";
 
 export type ShopperExperienceMode = 'preview' | 'live';
 
+export type ShopperConversationMessage = {
+    role: 'user' | 'model';
+    content: string;
+};
+
 export type ShopperExperienceProduct = {
     name: string;
     descriptor?: string;
@@ -55,6 +60,17 @@ export type ShopperExperienceProps = {
      * QR / Activation / Retail Media eligibility.
      */
     initialMediaMode?: PaidMediaMode;
+
+    /**
+     * Live Ari conversation adapter.
+     *
+     * Preview may omit this callback and remain presentation-only.
+     * Live runtime supplies it from the authoritative QR shopper boundary.
+     */
+    onSubmitConversationMessage?: (
+        message: string,
+        history: ShopperConversationMessage[],
+    ) => Promise<string>;
 };
 
 export type ShopperTemplateId =

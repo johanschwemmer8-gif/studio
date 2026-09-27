@@ -4,6 +4,7 @@ import QrScanInteraction from './qr-scan-interaction';
 import {
   beginQrShopperSession,
   getScanInteraction,
+  productChat,
 } from '@/ai/flows';
 import { recordSponsoredMediaEvent } from '@/lib/sponsored-media-event-server';
 
@@ -15,6 +16,33 @@ jest.mock('@/ai/flows', () => ({
 
 jest.mock('@/lib/sponsored-media-event-server', () => ({
   recordSponsoredMediaEvent: jest.fn(),
+}));
+
+jest.mock('@/components/dashboard/shopper-experience/shopper-experience-renderer', () => ({
+  ShopperExperienceRenderer: (props: any) => (
+    <div
+      data-testid="canonical-shopper-renderer"
+      data-template-id={props.templateId}
+      data-mode={props.mode}
+      data-retailer-id={props.retailerId ?? ''}
+      data-activation-id={props.activationId ?? ''}
+      data-session-id={props.sessionId ?? ''}
+      data-logo-url={props.branding?.logoUrl ?? ''}
+      data-header-background={props.branding?.headerBackgroundColor ?? ''}
+    >
+      <button
+        type="button"
+        onClick={() =>
+          props.onSubmitConversationMessage?.(
+            'Which option suits my needs?',
+            []
+          )
+        }
+      >
+        Test canonical conversation
+      </button>
+    </div>
+  ),
 }));
 
 jest.mock('@/context/auth-context', () => ({
@@ -33,6 +61,9 @@ const mockGetScanInteraction =
 
 const mockBeginQrShopperSession =
   beginQrShopperSession as jest.MockedFunction<typeof beginQrShopperSession>;
+
+const mockProductChat =
+  productChat as jest.MockedFunction<typeof productChat>;
 
 const mockRecordSponsoredMediaEvent =
   recordSponsoredMediaEvent as jest.MockedFunction<typeof recordSponsoredMediaEvent>;
@@ -69,13 +100,15 @@ Object.defineProperty(global, 'IntersectionObserver', {
 
 const canonicalResult = {
   retailerId: 'retailer-a',
+  activationId: 'activation-a',
+  gtin: '06001234567890',
   retailerName: 'Retailer A',
   destinationUrl: 'https://interactaoe.co.za',
   messages: [],
   shopperPresentation: {
-    selectedTemplate: 'template1' as const,
+    selectedTemplate: 'template8' as const,
     branding: {
-      logoUrl: '',
+      logoUrl: 'https://example.com/retailer-logo.png',
       logoWidth: 128,
       logoMaxHeight: 32,
       logoAlign: 'center' as const,
@@ -118,6 +151,86 @@ function makeIntersectionEntry(
     time: 0,
   };
 }
+
+describe('QrScanInteraction canonical live shopper experience', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    observerCallback = null;
+  });
+
+  it('renders authoritative shopper presentation without creating a session on scan', async () => {
+    mockGetScanInteraction.mockResolvedValue(
+      canonicalResult as Awaited<ReturnType<typeof getScanInteraction>>
+    );
+
+    render(<QrScanInteraction qrId="qr-test" />);
+
+    const renderer = await screen.findByTestId('canonical-shopper-renderer');
+
+    expect(renderer).toHaveAttribute('data-template-id', 'template8');
+    expect(renderer).toHaveAttribute('data-mode', 'live');
+    expect(renderer).toHaveAttribute('data-retailer-id', 'retailer-a');
+    expect(renderer).toHaveAttribute('data-activation-id', 'activation-a');
+    expect(renderer).toHaveAttribute(
+      'data-logo-url',
+      'https://example.com/retailer-logo.png'
+    );
+    expect(renderer).toHaveAttribute(
+      'data-header-background',
+      '#07162f'
+    );
+    expect(renderer).toHaveAttribute('data-session-id', '');
+
+    expect(mockBeginQrShopperSession).not.toHaveBeenCalled();
+    expect(mockProductChat).not.toHaveBeenCalled();
+  });
+  it('creates the Shopper Session only when canonical Ari conversation begins', async () => {
+    mockGetScanInteraction.mockResolvedValue(
+      canonicalResult as Awaited<ReturnType<typeof getScanInteraction>>
+    );
+
+    mockBeginQrShopperSession.mockResolvedValue({
+      sessionId: 'session-a',
+      retailerId: 'retailer-a',
+    } as Awaited<ReturnType<typeof beginQrShopperSession>>);
+
+    mockProductChat.mockResolvedValue({
+      message: 'Here is the supported product guidance.',
+    } as Awaited<ReturnType<typeof productChat>>);
+
+    render(<QrScanInteraction qrId="qr-test" />);
+
+    await screen.findByTestId('canonical-shopper-renderer');
+
+    expect(mockBeginQrShopperSession).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Test canonical conversation',
+      })
+    );
+
+    await waitFor(() => {
+      expect(mockBeginQrShopperSession).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockBeginQrShopperSession).toHaveBeenCalledWith({
+      qrCodeId: 'qr-test',
+    });
+
+    await waitFor(() => {
+      expect(mockProductChat).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockProductChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'session-a',
+        retailerId: 'retailer-a',
+        history: [],
+      })
+    );
+  });
+});
 
 describe('QrScanInteraction sponsored media measurement', () => {
   beforeEach(() => {

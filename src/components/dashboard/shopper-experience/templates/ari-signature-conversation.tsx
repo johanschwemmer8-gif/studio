@@ -7,6 +7,7 @@ import type { ShopperConversationStart } from "../shopper-presentation-controlle
 import { ShopperHeader } from "../shopper-header";
 
 import type {
+    ShopperConversationMessage,
     ShopperExperienceBranding,
     ShopperExperienceProduct,
 } from "../types";
@@ -16,7 +17,7 @@ type AriSignatureConversationProps = {
     product?: ShopperExperienceProduct;
     onMinimize: () => void;
     start: ShopperConversationStart;
-    messages: string[];
+    messages: ShopperConversationMessage[];
     onSubmitMessage: (message: string) => void;
 };
 
@@ -89,18 +90,36 @@ export function AriSignatureConversation({
                         </div>
                     </div>
 
-                    {messages.map((submittedMessage, index) => (
-                        <div
-                            key={`${submittedMessage}-${index}`}
-                            className="flex justify-end"
-                        >
-                            <div className="max-w-[78%] rounded-[18px] rounded-tr-[5px] bg-[#07162f] px-3.5 py-3 text-white">
-                                <p className="text-[10px] font-medium leading-[1.5]">
-                                    {submittedMessage}
-                                </p>
+                    {messages.map((conversationMessage, index) =>
+                        conversationMessage.role === "user" ? (
+                            <div
+                                key={`${conversationMessage.role}-${index}`}
+                                className="flex justify-end"
+                            >
+                                <div className="max-w-[78%] rounded-[18px] rounded-tr-[5px] bg-[#07162f] px-3.5 py-3 text-white">
+                                    <p className="text-[10px] font-medium leading-[1.5]">
+                                        {conversationMessage.content}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ) : (
+                            <div
+                                key={`${conversationMessage.role}-${index}`}
+                                className="flex items-start gap-2"
+                            >
+                                <img
+                                    src="/brand/ari/ari-chat-avatar.png"
+                                    alt=""
+                                    className="h-9 w-9 shrink-0 object-contain"
+                                />
+                                <div className="max-w-[78%] rounded-[18px] rounded-tl-[5px] bg-[#eaf3ff] px-3.5 py-3">
+                                    <p className="text-[10px] font-semibold leading-[1.5] text-slate-700">
+                                        {conversationMessage.content}
+                                    </p>
+                                </div>
+                            </div>
+                        ),
+                    )}
 
                     <div className="rounded-[18px] border border-blue-100 bg-white p-3">
                         <p className="text-[7px] font-black uppercase tracking-[0.16em] text-blue-600">

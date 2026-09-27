@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   beginQrShopperSession,
   getScanInteraction,
@@ -8,37 +8,15 @@ import {
   type GetScanInteractionOutput,
 } from '@/ai/flows';
 import { Button } from '../ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
   Sparkles,
-  ShieldCheck,
   Loader2,
-  Send,
-  MessageSquare,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
-import { Badge } from '../ui/badge';
-import { Input } from '../ui/input';
-import { ScrollArea } from '../ui/scroll-area';
 import { recordSponsoredMediaEvent } from '@/lib/sponsored-media-event-server';
-
-type Message = {
-    role: 'user' | 'model';
-    content: string;
-};
-
-function TypingIndicator() {
-    return (
-        <div className="flex items-center space-x-1 py-1 px-2">
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]"></span>
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]"></span>
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current"></span>
-        </div>
-    )
-}
+import { ShopperExperienceRenderer } from '@/components/dashboard/shopper-experience/shopper-experience-renderer';
 
 export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const { user } = useAuth();
@@ -46,12 +24,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionRetailerId, setSessionRetailerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [userInput, setUserInput] = useState('');
   const [sponsoredMediaDismissed, setSponsoredMediaDismissed] = useState(false);
-  const [isPendingChat, startChatTransition] = useTransition();
-  const scrollRef = useRef<HTMLDivElement>(null);
   const sponsoredMediaRef = useRef<HTMLElement>(null);
   const sponsoredImpressionRecordedRef = useRef<string | null>(null);
   const sponsoredVideoPresentationRef = useRef<string | null>(null);
@@ -73,19 +46,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
         if (result) {
             setData(result);
-            if (result.messages?.length) {
-                setIsTyping(true);
-                let current = 0;
-                const interval = setInterval(() => {
-                    if (current < result.messages.length) {
-                        setMessages(prev => [...prev, { role: 'model', content: result.messages[current] }]);
-                        current++;
-                    } else {
-                        setIsTyping(false);
-                        clearInterval(interval);
-                    }
-                }, 800);
-            }
         }
       } catch (e: any) {
         console.warn('Intelligence Layer Handshake Friction');
@@ -96,12 +56,6 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     
     if (qrId) fetchInteraction();
   }, [qrId, user]);
-
-  useEffect(() => {
-      if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }
-  }, [messages, isTyping]);
 
   useEffect(() => {
     const sponsoredMedia = data?.sponsoredMedia;
@@ -272,52 +226,48 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     });
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!userInput.trim() || isPendingChat || isTyping) return;
+  const handleCanonicalConversation = async (
+    message: string,
+    history: Array<{ role: 'user' | 'model'; content: string }>,
+  ): Promise<string> => {
+    const userMessage = message.trim();
 
-    const userMessage = userInput.trim();
-    const destination = data?.destinationUrl || 'https://interactaoe.co.za';
-    
-    setUserInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setIsTyping(true);
+    if (!userMessage) {
+      throw new Error('Conversation message is required.');
+    }
 
-    startChatTransition(async () => {
-        try {
-            const hasConsent = localStorage.getItem('consent-behavioral-analysis') !== 'false';
+    const destination =
+      data?.destinationUrl || 'https://interactaoe.co.za';
 
-            let activeSessionId = sessionId;
-            let activeRetailerId = sessionRetailerId;
+    const hasConsent =
+      localStorage.getItem('consent-behavioral-analysis') !== 'false';
 
-            if (!activeSessionId || !activeRetailerId) {
-                const session = await beginQrShopperSession({
-                    qrCodeId: qrId,
-                    ...(activeSessionId ? { sessionId: activeSessionId } : {}),
-                });
+    let activeSessionId = sessionId;
+    let activeRetailerId = sessionRetailerId;
 
-                activeSessionId = session.sessionId;
-                activeRetailerId = session.retailerId;
-                setSessionId(session.sessionId);
-                setSessionRetailerId(session.retailerId);
-            }
+    if (!activeSessionId || !activeRetailerId) {
+      const session = await beginQrShopperSession({
+        qrCodeId: qrId,
+        ...(activeSessionId ? { sessionId: activeSessionId } : {}),
+      });
 
-            const res = await productChat({
-                url: destination,
-                history: [...messages, { role: 'user', content: userMessage }],
-                shopperUid: user?.uid,
-                hasConsent,
-                sessionId: activeSessionId,
-                retailerId: activeRetailerId,
-            });
-            setMessages(prev => [...prev, { role: 'model', content: res.message }]);
-        } catch (e) {
-            setMessages(prev => [...prev, { role: 'model', content: "I'm still synchronizing with the network. Please feel free to continue to the product page while I reconnect." }]);
-        } finally {
-            setIsTyping(false);
-        }
+      activeSessionId = session.sessionId;
+      activeRetailerId = session.retailerId;
+
+      setSessionId(session.sessionId);
+      setSessionRetailerId(session.retailerId);
+    }
+
+    const response = await productChat({
+      url: destination,
+      history,
+      shopperUid: user?.uid,
+      hasConsent,
+      sessionId: activeSessionId,
+      retailerId: activeRetailerId,
     });
+
+    return response.message;
   };
 
   const handleContinue = () => {
@@ -341,81 +291,20 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
 
   return (
     <div className="flex flex-col h-svh bg-background overflow-hidden">
-      <header className="p-4 flex justify-center border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1.5 py-1 px-3 rounded-full font-bold uppercase tracking-wider text-[10px]">
-            <ShieldCheck className="h-3.5 w-3.5" /> Ari - Online
-        </Badge>
-      </header>
-
-      <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-        <div className="max-w-md mx-auto flex flex-col space-y-4 pb-20">
-            {(data?.mediaUrl || data?.headline) && (
-                <div className="mb-6 text-center animate-in fade-in zoom-in-95 duration-700">
-                    {data?.mediaType === 'video' ? (
-                        <video src={data.mediaUrl} autoPlay muted loop className="w-full rounded-2xl shadow-xl aspect-video object-cover border" />
-                    ) : data?.mediaUrl ? (
-                        <div className="relative w-full rounded-2xl shadow-xl overflow-hidden aspect-video border bg-muted">
-                            <Image src={data.mediaUrl} alt={data.headline || 'Content'} fill className="object-cover" />
-                        </div>
-                    ) : null}
-                    {data?.headline && <h1 className="text-2xl font-black mt-4 leading-tight tracking-tight">{data.headline}</h1>}
-                </div>
-            )}
-
-            {messages.length === 0 && !isTyping && !loading && (
-                <div className="p-8 text-center text-muted-foreground italic text-sm">
-                    Initializing conversation...
-                </div>
-            )}
-
-            {messages.map((msg, index) => (
-                <div key={index} className={cn("flex items-end space-x-3", msg.role === 'user' ? "flex-row-reverse space-x-reverse" : "justify-start animate-in slide-in-from-left-2")}>
-                    {msg.role === 'model' && (
-                        <Avatar className="h-8 w-8 border-2 border-accent shrink-0 shadow-sm">
-                            <AvatarImage src={data?.retailerLogoUrl} />
-                            <AvatarFallback className="bg-primary text-white font-black text-[10px]">AR</AvatarFallback>
-                        </Avatar>
-                    )}
-                    <div className={cn(
-                        "rounded-2xl p-4 max-w-[85%] text-sm leading-relaxed border",
-                        msg.role === 'user' ? "bg-primary text-primary-foreground border-primary shadow-md" : "bg-muted border-primary/5 text-foreground"
-                    )}>
-                        {msg.content}
-                    </div>
-                </div>
-            ))}
-            
-            {isTyping && (
-                <div className="flex items-end space-x-3 animate-in fade-in">
-                    <Avatar className="h-8 w-8 border-2 border-accent shrink-0">
-                        <AvatarFallback className="bg-primary text-white font-black text-[10px]">AR</AvatarFallback>
-                    </Avatar>
-                    <div className="bg-muted rounded-2xl p-3 border border-primary/5">
-                        <TypingIndicator />
-                    </div>
-                </div>
-            )}
+      {data?.shopperPresentation && (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ShopperExperienceRenderer
+            templateId={data.shopperPresentation.selectedTemplate}
+            mode="live"
+            branding={data.shopperPresentation.branding}
+            retailerId={data.retailerId}
+            activationId={data.activationId}
+            sessionId={sessionId ?? undefined}
+            initialMediaMode="none"
+            onSubmitConversationMessage={handleCanonicalConversation}
+          />
         </div>
-      </ScrollArea>
-
-      <div className="p-4 bg-background border-t space-y-4 shadow-[0_-10px_20px_-15px_rgba(0,0,0,0.1)]">
-        <form onSubmit={handleSend} className="max-w-md mx-auto flex gap-2">
-            <div className="relative flex-1">
-                <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Ask Ari about this..." 
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    className="h-12 pl-10 rounded-xl bg-muted/50 border-none shadow-none text-sm focus-visible:ring-primary/20"
-                    disabled={isTyping}
-                />
-            </div>
-            <Button type="submit" size="icon" className="h-12 w-12 rounded-xl shrink-0 shadow-lg bg-primary hover:bg-primary/90" disabled={!userInput.trim() || isTyping}>
-                {isPendingChat ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-            </Button>
-        </form>
-        
-      </div>
+      )}
 
       {data?.sponsoredMedia && !sponsoredMediaDismissed && (
         <aside

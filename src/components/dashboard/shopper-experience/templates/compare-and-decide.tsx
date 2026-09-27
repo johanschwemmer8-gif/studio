@@ -19,6 +19,7 @@ export function CompareAndDecide({
     ariImageUrl,
     sessionId,
     initialMediaMode = "none",
+    onSubmitConversationMessage,
 }: ShopperExperienceProps) {
     const standardExperience = ({
         openConversation,
@@ -240,6 +241,7 @@ export function CompareAndDecide({
                 />
             )}
             initialMediaMode={initialMediaMode}
+            onSubmitConversationMessage={onSubmitConversationMessage}
         />
     );
 }

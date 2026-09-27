@@ -21,6 +21,7 @@ export function AriSignature({
     ariImageUrl,
     sessionId,
     initialMediaMode = "none",
+    onSubmitConversationMessage,
 }: ShopperExperienceProps) {
     const standardExperience = ({
         openConversation,
@@ -242,6 +243,7 @@ export function AriSignature({
                 />
             )}
             initialMediaMode={initialMediaMode}
+            onSubmitConversationMessage={onSubmitConversationMessage}
         />
     );
 }

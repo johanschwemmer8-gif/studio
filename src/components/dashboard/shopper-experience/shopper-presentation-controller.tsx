@@ -7,6 +7,7 @@ import type {
     AriExperienceMode,
     PaidMediaMode,
 } from "./presentation-state";
+import type { ShopperConversationMessage } from "./types";
 
 export type ShopperConversationIntent = "general";
 
@@ -27,7 +28,7 @@ export interface ShopperPresentationControllerProps {
     conversationExperience: (
         onMinimize: () => void,
         start: ShopperConversationStart,
-        messages: string[],
+        messages: ShopperConversationMessage[],
         onSubmitMessage: (message: string) => void,
     ) => ReactNode;
     comparisonExperience: (onBack: () => void) => ReactNode;
@@ -58,6 +59,10 @@ export interface ShopperPresentationControllerProps {
      * The controller does not determine media eligibility.
      */
     initialMediaMode?: PaidMediaMode;
+    onSubmitConversationMessage?: (
+        message: string,
+        history: ShopperConversationMessage[],
+    ) => Promise<string>;
 }
 
 export function ShopperPresentationController({
@@ -69,6 +74,7 @@ export function ShopperPresentationController({
     menuExperience,
     discoverExperience,
     initialMediaMode = "none",
+    onSubmitConversationMessage,
 }: ShopperPresentationControllerProps) {
     const [ariMode, setAriMode] =
         useState<AriExperienceMode>("standard");
@@ -79,7 +85,7 @@ export function ShopperPresentationController({
         });
 
     const [conversationMessages, setConversationMessages] =
-        useState<string[]>([]);
+        useState<ShopperConversationMessage[]>([]);
 
     const [mediaMode, setMediaMode] =
         useState<PaidMediaMode>(initialMediaMode);
@@ -94,7 +100,7 @@ export function ShopperPresentationController({
         if (initialMessage) {
             setConversationMessages((current) => [
                 ...current,
-                initialMessage,
+                { role: "user", content: initialMessage },
             ]);
         }
 
@@ -110,7 +116,7 @@ export function ShopperPresentationController({
 
         setConversationMessages((current) => [
             ...current,
-            trimmed,
+            { role: "user", content: trimmed },
         ]);
     };
 

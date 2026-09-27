@@ -20,6 +20,17 @@ export const GetScanInteractionOutputSchema = z.object({
    * it does not define QR, Activation, Campaign, Deployment, Product, or
    * Shopper Session identity.
    */
+  /**
+   * Authoritative live shopper-entry context.
+   *
+   * Populated only from the resolved production QR / Activation chain.
+   * These fields must never be inferred from shopper authentication,
+   * presentation branding, or client state.
+   */
+  retailerId: z.string().trim().min(1).optional(),
+  activationId: z.string().trim().min(1).optional(),
+  gtin: z.string().trim().min(1).optional(),
+
   shopperPresentation: z.object({
     selectedTemplate: z.enum([
       'template1',

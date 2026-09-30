@@ -154,7 +154,10 @@ export type PlatformAiGovernanceControlDefinition = z.infer<
  * Versioned Platform AI Governance policy.
  *
  * FIRESTORE:
- * aiGovernancePolicies/{governanceId}
+ * aiGovernancePolicies/{governanceId}__{governanceVersion}
+ *
+ * Document identity is version-safe so activation of a future governance
+ * version cannot overwrite historical policy state.
  *
  * APPROVED does not mean ACTIVE.
  * Exactly one ACTIVE policy is a backend lifecycle invariant.
@@ -249,4 +252,26 @@ export const PlatformAiGovernanceControlSchema = z.object({
 
 export type PlatformAiGovernanceControl = z.infer<
   typeof PlatformAiGovernanceControlSchema
+>;
+
+/**
+ * Authoritative pointer to the single active Platform AI Governance policy.
+ *
+ * FIRESTORE:
+ * platformConfiguration/aiGovernance
+ *
+ * This is a compact activation pointer, not a duplicate of the policy,
+ * controls, evidence or runtime governance context.
+ */
+export const ActiveAiGovernancePointerSchema = z.object({
+  governanceId: z.string().min(1),
+  governanceVersion: z.string().min(1),
+  policyDocumentId: z.string().min(1),
+
+  activatedAt: FirestoreTimestampSchema,
+  activatedBy: z.string().min(1),
+});
+
+export type ActiveAiGovernancePointer = z.infer<
+  typeof ActiveAiGovernancePointerSchema
 >;

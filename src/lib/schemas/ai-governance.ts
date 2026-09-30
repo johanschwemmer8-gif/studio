@@ -115,6 +115,42 @@ export type GovernanceStandardMapping = z.infer<
 >;
 
 /**
+ * Canonical governance control definition.
+ *
+ * This describes what a control means. It does not claim that the control
+ * is implemented, verified or effective, and therefore deliberately excludes
+ * evidence, verification and audit metadata.
+ */
+export const PlatformAiGovernanceControlDefinitionSchema = z.object({
+  controlId: z.string().min(1),
+
+  domain: z.string().min(1),
+  title: z.string().min(1),
+
+  requirement: z.string().min(1),
+  risk: z.string().min(1),
+  controlStatement: z.string().min(1),
+
+  authority: GovernanceAuthoritySchema,
+  applicability: GovernanceApplicabilitySchema,
+
+  enforcementTypes: z
+    .array(GovernanceEnforcementTypeSchema)
+    .min(1),
+
+  standardsMappings: z
+    .array(GovernanceStandardMappingSchema)
+    .default([]),
+
+  visibility: GovernanceVisibilitySchema,
+  retailerExtensibility: GovernanceRetailerExtensibilitySchema,
+});
+
+export type PlatformAiGovernanceControlDefinition = z.infer<
+  typeof PlatformAiGovernanceControlDefinitionSchema
+>;
+
+/**
  * Versioned Platform AI Governance policy.
  *
  * FIRESTORE:

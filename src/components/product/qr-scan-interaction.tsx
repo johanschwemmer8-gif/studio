@@ -259,6 +259,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     }
 
     const response = await productChat({
+      ...(data?.gtin ? { gtin: data.gtin } : {}),
       url: destination,
       history,
       shopperUid: user?.uid,

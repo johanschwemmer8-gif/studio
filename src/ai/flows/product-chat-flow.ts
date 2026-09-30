@@ -11,6 +11,7 @@ import { getDb, admin } from '@/lib/firebase-admin';
 import { buildFactContext } from '@/ai/fact-context';
 import { ShopperSessionSchema } from '@/lib/schemas/shopper-session';
 import { deriveShopperSessionAuthority } from '@/lib/shopper-session-authority';
+import { resolveActiveAiGovernance } from '@/lib/ai-governance/resolve-active-ai-governance';
 import { 
   InteractionSignalSchema, 
   ShopperContextSchema, 
@@ -104,9 +105,19 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     
     PERSONALITY: Intelligent, grounded, non-manipulative. The shopper is always in control.`;
 
+  const governance = await resolveActiveAiGovernance(
+    'ARI_PRODUCT_CHAT'
+  );
+
+  if (!governance.providerModelIdentifier) {
+    throw new Error(
+      'AI_GOVERNANCE_DENIED:NO_EXECUTABLE_MODEL:ARI_PRODUCT_CHAT'
+    );
+  }
+
   try {
       const { output } = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
+        model: governance.providerModelIdentifier,
         messages: [
           { role: 'system', content: [{ text: systemPrompt }] },
           ...conversationHistory
@@ -201,7 +212,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
           ...output,
           metadata: {
               ariVersion: ARI_CORE_VERSION,
-              modelVersion: 'gemini-2.5-flash',
+              modelVersion: governance.modelId ?? 'none',
               timestamp: new Date().toISOString()
           }
       } as any;

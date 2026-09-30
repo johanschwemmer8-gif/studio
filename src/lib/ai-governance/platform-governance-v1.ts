@@ -11,6 +11,8 @@
 
 export const PLATFORM_AI_GOVERNANCE_V1_ID = 'INTERACT-AI-GOVERNANCE-V1';
 export const PLATFORM_AI_GOVERNANCE_V1_VERSION = '1.0.0';
+export const PLATFORM_AI_GOVERNANCE_V1_NAME =
+  'iNteract Platform AI Governance';
 
 export type PlatformAiGovernanceControlIdentity = {
   controlId: string;

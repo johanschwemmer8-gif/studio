@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { assignUserClaims } from '@/ai/flows/assign-user-claims';
 import { createUser } from '@/ai/flows/create-user';
 import { Badge } from '@/components/ui/badge';
+import { PlatformAiGovernanceManager } from '@/components/dashboard/platform-ai-governance-manager';
 import { collection, onSnapshot, doc, setDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
 export type SavedRetailer = {
@@ -360,6 +361,8 @@ export default function AdminPage() {
         </div>
 
         <div className="space-y-8">
+            <PlatformAiGovernanceManager />
+
             <VerifiedAccessManager retailers={retailers} />
             
             <Card className="border-accent border-2 bg-accent/5">

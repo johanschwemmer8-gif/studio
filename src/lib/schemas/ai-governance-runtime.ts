@@ -37,12 +37,17 @@ export const AiRuntimeGovernanceContextSchema = z.object({
 
   capabilityId: z.string().min(1),
   capabilityVersion: z.string().min(1),
+  executionType: z.enum([
+    'DETERMINISTIC',
+    'MODEL_BACKED',
+    'HYBRID',
+  ]),
 
   effectiveControlIds: z.array(z.string().min(1)).min(1),
 
-  providerId: z.string().min(1),
-  modelId: z.string().min(1),
-  providerModelBindingId: z.string().min(1),
+  providerId: z.string().min(1).optional(),
+  modelId: z.string().min(1).optional(),
+  providerModelBindingId: z.string().min(1).optional(),
 
   resolvedAt: FirestoreTimestampSchema,
 });
@@ -70,12 +75,17 @@ export const AiExecutionGovernanceRecordSchema = z.object({
 
   capabilityId: z.string().min(1),
   capabilityVersion: z.string().min(1),
+  executionType: z.enum([
+    'DETERMINISTIC',
+    'MODEL_BACKED',
+    'HYBRID',
+  ]),
 
   effectiveControlIds: z.array(z.string().min(1)).min(1),
 
-  providerId: z.string().min(1),
-  modelId: z.string().min(1),
-  providerModelBindingId: z.string().min(1),
+  providerId: z.string().min(1).optional(),
+  modelId: z.string().min(1).optional(),
+  providerModelBindingId: z.string().min(1).optional(),
 
   retailerId: z.string().min(1).optional(),
   sessionId: z.string().min(1).optional(),

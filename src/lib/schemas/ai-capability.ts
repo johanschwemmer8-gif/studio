@@ -57,6 +57,25 @@ export type AiProviderModelBindingStatus = z.infer<
   typeof AiProviderModelBindingStatusSchema
 >;
 
+export const AiCapabilityExecutionTypeSchema = z.enum([
+  'DETERMINISTIC',
+  'MODEL_BACKED',
+  'HYBRID',
+]);
+
+export type AiCapabilityExecutionType = z.infer<
+  typeof AiCapabilityExecutionTypeSchema
+>;
+
+export const AiBindingExecutionAuthorizationSchema = z.enum([
+  'AUTHORIZED',
+  'NOT_AUTHORIZED',
+]);
+
+export type AiBindingExecutionAuthorization = z.infer<
+  typeof AiBindingExecutionAuthorizationSchema
+>;
+
 /**
  * Canonical governed AI capability.
  *
@@ -76,11 +95,13 @@ export const AiCapabilitySchema = z.object({
   prohibitedUses: z.array(z.string().min(1)).default([]),
 
   status: AiCapabilityStatusSchema,
+  executionType: AiCapabilityExecutionTypeSchema,
 
   owner: z.string().min(1),
 
   governanceControlIds: z.array(z.string().min(1)).default([]),
   providerModelBindingIds: z.array(z.string().min(1)).default([]),
+  dependencyIds: z.array(z.string().min(1)).default([]),
 
   createdAt: FirestoreTimestampSchema,
   createdBy: z.string().min(1),
@@ -166,6 +187,7 @@ export const AiProviderModelBindingSchema = z.object({
   modelId: z.string().min(1),
 
   status: AiProviderModelBindingStatusSchema,
+  executionAuthorization: AiBindingExecutionAuthorizationSchema,
 
   createdAt: FirestoreTimestampSchema,
   createdBy: z.string().min(1),

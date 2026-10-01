@@ -15,6 +15,7 @@ import { AriSignatureDiscover } from "./ari-signature-discover";
 export function ProductSpotlight({
     mode,
     branding,
+    ariPresentation,
     product,
     ariImageUrl,
     sessionId,
@@ -167,6 +168,7 @@ export function ProductSpotlight({
                 onSubmitMessage,
             ) => (
                 <AriSignatureConversation
+                    ariPresentation={ariPresentation}
                     branding={branding}
                     product={product}
                     onMinimize={onMinimize}

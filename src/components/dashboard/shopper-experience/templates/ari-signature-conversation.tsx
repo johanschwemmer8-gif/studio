@@ -8,12 +8,14 @@ import { ShopperHeader } from "../shopper-header";
 
 import type {
     ShopperConversationMessage,
+    ShopperExperienceAriPresentation,
     ShopperExperienceBranding,
     ShopperExperienceProduct,
 } from "../types";
 
 type AriSignatureConversationProps = {
     branding: ShopperExperienceBranding;
+    ariPresentation?: ShopperExperienceAriPresentation;
     product?: ShopperExperienceProduct;
     onMinimize: () => void;
     start: ShopperConversationStart;
@@ -23,6 +25,7 @@ type AriSignatureConversationProps = {
 
 export function AriSignatureConversation({
     branding,
+    ariPresentation,
     product,
     onMinimize,
     start,
@@ -42,7 +45,11 @@ export function AriSignatureConversation({
         setMessage("");
     };
 
+    const assistantName =
+        ariPresentation?.assistantName?.trim() || "Ari";
+
     const starterPrompt =
+        ariPresentation?.welcomeMessage?.trim() ||
         "What would you like to know about this product?";
 
     return (
@@ -64,7 +71,7 @@ export function AriSignatureConversation({
                     <div>
                         <div className="flex items-center gap-1.5">
                             <p className="text-[12px] font-black text-slate-950">
-                                Ari
+                                {assistantName}
                             </p>
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                         </div>

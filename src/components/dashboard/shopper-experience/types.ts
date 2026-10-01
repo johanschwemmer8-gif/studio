@@ -20,6 +20,24 @@ export type ShopperExperienceProduct = {
     gtin?: string;
 };
 
+export type ShopperExperienceAriPresentation = {
+    /**
+     * Shopper-facing retailer-configurable assistant display name.
+     *
+     * This does not replace Ari's canonical platform identity and must not
+     * be used as governance, capability, provider or model authority.
+     */
+    assistantName: string;
+
+    /**
+     * Shopper-facing retailer-configurable welcome message.
+     *
+     * This is presentation content only and is not authoritative product
+     * evidence or an executable model instruction.
+     */
+    welcomeMessage: string;
+};
+
 export type ShopperExperienceBranding = {
     logoUrl?: string;
     logoWidth?: number;
@@ -32,6 +50,7 @@ export type ShopperExperienceBranding = {
 export type ShopperExperienceProps = {
     mode: ShopperExperienceMode;
     branding: ShopperExperienceBranding;
+    ariPresentation?: ShopperExperienceAriPresentation;
     product?: ShopperExperienceProduct;
     ariImageUrl?: string;
 

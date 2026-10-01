@@ -15,6 +15,7 @@ import { AriSignatureDiscover } from "./ari-signature-discover";
 export function QuickAssist({
     mode,
     branding,
+    ariPresentation,
     product,
     ariImageUrl,
     sessionId,
@@ -176,6 +177,7 @@ export function QuickAssist({
                 onSubmitMessage,
             ) => (
                 <AriSignatureConversation
+                    ariPresentation={ariPresentation}
                     branding={branding}
                     product={product}
                     onMinimize={onMinimize}

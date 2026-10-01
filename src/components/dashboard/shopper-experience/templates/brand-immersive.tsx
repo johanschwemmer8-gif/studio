@@ -15,6 +15,7 @@ import { AriSignatureDiscover } from "./ari-signature-discover";
 export function BrandImmersive({
     mode,
     branding,
+    ariPresentation,
     product,
     ariImageUrl,
     sessionId,
@@ -180,6 +181,7 @@ export function BrandImmersive({
                 onSubmitMessage,
             ) => (
                 <AriSignatureConversation
+                    ariPresentation={ariPresentation}
                     branding={branding}
                     product={product}
                     onMinimize={onMinimize}

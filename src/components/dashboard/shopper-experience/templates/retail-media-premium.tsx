@@ -15,6 +15,7 @@ import { AriSignatureDiscover } from "./ari-signature-discover";
 export function RetailMediaPremium({
     mode,
     branding,
+    ariPresentation,
     product,
     ariImageUrl,
     sessionId,
@@ -194,6 +195,7 @@ export function RetailMediaPremium({
                 onSubmitMessage,
             ) => (
                 <AriSignatureConversation
+                    ariPresentation={ariPresentation}
                     branding={branding}
                     product={product}
                     onMinimize={onMinimize}

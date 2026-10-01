@@ -71,6 +71,53 @@ describe('Ari Experience retailer control plane', () => {
     }
   });
 
+  it('uses the canonical I.5 shopper experience renderer for preview', () => {
+    expect(source).toContain('ShopperPhoneFrame');
+    expect(source).toContain('ShopperExperienceRenderer');
+    expect(source).toContain('templateId={previewTemplate}');
+    expect(source).toContain('mode="preview"');
+    expect(source).toContain('ariImageUrl="/brand/ari/ari-master.png"');
+  });
+
+  it('passes only presentation-safe Ari identity into the canonical preview', () => {
+    expect(source).toContain('ariPresentation={{');
+    expect(source).toContain('assistantName:');
+    expect(source).toContain('welcomeMessage:');
+
+    const previewStart = source.indexOf('<ShopperExperienceRenderer');
+    const previewEnd = source.indexOf('/>', previewStart);
+    const previewRenderer = source.slice(
+      previewStart,
+      previewEnd + 2
+    );
+
+    expect(previewRenderer).not.toContain('personality=');
+    expect(previewRenderer).not.toContain('tone=');
+    expect(previewRenderer).not.toContain('brandVoice=');
+    expect(previewRenderer).not.toContain('recommendationCount=');
+    expect(previewRenderer).not.toContain('includePrice=');
+    expect(previewRenderer).not.toContain('showAvailability=');
+  });
+
+  it('keeps preview presentation-only without fabricated live authority', () => {
+    const previewStart = source.indexOf('<ShopperExperienceRenderer');
+    const previewEnd = source.indexOf('/>', previewStart);
+    const previewRenderer = source.slice(
+      previewStart,
+      previewEnd + 2
+    );
+
+    expect(previewStart).toBeGreaterThan(-1);
+    expect(previewEnd).toBeGreaterThan(previewStart);
+    expect(previewRenderer).not.toContain('sessionId=');
+    expect(previewRenderer).not.toContain('activationId=');
+    expect(previewRenderer).not.toContain('retailerId=');
+    expect(previewRenderer).not.toContain(
+      'onSubmitConversationMessage='
+    );
+    expect(previewRenderer).not.toContain('product=');
+  });
+
   it('states the governance and evidence boundary', () => {
     expect(source).toContain(
       'These preferences cannot override mandatory'

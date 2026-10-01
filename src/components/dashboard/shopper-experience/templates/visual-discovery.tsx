@@ -15,6 +15,7 @@ import { AriSignatureDiscover } from "./ari-signature-discover";
 export function VisualDiscovery({
     mode,
     branding,
+    ariPresentation,
     product,
     ariImageUrl,
     sessionId,
@@ -193,6 +194,7 @@ export function VisualDiscovery({
                 onSubmitMessage,
             ) => (
                 <AriSignatureConversation
+                    ariPresentation={ariPresentation}
                     branding={branding}
                     product={product}
                     onMinimize={onMinimize}

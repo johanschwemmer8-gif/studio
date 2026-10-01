@@ -17,12 +17,19 @@ import { AriSignatureDiscover } from "./ari-signature-discover";
 export function AriSignature({
     mode,
     branding,
+    ariPresentation,
     product,
     ariImageUrl,
     sessionId,
     initialMediaMode = "none",
     onSubmitConversationMessage,
 }: ShopperExperienceProps) {
+    const assistantName =
+        ariPresentation?.assistantName?.trim() || "Ari";
+    const welcomeMessage =
+        ariPresentation?.welcomeMessage?.trim() ||
+        "Hi! I'm Ari.";
+
     const standardExperience = ({
         openConversation,
         openComparison,
@@ -57,11 +64,11 @@ export function AriSignature({
 
                         <div className="px-3 pb-4 pt-5">
                             <div className="mb-2 inline-flex rounded-full bg-blue-50 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-blue-700">
-                                Ari · Shopping Assistant
+                                {assistantName} · Shopping Assistant
                             </div>
 
                             <h2 className="text-[22px] font-black leading-[1.05] tracking-tight text-slate-950">
-                                Hi! I&apos;m Ari.
+                                {welcomeMessage}
                             </h2>
 
                             <p className="mt-2 text-[11px] leading-relaxed text-slate-600">
@@ -173,6 +180,7 @@ export function AriSignature({
                 onSubmitMessage,
             ) => (
                 <AriSignatureConversation
+                    ariPresentation={ariPresentation}
                     branding={branding}
                     product={product}
                     onMinimize={onMinimize}

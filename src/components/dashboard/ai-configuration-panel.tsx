@@ -36,6 +36,14 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { ShopperPhoneFrame } from '@/components/dashboard/shopper-experience/shopper-phone-frame';
+import { ShopperExperienceRenderer } from '@/components/dashboard/shopper-experience/shopper-experience-renderer';
+import type {
+  ShopperExperienceBranding,
+  ShopperTemplateId,
+} from '@/components/dashboard/shopper-experience/types';
 
 const formSchema = z.object({
   assistantName: z.string().min(1).max(60).default('Ari'),
@@ -59,6 +67,33 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const shopperTemplateIds: ShopperTemplateId[] = [
+  'template1',
+  'template2',
+  'template3',
+  'template4',
+  'template5',
+  'template6',
+  'template7',
+  'template8',
+  'template9',
+];
+
+const isShopperTemplateId = (
+  value: unknown
+): value is ShopperTemplateId =>
+  typeof value === 'string' &&
+  shopperTemplateIds.includes(value as ShopperTemplateId);
+
+const defaultPreviewBranding: ShopperExperienceBranding = {
+  logoUrl: '',
+  logoWidth: 128,
+  logoMaxHeight: 32,
+  logoAlign: 'center',
+  logoPadding: 0,
+  headerBackgroundColor: '#07162f',
+};
+
 const defaultValues: FormValues = {
   assistantName: 'Ari',
   personality: 'FRIENDLY_APPROACHABLE',
@@ -76,6 +111,10 @@ export default function AIConfigurationPanel() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewTemplate, setPreviewTemplate] =
+    useState<ShopperTemplateId>('template1');
+  const [previewBranding, setPreviewBranding] =
+    useState<ShopperExperienceBranding>(defaultPreviewBranding);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -84,6 +123,8 @@ export default function AIConfigurationPanel() {
 
   const recommendationCount =
     form.watch('recommendationCount');
+  const assistantName = form.watch('assistantName');
+  const welcomeMessage = form.watch('welcomeMessage');
 
   useEffect(() => {
     if (!user?.retailerId) {
@@ -151,6 +192,75 @@ export default function AIConfigurationPanel() {
       cancelled = true;
     };
   }, [user, user?.retailerId, form, toast]);
+
+  useEffect(() => {
+    if (!user?.retailerId || !db) {
+      return;
+    }
+
+    const retailerId = user.retailerId;
+    const brandRef = doc(
+      db,
+      'configurations',
+      `${retailerId}_brand`
+    );
+
+    const unsubscribe = onSnapshot(
+      brandRef,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          setPreviewTemplate('template1');
+          setPreviewBranding(defaultPreviewBranding);
+          return;
+        }
+
+        const raw = snapshot.data().data ?? {};
+
+        setPreviewTemplate(
+          isShopperTemplateId(raw.selectedTemplate)
+            ? raw.selectedTemplate
+            : 'template1'
+        );
+
+        setPreviewBranding({
+          logoUrl:
+            typeof raw.logoUrl === 'string'
+              ? raw.logoUrl
+              : '',
+          logoWidth:
+            typeof raw.logoWidth === 'number'
+              ? raw.logoWidth
+              : 128,
+          logoMaxHeight:
+            typeof raw.logoMaxHeight === 'number'
+              ? raw.logoMaxHeight
+              : 32,
+          logoAlign:
+            raw.logoAlign === 'flex-start' ||
+            raw.logoAlign === 'center' ||
+            raw.logoAlign === 'flex-end'
+              ? raw.logoAlign
+              : 'center',
+          logoPadding:
+            typeof raw.logoPadding === 'number'
+              ? raw.logoPadding
+              : 0,
+          headerBackgroundColor:
+            typeof raw.headerBackgroundColor === 'string'
+              ? raw.headerBackgroundColor
+              : '#07162f',
+        });
+      },
+      (error) => {
+        console.error(
+          'Failed to load shopper experience branding:',
+          error
+        );
+      }
+    );
+
+    return unsubscribe;
+  }, [user?.retailerId]);
 
   const handleSave = form.handleSubmit(
     async (values) => {
@@ -457,6 +567,44 @@ export default function AIConfigurationPanel() {
               )}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Shopper Experience Preview</CardTitle>
+          <CardDescription>
+            Preview Ari using the shopper experience template and
+            branding selected in Brand &amp; Experience.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <div className="flex justify-center overflow-hidden">
+            <div className="pointer-events-none">
+              <ShopperPhoneFrame>
+                <ShopperExperienceRenderer
+                  templateId={previewTemplate}
+                  mode="preview"
+                  branding={previewBranding}
+                  ariImageUrl="/brand/ari/ari-master.png"
+                  ariPresentation={{
+                    assistantName:
+                      assistantName?.trim() || 'Ari',
+                    welcomeMessage:
+                      welcomeMessage?.trim() ||
+                      defaultValues.welcomeMessage,
+                  }}
+                />
+              </ShopperPhoneFrame>
+            </div>
+          </div>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Presentation preview only. No shopper session,
+            Activation identity, product evidence, or live AI
+            response is fabricated here.
+          </p>
         </CardContent>
       </Card>
 

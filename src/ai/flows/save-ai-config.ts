@@ -1,59 +1,104 @@
-
 'use server';
-/**
- * @fileOverview Persists Ari Experience configurations to Firestore.
- * Enforces tenant isolation via trusted identity.
- */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { admin } from '@/lib/firebase-admin';
-import { getAuthorizedRetailerId } from '@/lib/auth-server';
+import { getAuthorizedRetailerId, verifyAuth } from '@/lib/auth-server';
+import {
+  AriPersonalitySchema,
+  AriToneSchema,
+  RetailerAriConfigurationSchema,
+} from '@/lib/schemas/retailer-ari-configuration';
 
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
+const RetailerAriConfigurationCommandSchema = z
+  .object({
+    assistantName: z.string().trim().min(1).max(60).default('Ari'),
+    personality: AriPersonalitySchema.default('FRIENDLY_APPROACHABLE'),
+    tone: AriToneSchema.default('CONVERSATIONAL'),
+    brandVoice: z.string().trim().max(500).default(''),
+    welcomeMessage: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .default("Hi! I'm Ari. How can I help you with this product today?"),
+    recommendationCount: z.number().int().min(1).max(6).default(3),
+    includePrice: z.boolean().default(true),
+    showAvailability: z.boolean().default(true),
+  })
+  .strict();
 
-const SaveAiConfigInputSchema = z.object({
-  idToken: z.string().describe("Auth token for verification."),
-  retailerId: z.string().describe("The tenant ID."),
-  config: z.any().describe("The AI personality and strategy payload."),
-});
+const SaveAiConfigInputSchema = z
+  .object({
+    idToken: z.string().min(1),
+    retailerId: z.string().min(1),
+    config: RetailerAriConfigurationCommandSchema,
+  })
+  .strict();
 
-const SaveAiConfigOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-});
+export type SaveAiConfigInput = z.input<
+  typeof SaveAiConfigInputSchema
+>;
 
-export async function saveAiConfig(input: z.infer<typeof SaveAiConfigInputSchema>) {
-    return saveAiConfigFlow(input);
-}
+export type SaveAiConfigResult = {
+  success: true;
+  message: string;
+};
 
-const saveAiConfigFlow = ai.defineFlow(
-  {
-    name: 'saveAiConfigFlow',
-    inputSchema: SaveAiConfigInputSchema,
-    outputSchema: SaveAiConfigOutputSchema,
-  },
-  async ({ idToken, retailerId, config }) => {
-    const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
-    const db = admin.firestore();
+export async function saveAiConfig(
+  input: SaveAiConfigInput
+): Promise<SaveAiConfigResult> {
+  const parsedInput = SaveAiConfigInputSchema.parse(input);
 
-    try {
-        await db.collection('configurations').doc(`${authorizedRetailerId}_ai`).set({
-            retailerId: authorizedRetailerId,
-            type: 'ai',
-            data: config,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
+  const auth = await verifyAuth(parsedInput.idToken);
 
-        return {
-            success: true,
-            message: "Ari personality updated across the network."
-        };
-    } catch (e: any) {
-        console.error("AI Config Error:", e.message);
-        throw e;
-    }
+  if ('error' in auth) {
+    throw new Error(auth.error);
   }
-);
+
+  const authorizedRetailerId =
+    await getAuthorizedRetailerId(
+      parsedInput.idToken,
+      parsedInput.retailerId
+    );
+
+  const db = admin.firestore();
+  const ref = db
+    .collection('configurations')
+    .doc(`${authorizedRetailerId}_ai`);
+
+  const existing = await ref.get();
+  const existingData = existing.exists ? existing.data() : undefined;
+
+  const existingCanonical =
+    existingData === undefined
+      ? null
+      : RetailerAriConfigurationSchema.safeParse(existingData);
+
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  const canonicalDocument = {
+    retailerId: authorizedRetailerId,
+    configurationVersion: '1.0.0',
+    ...parsedInput.config,
+    createdAt:
+      existingCanonical?.success === true
+        ? existingCanonical.data.createdAt
+        : now,
+    createdBy:
+      existingCanonical?.success === true
+        ? existingCanonical.data.createdBy
+        : auth.uid,
+    updatedAt: now,
+    updatedBy: auth.uid,
+  };
+
+  const validatedDocument =
+    RetailerAriConfigurationSchema.parse(canonicalDocument);
+
+  await ref.set(validatedDocument);
+
+  return {
+    success: true,
+    message: 'Ari configuration saved.',
+  };
+}

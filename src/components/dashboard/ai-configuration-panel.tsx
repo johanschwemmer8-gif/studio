@@ -46,9 +46,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 import { saveAiConfig } from '@/ai/flows/save-ai-config';
+import { getAiConfig } from '@/ai/flows/get-ai-config';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
@@ -191,25 +190,104 @@ export default function AIConfigurationPanel() {
   const watchedConfig = form.watch();
 
   useEffect(() => {
-      if (!user?.retailerId || !db) return;
-      const q = doc(db, 'configurations', `${user.retailerId}_ai`);
-      const unsub = onSnapshot(q, (snap) => {
-          if (snap.exists()) {
-              form.reset(snap.data().data);
-          }
-      });
-      return () => unsub();
-  }, [user?.retailerId, form]);
+    if (!user?.retailerId) return;
+
+    const retailerId = user.retailerId;
+    let cancelled = false;
+
+    const loadConfiguration = async () => {
+      try {
+        const idToken = await user.getIdToken();
+
+        const result = await getAiConfig({
+          idToken,
+          retailerId,
+        });
+
+        if (cancelled || !result.configuration) {
+          return;
+        }
+
+        const config = result.configuration;
+
+        const personality =
+          config.personality === 'PROFESSIONAL_HELPFUL'
+            ? 'Professional & Helpful'
+            : config.personality === 'EXPERT_INFORMATIVE'
+              ? 'Expert & Informative'
+              : 'Friendly & Casual';
+
+        const tone =
+          config.tone === 'FORMAL'
+            ? 'Formal'
+            : config.tone === 'WARM'
+              ? 'Warm'
+              : config.tone === 'CONCISE'
+                ? 'Concise'
+                : 'Conversational';
+
+        form.reset({
+          ...form.getValues(),
+          assistantName: config.assistantName,
+          personality,
+          tone,
+          brandVoice: config.brandVoice,
+          welcomeMessage: config.welcomeMessage,
+          recommendationCount: config.recommendationCount,
+          includePrice: config.includePrice,
+          showAvailability: config.showAvailability,
+        });
+      } catch (error) {
+        console.error(
+          'Failed to load authoritative Ari configuration:',
+          error
+        );
+      }
+    };
+
+    void loadConfiguration();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, user?.retailerId, form]);
 
   const handleSave = async () => {
     if (!user?.retailerId) return;
     setIsSaving(true);
     try {
         const idToken = await user.getIdToken();
+        const values = form.getValues();
+
+        const personality =
+          values.personality === 'Professional & Helpful'
+            ? 'PROFESSIONAL_HELPFUL'
+            : values.personality === 'Expert & Informative'
+              ? 'EXPERT_INFORMATIVE'
+              : 'FRIENDLY_APPROACHABLE';
+
+        const tone =
+          values.tone === 'Formal'
+            ? 'FORMAL'
+            : values.tone === 'Warm'
+              ? 'WARM'
+              : values.tone === 'Concise'
+                ? 'CONCISE'
+                : 'CONVERSATIONAL';
+
         const res = await saveAiConfig({
             idToken,
             retailerId: user.retailerId,
-            config: form.getValues()
+            config: {
+              assistantName: values.assistantName,
+              personality,
+              tone,
+              brandVoice: values.brandVoice,
+              welcomeMessage: values.welcomeMessage,
+              recommendationCount: values.recommendationCount,
+              includePrice: values.includePrice,
+              showAvailability: values.showAvailability,
+            },
         });
         if (res.success) {
             toast({ title: "Ari Updated", description: res.message });

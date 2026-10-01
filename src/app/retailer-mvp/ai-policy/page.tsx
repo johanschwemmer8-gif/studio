@@ -108,10 +108,6 @@ const aiHubItems = [
     href: '/retailer-mvp/ai-configuration',
   },
   {
-    label: 'Welcome & Content',
-    href: '/retailer-mvp/ai-content',
-  },
-  {
     label: 'Performance Audit',
     href: '/retailer-mvp/ai-performance',
   },

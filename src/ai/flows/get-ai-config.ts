@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { verifyAuth } from '@/lib/auth-server';
 import { getRetailerAriConfiguration } from '@/lib/ari-configuration-repository';
 import {
-  RetailerAriConfiguration,
+  AriPersonality,
+  AriTone,
 } from '@/lib/schemas/retailer-ari-configuration';
 
 const GetAiConfigInputSchema = z
@@ -18,8 +19,19 @@ export type GetAiConfigInput = z.infer<
   typeof GetAiConfigInputSchema
 >;
 
+export type RetailerAriConfigurationClientDto = {
+  assistantName: string;
+  personality: AriPersonality;
+  tone: AriTone;
+  brandVoice: string;
+  welcomeMessage: string;
+  recommendationCount: number;
+  includePrice: boolean;
+  showAvailability: boolean;
+};
+
 export type GetAiConfigResult = {
-  configuration: RetailerAriConfiguration | null;
+  configuration: RetailerAriConfigurationClientDto | null;
 };
 
 export async function getAiConfig(
@@ -47,7 +59,22 @@ export async function getAiConfig(
     auth.retailerId
   );
 
+  if (!configuration) {
+    return {
+      configuration: null,
+    };
+  }
+
   return {
-    configuration,
+    configuration: {
+      assistantName: configuration.assistantName,
+      personality: configuration.personality,
+      tone: configuration.tone,
+      brandVoice: configuration.brandVoice,
+      welcomeMessage: configuration.welcomeMessage,
+      recommendationCount: configuration.recommendationCount,
+      includePrice: configuration.includePrice,
+      showAvailability: configuration.showAvailability,
+    },
   };
 }

@@ -80,7 +80,14 @@ describe('getAiConfig', () => {
     ).toHaveBeenCalledWith('retailer-a');
   });
 
-  it('returns canonical retailer Ari configuration', async () => {
+  it('returns only the serializable retailer Ari client configuration', async () => {
+    const createdAt = {
+      toDate: () => new Date(),
+    };
+    const updatedAt = {
+      toDate: () => new Date(),
+    };
+
     const configuration = {
       retailerId: 'retailer-a',
       configurationVersion: '1.0.0',
@@ -93,9 +100,9 @@ describe('getAiConfig', () => {
       recommendationCount: 3,
       includePrice: true,
       showAvailability: true,
-      createdAt: 'created',
+      createdAt,
       createdBy: 'user-1',
-      updatedAt: 'updated',
+      updatedAt,
       updatedBy: 'user-1',
     };
 
@@ -109,7 +116,26 @@ describe('getAiConfig', () => {
     });
 
     expect(result).toEqual({
-      configuration,
+      configuration: {
+        assistantName: 'Ari',
+        personality: 'FRIENDLY_APPROACHABLE',
+        tone: 'CONVERSATIONAL',
+        brandVoice: '',
+        welcomeMessage:
+          "Hi! I'm Ari. How can I help you with this product today?",
+        recommendationCount: 3,
+        includePrice: true,
+        showAvailability: true,
+      },
     });
+
+    expect(result.configuration).not.toHaveProperty('retailerId');
+    expect(result.configuration).not.toHaveProperty(
+      'configurationVersion'
+    );
+    expect(result.configuration).not.toHaveProperty('createdAt');
+    expect(result.configuration).not.toHaveProperty('createdBy');
+    expect(result.configuration).not.toHaveProperty('updatedAt');
+    expect(result.configuration).not.toHaveProperty('updatedBy');
   });
 });

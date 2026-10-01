@@ -12,6 +12,11 @@ import { buildFactContext } from '@/ai/fact-context';
 import { ShopperSessionSchema } from '@/lib/schemas/shopper-session';
 import { deriveShopperSessionAuthority } from '@/lib/shopper-session-authority';
 import { resolveActiveAiGovernance } from '@/lib/ai-governance/resolve-active-ai-governance';
+import {
+  createDefaultAriConfiguration,
+  resolveAriConfiguration,
+  type EffectiveAriConfiguration,
+} from '@/lib/resolve-ari-configuration';
 import { 
   InteractionSignalSchema, 
   ShopperContextSchema, 
@@ -49,6 +54,32 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
   let factContextStr = "NO VERIFIED PRODUCT DATA AVAILABLE.";
   const db = getDb();
 
+  let sessionAuthority:
+    | ReturnType<typeof deriveShopperSessionAuthority>
+    | null = null;
+
+  if (db && input.sessionId) {
+    const sessionSnapshot = await db
+      .collection('sessions')
+      .doc(input.sessionId)
+      .get();
+
+    if (!sessionSnapshot.exists) {
+      throw new Error('SESSION_NOT_FOUND');
+    }
+
+    const session = ShopperSessionSchema.parse(
+      sessionSnapshot.data()
+    );
+
+    sessionAuthority = deriveShopperSessionAuthority({
+      requestedSessionId: input.sessionId,
+      requestedRetailerId: input.retailerId,
+      requestedGtin: input.gtin,
+      session,
+    });
+  }
+
   // 1. Fact Context Retrieval (Authoritative Source)
   if (input.gtin) {
       try {
@@ -79,7 +110,47 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     content: [{ text: msg.content }],
   }));
 
-  const systemPrompt = `You are Ari (v${ARI_CORE_VERSION}), the grounded Shopping Assistant for iNteract Decision Intelligence.
+  const governance = await resolveActiveAiGovernance(
+    'ARI_PRODUCT_CHAT'
+  );
+
+  if (!governance.providerModelIdentifier) {
+    throw new Error(
+      'AI_GOVERNANCE_DENIED:NO_EXECUTABLE_MODEL:ARI_PRODUCT_CHAT'
+    );
+  }
+
+  const ariConfiguration: EffectiveAriConfiguration =
+    sessionAuthority
+      ? await resolveAriConfiguration(
+          sessionAuthority.retailerId
+        )
+      : createDefaultAriConfiguration(
+          'PLATFORM_DEFAULT'
+        );
+
+  const personalityInstruction =
+    ariConfiguration.personality === 'PROFESSIONAL_HELPFUL'
+      ? 'Professional and helpful.'
+      : ariConfiguration.personality === 'EXPERT_INFORMATIVE'
+        ? 'Expert and informative while remaining clear about uncertainty.'
+        : 'Friendly and approachable.';
+
+  const toneInstruction =
+    ariConfiguration.tone === 'FORMAL'
+      ? 'Use a formal communication tone.'
+      : ariConfiguration.tone === 'WARM'
+        ? 'Use a warm communication tone.'
+        : ariConfiguration.tone === 'CONCISE'
+          ? 'Keep responses concise.'
+          : 'Use a natural conversational tone.';
+
+  const brandVoiceInstruction =
+    ariConfiguration.brandVoice
+      ? `Retailer communication preference: ${ariConfiguration.brandVoice}`
+      : 'No additional retailer communication preference is configured.';
+
+  const systemPrompt = `You are ${ariConfiguration.assistantName} (Ari v${ARI_CORE_VERSION}), the grounded Shopping Assistant for iNteract Decision Intelligence.
     
     ARI EVIDENCE CONTRACT (v1.1):
     1. EVIDENCE HIERARCHY: Authoritative Product Data > Explicit Shopper Evidence > AI Interpretation.
@@ -102,18 +173,18 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     ${shopperProfileContext}
 
     ${input.hasConsent ? '' : 'PRIVACY MODE ACTIVE: Do not extract interaction signals for this turn.'}
-    
+
+    RETAILER ARI COMMUNICATION PREFERENCES:
+    - Personality: ${personalityInstruction}
+    - Tone: ${toneInstruction}
+    - Brand voice: ${brandVoiceInstruction}
+    - Maximum recommendations when recommendations are appropriate: ${ariConfiguration.recommendationCount}
+    - Price presentation enabled: ${ariConfiguration.includePrice ? 'yes' : 'no'}
+    - Availability presentation enabled: ${ariConfiguration.showAvailability ? 'yes' : 'no'}
+
+    These retailer communication preferences are subordinate to the Ari Evidence Contract, AI governance, product evidence, privacy, neutrality, safety, and shopper autonomy. They must never be interpreted as permission to invent facts or weaken mandatory controls.
+
     PERSONALITY: Intelligent, grounded, non-manipulative. The shopper is always in control.`;
-
-  const governance = await resolveActiveAiGovernance(
-    'ARI_PRODUCT_CHAT'
-  );
-
-  if (!governance.providerModelIdentifier) {
-    throw new Error(
-      'AI_GOVERNANCE_DENIED:NO_EXECUTABLE_MODEL:ARI_PRODUCT_CHAT'
-    );
-  }
 
   try {
       const { output } = await ai.generate({
@@ -128,26 +199,11 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
       if (!output) throw new Error("Empty model response.");
       
       // 3. PERSISTENCE LAYER: Only if database, session, and consent are available
-      if (db && input.sessionId) {
+      if (db && input.sessionId && sessionAuthority) {
           const sessionId = input.sessionId;
-          const sessionSnapshot = await db.collection('sessions').doc(sessionId).get();
-
-          if (!sessionSnapshot.exists) {
-              throw new Error('SESSION_NOT_FOUND');
-          }
-
-          const session = ShopperSessionSchema.parse(sessionSnapshot.data());
-
-          const authority = deriveShopperSessionAuthority({
-              requestedSessionId: sessionId,
-              requestedRetailerId: input.retailerId,
-              requestedGtin: input.gtin,
-              session
-          });
-
-          const gtin = authority.gtin;
-          const retailerId = authority.retailerId;
-          const shopperId = authority.shopperId;
+          const gtin = sessionAuthority.gtin;
+          const retailerId = sessionAuthority.retailerId;
+          const shopperId = sessionAuthority.shopperId;
 
           // A. Log Conversation Node
           const conversationId = `convo_${Date.now()}`;

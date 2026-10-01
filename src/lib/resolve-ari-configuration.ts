@@ -24,7 +24,7 @@ export interface EffectiveAriConfiguration {
   showAvailability: boolean;
 }
 
-function createDefaultAriConfiguration(
+export function createDefaultAriConfiguration(
   retailerId: string
 ): EffectiveAriConfiguration {
   return {

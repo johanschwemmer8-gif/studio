@@ -92,7 +92,7 @@ const activationItemFormSchema = z.object({
   approvalRequired: z.boolean().default(false),
   assistantPersona: z.string().optional(),
   assistantTone: z.string().optional(),
-  assistantGoal: z.string().optional(),
+  activationGreeting: z.string().optional(),
   scanDestination: z.enum(["ai", "url"]).default("ai"),
   landingPageUrl: z.string().optional().or(z.literal("")),
   sponsoredMediaFormat: z.enum(["none", "sponsored"]).default("none"),
@@ -145,7 +145,7 @@ const createDefaultActivationItem = () => ({
   approvalRequired: false,
   assistantPersona: "",
   assistantTone: "",
-  assistantGoal: "",
+  activationGreeting: "",
   scanDestination: "ai" as const,
   landingPageUrl: "",
   sponsoredMediaFormat: "none" as const,
@@ -251,7 +251,7 @@ function buildBulkActivationWorkItem(
       experienceConfig: {
         persona: item.assistantPersona || undefined,
         tone: item.assistantTone || undefined,
-        goal: item.assistantGoal || undefined,
+        greeting: item.activationGreeting || undefined,
         scanDestination:
           item.scanDestination === "ai" ? ("AI" as const) : ("URL" as const),
         landingPageUrl:
@@ -787,35 +787,44 @@ function ActivationItemCard({
 
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase tracking-widest">
-              Assistant Persona
+              Activation Persona
             </Label>
             <Input
               {...form.register(`items.${index}.assistantPersona`)}
-              placeholder="e.g. Expert Sommelier"
+              placeholder="e.g. Category specialist"
               className="bg-white"
             />
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              Optional communication context for this Activation. Leave blank for no additional Activation persona.
+            </p>
           </div>
 
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase tracking-widest">
-              Assistant Tone
+              Activation Tone
             </Label>
             <Input
               {...form.register(`items.${index}.assistantTone`)}
-              placeholder="e.g. Helpful and concise"
+              placeholder="e.g. Warm and concise"
               className="bg-white"
             />
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              Optional tone override for this Activation. Leave blank to inherit the retailer-wide Ari tone.
+            </p>
           </div>
 
           <div className="space-y-2 md:col-span-2">
             <Label className="text-[10px] font-black uppercase tracking-widest">
-              Assistant Goal
+              Activation Greeting
             </Label>
             <Textarea
-              {...form.register(`items.${index}.assistantGoal`)}
-              placeholder="e.g. Help the shopper choose the right Merlot for a summer dinner."
+              {...form.register(`items.${index}.activationGreeting`)}
+              placeholder="Optional greeting for this Activation"
               className="min-h-24 bg-white"
             />
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              Optional. Leave blank to use the retailer-wide Ari welcome message.
+            </p>
           </div>
 
           <div className="space-y-2">

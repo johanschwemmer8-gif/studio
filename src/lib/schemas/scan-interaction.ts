@@ -51,6 +51,10 @@ export const GetScanInteractionOutputSchema = z.object({
       logoPadding: z.number().min(0).max(12),
       headerBackgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
     }),
+    ariPresentation: z.object({
+      assistantName: z.string().trim().min(1),
+      welcomeMessage: z.string().trim().min(1),
+    }),
   }),
 
   // Fields for campaign media content

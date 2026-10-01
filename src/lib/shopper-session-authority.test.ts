@@ -4,6 +4,7 @@ describe('deriveShopperSessionAuthority', () => {
   const session = {
     sessionId: 'sess_canonical',
     retailerId: 'retailer_a',
+    activationId: 'activation_a',
     entryGtin: '06009188000332'
   };
 
@@ -16,6 +17,7 @@ describe('deriveShopperSessionAuthority', () => {
     ).toEqual({
       sessionId: 'sess_canonical',
       retailerId: 'retailer_a',
+      activationId: 'activation_a',
       gtin: '06009188000332',
       shopperId: 'guest'
     });
@@ -81,7 +83,8 @@ describe('deriveShopperSessionAuthority', () => {
   test('allows explicit GTIN context when the session has no entry GTIN', () => {
     const noEntryGtin = {
       sessionId: 'sess_canonical',
-      retailerId: 'retailer_a'
+      retailerId: 'retailer_a',
+      activationId: 'activation_a'
     };
 
     expect(

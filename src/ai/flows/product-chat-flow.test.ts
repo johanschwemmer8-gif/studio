@@ -52,6 +52,10 @@ jest.mock('@/lib/shopper-session-authority', () => ({
   deriveShopperSessionAuthority: jest.fn(),
 }));
 
+jest.mock('@/lib/resolve-activation-ari-context', () => ({
+  resolveActivationAriContext: jest.fn(),
+}));
+
 import { ai } from '@/ai/genkit';
 import { productChat } from '@/ai/flows/product-chat-flow';
 import { resolveActiveAiGovernance } from '@/lib/ai-governance/resolve-active-ai-governance';
@@ -61,6 +65,7 @@ import {
 } from '@/lib/resolve-ari-configuration';
 import { getDb } from '@/lib/firebase-admin';
 import { deriveShopperSessionAuthority } from '@/lib/shopper-session-authority';
+import { resolveActivationAriContext } from '@/lib/resolve-activation-ari-context';
 
 const mockGenerate = ai.generate as jest.Mock;
 const mockResolveActiveAiGovernance =
@@ -72,6 +77,8 @@ const mockResolveAriConfiguration =
 const mockGetDb = getDb as jest.Mock;
 const mockDeriveShopperSessionAuthority =
   deriveShopperSessionAuthority as jest.Mock;
+const mockResolveActivationAriContext =
+  resolveActivationAriContext as jest.Mock;
 
 const authorizedGovernance = {
   governanceId: 'INTERACT-AI-GOVERNANCE-V1',
@@ -104,6 +111,12 @@ const groundedOutput = {
 describe('productChat governance boundary', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockResolveActivationAriContext.mockResolvedValue({
+      activationId: 'activation-a',
+      retailerId: 'retailer-a',
+      shopperObjective: 'Help the shopper make an informed choice.',
+    });
   });
 
   it('fails closed before model execution when governance denies Product Chat', async () => {
@@ -235,6 +248,7 @@ describe('productChat governance boundary', () => {
     mockDeriveShopperSessionAuthority.mockReturnValue({
       sessionId: 'session-a',
       retailerId: 'retailer-authoritative',
+      activationId: 'activation-a',
       gtin: undefined,
       shopperId: undefined,
     });
@@ -353,6 +367,7 @@ describe('productChat governance boundary', () => {
     mockDeriveShopperSessionAuthority.mockReturnValue({
       sessionId: 'session-a',
       retailerId: 'retailer-a',
+      activationId: 'activation-a',
       gtin: undefined,
       shopperId: undefined,
     });
@@ -427,6 +442,190 @@ describe('productChat governance boundary', () => {
     expect(systemText).toContain(
       'subordinate to the Ari Evidence Contract'
     );
+  });
+
+  it('applies authoritative Activation context with Activation tone precedence', async () => {
+    const sessionData = {
+      sessionId: 'session-a',
+      retailerId: 'retailer-a',
+      activationId: 'activation-a',
+    };
+
+    mockGetDb.mockReturnValue({
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          get: jest.fn().mockResolvedValue({
+            exists: true,
+            data: () => sessionData,
+          }),
+        })),
+      })),
+    });
+
+    mockDeriveShopperSessionAuthority.mockReturnValue({
+      sessionId: 'session-a',
+      retailerId: 'retailer-a',
+      activationId: 'activation-a',
+      gtin: undefined,
+      shopperId: undefined,
+    });
+
+    mockResolveActiveAiGovernance.mockResolvedValue(
+      authorizedGovernance
+    );
+
+    mockResolveAriConfiguration.mockResolvedValue({
+      retailerId: 'retailer-a',
+      configurationVersion: '1.0.0',
+      source: 'RETAILER_CONFIGURATION',
+      assistantName: 'Retail Ari',
+      personality: 'PROFESSIONAL_HELPFUL',
+      tone: 'FORMAL',
+      brandVoice: '',
+      welcomeMessage: 'Retailer welcome.',
+      recommendationCount: 3,
+      includePrice: true,
+      showAvailability: true,
+    });
+
+    mockResolveActivationAriContext.mockResolvedValue({
+      activationId: 'activation-a',
+      retailerId: 'retailer-a',
+      shopperObjective: 'Help the shopper compare suitable options.',
+      persona: 'Category specialist',
+      tone: 'Warm and concise',
+      greeting: 'Activation greeting must not enter Product Chat.',
+      goal: 'Legacy goal must not enter Product Chat.',
+      advancedInstructions: 'Legacy instructions must not enter Product Chat.',
+      landingPageUrl: 'https://example.com/legacy',
+    });
+
+    mockGenerate.mockRejectedValue(
+      new Error('MODEL_TEST_STOP')
+    );
+
+    await productChat({
+      sessionId: 'session-a',
+      retailerId: 'retailer-a',
+      history: [
+        {
+          role: 'user',
+          content: 'Help me compare.',
+        },
+      ],
+      hasConsent: false,
+    });
+
+    expect(mockResolveActivationAriContext)
+      .toHaveBeenCalledWith(
+        'activation-a',
+        'retailer-a'
+      );
+
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+
+    const generationRequest =
+      mockGenerate.mock.calls[0][0];
+
+    expect(generationRequest.model).toBe(
+      'googleai/gemini-2.5-flash'
+    );
+
+    const systemText =
+      generationRequest.messages[0].content[0].text;
+
+    expect(systemText).toContain(
+      'Retailer tone: Use a formal communication tone.'
+    );
+    expect(systemText).toContain(
+      'Shopper objective for this Activation: Help the shopper compare suitable options.'
+    );
+    expect(systemText).toContain(
+      'Activation communication context: Category specialist'
+    );
+    expect(systemText).toContain(
+      'Effective tone: Activation communication tone: Warm and concise'
+    );
+
+    expect(systemText).not.toContain(
+      'Activation greeting must not enter Product Chat.'
+    );
+    expect(systemText).not.toContain(
+      'Legacy goal must not enter Product Chat.'
+    );
+    expect(systemText).not.toContain(
+      'Legacy instructions must not enter Product Chat.'
+    );
+    expect(systemText).not.toContain(
+      'https://example.com/legacy'
+    );
+  });
+
+  it('fails closed before model execution when authoritative Activation context is denied', async () => {
+    mockGetDb.mockReturnValue({
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          get: jest.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({
+              sessionId: 'session-a',
+              retailerId: 'retailer-a',
+              activationId: 'activation-a',
+            }),
+          }),
+        })),
+      })),
+    });
+
+    mockDeriveShopperSessionAuthority.mockReturnValue({
+      sessionId: 'session-a',
+      retailerId: 'retailer-a',
+      activationId: 'activation-a',
+      gtin: undefined,
+      shopperId: undefined,
+    });
+
+    mockResolveActiveAiGovernance.mockResolvedValue(
+      authorizedGovernance
+    );
+
+    mockResolveAriConfiguration.mockResolvedValue({
+      retailerId: 'retailer-a',
+      configurationVersion: '1.0.0',
+      source: 'RETAILER_CONFIGURATION',
+      assistantName: 'Ari',
+      personality: 'FRIENDLY_APPROACHABLE',
+      tone: 'CONVERSATIONAL',
+      brandVoice: '',
+      welcomeMessage: 'Welcome.',
+      recommendationCount: 3,
+      includePrice: true,
+      showAvailability: true,
+    });
+
+    mockResolveActivationAriContext.mockRejectedValue(
+      new Error(
+        'ACTIVATION_CONTEXT_DENIED:TENANT_IDENTITY_MISMATCH'
+      )
+    );
+
+    await expect(
+      productChat({
+        sessionId: 'session-a',
+        retailerId: 'retailer-a',
+        history: [
+          {
+            role: 'user',
+            content: 'Help me decide.',
+          },
+        ],
+        hasConsent: false,
+      })
+    ).rejects.toThrow(
+      'ACTIVATION_CONTEXT_DENIED:TENANT_IDENTITY_MISMATCH'
+    );
+
+    expect(mockGenerate).not.toHaveBeenCalled();
   });
 
 });

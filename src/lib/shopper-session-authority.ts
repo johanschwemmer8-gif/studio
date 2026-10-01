@@ -11,6 +11,7 @@ export type ShopperSessionAuthorityInput = {
   session: {
     sessionId: string;
     retailerId: string;
+    activationId: string;
     entryGtin?: string;
     shopperId?: string;
   };
@@ -19,6 +20,7 @@ export type ShopperSessionAuthorityInput = {
 export type ShopperSessionAuthority = {
   sessionId: string;
   retailerId: string;
+  activationId: string;
   gtin: string;
   shopperId: string;
 };
@@ -50,6 +52,7 @@ export function deriveShopperSessionAuthority(
   return {
     sessionId: session.sessionId,
     retailerId: session.retailerId,
+    activationId: session.activationId,
     gtin: input.requestedGtin || session.entryGtin || '00000000000000',
     shopperId: session.shopperId || 'guest'
   };

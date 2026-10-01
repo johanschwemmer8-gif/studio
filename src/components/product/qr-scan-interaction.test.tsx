@@ -116,6 +116,10 @@ const canonicalResult = {
       logoPadding: 0,
       headerBackgroundColor: '#07162f',
     },
+    ariPresentation: {
+      assistantName: 'Ari',
+      welcomeMessage: 'How can I help you today?',
+    },
   },
   sponsoredMedia: {
     format: 'BRAND_STRIP' as const,

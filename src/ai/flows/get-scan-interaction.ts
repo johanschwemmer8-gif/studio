@@ -20,6 +20,10 @@ import { resolveProductionQr } from '@/lib/qr-resolution';
 import { QrExposureSchema } from '@/lib/schemas/qr-exposure';
 import { establishSponsoredMediaEligibility } from '@/lib/sponsored-media-eligibility';
 import {
+  createDefaultAriConfiguration,
+  resolveAriConfiguration,
+} from '@/lib/resolve-ari-configuration';
+import {
   GetScanInteractionInputSchema,
   type GetScanInteractionInput,
   GetScanInteractionOutputSchema,
@@ -29,9 +33,9 @@ import {
 const InteractionPromptInputSchema = z.object({
   retailerName: z.string(),
   campaignName: z.string(),
-  personality: z.string(),
-  intent: z.string(),
-  constraints: z.string().optional(),
+  persona: z.string().optional(),
+  tone: z.string().optional(),
+  shopperObjective: z.string(),
   shopperName: z.string().optional(),
   pastInterests: z.array(z.string()).optional(),
 });
@@ -59,9 +63,9 @@ Acknowledge them by name and reinforce their persistent relationship with the br
 GUEST SHOPPER: Welcome the shopper and focus on useful buying guidance.
 {{/if}}
 
-Your personality: {{personality}}.
-Operating Objective: {{intent}}.
-{{#if constraints}}Constraints: {{constraints}}.{{/if}}
+{{#if persona}}Activation communication context: {{persona}}.{{/if}}
+{{#if tone}}Activation communication tone: {{tone}}.{{/if}}
+Shopper Objective: {{shopperObjective}}.
 
 Generate 1-3 short, engaging messages. Be brief and conversational. Identify yourself as Ari if introducing yourself.`,
 });
@@ -99,6 +103,10 @@ const DEFAULT_SHOPPER_PRESENTATION: GetScanInteractionOutput['shopperPresentatio
     logoAlign: 'center',
     logoPadding: 0,
     headerBackgroundColor: '#07162f',
+  },
+  ariPresentation: {
+    assistantName: 'Ari',
+    welcomeMessage: 'How can I help you today?',
   },
 };
 
@@ -163,6 +171,7 @@ function normalizeShopperPresentation(
       logoPadding: clamp(data.logoPadding, 0, 12, 0),
       headerBackgroundColor,
     },
+    ariPresentation: DEFAULT_SHOPPER_PRESENTATION.ariPresentation,
   };
 }
 
@@ -270,6 +279,29 @@ const getScanInteractionFlow = ai.defineFlow(
 
     const experienceConfig = activation.experienceConfig;
 
+    let ariConfiguration =
+      createDefaultAriConfiguration(qr.retailerId);
+
+    try {
+      ariConfiguration =
+        await resolveAriConfiguration(qr.retailerId);
+    } catch {
+      console.warn(
+        '[Ari Presentation] Retailer configuration unavailable; defaults active.'
+      );
+    }
+
+    const activationGreeting =
+      experienceConfig.greeting?.trim();
+
+    const ariPresentation = {
+      assistantName:
+        ariConfiguration.assistantName?.trim() || 'Ari',
+      welcomeMessage:
+        activationGreeting ||
+        ariConfiguration.welcomeMessage,
+    };
+
     let sponsoredMediaPresentationId: string | undefined;
 
     if (
@@ -344,23 +376,22 @@ const getScanInteractionFlow = ai.defineFlow(
       console.warn('[Retailer Context] Metadata unavailable.');
     }
 
-    const personality =
-      experienceConfig.persona ||
-      experienceConfig.tone ||
-      'Expert & Knowledgeable';
+    const activationPersona =
+      experienceConfig.persona?.trim() || undefined;
 
-    const intent =
-      experienceConfig.goal ||
-      activation.shopperObjective ||
-      'Provide useful buying guidance.';
+    const activationTone =
+      experienceConfig.tone?.trim() || undefined;
+
+    const shopperObjective =
+      activation.shopperObjective;
 
     try {
       const { output } = await prompt({
         retailerName,
         campaignName: campaign.name,
-        personality,
-        intent,
-        constraints: activation.advancedInstructions,
+        persona: activationPersona,
+        tone: activationTone,
+        shopperObjective,
         shopperName,
         pastInterests,
       });
@@ -376,7 +407,10 @@ const getScanInteractionFlow = ai.defineFlow(
         retailerId: qr.retailerId,
         activationId: qr.activationId,
         ...(exposureGtin ? { gtin: exposureGtin } : {}),
-        shopperPresentation,
+        shopperPresentation: {
+          ...shopperPresentation,
+          ariPresentation,
+        },
         mediaType: resolveMediaType(experienceConfig.mediaType),
         mediaUrl: experienceConfig.mediaUrl,
         headline: experienceConfig.headline,
@@ -394,7 +428,10 @@ const getScanInteractionFlow = ai.defineFlow(
         retailerId: qr.retailerId,
         activationId: qr.activationId,
         ...(exposureGtin ? { gtin: exposureGtin } : {}),
-        shopperPresentation,
+        shopperPresentation: {
+          ...shopperPresentation,
+          ariPresentation,
+        },
         mediaType: resolveMediaType(experienceConfig.mediaType),
         mediaUrl: experienceConfig.mediaUrl,
         headline: experienceConfig.headline,

@@ -11,6 +11,10 @@ import { getDb, admin } from '@/lib/firebase-admin';
 import { buildFactContext } from '@/ai/fact-context';
 import { ShopperSessionSchema } from '@/lib/schemas/shopper-session';
 import { deriveShopperSessionAuthority } from '@/lib/shopper-session-authority';
+import {
+  resolveActivationAriContext,
+  type ActivationAriContext,
+} from '@/lib/resolve-activation-ari-context';
 import { resolveActiveAiGovernance } from '@/lib/ai-governance/resolve-active-ai-governance';
 import {
   createDefaultAriConfiguration,
@@ -129,6 +133,14 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
           'PLATFORM_DEFAULT'
         );
 
+  const activationContext: ActivationAriContext | null =
+    sessionAuthority
+      ? await resolveActivationAriContext(
+          sessionAuthority.activationId,
+          sessionAuthority.retailerId
+        )
+      : null;
+
   const personalityInstruction =
     ariConfiguration.personality === 'PROFESSIONAL_HELPFUL'
       ? 'Professional and helpful.'
@@ -136,7 +148,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
         ? 'Expert and informative while remaining clear about uncertainty.'
         : 'Friendly and approachable.';
 
-  const toneInstruction =
+  const retailerToneInstruction =
     ariConfiguration.tone === 'FORMAL'
       ? 'Use a formal communication tone.'
       : ariConfiguration.tone === 'WARM'
@@ -144,6 +156,21 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
         : ariConfiguration.tone === 'CONCISE'
           ? 'Keep responses concise.'
           : 'Use a natural conversational tone.';
+
+  const toneInstruction =
+    activationContext?.tone
+      ? `Activation communication tone: ${activationContext.tone}`
+      : retailerToneInstruction;
+
+  const activationPersonaInstruction =
+    activationContext?.persona
+      ? `Activation communication context: ${activationContext.persona}`
+      : 'No additional Activation persona context is configured.';
+
+  const shopperObjectiveInstruction =
+    activationContext
+      ? `Shopper objective for this Activation: ${activationContext.shopperObjective}`
+      : 'No Activation-specific shopper objective is available.';
 
   const brandVoiceInstruction =
     ariConfiguration.brandVoice
@@ -176,11 +203,18 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
 
     RETAILER ARI COMMUNICATION PREFERENCES:
     - Personality: ${personalityInstruction}
-    - Tone: ${toneInstruction}
+    - Retailer tone: ${retailerToneInstruction}
     - Brand voice: ${brandVoiceInstruction}
     - Maximum recommendations when recommendations are appropriate: ${ariConfiguration.recommendationCount}
     - Price presentation enabled: ${ariConfiguration.includePrice ? 'yes' : 'no'}
     - Availability presentation enabled: ${ariConfiguration.showAvailability ? 'yes' : 'no'}
+
+    PERMITTED ACTIVATION CONTEXT:
+    - ${shopperObjectiveInstruction}
+    - ${activationPersonaInstruction}
+    - Effective tone: ${toneInstruction}
+
+    Activation context is subordinate to the Ari Evidence Contract, AI governance, authoritative product evidence, privacy, neutrality, safety, shopper autonomy, and retailer Ari configuration except for the explicitly permitted Activation-specific tone precedence above. Activation context must never be interpreted as permission to invent facts, weaken mandatory controls, change model or provider authority, or create unsupported product claims.
 
     These retailer communication preferences are subordinate to the Ari Evidence Contract, AI governance, product evidence, privacy, neutrality, safety, and shopper autonomy. They must never be interpreted as permission to invent facts or weaken mandatory controls.
 

@@ -298,6 +298,7 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             templateId={data.shopperPresentation.selectedTemplate}
             mode="live"
             branding={data.shopperPresentation.branding}
+            ariPresentation={data.shopperPresentation.ariPresentation}
             ariImageUrl="/brand/ari/ari-master.png"
             retailerId={data.retailerId}
             activationId={data.activationId}

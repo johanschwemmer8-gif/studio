@@ -1,28 +1,27 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Bot,
-  MessageSquare,
-  Palette,
-  PlusCircle,
-  Save,
-  Send,
-  Settings,
-  Sparkles,
-  Zap,
-  TrendingUp,
-  Gift,
-  ImageIcon,
-  Link2,
   Loader2,
+  Save,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
+
+import { getAiConfig } from '@/ai/flows/get-ai-config';
+import { saveAiConfig } from '@/ai/flows/save-ai-config';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -32,165 +31,65 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import PhoneMockup from './phone-mockup';
-import { sampleQrCodes, sampleProducts, sampleConversation, sampleRecommendations, sampleOffer } from '@/lib/ai-config-data';
-import { Badge } from '../ui/badge';
-import { ScrollArea } from '../ui/scroll-area';
-import { Separator } from '../ui/separator';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
-import { saveAiConfig } from '@/ai/flows/save-ai-config';
-import { getAiConfig } from '@/ai/flows/get-ai-config';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-  assistantName: z.string().default('Ari'),
-  personality: z.string().default('Friendly & Casual'),
-  customPersonality: z.string().optional(),
-  tone: z.string().default('Conversational'),
-  language: z.string().default('en'),
-  brandVoice: z.string().optional(),
-  recommendationStrategy: z.string().default('ai-personalized'),
-  recommendationCount: z.number().min(1).max(6).default(3),
-  includePrice: z.boolean().default(true),
-  showAvailability: z.boolean().default(true),
-  recommendationTrigger: z.string().default('immediate'),
-  welcomeMessage: z.string().max(200).default('Hi! I\'m Ari. How can I help you with this product today?'),
-  faqCategories: z.array(z.string()).default(['Product Specs', 'Store Policies']),
-  enableHandoff: z.boolean().default(false),
-  ecommercePlatform: z.string().default('shopify'),
+  assistantName: z.string().min(1).max(60).default('Ari'),
+  personality: z.enum([
+    'PROFESSIONAL_HELPFUL',
+    'FRIENDLY_APPROACHABLE',
+    'EXPERT_INFORMATIVE',
+  ]),
+  tone: z.enum([
+    'FORMAL',
+    'CONVERSATIONAL',
+    'WARM',
+    'CONCISE',
+  ]),
+  brandVoice: z.string().max(500).default(''),
+  welcomeMessage: z.string().max(200),
+  recommendationCount: z.number().int().min(1).max(6),
+  includePrice: z.boolean(),
+  showAvailability: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-function LivePreviewPanel({ config }: { config: FormValues }) {
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [conversation, setConversation] = useState(sampleConversation);
-  const [isReplying, setIsReplying] = useState(false);
-
-  const handleSendMessage = () => {
-    if (!currentMessage) return;
-    setConversation(prev => [...prev, { role: 'user', content: currentMessage }]);
-    setCurrentMessage('');
-    setIsReplying(true);
-    setTimeout(() => {
-      setConversation(prev => [...prev, { role: 'assistant', content: `Based on your question and my ${config.personality?.toLowerCase()} personality, here's my thoughtful response.` }]);
-      setIsReplying(false);
-    }, 1500);
-  };
-  
-  return (
-    <Card className="sticky top-6">
-      <CardHeader>
-        <CardTitle>Live Mobile Preview</CardTitle>
-        <CardDescription>See your Ari configuration through the customer's eyes.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex justify-center">
-            <PhoneMockup>
-              <ScrollArea className="h-full">
-                <div className="p-3">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold truncate">{sampleProducts[0].name}</h3>
-                      <p className="text-[10px] text-muted-foreground">{sampleProducts[0].category}</p>
-                    </div>
-                  </div>
-                  
-                   <div className="bg-muted p-3 rounded-lg my-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1"><Sparkles className="h-3 w-3 text-accent" /> {config.assistantName}'s Guidance</h4>
-                        <div className="space-y-2">
-                            {sampleRecommendations.slice(0, config.recommendationCount).map(rec => (
-                                <div key={rec.id} className="flex items-center gap-2 text-[10px]">
-                                    <div className="h-8 w-8 rounded-sm bg-background border flex items-center justify-center shrink-0">
-                                        <ImageIcon className="h-4 w-4 text-muted-foreground/30" />
-                                    </div>
-                                    <div className='flex-1 min-w-0'>
-                                        <p className="font-bold truncate">{rec.name}</p>
-                                        {config.includePrice && <p className="text-muted-foreground">R{rec.price}</p>}
-                                    </div>
-                                    {config.showAvailability && <Badge variant={rec.available ? 'secondary' : 'outline'} className="text-[8px] h-4 px-1">{rec.available ? 'Stock' : 'Out'}</Badge>}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                  <div className="space-y-3">
-                    {conversation.map((msg, i) => (
-                      <div key={i} className={cn('flex items-end gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                        {msg.role === 'assistant' && <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center self-start shadow-sm"><Bot className="h-4 w-4 text-white" /></div>}
-                        <div className={cn('max-w-[85%] rounded-2xl px-3 py-2 text-[11px] leading-relaxed', msg.role === 'user' ? 'bg-primary text-white shadow-md' : 'bg-muted border border-primary/5')}>
-                          {msg.content}
-                        </div>
-                      </div>
-                    ))}
-                    {isReplying && 
-                        <div className="flex items-end gap-2 justify-start">
-                            <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center self-start shadow-md"><Bot className="h-4 w-4 text-white" /></div>
-                            <div className="max-w-[85%] rounded-2xl px-3 py-2 bg-muted border border-primary/5 flex items-center gap-1">
-                                <span className="h-1 w-1 bg-muted-foreground rounded-full animate-bounce"></span>
-                                <span className="h-1 w-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:150ms]"></span>
-                                <span className="h-1 w-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:300ms]"></span>
-                            </div>
-                        </div>
-                    }
-                  </div>
-                </div>
-              </ScrollArea>
-            </PhoneMockup>
-          </div>
-           <Separator />
-           <div className="space-y-4">
-                <h3 className="text-sm font-bold flex items-center gap-2"><Sparkles className="h-4 w-4 text-accent" /> AI Sandbox</h3>
-                <div className="flex gap-2">
-                    <Input placeholder="Ask a test question..." value={currentMessage} onChange={e => setCurrentMessage(e.target.value)} className="h-9 text-sm" />
-                    <Button onClick={handleSendMessage} size="sm"><Send className="h-4 w-4"/></Button>
-                </div>
-           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+const defaultValues: FormValues = {
+  assistantName: 'Ari',
+  personality: 'FRIENDLY_APPROACHABLE',
+  tone: 'CONVERSATIONAL',
+  brandVoice: '',
+  welcomeMessage:
+    "Hi! I'm Ari. How can I help you with this product today?",
+  recommendationCount: 3,
+  includePrice: true,
+  showAvailability: true,
+};
 
 export default function AIConfigurationPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      assistantName: 'Ari',
-      personality: 'Friendly & Casual',
-      tone: 'Conversational',
-      language: 'en',
-      recommendationStrategy: 'ai-personalized',
-      recommendationCount: 3,
-      includePrice: true,
-      showAvailability: true,
-      welcomeMessage: 'Hi! I\'m Ari. How can I help you with this product today?',
-      faqCategories: ['Product Specs', 'Store Policies'],
-      enableHandoff: false,
-    }
+    defaultValues,
   });
 
-  const watchedConfig = form.watch();
+  const recommendationCount =
+    form.watch('recommendationCount');
 
   useEffect(() => {
-    if (!user?.retailerId) return;
+    if (!user?.retailerId) {
+      setIsLoading(false);
+      return;
+    }
 
     const retailerId = user.retailerId;
     let cancelled = false;
@@ -204,44 +103,45 @@ export default function AIConfigurationPanel() {
           retailerId,
         });
 
-        if (cancelled || !result.configuration) {
-          return;
+        if (cancelled) return;
+
+        if (result.configuration) {
+          form.reset({
+            assistantName:
+              result.configuration.assistantName,
+            personality:
+              result.configuration.personality,
+            tone: result.configuration.tone,
+            brandVoice:
+              result.configuration.brandVoice,
+            welcomeMessage:
+              result.configuration.welcomeMessage,
+            recommendationCount:
+              result.configuration.recommendationCount,
+            includePrice:
+              result.configuration.includePrice,
+            showAvailability:
+              result.configuration.showAvailability,
+          });
         }
-
-        const config = result.configuration;
-
-        const personality =
-          config.personality === 'PROFESSIONAL_HELPFUL'
-            ? 'Professional & Helpful'
-            : config.personality === 'EXPERT_INFORMATIVE'
-              ? 'Expert & Informative'
-              : 'Friendly & Casual';
-
-        const tone =
-          config.tone === 'FORMAL'
-            ? 'Formal'
-            : config.tone === 'WARM'
-              ? 'Warm'
-              : config.tone === 'CONCISE'
-                ? 'Concise'
-                : 'Conversational';
-
-        form.reset({
-          ...form.getValues(),
-          assistantName: config.assistantName,
-          personality,
-          tone,
-          brandVoice: config.brandVoice,
-          welcomeMessage: config.welcomeMessage,
-          recommendationCount: config.recommendationCount,
-          includePrice: config.includePrice,
-          showAvailability: config.showAvailability,
-        });
       } catch (error) {
         console.error(
           'Failed to load authoritative Ari configuration:',
           error
         );
+
+        if (!cancelled) {
+          toast({
+            title: 'Ari configuration unavailable',
+            description:
+              'The saved retailer configuration could not be loaded.',
+            variant: 'destructive',
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -250,161 +150,348 @@ export default function AIConfigurationPanel() {
     return () => {
       cancelled = true;
     };
-  }, [user, user?.retailerId, form]);
+  }, [user, user?.retailerId, form, toast]);
 
-  const handleSave = async () => {
-    if (!user?.retailerId) return;
-    setIsSaving(true);
-    try {
+  const handleSave = form.handleSubmit(
+    async (values) => {
+      if (!user?.retailerId) return;
+
+      setIsSaving(true);
+
+      try {
         const idToken = await user.getIdToken();
-        const values = form.getValues();
 
-        const personality =
-          values.personality === 'Professional & Helpful'
-            ? 'PROFESSIONAL_HELPFUL'
-            : values.personality === 'Expert & Informative'
-              ? 'EXPERT_INFORMATIVE'
-              : 'FRIENDLY_APPROACHABLE';
-
-        const tone =
-          values.tone === 'Formal'
-            ? 'FORMAL'
-            : values.tone === 'Warm'
-              ? 'WARM'
-              : values.tone === 'Concise'
-                ? 'CONCISE'
-                : 'CONVERSATIONAL';
-
-        const res = await saveAiConfig({
-            idToken,
-            retailerId: user.retailerId,
-            config: {
-              assistantName: values.assistantName,
-              personality,
-              tone,
-              brandVoice: values.brandVoice,
-              welcomeMessage: values.welcomeMessage,
-              recommendationCount: values.recommendationCount,
-              includePrice: values.includePrice,
-              showAvailability: values.showAvailability,
-            },
+        const result = await saveAiConfig({
+          idToken,
+          retailerId: user.retailerId,
+          config: values,
         });
-        if (res.success) {
-            toast({ title: "Ari Updated", description: res.message });
+
+        if (!result.success) {
+          throw new Error(result.message);
         }
-    } catch (e: any) {
-        toast({ title: "Update Failed", description: e.message, variant: "destructive" });
-    } finally {
+
+        toast({
+          title: 'Ari configuration saved',
+          description: result.message,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Unable to save Ari configuration.';
+
+        toast({
+          title: 'Update failed',
+          description: message,
+          variant: 'destructive',
+        });
+      } finally {
         setIsSaving(false);
+      }
     }
-  };
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[240px] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="grid lg:grid-cols-2 gap-8 items-start pb-20">
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Bot className="text-primary"/> AI Personality</CardTitle>
-            <CardDescription>Define how your assistant sounds and interacts.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="assistant-name">Display Name</Label>
-                <Input id="assistant-name" {...form.register('assistantName')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="personality">Base Personality</Label>
-                <Controller name="personality" control={form.control} render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger><SelectValue/></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Professional & Helpful">Professional & Helpful</SelectItem>
-                            <SelectItem value="Friendly & Casual">Friendly & Casual</SelectItem>
-                            <SelectItem value="Expert & Knowledgeable">Expert & Knowledgeable</SelectItem>
-                            <SelectItem value="Enthusiastic & Energetic">Enthusiastic & Energetic</SelectItem>
-                        </SelectContent>
-                    </Select>
-                )}/>
+    <form
+      onSubmit={handleSave}
+      className="space-y-6 pb-24"
+    >
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5 text-primary" />
+            Ari Experience
+          </CardTitle>
+          <CardDescription>
+            Configure retailer-wide defaults for how Ari
+            communicates with shoppers.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">
+                  Governed by iNteract
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  These preferences cannot override mandatory
+                  iNteract AI Governance, product evidence,
+                  privacy, neutrality, safety, or shopper
+                  autonomy.
+                </p>
               </div>
             </div>
-             <div className="grid sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <Label>Preferred Tone</Label>
-                    <Controller name="tone" control={form.control} render={({ field }) => (
-                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col gap-2 mt-2">
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="Formal" id="t-formal"/><Label htmlFor="t-formal" className="font-normal">Formal</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="Conversational" id="t-convo"/><Label htmlFor="t-convo" className="font-normal">Conversational</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="Warm & Personal" id="t-warm"/><Label htmlFor="t-warm" className="font-normal">Warm & Personal</Label></div>
-                        </RadioGroup>
-                    )}/>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="language">Primary Language</Label>
-                    <Select {...form.register('language')}>
-                        <SelectTrigger id="language"><SelectValue/></SelectTrigger>
-                        <SelectContent><SelectItem value="en">English (Global)</SelectItem><SelectItem value="af">Afrikaans</SelectItem><SelectItem value="zu">Zulu</SelectItem></SelectContent>
-                    </Select>
-                </div>
-             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Zap className="text-primary"/> Strategy & Strategy</CardTitle>
-                <CardDescription>Control recommendation and engagement triggers.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <Tabs defaultValue="recommendations" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-                        <TabsTrigger value="chat">Chat Experience</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="recommendations" className="pt-4 space-y-6">
-                        <div className="space-y-3">
-                            <Label className="font-bold">Recommendation Logic</Label>
-                            <Controller name="recommendationStrategy" control={form.control} render={({ field }) => (
-                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col gap-2">
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="similar" id="r-sim"/><Label htmlFor="r-sim" className="font-normal">Similar products</Label></div>
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="ai-personalized" id="r-ai"/><Label htmlFor="r-ai" className="font-normal">AI-powered (Personalized)</Label></div>
-                                </RadioGroup>
-                            )}/>
-                        </div>
-                        <div className="space-y-4">
-                            <Label>Items to show: {watchedConfig.recommendationCount}</Label>
-                            <Controller name="recommendationCount" control={form.control} render={({ field }) => (
-                                <Slider value={[field.value]} onValueChange={(v) => field.onChange(v[0])} min={1} max={6} step={1} />
-                            )}/>
-                        </div>
-                    </TabsContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Identity & Communication</CardTitle>
+          <CardDescription>
+            Define Ari&apos;s retailer-wide shopper-facing
+            communication defaults.
+          </CardDescription>
+        </CardHeader>
 
-                    <TabsContent value="chat" className="pt-4 space-y-4">
-                         <div className="space-y-2">
-                            <Label htmlFor="welcome-msg">Welcome Message (Max 200)</Label>
-                            <Textarea id="welcome-msg" {...form.register('welcomeMessage')} rows={3} />
-                         </div>
-                         <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
-                            <Label htmlFor="enable-handoff" className="text-xs">Enable Human Handoff</Label>
-                            <Controller name="enableHandoff" control={form.control} render={({ field }) => (<Switch id="enable-handoff" checked={field.value} onCheckedChange={field.onChange}/>)}/>
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-        </Card>
-      </div>
+        <CardContent className="space-y-6">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="assistantName">
+                Display Name
+              </Label>
+              <Input
+                id="assistantName"
+                maxLength={60}
+                {...form.register('assistantName')}
+              />
+            </div>
 
-      <div>
-        <LivePreviewPanel config={watchedConfig} />
-      </div>
+            <div className="space-y-2">
+              <Label>Language</Label>
+              <Input
+                value="English"
+                disabled
+                aria-label="Ari language"
+              />
+              <p className="text-xs text-muted-foreground">
+                English is the supported Ari language for v1.
+              </p>
+            </div>
+          </div>
 
-      <div className="lg:col-span-2 flex justify-end sticky bottom-0 bg-background/90 backdrop-blur-md p-6 border-t -mx-8 -mb-8 z-50 shadow-2xl">
-        <Button onClick={handleSave} disabled={isSaving} className="font-black uppercase text-xs tracking-widest px-12 h-12 shadow-xl gap-2">
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}
-            Save Ari Ecosystem
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Personality</Label>
+              <Controller
+                name="personality"
+                control={form.control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PROFESSIONAL_HELPFUL">
+                        Professional &amp; Helpful
+                      </SelectItem>
+                      <SelectItem value="FRIENDLY_APPROACHABLE">
+                        Friendly &amp; Approachable
+                      </SelectItem>
+                      <SelectItem value="EXPERT_INFORMATIVE">
+                        Expert &amp; Informative
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tone</Label>
+              <Controller
+                name="tone"
+                control={form.control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FORMAL">
+                        Formal
+                      </SelectItem>
+                      <SelectItem value="CONVERSATIONAL">
+                        Conversational
+                      </SelectItem>
+                      <SelectItem value="WARM">
+                        Warm
+                      </SelectItem>
+                      <SelectItem value="CONCISE">
+                        Concise
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="brandVoice">
+              Brand Voice
+            </Label>
+            <Textarea
+              id="brandVoice"
+              rows={4}
+              maxLength={500}
+              placeholder="Describe the communication style Ari should reflect for your retail brand."
+              {...form.register('brandVoice')}
+            />
+            <p className="text-xs text-muted-foreground">
+              Communication preference only. It cannot change
+              Ari&apos;s evidence or governance requirements.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="welcomeMessage">
+              Welcome Message
+            </Label>
+            <Textarea
+              id="welcomeMessage"
+              rows={3}
+              maxLength={200}
+              {...form.register('welcomeMessage')}
+            />
+            <p className="text-xs text-muted-foreground">
+              Shopper-facing greeting. Maximum 200 characters.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Recommendation Presentation
+          </CardTitle>
+          <CardDescription>
+            Control how verified recommendation information is
+            presented. These settings do not create product
+            evidence.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>
+                Maximum Recommendations
+              </Label>
+              <span className="text-sm font-semibold">
+                {recommendationCount}
+              </span>
+            </div>
+
+            <Controller
+              name="recommendationCount"
+              control={form.control}
+              render={({ field }) => (
+                <Slider
+                  value={[field.value]}
+                  onValueChange={(value) =>
+                    field.onChange(value[0])
+                  }
+                  min={1}
+                  max={6}
+                  step={1}
+                />
+              )}
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-1">
+              <Label htmlFor="includePrice">
+                Include Verified Price
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Show price only when verified price evidence is
+                available.
+              </p>
+            </div>
+
+            <Controller
+              name="includePrice"
+              control={form.control}
+              render={({ field }) => (
+                <Switch
+                  id="includePrice"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-1">
+              <Label htmlFor="showAvailability">
+                Show Verified Availability
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Show availability only when authoritative
+                availability evidence exists.
+              </p>
+            </div>
+
+            <Controller
+              name="showAvailability"
+              control={form.control}
+              render={({ field }) => (
+                <Switch
+                  id="showAvailability"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Activation Context</CardTitle>
+          <CardDescription>
+            Retailer-wide Ari defaults and Activation-specific
+            shopper context remain separate.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Activation-specific Ari context is managed separately
+            in QR Management. Configuration precedence applies
+            only where explicitly supported by the Ari runtime.
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="sticky bottom-0 flex justify-end border-t bg-background/90 p-4 backdrop-blur-md">
+        <Button
+          type="submit"
+          disabled={isSaving || !user?.retailerId}
+          className="gap-2"
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          Save Ari Configuration
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

@@ -32,16 +32,21 @@ jest.mock('@/lib/sponsored-media-eligibility', () => ({
   establishSponsoredMediaEligibility: jest.fn(),
 }));
 
-import { ai } from '@/ai/genkit';
+jest.mock('@/lib/ai-governance/resolve-effective-ai-governance', () => ({
+  resolveEffectiveAiGovernance: jest.fn(),
+}));
+
 import { getDb } from '@/lib/firebase-admin';
 import { resolveProductionQr } from '@/lib/qr-resolution';
 import { establishSponsoredMediaEligibility } from '@/lib/sponsored-media-eligibility';
+import { resolveEffectiveAiGovernance } from '@/lib/ai-governance/resolve-effective-ai-governance';
 import { getScanInteraction } from './get-scan-interaction';
 
-const mockGenerate = ai.generate as jest.Mock;
 const mockGetDb = getDb as jest.Mock;
 const mockResolveProductionQr = resolveProductionQr as jest.Mock;
 const mockEligibility = establishSponsoredMediaEligibility as jest.Mock;
+const mockResolveEffectiveAiGovernance =
+  resolveEffectiveAiGovernance as jest.Mock;
 
 function resolvedQr(sponsoredMedia: Record<string, unknown>) {
   return {
@@ -135,10 +140,8 @@ describe('getScanInteraction sponsored-media eligibility bootstrap', () => {
     const store = firestore();
     mockGetDb.mockReturnValue(store.db);
 
-    mockGenerate.mockResolvedValue({
-      output: {
-        messages: ['Hello! Ari here.'],
-      },
+    mockResolveEffectiveAiGovernance.mockResolvedValue({
+      retailerAdditiveRules: [],
     });
   });
 
@@ -178,6 +181,65 @@ describe('getScanInteraction sponsored-media eligibility bootstrap', () => {
 
     expect(result.sponsoredMedia).not.toHaveProperty('partnerId');
     expect(result.sponsoredMedia).not.toHaveProperty('creativeId');
+  });
+
+  it('projects authoritative retailer additive governance into shopper presentation', async () => {
+    mockResolveProductionQr.mockResolvedValue(
+      resolvedQr({
+        partnerId: 'partner_nike',
+        creativeId: 'creative_nike_video',
+        format: 'VIDEO',
+        sponsorName: 'Nike',
+        mediaUrl: 'https://example.com/nike.mp4',
+      })
+    );
+
+    mockEligibility.mockResolvedValue({
+      eventId: 'sme_governance_1',
+      presentationId: 'smp_governance_1',
+    });
+
+    mockResolveEffectiveAiGovernance.mockResolvedValue({
+      retailerAdditiveRules: [
+        {
+          ruleType: 'TRANSPARENCY_REQUIREMENT',
+          value: 'You are interacting with an AI shopping assistant.',
+        },
+        {
+          ruleType: 'SPONSORSHIP_DISCLOSURE_REQUIREMENT',
+          value: [
+            'Sponsored content may reflect a commercial relationship.',
+          ],
+        },
+        {
+          ruleType: 'COMPLAINT_RECOURSE_REQUIREMENT',
+          value: 'Contact the retailer if you wish to raise a complaint.',
+        },
+      ],
+    });
+
+    const result = await getScanInteraction({
+      qrId: 'qr_nike',
+    });
+
+    expect(mockResolveEffectiveAiGovernance).toHaveBeenCalledWith(
+      'ARI_SCAN_INTERACTION',
+      'retailer_a'
+    );
+
+    expect(
+      result.shopperPresentation.governanceDisclosures
+    ).toEqual({
+      transparency: [
+        'You are interacting with an AI shopping assistant.',
+      ],
+      sponsorship: [
+        'Sponsored content may reflect a commercial relationship.',
+      ],
+      complaintRecourse: [
+        'Contact the retailer if you wish to raise a complaint.',
+      ],
+    });
   });
 
   it('preserves legacy 15A media without establishing eligibility', async () => {

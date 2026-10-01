@@ -120,6 +120,11 @@ const canonicalResult = {
       assistantName: 'Ari',
       welcomeMessage: 'How can I help you today?',
     },
+    governanceDisclosures: {
+      transparency: [],
+      sponsorship: [],
+      complaintRecourse: [],
+    },
   },
   sponsoredMedia: {
     format: 'BRAND_STRIP' as const,
@@ -530,6 +535,83 @@ describe('QrScanInteraction sponsored VIDEO lifecycle measurement', () => {
     ]);
 
     expect(mockBeginQrShopperSession).not.toHaveBeenCalled();
+  });
+
+  it('renders additive retailer governance disclosures deterministically', async () => {
+    const governedResult = {
+      ...canonicalResult,
+      shopperPresentation: {
+        ...canonicalResult.shopperPresentation,
+        governanceDisclosures: {
+          transparency: [
+            'You are interacting with an AI shopping assistant.',
+          ],
+          sponsorship: [
+            'Sponsored content may reflect a commercial relationship.',
+          ],
+          complaintRecourse: [
+            'Contact the retailer if you wish to raise a complaint.',
+          ],
+        },
+      },
+    };
+
+    mockGetScanInteraction.mockResolvedValue(
+      governedResult as Awaited<ReturnType<typeof getScanInteraction>>
+    );
+
+    render(<QrScanInteraction qrId="qr-governance-test" />);
+
+    const governance = await screen.findByLabelText(
+      'AI transparency and governance information'
+    );
+
+    expect(governance).toHaveTextContent(
+      'You are interacting with an AI shopping assistant.'
+    );
+    expect(governance).toHaveTextContent(
+      'Sponsored content may reflect a commercial relationship.'
+    );
+    expect(governance).toHaveTextContent(
+      'Contact the retailer if you wish to raise a complaint.'
+    );
+  });
+
+  it('does not render sponsorship governance text without sponsored media', async () => {
+    const governedResult = {
+      ...canonicalResult,
+      sponsoredMedia: undefined,
+      shopperPresentation: {
+        ...canonicalResult.shopperPresentation,
+        governanceDisclosures: {
+          transparency: [],
+          sponsorship: [
+            'Sponsored content may reflect a commercial relationship.',
+          ],
+          complaintRecourse: [],
+        },
+      },
+    };
+
+    mockGetScanInteraction.mockResolvedValue(
+      governedResult as Awaited<ReturnType<typeof getScanInteraction>>
+    );
+
+    render(<QrScanInteraction qrId="qr-governance-no-sponsor" />);
+
+    await screen.findByTestId('canonical-shopper-renderer');
+
+    expect(
+      screen.queryByText(
+        'Sponsored content may reflect a commercial relationship.'
+      )
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByLabelText(
+        'AI transparency and governance information'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('does not emit canonical playback events for legacy 15A video', async () => {

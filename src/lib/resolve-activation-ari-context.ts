@@ -10,11 +10,31 @@ export type ActivationAriContext = {
   greeting?: string;
 };
 
+const ARI_ACTIVATION_CONTEXT_LIMITS = {
+  shopperObjective: 500,
+  persona: 200,
+  tone: 200,
+} as const;
+
 function normalizeOptionalContext(
   value: string | undefined
 ): string | undefined {
   const normalized = value?.trim();
   return normalized ? normalized : undefined;
+}
+
+function assertBoundedAriContext(
+  field: keyof typeof ARI_ACTIVATION_CONTEXT_LIMITS,
+  value: string | undefined
+): void {
+  if (
+    value !== undefined &&
+    value.length > ARI_ACTIVATION_CONTEXT_LIMITS[field]
+  ) {
+    throw new Error(
+      `ACTIVATION_CONTEXT_DENIED:${field.toUpperCase()}_TOO_LONG`
+    );
+  }
 }
 
 export async function resolveActivationAriContext(
@@ -58,18 +78,27 @@ export async function resolveActivationAriContext(
     throw new Error('ACTIVATION_CONTEXT_DENIED:TENANT_IDENTITY_MISMATCH');
   }
 
+  const shopperObjective = activation.shopperObjective.trim();
+  const persona = normalizeOptionalContext(
+    activation.experienceConfig.persona
+  );
+  const tone = normalizeOptionalContext(
+    activation.experienceConfig.tone
+  );
+  const greeting = normalizeOptionalContext(
+    activation.experienceConfig.greeting
+  );
+
+  assertBoundedAriContext('shopperObjective', shopperObjective);
+  assertBoundedAriContext('persona', persona);
+  assertBoundedAriContext('tone', tone);
+
   return {
     activationId: activation.activationId,
     retailerId: activation.retailerId,
-    shopperObjective: activation.shopperObjective,
-    ...(normalizeOptionalContext(activation.experienceConfig.persona)
-      ? { persona: normalizeOptionalContext(activation.experienceConfig.persona) }
-      : {}),
-    ...(normalizeOptionalContext(activation.experienceConfig.tone)
-      ? { tone: normalizeOptionalContext(activation.experienceConfig.tone) }
-      : {}),
-    ...(normalizeOptionalContext(activation.experienceConfig.greeting)
-      ? { greeting: normalizeOptionalContext(activation.experienceConfig.greeting) }
-      : {}),
+    shopperObjective,
+    ...(persona ? { persona } : {}),
+    ...(tone ? { tone } : {}),
+    ...(greeting ? { greeting } : {}),
   };
 }

@@ -15,6 +15,13 @@ jest.mock(
   }),
 );
 
+jest.mock(
+  '@/lib/ai-governance/resolve-effective-ai-governance',
+  () => ({
+    resolveEffectiveAiGovernance: jest.fn(),
+  }),
+);
+
 jest.mock('@/lib/firebase-admin', () => ({
   getDb: jest.fn(() => null),
   admin: {},
@@ -57,8 +64,10 @@ jest.mock('@/lib/resolve-activation-ari-context', () => ({
 }));
 
 import { ai } from '@/ai/genkit';
+import { buildFactContext } from '@/ai/fact-context';
 import { productChat } from '@/ai/flows/product-chat-flow';
 import { resolveActiveAiGovernance } from '@/lib/ai-governance/resolve-active-ai-governance';
+import { resolveEffectiveAiGovernance } from '@/lib/ai-governance/resolve-effective-ai-governance';
 import {
   createDefaultAriConfiguration,
   resolveAriConfiguration,
@@ -68,8 +77,11 @@ import { deriveShopperSessionAuthority } from '@/lib/shopper-session-authority';
 import { resolveActivationAriContext } from '@/lib/resolve-activation-ari-context';
 
 const mockGenerate = ai.generate as jest.Mock;
+const mockBuildFactContext = buildFactContext as jest.Mock;
 const mockResolveActiveAiGovernance =
   resolveActiveAiGovernance as jest.Mock;
+const mockResolveEffectiveAiGovernance =
+  resolveEffectiveAiGovernance as jest.Mock;
 const mockCreateDefaultAriConfiguration =
   createDefaultAriConfiguration as jest.Mock;
 const mockResolveAriConfiguration =
@@ -116,6 +128,14 @@ describe('productChat governance boundary', () => {
       activationId: 'activation-a',
       retailerId: 'retailer-a',
       shopperObjective: 'Help the shopper make an informed choice.',
+    });
+
+    mockResolveEffectiveAiGovernance.mockResolvedValue({
+      ...authorizedGovernance,
+      retailerId: 'retailer-a',
+      retailerGovernanceVersion: null,
+      retailerGovernanceApplied: false,
+      retailerAdditiveRules: [],
     });
   });
 
@@ -297,10 +317,78 @@ describe('productChat governance boundary', () => {
         })
       );
 
+    expect(mockResolveEffectiveAiGovernance)
+      .toHaveBeenCalledWith(
+        'ARI_PRODUCT_CHAT',
+        'retailer-authoritative'
+      );
+
+    expect(mockResolveActiveAiGovernance)
+      .not.toHaveBeenCalled();
+
+    expect(mockResolveEffectiveAiGovernance)
+      .toHaveBeenCalledWith(
+        'ARI_PRODUCT_CHAT',
+        'retailer-authoritative'
+      );
+
+    expect(mockResolveActiveAiGovernance)
+      .not.toHaveBeenCalled();
+
     expect(mockResolveAriConfiguration)
       .toHaveBeenCalledWith(
         'retailer-authoritative'
       );
+  });
+
+  it('grounds product evidence from the authoritative session GTIN when caller GTIN is absent', async () => {
+    const sessionData = {
+      sessionId: 'session-a',
+      retailerId: 'retailer-authoritative',
+      entryGtin: '06009188000332',
+    };
+
+    mockGetDb.mockReturnValue({
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          get: jest.fn().mockResolvedValue({
+            exists: true,
+            data: () => sessionData,
+          }),
+        })),
+      })),
+    });
+
+    mockDeriveShopperSessionAuthority.mockReturnValue({
+      sessionId: 'session-a',
+      retailerId: 'retailer-authoritative',
+      activationId: 'activation-a',
+      gtin: '06009188000332',
+      shopperId: 'guest',
+    });
+
+    mockBuildFactContext.mockResolvedValue({
+      exists: false,
+    });
+
+    mockGenerate.mockRejectedValue(
+      new Error('MODEL_TEST_STOP')
+    );
+
+    await productChat({
+      sessionId: 'session-a',
+      retailerId: 'retailer-authoritative',
+      history: [
+        {
+          role: 'user',
+          content: 'Tell me about this product.',
+        },
+      ],
+      hasConsent: false,
+    });
+
+    expect(mockBuildFactContext)
+      .toHaveBeenCalledWith('06009188000332');
   });
 
   it('fails closed on tenant mismatch before configuration or model execution', async () => {

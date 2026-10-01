@@ -309,6 +309,41 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
         </div>
       )}
 
+      {data?.shopperPresentation?.governanceDisclosures && (
+        data.shopperPresentation.governanceDisclosures.transparency.length > 0 ||
+        data.shopperPresentation.governanceDisclosures.complaintRecourse.length > 0 ||
+        (
+          data?.sponsoredMedia &&
+          data.shopperPresentation.governanceDisclosures.sponsorship.length > 0
+        )
+      ) && (
+        <aside
+          className="shrink-0 border-t bg-background px-4 py-3"
+          aria-label="AI transparency and governance information"
+        >
+          <div className="mx-auto max-w-md space-y-2 text-xs text-muted-foreground">
+            {data.shopperPresentation.governanceDisclosures.transparency.map(
+              (disclosure, index) => (
+                <p key={`transparency-${index}`}>{disclosure}</p>
+              )
+            )}
+
+            {data.sponsoredMedia &&
+              data.shopperPresentation.governanceDisclosures.sponsorship.map(
+                (disclosure, index) => (
+                  <p key={`sponsorship-${index}`}>{disclosure}</p>
+                )
+              )}
+
+            {data.shopperPresentation.governanceDisclosures.complaintRecourse.map(
+              (disclosure, index) => (
+                <p key={`recourse-${index}`}>{disclosure}</p>
+              )
+            )}
+          </div>
+        </aside>
+      )}
+
       {data?.sponsoredMedia && !sponsoredMediaDismissed && (
         <aside
           ref={sponsoredMediaRef}

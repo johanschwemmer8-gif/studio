@@ -12,13 +12,13 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import { randomUUID } from 'node:crypto';
 
 import { admin, getDb } from '@/lib/firebase-admin';
 import { resolveProductionQr } from '@/lib/qr-resolution';
 import { QrExposureSchema } from '@/lib/schemas/qr-exposure';
 import { establishSponsoredMediaEligibility } from '@/lib/sponsored-media-eligibility';
+import { resolveEffectiveAiGovernance } from '@/lib/ai-governance/resolve-effective-ai-governance';
 import {
   createDefaultAriConfiguration,
   resolveAriConfiguration,
@@ -29,46 +29,6 @@ import {
   GetScanInteractionOutputSchema,
   type GetScanInteractionOutput,
 } from '@/lib/schemas/scan-interaction';
-
-const InteractionPromptInputSchema = z.object({
-  retailerName: z.string(),
-  campaignName: z.string(),
-  persona: z.string().optional(),
-  tone: z.string().optional(),
-  shopperObjective: z.string(),
-  shopperName: z.string().optional(),
-  pastInterests: z.array(z.string()).optional(),
-});
-
-const InteractionPromptOutputSchema = z.object({
-  messages: z
-    .array(z.string())
-    .max(3, 'Maximum of 3 messages')
-    .describe('Personalized continuity messages.'),
-});
-
-const prompt = ai.definePrompt({
-  name: 'getScanInteractionPrompt',
-  input: { schema: InteractionPromptInputSchema },
-  output: { schema: InteractionPromptOutputSchema },
-  prompt: `You are Ari, the world-class Continuity Assistant for {{retailerName}} Decision Intelligence.
-Your goal is to provide expert Lifecycle Guidance. You are not just selling; you are managing a relationship.
-A shopper has entered the experience for "{{campaignName}}".
-
-{{#if shopperName}}
-SHOPPER RECOGNIZED: {{shopperName}}.
-CONTINUITY LOG: They have previously explored these categories: {{#each pastInterests}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
-Acknowledge them by name and reinforce their persistent relationship with the brand.
-{{else}}
-GUEST SHOPPER: Welcome the shopper and focus on useful buying guidance.
-{{/if}}
-
-{{#if persona}}Activation communication context: {{persona}}.{{/if}}
-{{#if tone}}Activation communication tone: {{tone}}.{{/if}}
-Shopper Objective: {{shopperObjective}}.
-
-Generate 1-3 short, engaging messages. Be brief and conversational. Identify yourself as Ari if introducing yourself.`,
-});
 
 function resolveMediaType(
   mediaType: string | undefined
@@ -107,6 +67,11 @@ const DEFAULT_SHOPPER_PRESENTATION: GetScanInteractionOutput['shopperPresentatio
   ariPresentation: {
     assistantName: 'Ari',
     welcomeMessage: 'How can I help you today?',
+  },
+  governanceDisclosures: {
+    transparency: [],
+    sponsorship: [],
+    complaintRecourse: [],
   },
 };
 
@@ -172,6 +137,8 @@ function normalizeShopperPresentation(
       headerBackgroundColor,
     },
     ariPresentation: DEFAULT_SHOPPER_PRESENTATION.ariPresentation,
+    governanceDisclosures:
+      DEFAULT_SHOPPER_PRESENTATION.governanceDisclosures,
   };
 }
 
@@ -302,6 +269,36 @@ const getScanInteractionFlow = ai.defineFlow(
         ariConfiguration.welcomeMessage,
     };
 
+    const governanceDisclosures = {
+      transparency: [] as string[],
+      sponsorship: [] as string[],
+      complaintRecourse: [] as string[],
+    };
+
+    const effectiveGovernance =
+      await resolveEffectiveAiGovernance(
+        'ARI_SCAN_INTERACTION',
+        qr.retailerId
+      );
+
+    for (const rule of effectiveGovernance.retailerAdditiveRules) {
+      const values = Array.isArray(rule.value)
+        ? rule.value
+        : [rule.value];
+
+      if (rule.ruleType === 'TRANSPARENCY_REQUIREMENT') {
+        governanceDisclosures.transparency.push(...values);
+      } else if (
+        rule.ruleType === 'SPONSORSHIP_DISCLOSURE_REQUIREMENT'
+      ) {
+        governanceDisclosures.sponsorship.push(...values);
+      } else if (
+        rule.ruleType === 'COMPLAINT_RECOURSE_REQUIREMENT'
+      ) {
+        governanceDisclosures.complaintRecourse.push(...values);
+      }
+    }
+
     let sponsoredMediaPresentationId: string | undefined;
 
     if (
@@ -376,68 +373,27 @@ const getScanInteractionFlow = ai.defineFlow(
       console.warn('[Retailer Context] Metadata unavailable.');
     }
 
-    const activationPersona =
-      experienceConfig.persona?.trim() || undefined;
+    return {
+      messages: [
+        'Hello! Ari here.',
+        "I'm ready to help with your shopping decision.",
+      ],
+      destinationUrl: resolveDestination(experienceConfig),
+      retailerLogoUrl,
+      retailerId: qr.retailerId,
+      activationId: qr.activationId,
+      ...(exposureGtin ? { gtin: exposureGtin } : {}),
+      shopperPresentation: {
+        ...shopperPresentation,
+        ariPresentation,
+        governanceDisclosures,
+      },
+      mediaType: resolveMediaType(experienceConfig.mediaType),
+      mediaUrl: experienceConfig.mediaUrl,
+      headline: experienceConfig.headline,
+      subhead: experienceConfig.subhead,
+      sponsoredMedia: shopperSponsoredMedia,
 
-    const activationTone =
-      experienceConfig.tone?.trim() || undefined;
-
-    const shopperObjective =
-      activation.shopperObjective;
-
-    try {
-      const { output } = await prompt({
-        retailerName,
-        campaignName: campaign.name,
-        persona: activationPersona,
-        tone: activationTone,
-        shopperObjective,
-        shopperName,
-        pastInterests,
-      });
-
-      return {
-        messages:
-          output?.messages || [
-            "Hello! I'm Ari.",
-            "I'm ready to help with your shopping decision.",
-          ],
-        destinationUrl: resolveDestination(experienceConfig),
-        retailerLogoUrl,
-        retailerId: qr.retailerId,
-        activationId: qr.activationId,
-        ...(exposureGtin ? { gtin: exposureGtin } : {}),
-        shopperPresentation: {
-          ...shopperPresentation,
-          ariPresentation,
-        },
-        mediaType: resolveMediaType(experienceConfig.mediaType),
-        mediaUrl: experienceConfig.mediaUrl,
-        headline: experienceConfig.headline,
-        subhead: experienceConfig.subhead,
-        sponsoredMedia: shopperSponsoredMedia,
-      };
-    } catch {
-      return {
-        messages: [
-          'Hello! Ari here.',
-          "I'm ready to help with your shopping decision.",
-        ],
-        destinationUrl: resolveDestination(experienceConfig),
-        retailerLogoUrl,
-        retailerId: qr.retailerId,
-        activationId: qr.activationId,
-        ...(exposureGtin ? { gtin: exposureGtin } : {}),
-        shopperPresentation: {
-          ...shopperPresentation,
-          ariPresentation,
-        },
-        mediaType: resolveMediaType(experienceConfig.mediaType),
-        mediaUrl: experienceConfig.mediaUrl,
-        headline: experienceConfig.headline,
-        subhead: experienceConfig.subhead,
-        sponsoredMedia: shopperSponsoredMedia,
-      };
     }
   }
 );

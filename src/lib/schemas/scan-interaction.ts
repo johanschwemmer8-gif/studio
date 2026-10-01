@@ -55,6 +55,15 @@ export const GetScanInteractionOutputSchema = z.object({
       assistantName: z.string().trim().min(1),
       welcomeMessage: z.string().trim().min(1),
     }),
+    governanceDisclosures: z.object({
+      transparency: z.array(z.string().trim().min(1)).default([]),
+      sponsorship: z.array(z.string().trim().min(1)).default([]),
+      complaintRecourse: z.array(z.string().trim().min(1)).default([]),
+    }).default({
+      transparency: [],
+      sponsorship: [],
+      complaintRecourse: [],
+    }),
   }),
 
   // Fields for campaign media content

@@ -16,6 +16,7 @@ import {
   type ActivationAriContext,
 } from '@/lib/resolve-activation-ari-context';
 import { resolveActiveAiGovernance } from '@/lib/ai-governance/resolve-active-ai-governance';
+import { resolveEffectiveAiGovernance } from '@/lib/ai-governance/resolve-effective-ai-governance';
 import {
   createDefaultAriConfiguration,
   resolveAriConfiguration,
@@ -85,9 +86,14 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
   }
 
   // 1. Fact Context Retrieval (Authoritative Source)
-  if (input.gtin) {
+  // When a canonical Shopper Session exists, its resolved GTIN is
+  // authoritative for product evidence. Caller GTIN is only used
+  // when no authoritative session exists.
+  const evidenceGtin = sessionAuthority?.gtin || input.gtin;
+
+  if (evidenceGtin && evidenceGtin !== '00000000000000') {
       try {
-          const factContext = await buildFactContext(input.gtin);
+          const factContext = await buildFactContext(evidenceGtin);
           if (factContext.exists) {
               factContextStr = `
               VERIFIED PRODUCT FACTS (Authoritative Source: ${factContext.provenance.source}):
@@ -99,7 +105,7 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
               - Description: ${factContext.verifiedFacts.description}
               `;
           } else {
-              factContextStr = "PRODUCT IDENTITY UNVERIFIED: No canonical record found for GTIN " + input.gtin + ". Do not provide specifications.";
+              factContextStr = "PRODUCT IDENTITY UNVERIFIED: No canonical record found for GTIN " + evidenceGtin + ". Do not provide specifications.";
           }
       } catch (e) {
           factContextStr = "SYSTEM LATENCY: Authoritative product data unavailable. Do not manufacture details.";
@@ -114,9 +120,14 @@ export async function productChat(input: ProductChatInput): Promise<ProductChatO
     content: [{ text: msg.content }],
   }));
 
-  const governance = await resolveActiveAiGovernance(
-    'ARI_PRODUCT_CHAT'
-  );
+  const governance = sessionAuthority
+    ? await resolveEffectiveAiGovernance(
+        'ARI_PRODUCT_CHAT',
+        sessionAuthority.retailerId
+      )
+    : await resolveActiveAiGovernance(
+        'ARI_PRODUCT_CHAT'
+      );
 
   if (!governance.providerModelIdentifier) {
     throw new Error(

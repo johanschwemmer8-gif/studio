@@ -127,6 +127,64 @@ describe('resolveActivationAriContext', () => {
     });
   });
 
+  test('rejects an oversized shopper objective', async () => {
+    firebaseAdminMocks.get.mockResolvedValue({
+      exists: true,
+      data: () =>
+        activation({
+          shopperObjective: 'x'.repeat(501),
+        }),
+    });
+
+    await expect(
+      resolveActivationAriContext('activation_a', 'retailer_a')
+    ).rejects.toThrow(
+      'ACTIVATION_CONTEXT_DENIED:SHOPPEROBJECTIVE_TOO_LONG'
+    );
+  });
+
+  test('rejects an oversized Activation persona', async () => {
+    firebaseAdminMocks.get.mockResolvedValue({
+      exists: true,
+      data: () =>
+        activation({
+          experienceConfig: {
+            persona: 'x'.repeat(201),
+            tone: 'Warm and concise',
+            greeting: 'Hello',
+            scanDestination: 'AI',
+          },
+        }),
+    });
+
+    await expect(
+      resolveActivationAriContext('activation_a', 'retailer_a')
+    ).rejects.toThrow(
+      'ACTIVATION_CONTEXT_DENIED:PERSONA_TOO_LONG'
+    );
+  });
+
+  test('rejects an oversized Activation tone', async () => {
+    firebaseAdminMocks.get.mockResolvedValue({
+      exists: true,
+      data: () =>
+        activation({
+          experienceConfig: {
+            persona: 'Category specialist',
+            tone: 'x'.repeat(201),
+            greeting: 'Hello',
+            scanDestination: 'AI',
+          },
+        }),
+    });
+
+    await expect(
+      resolveActivationAriContext('activation_a', 'retailer_a')
+    ).rejects.toThrow(
+      'ACTIVATION_CONTEXT_DENIED:TONE_TOO_LONG'
+    );
+  });
+
   test('rejects tenant identity mismatch', async () => {
     firebaseAdminMocks.get.mockResolvedValue({
       exists: true,

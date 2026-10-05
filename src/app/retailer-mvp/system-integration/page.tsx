@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Cloud, Database, ShoppingBasket, KeyRound, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Cloud, Database, ShoppingBasket, Settings, ArrowLeft, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import ApiKeyManager from '@/components/dashboard/api-key-manager';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -38,7 +38,7 @@ export default function SystemIntegrationPage() {
       <Alert className="bg-primary/5 border-primary/10">
         <AlertTitle className="text-[10px] font-black uppercase tracking-widest text-primary">Integration Notice</AlertTitle>
         <AlertDescription className="text-xs">
-            These connections are currently in <strong>Demo Configuration</strong> mode. You can define your standard endpoints and API keys, but factual synchronization requires a production-tier infrastructure handshake.
+            These integrations are currently in <strong>Demo Configuration</strong> mode. You can define standard service endpoints and integration types, but credentials and factual synchronization require a production-tier infrastructure handshake.
         </AlertDescription>
       </Alert>
 
@@ -47,11 +47,11 @@ export default function SystemIntegrationPage() {
        <Card className="border-primary/10">
           <CardHeader>
               <CardTitle className="flex items-center gap-2 font-black text-lg">
-                  <KeyRound className="text-primary h-5 w-5" />
-                  API Access Management
+                  <Settings className="text-primary h-5 w-5" />
+                  Integration Configuration
               </CardTitle>
               <CardDescription className="text-xs">
-                  Generate secure keys to allow external systems to interact with your retail intelligence data.
+                  Define retailer-scoped POS, PIM and CRM service endpoints for production onboarding. Credentials are not collected in Demo Configuration mode.
               </CardDescription>
           </CardHeader>
           <CardContent>
@@ -68,12 +68,12 @@ export default function SystemIntegrationPage() {
                     Checkout Terminal
                 </CardTitle>
                 <CardDescription className="text-[10px] leading-tight mt-1">
-                    Manage the handshake with your Point-of-Sale system for GTIN-aligned transaction capture.
+                    Prepare your POS / ERP integration for future GTIN-aligned transaction data exchange.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Button asChild variant="outline" className="w-full text-[10px] font-bold uppercase tracking-widest">
-                  <Link href="/retailer-mvp/system-integration/pos">Configure POS Settings</Link>
+                  <Link href="/retailer-mvp/system-integration/pos">View POS Integration</Link>
                 </Button>
             </CardContent>
         </Card>
@@ -84,12 +84,12 @@ export default function SystemIntegrationPage() {
                     Product Data
                 </CardTitle>
                 <CardDescription className="text-[10px] leading-tight mt-1">
-                   Upload your product list or connect your catalog to start generating scannable digital links.
+                   Prepare your PIM / e-commerce integration for future authoritative product data exchange.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Button asChild variant="outline" className="w-full text-[10px] font-bold uppercase tracking-widest">
-                  <Link href="/retailer-mvp/system-integration/pim">Setup Product Connection</Link>
+                  <Link href="/retailer-mvp/system-integration/pim">View PIM Integration</Link>
                 </Button>
             </CardContent>
         </Card>
@@ -100,12 +100,12 @@ export default function SystemIntegrationPage() {
                     Customer Profiles
                 </CardTitle>
                 <CardDescription className="text-[10px] leading-tight mt-1">
-                    Connect your shopper data to enable personalized behavioral insights and loyalty rewards.
+                    Prepare your CRM / loyalty integration for future retailer-approved data exchange.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Button asChild variant="outline" className="w-full text-[10px] font-bold uppercase tracking-widest">
-                    <Link href="/retailer-mvp/system-integration/crm">Configure CRM Logic</Link>
+                    <Link href="/retailer-mvp/system-integration/crm">View CRM Integration</Link>
                 </Button>
             </CardContent>
         </Card>

@@ -64,10 +64,10 @@ const saveRetailerApiKeyFlow = ai.defineFlow(
       };
 
     } catch (error: any) {
-      console.error(`Failed to save API key for retailer ${authorizedRetailerId}:`, error);
+      console.error(`Failed to save integration configuration for retailer ${authorizedRetailerId}:`, error);
       return {
         success: false,
-        message: 'Failed to process integration security settings.',
+        message: 'Failed to save integration configuration.',
       };
     }
   }

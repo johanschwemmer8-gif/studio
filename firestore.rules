@@ -287,6 +287,17 @@ service cloud.firestore {
         );
     }
 
+    // --- APP CONNECTIONS ---
+
+    // Integration configuration is readable only by the owning retailer
+    // or a platform operator. Writes remain server-authoritative.
+    match /retailerIntegrations/{retailerId} {
+      allow read: if isPlatformOperator()
+        || isSameRetailer(retailerId);
+
+      allow write: if false;
+    }
+
     // --- BILLING & SUBSCRIPTIONS ---
 
     match /subscriptions/{retailerId} {

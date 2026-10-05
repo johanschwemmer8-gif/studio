@@ -46,6 +46,7 @@ export default function ApiKeyManager() {
   const { user } = useAuth();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [serviceName, setServiceName] = useState('');
   const [integrationType, setIntegrationType] = useState<'pos' | 'pim' | 'crm'>('pos');
@@ -80,7 +81,15 @@ export default function ApiKeyManager() {
                 status: 'configuration_pending',
               }));
             setApiKeys(keys);
+        } else {
+            setApiKeys([]);
         }
+        setLoadError(null);
+        setIsLoading(false);
+    }, (error) => {
+        console.error('[App Connections] Failed to load integration configurations:', error);
+        setApiKeys([]);
+        setLoadError('Unable to load integration configurations.');
         setIsLoading(false);
     });
 
@@ -207,6 +216,12 @@ export default function ApiKeyManager() {
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="animate-spin mx-auto text-primary opacity-20" /></TableCell></TableRow>
+            ) : loadError ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center h-24 text-destructive text-xs">
+                  {loadError}
+                </TableCell>
+              </TableRow>
             ) : apiKeys.length === 0 ? (
               <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground italic text-xs">No integration configurations defined.</TableCell></TableRow>
             ) : (

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
+import { manageShopperBasket } from '@/ai/flows/manage-shopper-basket';
 import {
   beginQrShopperSession,
   getScanInteraction,
@@ -22,6 +24,9 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
   const { user } = useAuth();
   const [data, setData] = useState<GetScanInteractionOutput | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [basketAdding, setBasketAdding] = useState(false);
+  const [basketAdded, setBasketAdded] = useState(false);
+  const [basketError, setBasketError] = useState<string | null>(null);
   const [sessionRetailerId, setSessionRetailerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sponsoredMediaDismissed, setSponsoredMediaDismissed] = useState(false);
@@ -226,6 +231,69 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     });
   };
 
+  const ensureShopperSession = async () => {
+    let activeSessionId = sessionId;
+    let activeRetailerId = sessionRetailerId;
+
+    if (!activeSessionId || !activeRetailerId) {
+      const session = await beginQrShopperSession({
+        qrCodeId: qrId,
+        ...(activeSessionId ? { sessionId: activeSessionId } : {}),
+      });
+
+      activeSessionId = session.sessionId;
+      activeRetailerId = session.retailerId;
+
+      setSessionId(session.sessionId);
+      setSessionRetailerId(session.retailerId);
+
+      sessionStorage.setItem(
+        'interact.currentShopperSessionId',
+        session.sessionId,
+      );
+    }
+
+    sessionStorage.setItem(
+      'interact.currentShopperSessionId',
+      activeSessionId,
+    );
+
+    return {
+      sessionId: activeSessionId,
+      retailerId: activeRetailerId,
+    };
+  };
+
+  const handleAddToBasket = async () => {
+    const gtin = data?.gtin;
+
+    if (!gtin || basketAdding) {
+      return;
+    }
+
+    setBasketAdding(true);
+    setBasketAdded(false);
+    setBasketError(null);
+
+    try {
+      const { sessionId: activeSessionId } =
+        await ensureShopperSession();
+
+      await manageShopperBasket({
+        command: 'ADD_ITEM',
+        sessionId: activeSessionId,
+        gtin,
+      });
+
+      setBasketAdded(true);
+    } catch (error) {
+      console.error('[Checkout Sync] Failed to add basket item:', error);
+      setBasketError('Could not add this product. Please try again.');
+    } finally {
+      setBasketAdding(false);
+    }
+  };
+
   const handleCanonicalConversation = async (
     message: string,
     history: Array<{ role: 'user' | 'model'; content: string }>,
@@ -242,21 +310,10 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
     const hasConsent =
       localStorage.getItem('consent-behavioral-analysis') !== 'false';
 
-    let activeSessionId = sessionId;
-    let activeRetailerId = sessionRetailerId;
-
-    if (!activeSessionId || !activeRetailerId) {
-      const session = await beginQrShopperSession({
-        qrCodeId: qrId,
-        ...(activeSessionId ? { sessionId: activeSessionId } : {}),
-      });
-
-      activeSessionId = session.sessionId;
-      activeRetailerId = session.retailerId;
-
-      setSessionId(session.sessionId);
-      setSessionRetailerId(session.retailerId);
-    }
+    const {
+      sessionId: activeSessionId,
+      retailerId: activeRetailerId,
+    } = await ensureShopperSession();
 
     const response = await productChat({
       ...(data?.gtin ? { gtin: data.gtin } : {}),
@@ -306,6 +363,59 @@ export default function QrScanInteraction({ qrId }: { qrId: string }) {
             initialMediaMode="none"
             onSubmitConversationMessage={handleCanonicalConversation}
           />
+        </div>
+      )}
+
+      {data?.gtin && (
+        <div
+          className="shrink-0 border-t bg-background px-4 py-3"
+          data-checkout-sync-basket-action="true"
+        >
+          <div className="mx-auto max-w-md">
+            <Button
+              type="button"
+              className="w-full"
+              onClick={handleAddToBasket}
+              disabled={basketAdding}
+            >
+              {basketAdding
+                ? 'Adding to Shopping Basket...'
+                : basketAdded
+                  ? 'Added — Add Another'
+                  : 'Add to Shopping Basket'}
+            </Button>
+
+            {basketAdded && !basketError && (
+              <div className="mt-2 space-y-2">
+                <p
+                  className="text-center text-xs text-muted-foreground"
+                  role="status"
+                >
+                  Product added to your Shopping Basket.
+                </p>
+
+                <Button
+                  asChild
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Link href="/shopper/basket">
+                    View Shopping Basket
+                  </Link>
+                </Button>
+              </div>
+            )}
+
+            {basketError && (
+              <p
+                className="mt-2 text-center text-xs text-destructive"
+                role="alert"
+              >
+                {basketError}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

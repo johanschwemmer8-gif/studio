@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,6 +84,165 @@ const organizationSchema = z.object({
 });
 
 export type OrganizationValues = z.infer<typeof organizationSchema>;
+
+
+type NetworkCsvRow = {
+  brand: string;
+  division: string;
+  region: string;
+  province: string;
+  area: string;
+  storeCode: string;
+  storeName: string;
+  address?: string;
+};
+
+const NETWORK_CSV_HEADERS = [
+  'brand',
+  'division',
+  'region',
+  'province',
+  'area',
+  'storeCode',
+  'storeName',
+  'address',
+] as const;
+
+function buildOrganizationFromCsv(
+  csvText: string,
+  current: OrganizationValues
+): OrganizationValues {
+  const parsed = Papa.parse<NetworkCsvRow>(csvText, {
+    header: true,
+    skipEmptyLines: 'greedy',
+    transformHeader: (header) => header.trim(),
+    transform: (value) => value.trim(),
+  });
+
+  if (parsed.errors.length > 0) {
+    const first = parsed.errors[0];
+    throw new Error(
+      `CSV parsing failed${first.row !== undefined ? ` on row ${first.row + 2}` : ''}: ${first.message}`
+    );
+  }
+
+  const fields = parsed.meta.fields ?? [];
+  const missingHeaders = NETWORK_CSV_HEADERS.filter(
+    (header) => header !== 'address' && !fields.includes(header)
+  );
+
+  if (missingHeaders.length > 0) {
+    throw new Error(`Missing required CSV columns: ${missingHeaders.join(', ')}`);
+  }
+
+  if (parsed.data.length === 0) {
+    throw new Error('The CSV does not contain any store rows.');
+  }
+
+  const storeCodes = new Set<string>();
+  const brands = new Map<string, OrganizationValues['brands'][number]>();
+
+  parsed.data.forEach((row, rowIndex) => {
+    const csvRowNumber = rowIndex + 2;
+
+    const requiredValues = {
+      brand: row.brand,
+      division: row.division,
+      region: row.region,
+      province: row.province,
+      area: row.area,
+      storeCode: row.storeCode,
+      storeName: row.storeName,
+    };
+
+    const missingValues = Object.entries(requiredValues)
+      .filter(([, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingValues.length > 0) {
+      throw new Error(
+        `Row ${csvRowNumber} is missing required values: ${missingValues.join(', ')}`
+      );
+    }
+
+    if (!SOUTH_AFRICAN_PROVINCES.includes(row.province as any)) {
+      throw new Error(
+        `Row ${csvRowNumber} has an invalid province: ${row.province}`
+      );
+    }
+
+    const normalizedStoreCode = row.storeCode.toLowerCase();
+    if (storeCodes.has(normalizedStoreCode)) {
+      throw new Error(
+        `Duplicate store code "${row.storeCode}" found on row ${csvRowNumber}.`
+      );
+    }
+    storeCodes.add(normalizedStoreCode);
+
+    const brandKey = row.brand.toLowerCase();
+    let brand = brands.get(brandKey);
+    if (!brand) {
+      brand = {
+        id: crypto.randomUUID(),
+        name: row.brand,
+        divisions: [],
+      };
+      brands.set(brandKey, brand);
+    }
+
+    let division = brand.divisions.find(
+      (item) => item.name.toLowerCase() === row.division.toLowerCase()
+    );
+    if (!division) {
+      division = {
+        id: crypto.randomUUID(),
+        name: row.division,
+        regions: [],
+      };
+      brand.divisions.push(division);
+    }
+
+    let region = division.regions.find(
+      (item) =>
+        item.name.toLowerCase() === row.region.toLowerCase() &&
+        item.province === row.province
+    );
+    if (!region) {
+      region = {
+        id: crypto.randomUUID(),
+        name: row.region,
+        province: row.province as (typeof SOUTH_AFRICAN_PROVINCES)[number],
+        areas: [],
+      };
+      division.regions.push(region);
+    }
+
+    let area = region.areas.find(
+      (item) => item.name.toLowerCase() === row.area.toLowerCase()
+    );
+    if (!area) {
+      area = {
+        id: crypto.randomUUID(),
+        name: row.area,
+        stores: [],
+      };
+      region.areas.push(area);
+    }
+
+    area.stores.push({
+      id: crypto.randomUUID(),
+      name: row.storeName,
+      code: row.storeCode,
+      address: row.address || undefined,
+    });
+  });
+
+  return {
+    retailerName: current.retailerName,
+    retailerLogoUrl: current.retailerLogoUrl,
+    brands: Array.from(brands.values()),
+  };
+}
 
 function ensureOrganizationIds(data: any): OrganizationValues {
   return {
@@ -185,6 +345,43 @@ export function OrganizationManager() {
       toast({ title: 'Logo Upload Failed', description: e.message || 'Firebase Storage upload failed.', variant: 'destructive' });
     } finally {
       setIsLogoUploading(false);
+    }
+  };
+
+  const handleDownloadCsvTemplate = () => {
+    const csv = `${NETWORK_CSV_HEADERS.join(',')}\n`;
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'interact-retail-network-template.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleNetworkCsvImport = async (file: File) => {
+    try {
+      const csvText = await file.text();
+      const imported = buildOrganizationFromCsv(csvText, form.getValues());
+
+      form.setValue('brands', imported.brands, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+
+      toast({
+        title: 'Network Import Ready',
+        description:
+          'The CSV has been validated and loaded for review. Click Save Network Structure to persist it.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Network Import Failed',
+        description:
+          error?.message || 'The CSV could not be validated.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -298,6 +495,42 @@ export function OrganizationManager() {
             Save Network Structure
         </Button>
       </div>
+
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle className="text-base">Import Network Structure</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Upload a complete retail network structure from CSV for larger rollouts.
+            The imported hierarchy will replace the current unsaved network structure
+            for review. Nothing is saved until you click Save Network Structure.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Input
+              type="file"
+              accept=".csv,text/csv"
+              className="sm:max-w-md"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void handleNetworkCsvImport(file);
+                event.target.value = '';
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDownloadCsvTemplate}
+            >
+              Download CSV Template
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Required columns: brand, division, region, province, area,
+            storeCode and storeName. Address is optional.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="space-y-4">
         {brandFields.map((brand, index) => (
@@ -491,14 +724,38 @@ function AreaNode({ brandIndex, divisionIndex, regionIndex, index, control, remo
         </div>
         <div className="pl-6 grid sm:grid-cols-2 gap-2">
           {storeFields.map((store, sIndex) => (
-            <div key={store.id} className="flex items-center gap-2 bg-muted/30 p-2 rounded-md group">
-               <Store className="h-3 w-3 text-muted-foreground shrink-0" />
-               <Input 
-                {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas.${index}.stores.${sIndex}.name`)} 
-                placeholder="Store Name" 
-                className="text-[11px] h-6 bg-transparent border-none focus-visible:ring-0 p-0"
+            <div
+              key={store.id}
+              className="sm:col-span-2 grid gap-2 rounded-md bg-muted/30 p-2 sm:grid-cols-[140px_1fr_1.5fr_auto]"
+            >
+              <div className="flex items-center gap-2">
+                <Store className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <Input
+                  {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas.${index}.stores.${sIndex}.code`, {
+                    required: 'Store code is required',
+                  })}
+                  placeholder="Store Code"
+                  className="h-8 text-xs"
+                />
+              </div>
+              <Input
+                {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas.${index}.stores.${sIndex}.name`)}
+                placeholder="Store Name"
+                className="h-8 text-xs"
               />
-              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => removeStore(sIndex)}>
+              <Input
+                {...register(`brands.${brandIndex}.divisions.${divisionIndex}.regions.${regionIndex}.areas.${index}.stores.${sIndex}.address`)}
+                placeholder="Address (optional)"
+                className="h-8 text-xs"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label="Remove store"
+                onClick={() => removeStore(sIndex)}
+              >
                 <Trash2 className="h-3 w-3" />
               </Button>
             </div>
@@ -508,7 +765,7 @@ function AreaNode({ brandIndex, divisionIndex, regionIndex, index, control, remo
             variant="outline" 
             size="sm" 
             className="text-[10px] h-6 border-dashed"
-            onClick={() => appendStore({ id: crypto.randomUUID(), name: '' })}
+            onClick={() => appendStore({ id: crypto.randomUUID(), name: '', code: '', address: '' })}
           >
             <PlusCircle className="mr-1 h-3 w-3" /> Add Store
           </Button>

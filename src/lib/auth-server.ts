@@ -54,7 +54,6 @@ function isPermissions(value: unknown): value is Permissions {
     'roi',
     'visualsReporting',
     'realTime',
-    'abTesting',
     'systemIntegration',
     'retailMediaNetwork',
     'manageUsers',

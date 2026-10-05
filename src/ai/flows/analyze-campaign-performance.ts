@@ -66,7 +66,7 @@ const analyzeCampaignPerformanceFlow = ai.defineFlow(
     return {
         findings: "- Promo Card CTR is observed at 8.2%, indicating visible engagement.\n- AI Assistant usage is recorded in 25.6% of sessions.\n- Recommendations module is associated with 70% of total engagement.\n- Time to first interaction is identified at an average of 18 seconds.",
         conclusions: "- The chatbot represents a common entry node, though direct association with value requires further trace.\n- The 18-second delay is identified as a point of potential session leakage.\n- Shopper patterns show higher frequency of interaction with structured recommendations than open-ended chat.",
-        recommendations: "- Evaluate simplifying the initial chatbot interaction to shorten time to first engagement.\n- Feature the 'Recommendations' module more prominently during the initial exposure phase.\n- A/B test promo card visuals to observe variations in the 8.2% CTR baseline."
+        recommendations: "- Evaluate simplifying the initial chatbot interaction to shorten time to first engagement.\n- Feature the 'Recommendations' module more prominently during the initial exposure phase."
     };
   }
 );

@@ -41,7 +41,6 @@ function authorizedContext(
       roi: false,
       visualsReporting: true,
       realTime: true,
-      abTesting: false,
       systemIntegration: false,
       retailMediaNetwork: false,
       manageUsers: false,

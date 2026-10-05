@@ -69,7 +69,6 @@ export type Permissions = {
   roi: boolean;
   visualsReporting: boolean;
   realTime: boolean;
-  abTesting: boolean;
   systemIntegration: boolean;
   retailMediaNetwork: boolean;
 

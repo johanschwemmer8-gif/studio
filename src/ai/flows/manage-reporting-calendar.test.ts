@@ -60,7 +60,6 @@ function authorizedUser(
       roi: true,
       visualsReporting: true,
       realTime: true,
-      abTesting: true,
       systemIntegration: true,
       retailMediaNetwork: true,
       manageUsers: true,

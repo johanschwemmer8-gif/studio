@@ -48,7 +48,6 @@ const permissionsSchema = z.object({
   roi: z.boolean().default(false),
   visualsReporting: z.boolean().default(false),
   realTime: z.boolean().default(false),
-  abTesting: z.boolean().default(false),
   systemIntegration: z.boolean().default(false),
   retailMediaNetwork: z.boolean().default(false),
 });
@@ -74,7 +73,6 @@ const permissionLabels: { id: keyof z.infer<typeof permissionsSchema>; label: st
     { id: 'roi', label: 'Retailer ROI' },
     { id: 'visualsReporting', label: 'Visuals & Reporting' },
     { id: 'realTime', label: 'Real-Time Data' },
-    { id: 'abTesting', label: 'A/B Testing' },
     { id: 'systemIntegration', label: 'System & Integration' },
     { id: 'retailMediaNetwork', label: 'Retail Media Network' },
 ];
@@ -140,7 +138,6 @@ export default function UserManagement() {
         roi: false,
         visualsReporting: false,
         realTime: false,
-        abTesting: false,
         systemIntegration: false,
         retailMediaNetwork: false,
       }
@@ -222,7 +219,6 @@ export default function UserManagement() {
                 roi: (row.roi || 'false').toLowerCase() === 'true',
                 visualsReporting: (row.visualsReporting || 'false').toLowerCase() === 'true',
                 realTime: (row.realTime || 'false').toLowerCase() === 'true',
-                abTesting: (row.abTesting || 'false').toLowerCase() === 'true',
                 systemIntegration: (row.systemIntegration || 'false').toLowerCase() === 'true',
                 retailMediaNetwork: (row.retailMediaNetwork || 'false').toLowerCase() === 'true',
             }
@@ -296,7 +292,7 @@ export default function UserManagement() {
                         <p className="text-sm text-muted-foreground">
                             Required headers: `fullName`, `email`, `department`, `position`, `brand`.
                             <br />
-                            Optional permission headers (use `true`/`false`): `dashboard`, `roi`, `visualsReporting`, `realTime`, `abTesting`, `systemIntegration`, `retailMediaNetwork`.
+                            Optional permission headers (use `true`/`false`): `dashboard`, `roi`, `visualsReporting`, `realTime`, `systemIntegration`, `retailMediaNetwork`.
                         </p>
                         <Input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileImport} />
                     </div>

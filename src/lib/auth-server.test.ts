@@ -39,7 +39,6 @@ function validUserProfile(
       roi: true,
       visualsReporting: false,
       realTime: false,
-      abTesting: false,
       systemIntegration: false,
       retailMediaNetwork: false,
       manageUsers: true,

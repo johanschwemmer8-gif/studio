@@ -391,7 +391,7 @@ Operating Objective
                                     <strong>Retraining:</strong> The model is retrained using updated data and enhanced fairness constraints.
                                 </li>
                                 <li>
-                                    <strong>Redeployment:</strong> The improved model is A/B tested before being fully redeployed.
+                                    <strong>Redeployment:</strong> The improved model is validated against applicable governance, safety and performance requirements before being approved for redeployment.
                                 </li>
                             </ul>
                         </CardContent>

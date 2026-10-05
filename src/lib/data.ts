@@ -126,7 +126,6 @@ export const scanFailuresLog = [
 
 export const moduleActivationLogs = [
   { id: '1', module: 'Ari AI Recommendations', action: 'Activated' as const, user: 'admin@interact.io', timestamp: new Date(Date.now() - 86400000).toISOString() },
-  { id: '2', module: 'A/B Testing Engine', action: 'Activated' as const, user: 'johan@interact.io', timestamp: new Date(Date.now() - 172800000).toISOString() },
 ];
 
 export const campaignModuleMetrics = {

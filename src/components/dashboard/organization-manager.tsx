@@ -386,6 +386,46 @@ export function OrganizationManager() {
   };
 
   const onSubmit = async (data: OrganizationValues) => {
+    const storeCodes = data.brands.flatMap((brand) =>
+      brand.divisions.flatMap((division) =>
+        division.regions.flatMap((region) =>
+          region.areas.flatMap((area) =>
+            area.stores.map((store) => ({
+              code: store.code?.trim() || '',
+              name: store.name,
+            }))
+          )
+        )
+      )
+    );
+
+    const storeWithoutCode = storeCodes.find((store) => !store.code);
+    if (storeWithoutCode) {
+      toast({
+        title: 'Store Code Required',
+        description: `Enter a Store Code for ${storeWithoutCode.name || 'every store'} before saving.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const normalizedCodes = storeCodes.map((store) => store.code.toLowerCase());
+    const duplicateCode = normalizedCodes.find(
+      (code, index) => normalizedCodes.indexOf(code) !== index
+    );
+
+    if (duplicateCode) {
+      const duplicateStore = storeCodes.find(
+        (store) => store.code.toLowerCase() === duplicateCode
+      );
+      toast({
+        title: 'Duplicate Store Code',
+        description: `Store Code ${duplicateStore?.code || duplicateCode} is used more than once. Store Codes must be unique within the retail network.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!user?.retailerId || !db) {
         toast({ title: 'Error', description: 'Authentication context missing.', variant: 'destructive' });
         return;

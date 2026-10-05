@@ -107,17 +107,50 @@ export function ShopperPresentationController({
         setAriMode("conversation");
     };
 
-    const submitConversationMessage = (message: string) => {
+    const submitConversationMessage = async (message: string) => {
         const trimmed = message.trim();
 
         if (!trimmed) {
             return;
         }
 
-        setConversationMessages((current) => [
-            ...current,
-            { role: "user", content: trimmed },
-        ]);
+        const userMessage: ShopperConversationMessage = {
+            role: "user",
+            content: trimmed,
+        };
+
+        const history = [...conversationMessages, userMessage];
+
+        setConversationMessages(history);
+
+        if (!onSubmitConversationMessage) {
+            return;
+        }
+
+        try {
+            const response = await onSubmitConversationMessage(
+                trimmed,
+                history,
+            );
+
+            const modelMessage = response.trim();
+
+            if (modelMessage) {
+                setConversationMessages((current) => [
+                    ...current,
+                    { role: "model", content: modelMessage },
+                ]);
+            }
+        } catch {
+            setConversationMessages((current) => [
+                ...current,
+                {
+                    role: "model",
+                    content:
+                        "I'm having trouble responding right now. Please try again.",
+                },
+            ]);
+        }
     };
 
     const minimizeConversation = () => {

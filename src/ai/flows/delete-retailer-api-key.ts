@@ -45,13 +45,13 @@ const deleteRetailerApiKeyFlow = ai.defineFlow({
 
     return {
       success: true,
-      message: `Successfully disconnected ${serviceName}.`,
+      message: `Removed demo configuration for ${serviceName}.`,
     };
   } catch (error: any) {
     console.error(`Failed to delete API integration for retailer ${authorizedRetailerId}:`, error);
     return {
       success: false,
-      message: "Failed to remove integration security settings.",
+      message: "Failed to remove integration configuration.",
     };
   }
 });

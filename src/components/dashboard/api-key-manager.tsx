@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { KeyRound, PlusCircle, Copy, Trash2, Ban, CheckCircle, RotateCcw, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Clock3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/lib/firebase';
@@ -36,9 +36,10 @@ import { deleteRetailerApiKey } from '@/ai/flows/delete-retailer-api-key';
 type ApiKey = {
   id: string;
   serviceName: string;
-  key: string;
+  integrationType: 'pos' | 'pim' | 'crm';
+  endpoint: string;
   createdAt: string | any;
-  status: 'active' | 'revoked' | 'connected';
+  status: 'configuration_pending';
 };
 
 export default function ApiKeyManager() {
@@ -47,6 +48,8 @@ export default function ApiKeyManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [serviceName, setServiceName] = useState('');
+  const [integrationType, setIntegrationType] = useState<'pos' | 'pim' | 'crm'>('pos');
+  const [endpoint, setEndpoint] = useState('');
   const { toast } = useToast();
 
   const retailerId = user?.retailerId || 'unknown';
@@ -61,13 +64,21 @@ export default function ApiKeyManager() {
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            const keys: ApiKey[] = Object.entries(data).map(([name, config]: [string, any]) => ({
+            const keys: ApiKey[] = Object.entries(data)
+              .filter(([, config]: [string, any]) =>
+                config?.status === 'configuration_pending' &&
+                ['pos', 'pim', 'crm'].includes(config?.integrationType) &&
+                typeof config?.endpoint === 'string' &&
+                config.endpoint.trim().length > 0
+              )
+              .map(([name, config]: [string, any]) => ({
                 id: name,
                 serviceName: name,
-                key: config.secretName || 'Encrypted in Secret Manager',
+                integrationType: config.integrationType,
+                endpoint: config.endpoint,
                 createdAt: config.lastUpdated,
-                status: config.status,
-            }));
+                status: 'configuration_pending',
+              }));
             setApiKeys(keys);
         }
         setIsLoading(false);
@@ -77,22 +88,21 @@ export default function ApiKeyManager() {
   }, [retailerId]);
 
   const generateApiKey = async () => {
-    if (!serviceName.trim() || retailerId === 'unknown') return;
+    if (!serviceName.trim() || !endpoint.trim() || retailerId === 'unknown') return;
     
     setIsGenerating(true);
     try {
         const idToken = await user?.getIdToken();
-        const fakeKey = `ik_${Math.random().toString(36).substring(2, 15)}`;
-        
         const result = await saveRetailerApiKey({
             idToken,
             retailerId,
             serviceName,
-            apiKey: fakeKey
+            integrationType,
+            endpoint: endpoint.trim(),
         });
 
         if (result.success) {
-            toast({ title: 'Connection Established', description: result.message });
+            toast({ title: 'Configuration Saved', description: result.message });
             setServiceName('');
         } else {
             throw new Error(result.message);
@@ -102,14 +112,6 @@ export default function ApiKeyManager() {
     } finally {
         setIsGenerating(false);
     }
-  };
-
-  const copyToClipboard = (key: string) => {
-    navigator.clipboard.writeText(key);
-    toast({
-      title: 'Path Copied',
-      description: 'Secret Manager resource path copied to clipboard.',
-    });
   };
 
   const deleteKey = async (name: string) => {
@@ -133,56 +135,96 @@ export default function ApiKeyManager() {
   };
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/20">
-        <div className="flex-1 space-y-2">
-            <Label htmlFor="service-name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">New Connection Name</Label>
-            <Input 
-                id="service-name" 
-                placeholder="e.g. Lightspeed POS" 
-                value={serviceName}
-                onChange={e => setServiceName(e.target.value)}
-                className="h-10 bg-background"
-            />
+      <div className="grid gap-4 p-4 border rounded-lg bg-muted/20 md:grid-cols-3">
+        <div className="space-y-2">
+          <Label htmlFor="service-name">Connection Name</Label>
+          <Input
+            id="service-name"
+            placeholder="e.g. Retailer POS"
+            value={serviceName}
+            onChange={e => setServiceName(e.target.value)}
+          />
         </div>
-        <div className="flex-shrink-0 self-end">
-            <Button onClick={generateApiKey} disabled={!serviceName.trim() || isGenerating} className="h-10 font-bold uppercase text-[10px] tracking-widest">
-                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />} 
-                Authorize Connection
-            </Button>
+
+        <div className="space-y-2">
+          <Label htmlFor="integration-type">Integration Type</Label>
+          <select
+            id="integration-type"
+            value={integrationType}
+            onChange={e => setIntegrationType(e.target.value as 'pos' | 'pim' | 'crm')}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="pos">POS / ERP</option>
+            <option value="pim">PIM / E-commerce</option>
+            <option value="crm">CRM / Loyalty</option>
+          </select>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="integration-endpoint">API Endpoint</Label>
+          <Input
+            id="integration-endpoint"
+            type="url"
+            placeholder="https://api.your-system.com/v1/"
+            value={endpoint}
+            onChange={e => setEndpoint(e.target.value)}
+          />
+        </div>
+
+        <div className="md:col-span-3 flex justify-end">
+          <Button
+            type="button"
+            onClick={generateApiKey}
+            disabled={!serviceName.trim() || !endpoint.trim() || isGenerating}
+          >
+            {isGenerating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <PlusCircle className="mr-2 h-4 w-4" />
+            )}
+            Save Demo Configuration
+          </Button>
+        </div>
+
+        <p className="md:col-span-3 text-xs text-muted-foreground">
+          Credentials are not collected in Demo Configuration mode. Production
+          credential provisioning and connection testing require the production
+          infrastructure handshake.
+        </p>
       </div>
-      
+
       <div className="border rounded-md overflow-hidden bg-card">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow className="text-[10px] font-black uppercase tracking-widest">
               <TableHead className="px-6">Service Integration</TableHead>
-              <TableHead>Secret Reference</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Endpoint</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right px-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="animate-spin mx-auto text-primary opacity-20" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="animate-spin mx-auto text-primary opacity-20" /></TableCell></TableRow>
             ) : apiKeys.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground italic text-xs">No external systems connected.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground italic text-xs">No integration configurations defined.</TableCell></TableRow>
             ) : (
               apiKeys.map((apiKey) => (
                 <TableRow key={apiKey.id} className="group">
                   <TableCell className="font-bold px-6">{apiKey.serviceName}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                        <code className="font-mono text-[9px] text-muted-foreground truncate max-w-[200px]">{apiKey.key}</code>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => copyToClipboard(apiKey.key)}>
-                           <Copy className="h-3 w-3" />
-                        </Button>
-                    </div>
+                  <TableCell className="uppercase text-xs font-bold">
+                    {apiKey.integrationType}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[9px] font-black uppercase">
-                      <CheckCircle className="mr-1 h-2.5 w-2.5" />
-                      {apiKey.status}
+                    <code className="font-mono text-[9px] text-muted-foreground break-all">
+                      {apiKey.endpoint}
+                    </code>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[9px] font-black uppercase">
+                      <Clock3 className="mr-1 h-2.5 w-2.5" />
+                      Production Connection Pending
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right px-6">
@@ -194,15 +236,15 @@ export default function ApiKeyManager() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Revoke Integration?</AlertDialogTitle>
+                          <AlertDialogTitle>Remove Configuration?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will disconnect <span className="font-bold">{apiKey.serviceName}</span>. Any data sync dependent on this key will fail.
+                            This removes the demo configuration for <span className="font-bold">{apiKey.serviceName}</span>. No production connection is currently active.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction onClick={() => deleteKey(apiKey.serviceName)} className="bg-destructive hover:bg-destructive/90 font-bold uppercase text-[10px] tracking-widest">
-                            Confirm Revocation
+                            Remove Configuration
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

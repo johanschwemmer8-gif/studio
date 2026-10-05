@@ -18,7 +18,8 @@ const SaveRetailerApiKeyInputSchema = z.object({
   idToken: z.string().optional().describe("Firebase ID token for authorization."),
   retailerId: z.string().describe('The unique ID of the retailer.'),
   serviceName: z.string().describe("The name of the service, e.g., 'Lightspeed POS'."),
-  apiKey: z.string().min(1, 'API Key cannot be empty.').describe('The API key to be saved.'),
+  integrationType: z.enum(['pos', 'pim', 'crm']).describe('The external system category.'),
+  endpoint: z.string().url('A valid HTTPS endpoint is required.'),
 });
 export type SaveRetailerApiKeyInput = z.infer<typeof SaveRetailerApiKeyInputSchema>;
 
@@ -40,29 +41,26 @@ const saveRetailerApiKeyFlow = ai.defineFlow(
     inputSchema: SaveRetailerApiKeyInputSchema,
     outputSchema: SaveRetailerApiKeyOutputSchema,
   },
-  async ({ idToken, retailerId, serviceName, apiKey }) => {
+  async ({ idToken, retailerId, serviceName, integrationType, endpoint }) => {
     // AUTHORIZATION GATE
     const authorizedRetailerId = await getAuthorizedRetailerId(idToken, retailerId);
     
     const db = admin.firestore();
-    const projectId = process.env.FIREBASE_PROJECT_ID || 'interact-aoe-kidkn'; 
-    const secretName = `projects/${projectId}/secrets/api-key-${authorizedRetailerId}-${serviceName.toLowerCase().replace(/\s/g, '-')}`;
 
     try {
-      console.log(`(Simulation) Secret for ${serviceName} would be stored at: ${secretName}`);
-
       const integrationRef = db.collection('retailerIntegrations').doc(authorizedRetailerId);
       await integrationRef.set({
           [serviceName]: {
-              status: 'connected',
-              secretName: secretName,
+              integrationType,
+              endpoint,
+              status: 'configuration_pending',
               lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
           },
       }, { merge: true });
 
       return {
         success: true,
-        message: `Successfully connected to ${serviceName}. Your API key is now securely stored.`,
+        message: `${serviceName} configuration saved. Production connection remains pending infrastructure provisioning.`,
       };
 
     } catch (error: any) {

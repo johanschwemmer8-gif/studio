@@ -1,41 +1,72 @@
-# Retailer Integrations Firestore Schema
+# Retailer App Connections
 
-This document outlines the Firestore schema for managing a retailer's external API integrations.
+## Current Operating Mode
 
-## `retailerIntegrations` Collection
+App Connections currently operates in **Demo Configuration** mode.
 
-This collection stores the status and references for each external service a retailer integrates with.
+Retailers may define integration metadata for POS / ERP, PIM / E-commerce,
+and CRM / Loyalty systems. This configuration does not establish or imply a
+live external-system connection or factual data synchronization.
 
--   **Collection Path**: `/retailerIntegrations`
--   **Document ID**: The unique `retailerId`.
+Production synchronization requires a separate production infrastructure
+handshake and retailer-approved credential provisioning.
 
-### Document Fields
+## Firestore Authority
 
-The document for each retailer is a map where each key is the `serviceName` (e.g., 'Lightspeed POS', 'Salesforce Commerce Cloud').
+Collection:
 
-| Field Name        | Type      | Description                                                                                                    |
-| :---------------- | :-------- | :------------------------------------------------------------------------------------------------------------- |
-| `[serviceName]`   | `map`     | An object containing the integration details for that specific service.                                        |
-| `status`          | `string`  | The current status of the connection (e.g., 'connected', 'disconnected', 'error').                             |
-| `secretName`      | `string`  | The full resource name of the secret in Google Cloud Secret Manager where the API key is stored.                 |
-| `lastUpdated`     | `timestamp`| The timestamp of the last status update for this integration.                                                  |
+`/retailerIntegrations`
 
-### Sample Document
+Document ID:
 
-Here is an example of what a document for `retailer_123` in the `retailerIntegrations` collection might look like:
+`{retailerId}`
 
-```json
-// Document ID: retailer_123
-{
-  "Lightspeed POS": {
-    "status": "connected",
-    "secretName": "projects/your-gcp-project-id/secrets/api-key-retailer_123-lightspeed-pos",
-    "lastUpdated": "2024-05-21T10:30:00Z"
-  },
-  "Salesforce Commerce Cloud": {
-    "status": "disconnected",
-    "secretName": "projects/your-gcp-project-id/secrets/api-key-retailer_123-salesforce-commerce-cloud",
-    "lastUpdated": "2024-05-20T18:00:00Z"
-  }
-}
-```
+Each retailer document contains service-name keyed configuration records.
+
+Current configuration fields:
+
+- `integrationType`: `pos`, `pim`, or `crm`
+- `endpoint`: intended external API endpoint
+- `status`: `configuration_pending`
+- `lastUpdated`: server timestamp
+
+The authenticated retailer boundary is enforced server-side before
+configuration is written or removed.
+
+## Credential Boundary
+
+Demo Configuration does **not** collect or persist API keys or API secrets.
+
+Production credentials must be provisioned through a trusted server-side
+infrastructure boundary when production integration is activated. A future
+production implementation may use Google Cloud Secret Manager or another
+approved secrets facility, but no Secret Manager provisioning is claimed by
+the current Demo Configuration implementation.
+
+## Status Semantics
+
+Current:
+
+- `configuration_pending` — configuration metadata exists, but no production
+  connection has been established.
+
+Future production infrastructure may introduce factual statuses such as:
+
+- `connected`
+- `synchronizing`
+- `error`
+- `disconnected`
+
+Those statuses must only be produced from actual production infrastructure
+state.
+
+## Integration Pages
+
+The POS / ERP, PIM / E-commerce, and CRM / Loyalty child pages are guidance
+and status surfaces.
+
+The App Connections landing page is the authoritative configuration surface.
+It records the intended service, integration type, and endpoint.
+
+No child page performs simulated connection testing or simulated
+synchronization.

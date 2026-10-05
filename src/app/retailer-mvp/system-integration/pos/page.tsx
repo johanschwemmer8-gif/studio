@@ -8,82 +8,62 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-import { Save, TestTube2 } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
+import { Badge } from '@/components/ui/badge';
+import { Clock3, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 export default function PosConfigurationPage() {
-  const { toast } = useToast();
-
-  const handleSaveChanges = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast({
-      title: 'Settings Saved',
-      description: 'Your POS/ERP configuration has been updated.',
-    });
-  };
-  
-  const handleTestConnection = () => {
-    toast({
-      title: 'Connection Successful',
-      description: 'Successfully connected to the POS/ERP system.',
-    });
-  };
-
   return (
     <div className="space-y-8">
-       <div>
-        <BackButton fallback="/retailer-mvp/system-integration" label="Back to Core Integration" />
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          POS / ERP System Integration
-        </h2>
+      <div>
+        <BackButton
+          fallback="/retailer-mvp/system-integration"
+          label="Back to App Connections"
+        />
+        <div className="flex flex-wrap items-center gap-3 mb-2">
+          <h2 className="text-2xl font-bold tracking-tight">
+            POS / ERP Integration
+          </h2>
+          <Badge variant="outline">
+            <Clock3 className="mr-1 h-3 w-3" />
+            Production Connection Pending
+          </Badge>
+        </div>
         <p className="text-muted-foreground max-w-3xl">
-          Connect iNteract to your Point-of-Sale or ERP system for live stock, pricing, and product data.
+          Prepare the connection between iNteract and your Point-of-Sale or ERP
+          environment for GTIN-aligned transaction, stock and pricing data.
         </p>
       </div>
 
       <Separator />
 
-      <form onSubmit={handleSaveChanges}>
-        <Card>
-            <CardHeader>
-                <CardTitle>Connection Settings</CardTitle>
-                <CardDescription>
-                    Provide the API details for your POS/ERP system.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="api-endpoint">API Endpoint URL</Label>
-                    <Input id="api-endpoint" placeholder="https://api.your-system.com/v1/" />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="api-key">API Key</Label>
-                    <Input id="api-key" type="password" placeholder="••••••••••••••••••••" />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="api-secret">API Secret</Label>
-                    <Input id="api-secret" type="password" placeholder="••••••••••••••••••••" />
-                </div>
-                <div className="flex gap-2">
-                    <Button type="button" variant="secondary" onClick={handleTestConnection}>
-                        <TestTube2 className="mr-2 h-4 w-4" />
-                        Test Connection
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-        
-        <div className="flex justify-end mt-8">
-            <Button type="submit">
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-            </Button>
-        </div>
-      </form>
+      <Card>
+        <CardHeader>
+          <CardTitle>Integration Scope</CardTitle>
+          <CardDescription>
+            POS / ERP synchronization requires production infrastructure and
+            retailer-approved credentials before factual data exchange can begin.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <p>
+            Demo Configuration records the intended service and API endpoint
+            only. It does not establish, test or claim a live connection.
+          </p>
+          <p>
+            Production onboarding will provision credentials through the trusted
+            infrastructure boundary and validate the external system handshake.
+          </p>
+          <Button asChild>
+            <Link href="/retailer-mvp/system-integration">
+              <Settings className="mr-2 h-4 w-4" />
+              Manage Integration Configuration
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

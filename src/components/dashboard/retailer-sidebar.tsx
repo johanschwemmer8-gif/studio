@@ -243,15 +243,6 @@ export default function RetailerSidebar({
             <SidebarMenu>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Subscription and billing">
-                  <Link href="/retailer-mvp/billing">
-                    <CreditCard className="h-4 w-4" />
-                    <span>Subscription & Billing</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Help Center and training">
                   <Link href="/retailer-mvp/documentation">
                     <BookOpen className="h-4 w-4" />

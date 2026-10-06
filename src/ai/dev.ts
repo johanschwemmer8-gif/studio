@@ -31,7 +31,5 @@ import '@/ai/flows/assign-user-claims.ts';
 import '@/ai/flows/reset-test-retailer.ts';
 import '@/ai/flows/seed-test-retailer-demo.ts';
 import '@/ai/flows/save-ai-config.ts';
-import { seedBillingData } from '@/lib/seed-billing';
 
 // Seed data on startup
-seedBillingData().catch(console.error);

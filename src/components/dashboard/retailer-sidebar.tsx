@@ -236,27 +236,6 @@ export default function RetailerSidebar({
 
         <SidebarSeparator />
 
-        {/* STANDARDS */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Standards</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Global Standards and GS1">
-                  <Link href="/retailer-mvp/gs1-conformance">
-                    <ShieldCheck className="h-4 w-4" />
-                    <span>Global Standards / GS1</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
         {/* ADMINISTRATION */}
         <SidebarGroup>
           <SidebarGroupLabel>Administration</SidebarGroupLabel>

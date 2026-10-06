@@ -10,8 +10,10 @@ import {
   ShoppingCart,
   Trash2,
 } from 'lucide-react';
+import QRCode from 'qrcode';
 
 import { manageShopperBasket } from '@/ai/flows/manage-shopper-basket';
+import { prepareCheckoutHandoff } from '@/ai/flows/prepare-checkout-handoff';
 import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +30,9 @@ export default function ShoppingBasketPage() {
   const [loading, setLoading] = useState(true);
   const [mutationGtin, setMutationGtin] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutPreparing, setCheckoutPreparing] = useState(false);
+  const [checkoutQrDataUrl, setCheckoutQrDataUrl] = useState<string | null>(null);
+  const [checkoutExpiresAt, setCheckoutExpiresAt] = useState<number | null>(null);
 
   const loadBasket = useCallback(async (activeSessionId: string) => {
     setLoading(true);
@@ -119,6 +124,50 @@ export default function ShoppingBasketPage() {
       setError('Could not remove this product. Please try again.');
     } finally {
       setMutationGtin(null);
+    }
+  };
+
+  const handleReadyForCheckout = async () => {
+    if (!sessionId || checkoutPreparing) {
+      return;
+    }
+
+    setCheckoutPreparing(true);
+    setError(null);
+
+    try {
+      const result = await prepareCheckoutHandoff({
+        sessionId,
+      });
+
+      const destination = new URL(
+        `/checkout/handoff/${encodeURIComponent(
+          result.handoff.checkoutHandoffId
+        )}`,
+        window.location.origin
+      ).toString();
+
+      const qrDataUrl = await QRCode.toDataURL(destination, {
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 320,
+      });
+
+      setBasket(result.basket);
+      setCheckoutQrDataUrl(qrDataUrl);
+      setCheckoutExpiresAt(result.handoff.expiresAt.seconds);
+    } catch (checkoutError) {
+      console.error(
+        '[Checkout Sync] Failed to prepare checkout handoff:',
+        checkoutError,
+      );
+      setCheckoutQrDataUrl(null);
+      setCheckoutExpiresAt(null);
+      setError(
+        'Unable to prepare your Checkout QR. Please try again.'
+      );
+    } finally {
+      setCheckoutPreparing(false);
     }
   };
 
@@ -359,17 +408,55 @@ export default function ShoppingBasketPage() {
             </p>
           )}
 
-          <Button
-            type="button"
-            className="h-14 rounded-2xl w-full font-black text-lg"
-            disabled
-          >
-            Ready for Checkout
-          </Button>
+          {checkoutQrDataUrl ? (
+            <div className="space-y-3 text-center">
+              <div className="mx-auto w-fit rounded-2xl border bg-white p-3">
+                <img
+                  src={checkoutQrDataUrl}
+                  alt="Checkout handoff QR code"
+                  width={240}
+                  height={240}
+                  className="h-60 w-60"
+                />
+              </div>
 
-          <p className="text-center text-xs text-muted-foreground">
-            Checkout handoff QR becomes available when Checkout Sync handoff is enabled.
-          </p>
+              <div className="space-y-1">
+                <p className="font-black">
+                  Present this Checkout QR at the till
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  This temporary QR allows the retailer Checkout Sync receiver to retrieve your basket securely.
+                </p>
+                {checkoutExpiresAt ? (
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    Valid for up to 5 minutes from creation.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <>
+              <Button
+                type="button"
+                className="h-14 rounded-2xl w-full font-black text-lg"
+                disabled={checkoutPreparing}
+                onClick={handleReadyForCheckout}
+              >
+                {checkoutPreparing ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Preparing Checkout...
+                  </>
+                ) : (
+                  'Ready for Checkout'
+                )}
+              </Button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                Generate a short-lived Checkout QR to present at the retailer till. Final pricing and payment remain with the retailer POS.
+              </p>
+            </>
+          )}
         </div>
       </footer>
     </div>

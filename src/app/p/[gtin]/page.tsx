@@ -16,19 +16,6 @@ import defaultTheme from '@/config/theme.json';
 import SponsoredProduct from '@/components/product/sponsored-product';
 import ShopperProfileCta from '@/components/shopper/shopper-profile-cta';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/context/auth-context';
-import { db } from '@/lib/firebase';
-import {
-  doc,
-  setDoc,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-  arrayUnion,
-  increment,
-  onSnapshot,
-} from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, use } from 'react';
 import { BackButton } from '@/components/ui/back-button';
 import { getCanonicalProduct } from '@/services/product-service';
@@ -36,14 +23,11 @@ import type { ShopperProduct } from '@/types/shopper-product';
 
 export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin: string }> }) {
   const { gtin } = use(params);
-  const { user } = useAuth();
-  const { toast } = useToast();
   
   const [product, setProduct] = useState<ShopperProduct | null>(null);
   const [retailerConfig, setRetailerConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
     async function resolveIdentityAndProduct() {
@@ -102,52 +86,6 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
   const theme = retailerConfig || defaultTheme;
   const optionalModules = theme.optionalModules || defaultTheme.optionalModules;
 
-  const handleAddToTrolley = async () => {
-      if (!user) {
-          toast({ title: "Identification Required", description: "Please identify yourself to build your digital trolley." });
-          return;
-      }
-      if (!db) return;
-
-      setIsAdding(true);
-      try {
-          const basketId = `basket_${user.uid}`;
-          const basketRef = doc(db, 'baskets', basketId);
-          
-          const item = {
-              gtin: product.gtin,
-              name: product.name,
-              price: product.price,
-              quantity: 1,
-              addedAt: new Date().toISOString(),
-          };
-
-          const basketDoc = await getDoc(basketRef);
-          if (!basketDoc.exists()) {
-              await setDoc(basketRef, {
-                  basketId,
-                  shopperId: user.uid,
-                  items: [item],
-                  total: product.price,
-                  status: 'active',
-                  updatedAt: serverTimestamp(),
-              });
-          } else {
-              await updateDoc(basketRef, {
-                  items: arrayUnion(item),
-                  total: increment(product.price),
-                  updatedAt: serverTimestamp(),
-              });
-          }
-
-          toast({ title: "Added to Trolley", description: `"${product.name}" added.` });
-      } catch (e) {
-          console.error(e);
-      } finally {
-          setIsAdding(false);
-      }
-  };
-
   return (
     <div className="min-h-screen bg-background pb-32">
       <div className="container mx-auto px-4 py-8 max-w-3xl">
@@ -187,13 +125,6 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
             </div>
             
             <p className="text-muted-foreground leading-relaxed text-lg font-medium opacity-90">{product.description}</p>
-
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-xl border-t z-50 flex justify-center">
-                 <Button onClick={handleAddToTrolley} disabled={isAdding} className="w-full max-w-3xl h-14 rounded-2xl text-lg font-black gap-3 shadow-2xl">
-                    {isAdding ? <Loader2 className="animate-spin" /> : <ShoppingCart />}
-                    Add to Smart Trolley
-                </Button>
-            </div>
 
             <ShopperProfileCta product={product} />
 

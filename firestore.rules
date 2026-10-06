@@ -220,11 +220,16 @@ service cloud.firestore {
     // --- TRANSACTION LAYER ---
 
     match /baskets/{id} {
-      allow read, write: if isAuthenticated() && (
-        resource == null ||
-        resource.data.shopperId == request.auth.uid ||
-        request.resource.data.shopperId == request.auth.uid
-      );
+      // Canonical Shopping Baskets are server-authoritative.
+      // Shopper access is mediated by trusted server flows using the
+      // anonymous canonical Shopper Session.
+      allow read, write: if false;
+    }
+
+    match /checkoutHandoffs/{id} {
+      // Checkout Handoffs are short-lived server-authoritative bearer
+      // credentials. Browser clients must never read or write these records.
+      allow read, write: if false;
     }
 
     match /shoppers/{shopperId} {

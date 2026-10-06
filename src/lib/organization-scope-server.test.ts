@@ -1,5 +1,6 @@
 import { getDb } from './firebase-admin';
 import {
+  getVisualsReportingBrandNavigation,
   listOrganizationScopeChildren,
   resolveOrganizationScope,
 } from './organization-scope-server';
@@ -448,5 +449,101 @@ describe('listOrganizationScopeChildren', () => {
         regionId: 'region_b',
       })
     ).rejects.toThrow('AUTHORIZED_DIVISION_SCOPE_NOT_FOUND');
+  });
+});
+
+describe('getVisualsReportingBrandNavigation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('projects every reporting level inside the selected brand', async () => {
+    mockOrganization();
+
+    const result = await getVisualsReportingBrandNavigation(
+      'retailer_a',
+      'network_a',
+      'brand_a'
+    );
+
+    expect(result.brand).toEqual({
+      scope: {
+        level: 'brand',
+        networkId: 'network_a',
+        brandId: 'brand_a',
+      },
+      displayName: 'Brand A',
+    });
+
+    expect(result.divisions.map(item => item.displayName)).toEqual([
+      'Division A',
+    ]);
+
+    expect(result.regions.map(item => item.displayName)).toEqual([
+      'Region A',
+    ]);
+
+    expect(result.areas.map(item => item.displayName)).toEqual([
+      'Area A',
+      'Area B',
+    ]);
+
+    expect(result.stores.map(item => item.displayName)).toEqual([
+      'Store A',
+      'Store B',
+      'Store C',
+    ]);
+  });
+
+  test('returns complete authoritative ancestry for every store', async () => {
+    mockOrganization();
+
+    const result = await getVisualsReportingBrandNavigation(
+      'retailer_a',
+      'network_a',
+      'brand_a'
+    );
+
+    expect(
+      result.stores.find(item => item.displayName === 'Store C')?.scope
+    ).toEqual({
+      level: 'store',
+      networkId: 'network_a',
+      brandId: 'brand_a',
+      divisionId: 'division_a',
+      regionId: 'region_a',
+      areaId: 'area_b',
+      storeId: 'store_c',
+    });
+  });
+
+  test('never includes organisational units from a sister-company brand', async () => {
+    mockOrganization();
+
+    const result = await getVisualsReportingBrandNavigation(
+      'retailer_a',
+      'network_a',
+      'brand_a'
+    );
+
+    const serialized = JSON.stringify(result);
+
+    expect(serialized).not.toContain('brand_b');
+    expect(serialized).not.toContain('Division B');
+    expect(serialized).not.toContain('Region B');
+    expect(serialized).not.toContain('Area C');
+    expect(serialized).not.toContain('Store D');
+  });
+
+  test('fails closed when the selected brand does not exist', async () => {
+    mockOrganization();
+
+    await expect(
+      getVisualsReportingBrandNavigation(
+        'retailer_a',
+        'network_a',
+        'brand_missing'
+      )
+    ).rejects.toThrow('AUTHORIZED_BRAND_SCOPE_NOT_FOUND');
   });
 });

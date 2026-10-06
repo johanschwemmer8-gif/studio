@@ -326,3 +326,111 @@ export async function listOrganizationScopeChildren(
     displayName: store.name,
   }));
 }
+
+export type VisualsReportingBrandNavigation = {
+  brand: OrganizationScopeChild;
+  divisions: OrganizationScopeChild[];
+  regions: OrganizationScopeChild[];
+  areas: OrganizationScopeChild[];
+  stores: OrganizationScopeChild[];
+};
+
+/**
+ * Projects the complete reporting navigation hierarchy for one selected Brand.
+ *
+ * Visuals & Reporting intentionally supports open comparison across all
+ * Divisions, Regions, Areas and Stores inside the selected Brand.
+ *
+ * Brand authorization is enforced by the Visuals reporting boundary before
+ * this projection is used. This function remains responsible for authoritative
+ * organization existence and hierarchy identity.
+ */
+export async function getVisualsReportingBrandNavigation(
+  retailerId: string,
+  networkId: string,
+  brandId: string
+): Promise<VisualsReportingBrandNavigation> {
+  const organization = await loadOrganization(retailerId);
+
+  const brand = organization.brands.find(item => item.id === brandId);
+
+  if (!brand) {
+    scopeResolutionError('AUTHORIZED_BRAND_SCOPE_NOT_FOUND');
+  }
+
+  const brandScope: OrganizationScopeChild = {
+    scope: {
+      level: 'brand',
+      networkId,
+      brandId: brand.id,
+    },
+    displayName: brand.name,
+  };
+
+  const divisions: OrganizationScopeChild[] = [];
+  const regions: OrganizationScopeChild[] = [];
+  const areas: OrganizationScopeChild[] = [];
+  const stores: OrganizationScopeChild[] = [];
+
+  for (const division of brand.divisions) {
+    divisions.push({
+      scope: {
+        level: 'division',
+        networkId,
+        brandId: brand.id,
+        divisionId: division.id,
+      },
+      displayName: division.name,
+    });
+
+    for (const region of division.regions) {
+      regions.push({
+        scope: {
+          level: 'region',
+          networkId,
+          brandId: brand.id,
+          divisionId: division.id,
+          regionId: region.id,
+        },
+        displayName: region.name,
+      });
+
+      for (const area of region.areas) {
+        areas.push({
+          scope: {
+            level: 'area',
+            networkId,
+            brandId: brand.id,
+            divisionId: division.id,
+            regionId: region.id,
+            areaId: area.id,
+          },
+          displayName: area.name,
+        });
+
+        for (const store of area.stores) {
+          stores.push({
+            scope: {
+              level: 'store',
+              networkId,
+              brandId: brand.id,
+              divisionId: division.id,
+              regionId: region.id,
+              areaId: area.id,
+              storeId: store.id,
+            },
+            displayName: store.name,
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    brand: brandScope,
+    divisions,
+    regions,
+    areas,
+    stores,
+  };
+}

@@ -1,10 +1,7 @@
 'use server';
 
 // This file exports all the Genkit flows for easy access from the client.
-import { analyzeBehavioralInsights, type AnalyzeBehavioralInsightsInput, type AnalyzeBehavioralInsightsOutput } from './analyze-behavioral-insights';
-import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
 import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
-import { analyzeDecisionIntelligence, type DecisionIntelligenceOutput } from './analyze-decision-intelligence';
 import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './submit-bulk-qr-request';
 import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
 import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
@@ -86,10 +83,7 @@ import { saveAiConfig } from './save-ai-config';
 import { listAuthUsers, type AuthUser } from './list-auth-users';
 
 export {
-    analyzeBehavioralInsights,
-    analyzeCampaignPerformance,
     analyzeEngagementMetrics,
-    analyzeDecisionIntelligence,
     submitBulkQrRequest,
     generateCrossSellRecommendations,
     getExecutiveRoiMetrics,
@@ -140,10 +134,7 @@ export {
 };
 
 export type {
-    AnalyzeBehavioralInsightsInput, AnalyzeBehavioralInsightsOutput,
-    AnalyzeCampaignPerformanceInput, AnalyzeCampaignPerformanceOutput,
     AnalyzeEngagementMetricsOutput,
-    DecisionIntelligenceOutput,
     SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput,
     GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput,
     ExecutiveRoiMetricsOutput,

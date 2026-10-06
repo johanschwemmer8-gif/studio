@@ -213,15 +213,6 @@ export default function RetailerSidebar({
             <SidebarMenu>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Real-time shopper and operational intelligence">
-                  <Link href="/retailer-mvp/real-time">
-                    <Activity className="h-4 w-4" />
-                    <span>Real-Time Intelligence</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Shopper decision journey intelligence">
                   <Link href="/retailer-mvp/decision-intelligence">
                     <Brain className="h-4 w-4" />

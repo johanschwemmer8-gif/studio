@@ -31,7 +31,6 @@ import {
   Activity,
   Brain,
   BarChart3,
-  Monitor,
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
@@ -197,15 +196,6 @@ export default function RetailerSidebar({
                   <Link href="/retailer-mvp/pos-terminal">
                     <ShoppingCart className="h-4 w-4" />
                     <span>Checkout Sync</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Manage in-store digital experiences and displays">
-                  <Link href="/retailer-mvp/in-store-display">
-                    <Monitor className="h-4 w-4" />
-                    <span>In-Store Display</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

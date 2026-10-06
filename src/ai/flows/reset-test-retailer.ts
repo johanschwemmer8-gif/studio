@@ -101,7 +101,6 @@ const resetTestRetailerFlow = ai.defineFlow(
             await deleteScopedRecords('items', 'qrCodes', true); // Recursive sub-item cleanup
             await deleteScopedRecords('qrcodes', 'qrCodes');
             await deleteScopedRecords('qrTemplates', 'templates');
-            await deleteScopedRecords('displays', 'displays');
 
             const specialDocs = [
                 { coll: 'configurations', id: `${TEST_RETAILER_ID}_org`, key: 'configs' },

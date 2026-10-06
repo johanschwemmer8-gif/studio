@@ -5,10 +5,8 @@ import { analyzeBehavioralInsights, type AnalyzeBehavioralInsightsInput, type An
 import { analyzeCampaignPerformance, type AnalyzeCampaignPerformanceInput, type AnalyzeCampaignPerformanceOutput } from './analyze-campaign-performance';
 import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
 import { analyzeDecisionIntelligence, type DecisionIntelligenceOutput } from './analyze-decision-intelligence';
-import { assignDisplayConfig } from './assign-display-config';
 import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './submit-bulk-qr-request';
 import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
-import { getDisplays, type Display } from './get-displays';
 import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
 import { getQrTemplates } from './get-qr-templates';
 import { type GetQrTemplatesInput, type QrTemplate } from '@/lib/schemas/qr-templates';
@@ -21,8 +19,6 @@ import { logPurchaseConversion, type LogPurchaseConversionInput } from './log-pu
 import { processBulkQrQueue, type ProcessBulkQrQueueOutput } from './process-bulk-qr-queue';
 import { productChat, type ProductChatInput, type ProductChatOutput } from './product-chat-flow';
 import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutput } from './regenerate-qr-code';
-import { registerDisplay } from './register-display';
-import { remoteDisplayCommand, type RemoteDisplayCommandInput, type RemoteDisplayCommandOutput } from './remote-display-command';
 import { createCampaign, type CreateCampaignOutput } from './create-campaign';
 import { updateCampaign, type UpdateCampaignOutput } from './update-campaign';
 import { archiveCampaign, type ArchiveCampaignOutput } from './archive-campaign';
@@ -94,10 +90,8 @@ export {
     analyzeCampaignPerformance,
     analyzeEngagementMetrics,
     analyzeDecisionIntelligence,
-    assignDisplayConfig,
     submitBulkQrRequest,
     generateCrossSellRecommendations,
-    getDisplays,
     getExecutiveRoiMetrics,
     getQrTemplates,
     getScanEvents,
@@ -107,8 +101,6 @@ export {
     processBulkQrQueue,
     productChat,
     regenerateQrCode,
-    registerDisplay,
-    remoteDisplayCommand,
     createCampaign,
     updateCampaign,
     archiveCampaign,
@@ -154,7 +146,6 @@ export type {
     DecisionIntelligenceOutput,
     SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput,
     GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput,
-    Display,
     ExecutiveRoiMetricsOutput,
     GetQrTemplatesInput,
     QrTemplate,
@@ -165,7 +156,6 @@ export type {
     ProcessBulkQrQueueOutput,
     ProductChatInput, ProductChatOutput,
     RegenerateQrCodeInput, RegenerateQrCodeOutput,
-    RemoteDisplayCommandInput, RemoteDisplayCommandOutput,
     CreateCampaignInput, CreateCampaignOutput,
     UpdateCampaignInput, UpdateCampaignOutput,
     ArchiveCampaignInput, ArchiveCampaignOutput,

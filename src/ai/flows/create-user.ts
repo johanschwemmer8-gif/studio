@@ -11,6 +11,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin, getDb } from '@/lib/firebase-admin';
 import { verifyPlatformOperator } from '@/lib/auth-server';
+import { isTenantActive } from '@/lib/schemas/tenant';
 import {
   AuthorizationScope,
   CanonicalRole,
@@ -98,7 +99,13 @@ const createUserFlow = ai.defineFlow(
 
       const tenantData = tenantDoc.data();
 
-      if (tenantData?.status !== 'active') {
+      if (
+        !tenantData ||
+        !isTenantActive(
+          tenantData.lifecycleStatus,
+          tenantData.status
+        )
+      ) {
         return {
           success: false,
           message: `Retailer '${retailerId}' is not active.`,

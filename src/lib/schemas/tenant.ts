@@ -48,6 +48,20 @@ export function normalizeTenantLifecycleStatus(
   throw new Error('Tenant lifecycle status is missing or unrecognized.');
 }
 
+export function isTenantActive(
+  lifecycleStatus: unknown,
+  legacyStatus?: unknown
+): boolean {
+  try {
+    return normalizeTenantLifecycleStatus(
+      lifecycleStatus,
+      legacyStatus
+    ) === 'ACTIVE';
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeTenantDocument(
   id: string,
   data: Record<string, unknown>

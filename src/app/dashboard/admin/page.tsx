@@ -151,7 +151,6 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
     const [formError, setFormError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedRole, setSelectedRole] = useState<'retailerAdmin' | 'storeManager' | 'analyst'>('retailerAdmin');
     const { toast } = useToast();
 
     const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -175,12 +174,16 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
 
             const result = await createUser({
                 idToken: idToken || '',
+                name,
                 email,
                 password,
-                displayName: name,
-                role: selectedRole,
-                retailerId: retailer.id
-            } as any);
+                role: 'networkOwner',
+                retailerId: retailer.id,
+                scope: {
+                    level: 'network',
+                    networkId: retailer.id,
+                },
+            });
 
             if (result?.success) {
                 toast({ title: "User Provisioned", description: result.message });
@@ -209,8 +212,8 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
             <DialogContent className="sm:max-w-[425px]">
                 <form onSubmit={handleCreateUser}>
                     <DialogHeader>
-                        <DialogTitle>Setup User for {retailer.name}</DialogTitle>
-                        <DialogDescription>Create a new user and bind them to this retailer.</DialogDescription>
+                        <DialogTitle>Establish Network Owner for {retailer.name}</DialogTitle>
+                        <DialogDescription>Create the retailer's initial network-level administrator.</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         {formError && <Alert variant="destructive"><AlertDescription>{formError}</AlertDescription></Alert>}
@@ -229,21 +232,18 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase">Role</Label>
-                            <Select onValueChange={(v: any) => setSelectedRole(v)} value={selectedRole}>
-                                <SelectTrigger className="bg-white h-9 text-xs"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="networkAdmin">Network Admin</SelectItem>
-                                    <SelectItem value="storeManager">Store Manager</SelectItem>
-                                    <SelectItem value="analyst">Analyst</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="space-y-2 rounded-md border p-3">
+                            <Label className="text-[10px] font-black uppercase">Initial Authority</Label>
+                            <p className="text-xs font-semibold">Network Owner</p>
+                            <p className="text-[11px] text-muted-foreground">
+                                Establishes the retailer's first network-level administrator.
+                                Additional user administration is configured separately.
+                            </p>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={isLoading} className="w-full">
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create User"}
+                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Establish Network Owner"}
                         </Button>
                     </DialogFooter>
                 </form>

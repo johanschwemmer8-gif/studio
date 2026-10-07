@@ -1,6 +1,7 @@
 import {
   normalizeTenantDocument,
   normalizeTenantLifecycleStatus,
+  isTenantActive,
 } from './tenant';
 
 describe('tenant schema compatibility', () => {
@@ -26,6 +27,23 @@ describe('tenant schema compatibility', () => {
     expect(() =>
       normalizeTenantLifecycleStatus('UNKNOWN_STATE', undefined)
     ).toThrow('Tenant lifecycle status is missing or unrecognized.');
+  });
+
+  it('treats canonical ACTIVE tenant as active', () => {
+    expect(isTenantActive('ACTIVE', undefined)).toBe(true);
+  });
+
+  it('treats legacy active tenant as active', () => {
+    expect(isTenantActive(undefined, 'active')).toBe(true);
+  });
+
+  it('treats suspended tenant as inactive', () => {
+    expect(isTenantActive('SUSPENDED', 'active')).toBe(false);
+  });
+
+  it('fails closed for missing or unrecognized tenant lifecycle', () => {
+    expect(isTenantActive(undefined, undefined)).toBe(false);
+    expect(isTenantActive('UNKNOWN_STATE', undefined)).toBe(false);
   });
 
   it('projects a legacy tenant into the canonical model', () => {

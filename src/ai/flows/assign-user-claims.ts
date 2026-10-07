@@ -20,6 +20,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin, getDb } from '@/lib/firebase-admin';
 import { verifyPlatformOperator } from '@/lib/auth-server';
+import { isTenantActive } from '@/lib/schemas/tenant';
 import {
   AuthorizationScope,
   CanonicalRole,
@@ -137,7 +138,10 @@ const assignUserClaimsFlow = ai.defineFlow(
 
     if (
       !retailerData ||
-      retailerData.status !== 'active'
+      !isTenantActive(
+        retailerData.lifecycleStatus,
+        retailerData.status
+      )
     ) {
       return {
         success: false,

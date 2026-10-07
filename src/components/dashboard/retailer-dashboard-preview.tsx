@@ -1,5 +1,5 @@
 
-import { type SavedRetailer } from '@/app/dashboard/admin/page';
+import { type SavedRetailer } from '@/lib/schemas/tenant';
 import {
   Card,
   CardContent,

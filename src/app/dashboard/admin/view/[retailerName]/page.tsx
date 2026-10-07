@@ -3,7 +3,10 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { type SavedRetailer } from '@/app/dashboard/admin/page';
+import {
+  normalizeTenantDocument,
+  type SavedRetailer,
+} from '@/lib/schemas/tenant';
 import {
   Card,
   CardContent,
@@ -57,7 +60,7 @@ export default function RetailerViewPage() {
             const docRef = doc(db, 'tenants', id);
             const snap = await getDoc(docRef);
             if (snap.exists()) {
-                setRetailer({ id: snap.id, ...snap.data() } as SavedRetailer);
+                setRetailer(normalizeTenantDocument(snap.id, snap.data()));
             }
         } catch (e) {
             console.error("Fetch failure");

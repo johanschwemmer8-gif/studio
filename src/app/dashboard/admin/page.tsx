@@ -35,18 +35,13 @@ import { assignUserClaims } from '@/ai/flows/assign-user-claims';
 import { createUser } from '@/ai/flows/create-user';
 import { Badge } from '@/components/ui/badge';
 import { PlatformAiGovernanceManager } from '@/components/dashboard/platform-ai-governance-manager';
-import { collection, onSnapshot, doc, setDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import {
+  normalizeTenantDocument,
+  type SavedRetailer,
+} from '@/lib/schemas/tenant';
+import { createRetailerTenant } from '@/ai/flows/create-retailer-tenant';
 
-export type SavedRetailer = {
-  id: string;
-  name: string;
-  type?: 'production' | 'test';
-  status: string;
-};
-
-function slugify(text: string) {
-    return text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-}
 
 function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
     const [targetUid, setTargetUid] = useState('');
@@ -267,7 +262,9 @@ export default function AdminPage() {
     if (!db) return;
     const q = query(collection(db, 'tenants'), orderBy('name', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetched: SavedRetailer[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SavedRetailer));
+        const fetched: SavedRetailer[] = snapshot.docs.map((tenantDoc) =>
+          normalizeTenantDocument(tenantDoc.id, tenantDoc.data())
+        );
         setRetailers(fetched);
         setLoading(false);
     });
@@ -275,22 +272,47 @@ export default function AdminPage() {
   }, []);
 
   const handleAddRetailer = async () => {
-    if (newRetailerName.trim() && db) {
-      const id = slugify(newRetailerName);
-      const tenantRef = doc(db, 'tenants', id);
-      
-      try {
-          await setDoc(tenantRef, {
-              name: newRetailerName,
-              status: 'active',
-              type: 'production',
-              createdAt: serverTimestamp()
-          });
-          setNewRetailerName('');
-          toast({ title: "Retailer Added!", description: `"${newRetailerName}" registry created.` });
-      } catch (e: any) {
-          toast({ title: "Failed to Add", description: e.message, variant: "destructive" });
+    const name = newRetailerName.trim();
+    if (!name) return;
+
+    try {
+      const idToken = await auth.currentUser?.getIdToken(true);
+
+      if (!idToken) {
+        toast({
+          title: "Failed to Add",
+          description: "Your administrator session has expired.",
+          variant: "destructive",
+        });
+        return;
       }
+
+      const result = await createRetailerTenant({
+        idToken,
+        name,
+      });
+
+      if (!result.success) {
+        toast({
+          title: "Failed to Add",
+          description: result.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setNewRetailerName('');
+      toast({
+        title: "Retailer Added!",
+        description: result.message,
+      });
+    } catch (error) {
+      console.error("[Retailer Admin] Retailer creation failed:", error);
+      toast({
+        title: "Failed to Add",
+        description: "Retailer creation failed.",
+        variant: "destructive",
+      });
     }
   };
 

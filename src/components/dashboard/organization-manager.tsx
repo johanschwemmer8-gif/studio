@@ -350,14 +350,6 @@ export function OrganizationManager({
 
 
   const handleRetailerLogoUpload = async (file: File) => {
-    if (platformContext) {
-      toast({
-        title: 'Platform Logo Upload Pending',
-        description: 'Platform-authorized retailer asset upload is completed in R2.2.',
-      });
-      return;
-    }
-
     if (!effectiveRetailerId) return;
 
     setIsLogoUploading(true);
@@ -535,22 +527,30 @@ export function OrganizationManager({
               </div>
             )}
 
-            <Input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              disabled={isLogoUploading || platformContext}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void handleRetailerLogoUpload(file);
-                event.target.value = '';
-              }}
-            />
+            {platformContext ? (
+              <p className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Managed by the retailer through the Retailer MVP. Visible here for onboarding, support and verification.
+              </p>
+            ) : (
+              <>
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={isLogoUploading}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void handleRetailerLogoUpload(file);
+                    event.target.value = '';
+                  }}
+                />
 
-            {isLogoUploading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading retailer logo...
-              </div>
+                {isLogoUploading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Uploading retailer logo...
+                  </div>
+                )}
+              </>
             )}
           </div>
         </CardContent>

@@ -35,9 +35,14 @@ describe('OrganizationManager selected-retailer context contract', () => {
     );
   });
 
-  test('does not permit Platform context to use retailer logo upload path', () => {
-    expect(source).toContain('if (platformContext) {');
-    expect(source).toContain('disabled={isLogoUploading || platformContext}');
+  test('keeps retailer branding retailer-owned in Platform context', () => {
+    expect(source).toContain('{platformContext ? (');
+    expect(source).toContain(
+      'Managed by the retailer through the Retailer MVP. Visible here for onboarding, support and verification.'
+    );
+    expect(source).toContain('disabled={isLogoUploading}');
+    expect(source).not.toContain('disabled={isLogoUploading || platformContext}');
+    expect(source).not.toContain('Platform Logo Upload Pending');
   });
 });
 

@@ -219,7 +219,9 @@ export default function RetailerViewPage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground text-xs leading-relaxed">Manage global store locations and organizational nodes for this group.</p>
-                    <Button className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">View Network</Button>
+                    <Button asChild className="mt-4 w-full font-bold uppercase text-[10px] tracking-widest" variant="secondary">
+                          <Link href={`/dashboard/admin/view/${retailer.id}/network`}>View Network</Link>
+                      </Button>
                 </CardContent>
             </Card>
             <Card className="border-primary/10 hover:border-primary/30 transition-colors">

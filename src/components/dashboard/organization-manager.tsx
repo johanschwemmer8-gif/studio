@@ -281,9 +281,18 @@ function ensureOrganizationIds(data: any): OrganizationValues {
   };
 }
 
-export function OrganizationManager() {
+type OrganizationManagerProps = {
+  retailerId?: string;
+  platformContext?: boolean;
+};
+
+export function OrganizationManager({
+  retailerId,
+  platformContext = false,
+}: OrganizationManagerProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const effectiveRetailerId = platformContext ? retailerId : user?.retailerId;
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [isLogoUploading, setIsLogoUploading] = useState(false);
@@ -303,16 +312,21 @@ export function OrganizationManager() {
   });
 
   useEffect(() => {
-    if (!user?.retailerId || !db) return;
+    if (!effectiveRetailerId || !db) {
+      setIsFetching(false);
+      return;
+    }
 
-    const docRef = doc(db, 'configurations', `${user.retailerId}_org`);
+    const docRef = doc(db, 'configurations', `${effectiveRetailerId}_org`);
     
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         form.reset(ensureOrganizationIds(data.data));
-      } else {
-        // Migration fallback: check localStorage
+      } else if (!platformContext) {
+        // Retailer-only migration fallback for historical local browser data.
+        // Platform administration must never treat browser-local state as
+        // authoritative data for a selected tenant.
         const saved = localStorage.getItem('retail-organization-structure');
         if (saved) {
           try {
@@ -321,22 +335,36 @@ export function OrganizationManager() {
             console.error('Failed to parse legacy org structure');
           }
         }
+      } else {
+        form.reset({
+          retailerName: '',
+          retailerLogoUrl: '',
+          brands: [],
+        });
       }
       setIsFetching(false);
     });
 
     return () => unsubscribe();
-  }, [user?.retailerId, form]);
+  }, [effectiveRetailerId, form, platformContext]);
 
 
   const handleRetailerLogoUpload = async (file: File) => {
-    if (!user?.retailerId) return;
+    if (platformContext) {
+      toast({
+        title: 'Platform Logo Upload Pending',
+        description: 'Platform-authorized retailer asset upload is completed in R2.2.',
+      });
+      return;
+    }
+
+    if (!effectiveRetailerId) return;
 
     setIsLogoUploading(true);
     try {
       const extension = file.name.split('.').pop()?.toLowerCase() || 'png';
       const storage = getStorage(getApp());
-      const logoRef = ref(storage, `retailer-assets/${user.retailerId}/organization/retailer-logo-${Date.now()}.${extension}`);
+      const logoRef = ref(storage, `retailer-assets/${effectiveRetailerId}/organization/retailer-logo-${Date.now()}.${extension}`);
       await uploadBytes(logoRef, file);
       const downloadUrl = await getDownloadURL(logoRef);
       form.setValue('retailerLogoUrl', downloadUrl, { shouldDirty: true, shouldValidate: true });
@@ -426,23 +454,25 @@ export function OrganizationManager() {
       return;
     }
 
-    if (!user?.retailerId || !db) {
-        toast({ title: 'Error', description: 'Authentication context missing.', variant: 'destructive' });
+    if (!effectiveRetailerId || !db) {
+        toast({ title: 'Error', description: 'Authoritative retailer context missing.', variant: 'destructive' });
         return;
     }
 
     setIsLoading(true);
     try {
-      const docRef = doc(db, 'configurations', `${user.retailerId}_org`);
+      const docRef = doc(db, 'configurations', `${effectiveRetailerId}_org`);
       await setDoc(docRef, {
-        retailerId: user.retailerId,
+        retailerId: effectiveRetailerId,
         type: 'org',
         data: data,
         updatedAt: serverTimestamp()
       });
       
-      // Clean up legacy storage once migrated
-      localStorage.removeItem('retail-organization-structure');
+      // Retailer-only cleanup of historical browser migration state.
+      if (!platformContext) {
+        localStorage.removeItem('retail-organization-structure');
+      }
 
       toast({
         title: 'Organization Saved',
@@ -508,7 +538,7 @@ export function OrganizationManager() {
             <Input
               type="file"
               accept="image/png,image/jpeg,image/webp"
-              disabled={isLogoUploading}
+              disabled={isLogoUploading || platformContext}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) void handleRetailerLogoUpload(file);

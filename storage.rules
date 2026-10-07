@@ -15,7 +15,6 @@ service firebase.storage {
               /databases/(default)/documents/users/$(request.auth.uid)
             ).data.retailerId == retailerId
           )
-          || request.auth.token.role == 'admin'
         );
     }
   }

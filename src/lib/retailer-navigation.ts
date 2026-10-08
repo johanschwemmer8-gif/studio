@@ -160,3 +160,60 @@ export function isSidebarAccess(value: unknown): value is SidebarAccess {
     new Set(value).size === value.length
   );
 }
+
+
+/**
+ * Resolve a canonical Retailer MVP route to its functional access area.
+ *
+ * Child routes inherit the access requirement of their canonical parent.
+ * Routes outside the canonical functional-area model deliberately return null.
+ */
+const RETAILER_FUNCTIONAL_ROUTE_ALIASES: Readonly<
+  Partial<Record<string, RetailerFunctionalArea>>
+> = {
+  '/retailer-mvp/qr-analytics': 'qrManagement',
+};
+
+export function resolveRetailerFunctionalArea(
+  pathname: string
+): RetailerFunctionalArea | null {
+  const normalizedPath =
+    pathname.length > 1 && pathname.endsWith('/')
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  const aliasedArea = RETAILER_FUNCTIONAL_ROUTE_ALIASES[normalizedPath];
+
+  if (aliasedArea) {
+    return aliasedArea;
+  }
+
+  const matches = RETAILER_NAVIGATION
+    .filter(
+      (item) =>
+        normalizedPath === item.href ||
+        normalizedPath.startsWith(`${item.href}/`)
+    )
+    .sort((a, b) => b.href.length - a.href.length);
+
+  return matches[0]?.id ?? null;
+}
+
+/**
+ * Runtime functional-area access decision.
+ *
+ * Migration semantics:
+ * - undefined = legacy profile not yet migrated; preserve existing access.
+ * - [] = explicitly no functional access.
+ * - populated array = only assigned functional areas.
+ */
+export function hasRetailerFunctionalAccess(
+  sidebarAccess: SidebarAccess | undefined,
+  area: RetailerFunctionalArea
+): boolean {
+  if (sidebarAccess === undefined) {
+    return true;
+  }
+
+  return sidebarAccess.includes(area);
+}

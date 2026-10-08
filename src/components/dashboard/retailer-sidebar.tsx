@@ -34,232 +34,124 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
+import { useAuth } from '@/context/auth-context';
+import {
+  RETAILER_NAVIGATION,
+  RETAILER_NAVIGATION_GROUPS,
+  hasRetailerFunctionalAccess,
+  type RetailerFunctionalArea,
+} from '@/lib/retailer-navigation';
+
+const iconByArea: Record<
+  RetailerFunctionalArea,
+  React.ComponentType<{ className?: string }>
+> = {
+  dashboard: LayoutDashboard,
+  roi: DollarSign,
+  products: ShoppingBasket,
+  qrManagement: QrCode,
+  uiManagement: Palette,
+  aiConfiguration: Bot,
+  retailMediaNetwork: Megaphone,
+  retailMediaPartners: Building2,
+  organization: Building2,
+  systemIntegration: Settings,
+  posTerminal: CreditCard,
+  decisionIntelligence: Brain,
+  visualsReporting: BarChart3,
+  documentation: BookOpen,
+};
+
+const tooltipByArea: Partial<Record<RetailerFunctionalArea, string>> = {
+  dashboard: 'Performance Overview',
+  roi: 'Profit & ROI Audit',
+  products: 'Manage your product catalog',
+  qrManagement:
+    'Create QR activations, generate QR codes and manage campaigns',
+  uiManagement: 'Manage the customer-facing brand experience',
+  aiConfiguration: 'Configure the Ari AI shopper experience',
+  retailMediaNetwork: 'Retail Media Network',
+  retailMediaPartners: 'Retail Media Partners',
+  organization: 'Manage your retail network hierarchy',
+  systemIntegration: 'Connect POS, PIM, CRM and other applications',
+  posTerminal: 'Checkout terminal synchronisation',
+  decisionIntelligence: 'Shopper decision journey intelligence',
+};
 
 export default function RetailerSidebar({
   children,
 }: {
   children?: React.ReactNode;
 }) {
+  const { user } = useAuth();
+
   return (
     <Sidebar>
       {children}
 
       <SidebarContent>
+        {RETAILER_NAVIGATION_GROUPS.map((group, groupIndex) => {
+          const items = RETAILER_NAVIGATION.filter(
+            (item) => item.group === group
+          );
 
-        {/* OVERVIEW */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+          return (
+            <React.Fragment key={group}>
+              {groupIndex > 0 && <SidebarSeparator />}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Performance Overview">
-                  <Link href="/retailer-mvp/dashboard">
-                    <LayoutDashboard className="h-4 w-4" />
-                    <span>Overview</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <SidebarGroup>
+                <SidebarGroupLabel>{group}</SidebarGroupLabel>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Profit & ROI Audit">
-                  <Link href="/retailer-mvp/roi">
-                    <DollarSign className="h-4 w-4" />
-                    <span>Profit & ROI</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {items.map((item) => {
+                      const Icon = iconByArea[item.id];
 
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                      const allowed = hasRetailerFunctionalAccess(
+                        user?.sidebarAccess,
+                        item.id
+                      );
 
-        <SidebarSeparator />
+                      const tooltip = allowed
+                        ? tooltipByArea[item.id] ?? item.label
+                        : 'Access not assigned. Contact your retailer administrator.';
 
-        {/* CATALOG & PRODUCTS */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Catalog & Products</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Manage your product catalog">
-                  <Link href="/retailer-mvp/products">
-                    <ShoppingBasket className="h-4 w-4" />
-                    <span>Product Catalog</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        {/* SHOPPER EXPERIENCE */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Shopper Experience</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Create QR activations, generate QR codes and manage campaigns">
-                  <Link href="/retailer-mvp/qr-management">
-                    <QrCode className="h-4 w-4" />
-                    <span>QR Management</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Manage the customer-facing brand experience">
-                  <Link href="/retailer-mvp/ui-management">
-                    <Palette className="h-4 w-4" />
-                    <span>Brand & Experience</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Configure the Ari AI shopper experience">
-                  <Link href="/retailer-mvp/ai-configuration">
-                    <Bot className="h-4 w-4" />
-                    <span>Ari Experience</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        {/* RETAIL MEDIA */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Retail Media</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Retail Media Network">
-                  <Link href="/retailer-mvp/retail-media-network">
-                    <Megaphone className="h-4 w-4" />
-                    <span>Retail Media Network</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Retail Media Partners">
-                  <Link href="/retailer-mvp/retail-media-partners">
-                    <Building2 className="h-4 w-4" />
-                    <span>Retail Media Partners</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        {/* OPERATIONS & INTEGRATIONS */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Operations & Integrations</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Manage your retail network hierarchy">
-                  <Link href="/retailer-mvp/organization">
-                    <Building2 className="h-4 w-4" />
-                    <span>My Retail Network</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Connect POS, PIM, CRM and other applications">
-                  <Link href="/retailer-mvp/system-integration">
-                    <Settings className="h-4 w-4" />
-                    <span>App Connections</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Checkout terminal synchronisation">
-                  <Link href="/retailer-mvp/pos-terminal">
-                    <ShoppingCart className="h-4 w-4" />
-                    <span>Checkout Sync</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        {/* INTELLIGENCE */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Intelligence</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Shopper decision journey intelligence">
-                  <Link href="/retailer-mvp/decision-intelligence">
-                    <Brain className="h-4 w-4" />
-                    <span>Decision Intelligence</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Visual reporting and performance analysis">
-                  <Link href="/retailer-mvp/visuals-reporting">
-                    <BarChart3 className="h-4 w-4" />
-                    <span>Visuals & Reporting</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        {/* ADMINISTRATION */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Help Center and training">
-                  <Link href="/retailer-mvp/documentation">
-                    <BookOpen className="h-4 w-4" />
-                    <span>Help Center</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
+                      return (
+                        <SidebarMenuItem key={item.id}>
+                          {allowed ? (
+                            <SidebarMenuButton asChild tooltip={tooltip}>
+                              <Link href={item.href}>
+                                <Icon className="h-4 w-4" />
+                                <span>{item.label}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          ) : (
+                            <SidebarMenuButton
+                              disabled
+                              tooltip={tooltip}
+                              className="cursor-not-allowed opacity-50"
+                              aria-disabled="true"
+                            >
+                              <Icon className="h-4 w-4" />
+                              <span>{item.label}</span>
+                            </SidebarMenuButton>
+                          )}
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </React.Fragment>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter>
         <SidebarMenu>
-          <LogoutButton />
+          <SidebarMenuItem>
+            <LogoutButton />
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

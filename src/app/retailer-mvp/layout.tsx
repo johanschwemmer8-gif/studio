@@ -14,8 +14,12 @@ import SearchBar from '@/components/dashboard/search-bar';
 import Image from 'next/image';
 import { ThemeProvider } from '@/context/theme-context';
 import { useAuth } from '@/context/auth-context';
+import {
+  hasRetailerFunctionalAccess,
+  resolveRetailerFunctionalArea,
+} from '@/lib/retailer-navigation';
 import { Badge } from '@/components/ui/badge';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -76,6 +80,17 @@ function RetailerMvpLayoutContent({
 }) {
     const { user, loading, accessType } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
+
+
+    const functionalArea = resolveRetailerFunctionalArea(pathname);
+
+    const hasFunctionalAccess =
+        functionalArea === null ||
+        hasRetailerFunctionalAccess(
+            user?.sidebarAccess,
+            functionalArea
+        );
 
     const isRetailerAuthorized =
         !!user &&
@@ -97,6 +112,20 @@ function RetailerMvpLayoutContent({
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (isRetailerAuthorized && !hasFunctionalAccess) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-background p-6">
+                <div className="max-w-md text-center">
+                    <h1 className="text-2xl font-bold">Access not assigned</h1>
+                    <p className="mt-3 text-muted-foreground">
+                        This area has not been assigned to your user profile.
+                        Contact your retailer administrator if you require access.
+                    </p>
+                </div>
             </div>
         );
     }

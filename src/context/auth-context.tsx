@@ -11,6 +11,10 @@ import {
   CanonicalRole,
   Permissions,
 } from '@/lib/auth-types';
+import {
+  isSidebarAccess,
+  type SidebarAccess,
+} from '@/lib/retailer-navigation';
 
 export type AccessType = 'platform' | 'retailer' | null;
 
@@ -20,6 +24,7 @@ type AuthUser = User & {
   role?: CanonicalRole | 'platformOperator';
   scope?: AuthorizationScope;
   permissions?: Permissions;
+  sidebarAccess?: SidebarAccess;
   isActive?: boolean;
 };
 
@@ -133,6 +138,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: profile.role as CanonicalRole,
           scope: profile.scope as AuthorizationScope,
           permissions: profile.permissions as Permissions,
+          sidebarAccess:
+            profile.sidebarAccess === undefined
+              ? undefined
+              : isSidebarAccess(profile.sidebarAccess)
+                ? profile.sidebarAccess
+                : undefined,
           isActive: true,
         });
 

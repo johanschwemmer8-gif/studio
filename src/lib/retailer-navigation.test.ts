@@ -4,6 +4,8 @@ import {
   RETAILER_NAVIGATION_GROUPS,
   isRetailerFunctionalArea,
   isSidebarAccess,
+  resolveRetailerFunctionalArea,
+  hasRetailerFunctionalAccess,
 } from './retailer-navigation';
 
 describe('Retailer navigation authorization contract', () => {
@@ -90,5 +92,62 @@ describe('Retailer navigation authorization contract', () => {
     ).toBe(false);
 
     expect(isSidebarAccess('dashboard')).toBe(false);
+  });
+
+
+  it('resolves canonical routes and legitimate child routes to functional areas', () => {
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/dashboard'))
+      .toBe('dashboard');
+
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/products/import'))
+      .toBe('products');
+
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/qr-analytics'))
+      .toBe('qrManagement');
+
+    expect(
+      resolveRetailerFunctionalArea(
+        '/retailer-mvp/retail-media-partners/partner-123'
+      )
+    ).toBe('retailMediaPartners');
+
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/system-integration/pos'))
+      .toBe('systemIntegration');
+
+    expect(
+      resolveRetailerFunctionalArea(
+        '/retailer-mvp/ui-management/template-preview'
+      )
+    ).toBe('uiManagement');
+  });
+
+  it('leaves unresolved and legacy routes outside the functional access model', () => {
+    expect(resolveRetailerFunctionalArea('/retailer-mvp')).toBeNull();
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/admin')).toBeNull();
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/ai-performance'))
+      .toBeNull();
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/ai-policy'))
+      .toBeNull();
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/brands')).toBeNull();
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/mobile-dashboard'))
+      .toBeNull();
+  });
+
+  it('preserves legacy access only when sidebarAccess is absent', () => {
+    expect(
+      hasRetailerFunctionalAccess(undefined, 'dashboard')
+    ).toBe(true);
+
+    expect(
+      hasRetailerFunctionalAccess([], 'dashboard')
+    ).toBe(false);
+
+    expect(
+      hasRetailerFunctionalAccess(['dashboard'], 'dashboard')
+    ).toBe(true);
+
+    expect(
+      hasRetailerFunctionalAccess(['dashboard'], 'products')
+    ).toBe(false);
   });
 });

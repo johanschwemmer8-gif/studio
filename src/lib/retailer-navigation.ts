@@ -19,6 +19,7 @@ export const RETAILER_FUNCTIONAL_AREA_IDS = [
   'retailMediaNetwork',
   'retailMediaPartners',
   'organization',
+  'userAccess',
   'systemIntegration',
   'posTerminal',
   'decisionIntelligence',
@@ -100,6 +101,12 @@ export const RETAILER_NAVIGATION: readonly RetailerNavigationItem[] = [
     id: 'organization',
     label: 'My Retail Network',
     href: '/retailer-mvp/organization',
+    group: 'Operations & Integrations',
+  },
+  {
+    id: 'userAccess',
+    label: 'User Access',
+    href: '/retailer-mvp/user-access',
     group: 'Operations & Integrations',
   },
   {

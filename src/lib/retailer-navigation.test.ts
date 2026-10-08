@@ -9,9 +9,9 @@ import {
 } from './retailer-navigation';
 
 describe('Retailer navigation authorization contract', () => {
-  it('defines exactly fourteen functional areas', () => {
-    expect(RETAILER_FUNCTIONAL_AREA_IDS).toHaveLength(14);
-    expect(RETAILER_NAVIGATION).toHaveLength(14);
+  it('defines exactly fifteen functional areas', () => {
+    expect(RETAILER_FUNCTIONAL_AREA_IDS).toHaveLength(15);
+    expect(RETAILER_NAVIGATION).toHaveLength(15);
   });
 
   it('has a one-to-one mapping between functional IDs and navigation items', () => {
@@ -72,6 +72,7 @@ describe('Retailer navigation authorization contract', () => {
   it('validates functional area identifiers', () => {
     expect(isRetailerFunctionalArea('dashboard')).toBe(true);
     expect(isRetailerFunctionalArea('qrManagement')).toBe(true);
+    expect(isRetailerFunctionalArea('userAccess')).toBe(true);
     expect(isRetailerFunctionalArea('notARealArea')).toBe(false);
     expect(isRetailerFunctionalArea(null)).toBe(false);
   });
@@ -101,6 +102,12 @@ describe('Retailer navigation authorization contract', () => {
 
     expect(resolveRetailerFunctionalArea('/retailer-mvp/products/import'))
       .toBe('products');
+
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/user-access'))
+      .toBe('userAccess');
+
+    expect(resolveRetailerFunctionalArea('/retailer-mvp/user-access/example'))
+      .toBe('userAccess');
 
     expect(resolveRetailerFunctionalArea('/retailer-mvp/qr-analytics'))
       .toBe('qrManagement');

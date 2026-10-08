@@ -31,6 +31,7 @@ import {
   Activity,
   Brain,
   BarChart3,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import LogoutButton from '@/components/dashboard/logout-button';
@@ -55,6 +56,7 @@ const iconByArea: Record<
   retailMediaNetwork: Megaphone,
   retailMediaPartners: Building2,
   organization: Building2,
+  userAccess: Users,
   systemIntegration: Settings,
   posTerminal: CreditCard,
   decisionIntelligence: Brain,

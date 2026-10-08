@@ -124,4 +124,77 @@ describe('user-profile', () => {
       })
     ).toThrow('Role and scope are inconsistent.');
   });
+
+
+  it('preserves an explicit sidebar access assignment', () => {
+    const profile = createUserAuthorizationProfile({
+      uid: 'sidebar-user',
+      retailerId: 'retailer-a',
+      displayName: 'Sidebar User',
+      email: 'sidebar@example.com',
+      role: 'networkAdmin',
+      scope: {
+        level: 'network',
+        networkId: 'retailer-a',
+      },
+      sidebarAccess: ['dashboard', 'products', 'qrManagement'],
+    });
+
+    expect(profile.sidebarAccess).toEqual([
+      'dashboard',
+      'products',
+      'qrManagement',
+    ]);
+  });
+
+  it('preserves missing sidebar access for legacy profiles', () => {
+    const profile = createUserAuthorizationProfile({
+      uid: 'legacy-user',
+      retailerId: 'retailer-a',
+      displayName: 'Legacy User',
+      email: 'legacy@example.com',
+      role: 'networkAdmin',
+      scope: {
+        level: 'network',
+        networkId: 'retailer-a',
+      },
+    });
+
+    expect(profile.sidebarAccess).toBeUndefined();
+  });
+
+  it('preserves an explicit empty sidebar access assignment', () => {
+    const profile = createUserAuthorizationProfile({
+      uid: 'no-sidebar-user',
+      retailerId: 'retailer-a',
+      displayName: 'No Sidebar User',
+      email: 'none@example.com',
+      role: 'networkAdmin',
+      scope: {
+        level: 'network',
+        networkId: 'retailer-a',
+      },
+      sidebarAccess: [],
+    });
+
+    expect(profile.sidebarAccess).toEqual([]);
+  });
+
+  it('rejects an invalid sidebar access assignment', () => {
+    expect(() =>
+      createUserAuthorizationProfile({
+        uid: 'invalid-sidebar-user',
+        retailerId: 'retailer-a',
+        displayName: 'Invalid Sidebar User',
+        email: 'invalid@example.com',
+        role: 'networkAdmin',
+        scope: {
+          level: 'network',
+          networkId: 'retailer-a',
+        },
+        sidebarAccess: ['dashboard', 'not-real'] as any,
+      })
+    ).toThrow('Invalid sidebar access assignment.');
+  });
+
 });

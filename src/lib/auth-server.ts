@@ -20,6 +20,7 @@ import {
   UserAuthorizationProfile,
 } from './auth-types';
 import { isRoleScopeValid } from './authorization';
+import { isSidebarAccess } from './retailer-navigation';
 
 export type AuthFailure = {
   uid: '';
@@ -142,6 +143,13 @@ function isValidAuthorizationProfile(
     return false;
   }
 
+  if (
+    profile.sidebarAccess !== undefined &&
+    !isSidebarAccess(profile.sidebarAccess)
+  ) {
+    return false;
+  }
+
   if (profile.isActive !== true) {
     return false;
   }
@@ -218,6 +226,7 @@ export async function verifyAuth(idToken?: string): Promise<AuthResult> {
         role: userData.role,
         scope: userData.scope,
         permissions: userData.permissions,
+        sidebarAccess: userData.sidebarAccess,
         isActive: userData.isActive,
       };
     } catch (error: any) {

@@ -150,6 +150,77 @@ describe('verifyAuth', () => {
     expect(result.permissions).toBeDefined();
   });
 
+  test('returns authoritative sidebar access from the Firestore profile', async () => {
+    mockVerifiedToken();
+
+    mockFirestoreProfile(
+      validUserProfile({
+        sidebarAccess: ['dashboard', 'products', 'qrManagement'],
+      })
+    );
+
+    const result = await verifyAuth('valid-token');
+
+    if ('error' in result) {
+      throw new Error(result.error);
+    }
+
+    expect(result.sidebarAccess).toEqual([
+      'dashboard',
+      'products',
+      'qrManagement',
+    ]);
+  });
+
+  test('preserves missing sidebar access for a legacy authoritative profile', async () => {
+    mockVerifiedToken();
+    mockFirestoreProfile(validUserProfile());
+
+    const result = await verifyAuth('valid-token');
+
+    if ('error' in result) {
+      throw new Error(result.error);
+    }
+
+    expect(result.sidebarAccess).toBeUndefined();
+  });
+
+  test('fails closed when sidebar access contains an unknown functional area', async () => {
+    mockVerifiedToken();
+
+    mockFirestoreProfile(
+      validUserProfile({
+        sidebarAccess: ['dashboard', 'not-real'],
+      })
+    );
+
+    const result = await verifyAuth('valid-token');
+
+    expect(result).toEqual({
+      uid: '',
+      error:
+        'INVALID_AUTHORIZATION_PROFILE: Authoritative user profile is invalid.',
+    });
+  });
+
+  test('fails closed when sidebar access contains duplicate functional areas', async () => {
+    mockVerifiedToken();
+
+    mockFirestoreProfile(
+      validUserProfile({
+        sidebarAccess: ['dashboard', 'dashboard'],
+      })
+    );
+
+    const result = await verifyAuth('valid-token');
+
+    expect(result).toEqual({
+      uid: '',
+      error:
+        'INVALID_AUTHORIZATION_PROFILE: Authoritative user profile is invalid.',
+    });
+  });
+
   test('fails closed when the authoritative user profile does not exist', async () => {
     mockVerifiedToken();
 

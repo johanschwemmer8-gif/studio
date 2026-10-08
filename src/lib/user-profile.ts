@@ -5,6 +5,7 @@ import {
   UserAuthorizationProfile,
 } from './auth-types';
 import { isRoleScopeValid } from './authorization';
+import { isSidebarAccess, type SidebarAccess } from './retailer-navigation';
 
 const ALL_PERMISSIONS: Permissions = {
   dashboard: true,
@@ -141,6 +142,7 @@ export function createUserAuthorizationProfile(input: {
   role: CanonicalRole;
   scope: AuthorizationScope;
   permissions?: Partial<Permissions>;
+  sidebarAccess?: SidebarAccess;
   isActive?: boolean;
   createdBy?: string;
   updatedBy?: string;
@@ -174,6 +176,13 @@ export function createUserAuthorizationProfile(input: {
     throw new Error('Invalid permission set.');
   }
 
+  if (
+    input.sidebarAccess !== undefined &&
+    !isSidebarAccess(input.sidebarAccess)
+  ) {
+    throw new Error('Invalid sidebar access assignment.');
+  }
+
   return {
     uid: input.uid,
     retailerId: input.retailerId,
@@ -182,6 +191,7 @@ export function createUserAuthorizationProfile(input: {
     role: input.role,
     scope: input.scope,
     permissions: finalPermissions,
+    sidebarAccess: input.sidebarAccess,
     isActive: input.isActive ?? true,
     createdBy: input.createdBy,
     updatedBy: input.updatedBy,

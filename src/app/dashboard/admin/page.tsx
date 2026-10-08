@@ -14,9 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  PlusCircle, List, Eye, RefreshCw, 
-  UserPlus, Loader2,
-  ShieldCheck, KeyRound, Info
+  PlusCircle, List, Eye, RefreshCw,
+  UserPlus, Loader2
 } from 'lucide-react';
 import {
   Dialog,
@@ -30,9 +29,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { assignUserClaims } from '@/ai/flows/assign-user-claims';
-import { createUser } from '@/ai/flows/create-user';
+import { createPlatformRetailerUserAction } from '@/ai/flows/create-platform-retailer-user';
 import { Badge } from '@/components/ui/badge';
 import { PlatformAiGovernanceManager } from '@/components/dashboard/platform-ai-governance-manager';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -42,109 +39,6 @@ import {
 } from '@/lib/schemas/tenant';
 import { createRetailerTenant } from '@/ai/flows/create-retailer-tenant';
 
-
-function VerifiedAccessManager({ retailers }: { retailers: SavedRetailer[] }) {
-    const [targetUid, setTargetUid] = useState('');
-    const [selectedRole, setSelectedRole] = useState<'networkAdmin' | 'storeManager' | 'analyst'>('networkAdmin');
-    const [selectedRetailerId, setSelectedRetailerId] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const { toast } = useToast();
-
-    const handleAssign = async () => {
-        if (!targetUid || !selectedRetailerId) return;
-        setIsLoading(true);
-        try {
-            // Force token refresh to ensure we don't send an expired token to the server
-            const idToken = await auth.currentUser?.getIdToken(true);
-            
-            const result = await assignUserClaims({
-                idToken: idToken || '',
-                targetUid,
-                role: selectedRole,
-                retailerId: selectedRetailerId,
-                scope: {
-                    level: 'network',
-                    networkId: selectedRetailerId
-                }
-            });
-
-            if (result.success) {
-                toast({ title: "Identity Verified", description: result.message });
-                setTargetUid('');
-            } else {
-                // Do NOT throw Error here. Handle visual feedback directly.
-                toast({ 
-                    title: "Provisioning Notice", 
-                    description: result.message, 
-                    variant: "destructive" 
-                });
-            }
-        } catch (e: any) {
-            console.error("Provisioning Error:", e);
-            const errorMsg = e.message || "A network error occurred. Please refresh and check user access.";
-            toast({ 
-                title: "System Handshake Error", 
-                description: errorMsg, 
-                variant: "destructive" 
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <Card className="border-primary/20 bg-primary/5">
-            <CardHeader>
-                <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary" /> Verified Claim Manager
-                </CardTitle>
-                <CardDescription className="text-xs">Securely assign trusted tenant identity and roles to users.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase">Firebase User UID</Label>
-                        <Input placeholder="e.g. gHZ9n7s2b9X8..." value={targetUid} onChange={e => setTargetUid(e.target.value)} className="bg-white h-9 text-xs font-mono" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase">Tenant/Retailer</Label>
-                            <Select onValueChange={setSelectedRetailerId} value={selectedRetailerId}>
-                                <SelectTrigger className="bg-white h-9 text-xs"><SelectValue placeholder="Select Tenant" /></SelectTrigger>
-                                <SelectContent>
-                                    {retailers.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase">Role</Label>
-                            <Select onValueChange={(v: any) => setSelectedRole(v)} value={selectedRole}>
-                                <SelectTrigger className="bg-white h-9 text-xs"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="networkAdmin">Network Admin</SelectItem>
-                                    <SelectItem value="storeManager">Manager</SelectItem>
-                                    <SelectItem value="analyst">Analyst</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-            <CardFooter className="flex-col gap-3">
-                <Button onClick={handleAssign} disabled={isLoading || !targetUid || !selectedRetailerId} className="w-full gap-2 font-black uppercase text-[10px] tracking-widest">
-                    {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
-                    Provision Trusted Access
-                </Button>
-                <Alert className="bg-blue-50 border-blue-200">
-                    <Info className="h-3.5 w-3.5 text-blue-600" />
-                    <AlertDescription className="text-[10px] text-blue-700 leading-tight">
-                        <strong>Important:</strong> After provisioning, the user MUST sign out and sign back in to refresh their security token.
-                    </AlertDescription>
-                </Alert>
-            </CardFooter>
-        </Card>
-    );
-}
 
 function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -172,27 +66,25 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
         try {
             const idToken = await auth.currentUser?.getIdToken(true);
 
-            const result = await createUser({
+            await createPlatformRetailerUserAction({
                 idToken: idToken || '',
-                name,
+                retailerId: retailer.id,
+                displayName: name,
                 email,
                 password,
                 role: 'networkOwner',
-                retailerId: retailer.id,
                 scope: {
                     level: 'network',
                     networkId: retailer.id,
                 },
             });
 
-            if (result?.success) {
-                toast({ title: "User Provisioned", description: result.message });
-                form.reset();
-                setIsDialogOpen(false);
-            } else {
-                // Show safe server-provided message
-                setFormError(result?.message || 'Provisioning failed.');
-            }
+            toast({
+                title: "Network Owner Established",
+                description: `${name} can now access ${retailer.name} as Network Owner.`,
+            });
+            form.reset();
+            setIsDialogOpen(false);
         } catch (e: any) {
             console.error("Provisioning Error:", e);
             setFormError("A network or system error occurred while provisioning the user.");
@@ -385,21 +277,8 @@ export default function AdminPage() {
         <div className="space-y-8">
             <PlatformAiGovernanceManager />
 
-            <VerifiedAccessManager retailers={retailers} />
-            
-            <Card className="border-accent border-2 bg-accent/5">
-                <CardHeader><CardTitle className="text-sm font-black uppercase">Platform Audit</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center text-xs">
-                        <span className="text-muted-foreground">Identity Protocol</span>
-                        <Badge variant="outline" className="text-[10px] font-black uppercase bg-green-50 text-green-700">JWT Claim</Badge>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                        <span className="text-muted-foreground">Tenant Bound</span>
-                        <Badge variant="outline" className="text-[10px] font-black uppercase bg-green-50 text-green-700">Enforced</Badge>
-                    </div>
-                </CardContent>
-            </Card>
+
+
         </div>
       </div>
     </div>

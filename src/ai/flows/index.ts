@@ -76,7 +76,6 @@ import { aggregateIntelligence } from './aggregate-intelligence';
 import { attributeTransactions } from './attribute-transactions';
 import { type AttributionReport, type AttributionRecord } from '@/lib/schemas/attribution';
 import { getDecisionJourneyIntelligence } from './decision-journey-intelligence';
-import { assignUserClaims } from './assign-user-claims';
 import { resetTestRetailer } from './reset-test-retailer';
 import { seedTestRetailerDemo } from './seed-test-retailer-demo';
 import { saveAiConfig } from './save-ai-config';
@@ -126,7 +125,6 @@ export {
     aggregateIntelligence,
     attributeTransactions,
     getDecisionJourneyIntelligence,
-    assignUserClaims,
     resetTestRetailer,
     seedTestRetailerDemo,
     saveAiConfig,

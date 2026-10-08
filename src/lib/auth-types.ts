@@ -1,3 +1,5 @@
+import type { RetailerFunctionalArea } from '@/lib/retailer-navigation';
+
 /**
  * Canonical authorization types for iNteract.
  *
@@ -95,6 +97,7 @@ export type UserAuthorizationProfile = {
   role: CanonicalRole;
   scope: AuthorizationScope;
   permissions: Permissions;
+  sidebarAccess?: RetailerFunctionalArea[];
 
   isActive: boolean;
 
@@ -118,6 +121,7 @@ export type AuthorizedContext = {
   role: CanonicalRole;
   scope: AuthorizationScope;
   permissions: Permissions;
+  sidebarAccess?: RetailerFunctionalArea[];
 
   isActive: boolean;
 

@@ -9,6 +9,14 @@ import type {
   ScopeLevel,
 } from '@/lib/auth-types';
 import { ROLE_SCOPE_LEVEL } from '@/lib/auth-types';
+import type {
+  RetailerFunctionalArea,
+  SidebarAccess,
+} from '@/lib/retailer-navigation';
+import {
+  constrainSidebarAccessForRole,
+  getRetailerSidebarAccessGroups,
+} from '@/lib/retailer-sidebar-access';
 import {
   getRetailerUserScopeChildrenAction,
   getRetailerUserScopeContextAction,
@@ -21,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type ScopeOption = {
   scope: AuthorizationScope;
@@ -86,6 +95,8 @@ export default function RetailerUserAccessManager() {
 
   const [scopePath, setScopePath] = React.useState<ScopeOption[]>([]);
   const [children, setChildren] = React.useState<ScopeOption[]>([]);
+  const [sidebarAccess, setSidebarAccess] =
+    React.useState<SidebarAccess>([]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -244,6 +255,28 @@ export default function RetailerUserAccessManager() {
         )
       : [];
 
+  const sidebarGroups =
+    role && assignmentComplete
+      ? getRetailerSidebarAccessGroups(role)
+      : [];
+
+  function toggleSidebarArea(
+    area: RetailerFunctionalArea,
+    checked: boolean
+  ) {
+    if (!role) return;
+
+    setSidebarAccess(current => {
+      const next = checked
+        ? current.includes(area)
+          ? current
+          : [...current, area]
+        : current.filter(item => item !== area);
+
+      return constrainSidebarAccessForRole(role, next);
+    });
+  }
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -275,9 +308,17 @@ export default function RetailerUserAccessManager() {
           <Label>Role</Label>
           <Select
             value={role ?? undefined}
-            onValueChange={value =>
-              setRole(value as CanonicalRole)
-            }
+            onValueChange={value => {
+              const nextRole = value as CanonicalRole;
+
+              setSidebarAccess(current =>
+                constrainSidebarAccessForRole(
+                  nextRole,
+                  current
+                )
+              );
+              setRole(nextRole);
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select a role" />
@@ -443,6 +484,84 @@ export default function RetailerUserAccessManager() {
               {error}
             </div>
           )}
+        </section>
+
+        )}
+
+      {role && assignmentComplete && (
+        <section className="space-y-4">
+          <div>
+            <h3 className="text-xl font-bold">
+              Sidebar Access
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Choose which iNteract areas are available to this user.
+              This does not expand their role or organisational authority.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {sidebarGroups.map(group => (
+              <div key={group.group} className="space-y-3">
+                <h4 className="text-sm font-semibold">
+                  {group.group}
+                </h4>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  {group.options.map(option => {
+                    const checked =
+                      sidebarAccess.includes(option.item.id);
+
+                    return (
+                      <div
+                        key={option.item.id}
+                        className="flex items-start gap-3 rounded-md border p-3"
+                      >
+                        <Checkbox
+                          id={`sidebar-access-${option.item.id}`}
+                          checked={checked}
+                          disabled={!option.eligible}
+                          onCheckedChange={value =>
+                            toggleSidebarArea(
+                              option.item.id,
+                              value === true
+                            )
+                          }
+                        />
+
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor={`sidebar-access-${option.item.id}`}
+                            className={
+                              option.eligible
+                                ? 'cursor-pointer'
+                                : 'cursor-not-allowed text-muted-foreground'
+                            }
+                          >
+                            {option.item.label}
+                          </Label>
+
+                          {!option.eligible &&
+                            option.unavailableReason && (
+                              <p className="text-xs text-muted-foreground">
+                                {option.unavailableReason}
+                              </p>
+                            )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-md border bg-muted/30 p-4 text-sm">
+            <span className="font-medium">
+              {sidebarAccess.length}
+            </span>{' '}
+            of 15 areas assigned.
+          </div>
         </section>
       )}
     </div>

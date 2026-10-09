@@ -28,7 +28,7 @@ describe('createRetailerUserAction', () => {
   test('returns a serializable friendly result for duplicate email', async () => {
     const duplicateError = Object.assign(
       new Error('The email address is already in use by another account.'),
-      { code: 'auth/email-already-in-use' }
+      { code: 'auth/email-already-exists' }
     );
 
     mockCreateRetailerUser.mockRejectedValue(duplicateError);

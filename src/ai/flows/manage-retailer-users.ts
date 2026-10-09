@@ -61,7 +61,7 @@ export async function createRetailerUserAction(
         ? error.code
         : null;
 
-    if (code === 'auth/email-already-in-use') {
+    if (code === 'auth/email-already-exists') {
       return {
         success: false,
         message:

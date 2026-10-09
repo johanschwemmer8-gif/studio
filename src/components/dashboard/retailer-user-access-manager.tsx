@@ -22,6 +22,17 @@ import {
   getRetailerUserScopeContextAction,
 } from '@/ai/flows/get-retailer-user-scope-options';
 import {
+  listRetailerManagedUserDisplaySummariesAction,
+  type RetailerManagedUserDisplaySummary,
+} from '@/ai/flows/manage-retailer-users';
+import {
+  retailerRoleLabel,
+  retailerScopeLevelLabel,
+  retailerSidebarAccessSummary,
+  retailerUserStatusLabel,
+} from '@/lib/retailer-managed-user-display';
+import { RETAILER_FUNCTIONAL_AREA_IDS } from '@/lib/retailer-navigation';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -30,6 +41,15 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 type ScopeOption = {
   scope: AuthorizationScope;
@@ -86,6 +106,8 @@ export default function RetailerUserAccessManager() {
   const [loading, setLoading] = React.useState(true);
   const [loadingChildren, setLoadingChildren] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [managedUsers, setManagedUsers] =
+    React.useState<RetailerManagedUserDisplaySummary[]>([]);
 
   const [eligibleRoles, setEligibleRoles] = React.useState<CanonicalRole[]>([]);
   const [actorScope, setActorScope] = React.useState<AuthorizationScope | null>(null);
@@ -113,11 +135,14 @@ export default function RetailerUserAccessManager() {
 
         const idToken = await user.getIdToken();
         const context = await getRetailerUserScopeContextAction({ idToken });
+        const users =
+          await listRetailerManagedUserDisplaySummariesAction({ idToken });
 
         if (cancelled) return;
 
         setEligibleRoles(context.eligibleRoles);
         setActorScope(context.actorScope);
+        setManagedUsers(users);
       } catch (err) {
         if (cancelled) return;
 
@@ -331,6 +356,84 @@ export default function RetailerUserAccessManager() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-xl font-bold">Managed Users</h3>
+          <p className="text-sm text-muted-foreground">
+            Users within your retailer and organisational authority.
+          </p>
+        </div>
+
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Organisational Scope</TableHead>
+                <TableHead>Sidebar Access</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {managedUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No manageable users found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                managedUsers.map(managedUser => (
+                  <TableRow key={managedUser.uid}>
+                    <TableCell>
+                      <div className="font-medium">
+                        {managedUser.displayName}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {managedUser.email}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {retailerRoleLabel(managedUser.role)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        {managedUser.scopeDisplayName}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {retailerScopeLevelLabel(managedUser.scope)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {retailerSidebarAccessSummary(
+                        managedUser.sidebarAccess,
+                        RETAILER_FUNCTIONAL_AREA_IDS.length
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          managedUser.isActive
+                            ? 'default'
+                            : 'secondary'
+                        }
+                      >
+                        {retailerUserStatusLabel(
+                          managedUser.isActive
+                        )}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       </section>
 

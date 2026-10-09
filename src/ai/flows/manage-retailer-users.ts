@@ -10,6 +10,10 @@ import {
   type RetailerManagedUserSummary,
   type UpdateRetailerUserAuthorizationInput,
 } from '@/lib/retailer-user-management-server';
+import {
+  resolveRetailerManagedUserScopeDisplayName,
+} from '@/lib/retailer-managed-user-scope-display-server';
+import { verifyAuth } from '@/lib/auth-server';
 
 /**
  * Server Action boundary for retailer user administration.
@@ -52,4 +56,36 @@ export async function reactivateRetailerUserAction(input: {
   targetUid: string;
 }): Promise<RetailerManagedUserSummary> {
   return reactivateRetailerUser(input);
+}
+
+
+export type RetailerManagedUserDisplaySummary = RetailerManagedUserSummary & {
+  scopeDisplayName: string;
+};
+
+export async function listRetailerManagedUserDisplaySummariesAction(input: {
+  idToken: string;
+}): Promise<RetailerManagedUserDisplaySummary[]> {
+  const actor = await verifyAuth(input.idToken);
+
+  if ('error' in actor || !actor.retailerId) {
+    throw new Error(
+      'USER_MANAGEMENT_AUTH_FAILED: Unable to resolve retailer authority.'
+    );
+  }
+
+  const retailerId = actor.retailerId;
+  const users = await listRetailerManagedUsers(input);
+
+  return Promise.all(
+    users.map(async managedUser => ({
+      ...managedUser,
+      scopeDisplayName:
+        await resolveRetailerManagedUserScopeDisplayName(
+          retailerId,
+          actor.scope,
+          managedUser.scope
+        ),
+    }))
+  );
 }

@@ -32,10 +32,45 @@ export async function listRetailerManagedUsersAction(input: {
   return listRetailerManagedUsers(input);
 }
 
+export type CreateRetailerUserActionResult =
+  | {
+      success: true;
+      user: RetailerManagedUserSummary;
+    }
+  | {
+      success: false;
+      message: string;
+    };
+
 export async function createRetailerUserAction(
   input: CreateRetailerUserInput
-): Promise<RetailerManagedUserSummary> {
-  return createRetailerUser(input);
+): Promise<CreateRetailerUserActionResult> {
+  try {
+    const user = await createRetailerUser(input);
+
+    return {
+      success: true,
+      user,
+    };
+  } catch (error) {
+    const code =
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      typeof error.code === 'string'
+        ? error.code
+        : null;
+
+    if (code === 'auth/email-already-in-use') {
+      return {
+        success: false,
+        message:
+          'This email address is already associated with an account. Please use another email address.',
+      };
+    }
+
+    throw error;
+  }
 }
 
 export async function updateRetailerUserAuthorizationAction(

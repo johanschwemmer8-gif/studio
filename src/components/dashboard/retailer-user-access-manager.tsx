@@ -533,7 +533,7 @@ export default function RetailerUserAccessManager() {
 
       const idToken = await user.getIdToken();
 
-      await createRetailerUserAction({
+      const createResult = await createRetailerUserAction({
         idToken,
         displayName: newDisplayName.trim(),
         email: newEmail.trim(),
@@ -542,6 +542,11 @@ export default function RetailerUserAccessManager() {
         scope: selectedScope,
         sidebarAccess,
       });
+
+      if (!createResult.success) {
+        setError(createResult.message);
+        return;
+      }
 
       const users =
         await listRetailerManagedUserDisplaySummariesAction({

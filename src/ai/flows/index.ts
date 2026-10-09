@@ -79,7 +79,6 @@ import { getDecisionJourneyIntelligence } from './decision-journey-intelligence'
 import { resetTestRetailer } from './reset-test-retailer';
 import { seedTestRetailerDemo } from './seed-test-retailer-demo';
 import { saveAiConfig } from './save-ai-config';
-import { listAuthUsers, type AuthUser } from './list-auth-users';
 
 export {
     analyzeEngagementMetrics,
@@ -128,7 +127,6 @@ export {
     resetTestRetailer,
     seedTestRetailerDemo,
     saveAiConfig,
-    listAuthUsers,
 };
 
 export type {
@@ -174,5 +172,4 @@ export type {
     ScheduledProductSyncInput, ScheduledProductSyncOutput,
     SyncProductsInput, SyncProductsOutput,
     AttributionReport, AttributionRecord,
-    AuthUser
 };

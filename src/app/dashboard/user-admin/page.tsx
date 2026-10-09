@@ -6,14 +6,14 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * LEGACY ROUTE REDIRECT
- * This route has been superseded by /create-admin.
- * Redirecting to ensure user management remains centralized.
+ * This legacy route is retained for backwards compatibility.
+ * Platform retailer user administration is centralized in /dashboard/admin.
  */
 export default function UserAdminRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/create-admin');
+    router.replace('/dashboard/admin');
   }, [router]);
 
   return (

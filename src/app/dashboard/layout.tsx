@@ -223,7 +223,7 @@ export default function DashboardLayout({
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="User Access">
-                    <Link href="/create-admin">
+                    <Link href="/dashboard/admin">
                       <Users className="h-4 w-4" />
                       <span>User Access</span>
                     </Link>

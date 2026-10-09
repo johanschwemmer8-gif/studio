@@ -146,7 +146,7 @@ function LoginPageContent() {
     try {
         await sendPasswordResetEmail(auth, emailToReset);
         toast({
-            title: "Password Reset Email Sent",
+            title: "Password Setup Email Sent",
             description: `If an account exists for ${emailToReset}, you will receive an email with instructions.`,
         });
         closeDialog();
@@ -253,13 +253,13 @@ function LoginPageContent() {
                 <div className="text-sm">
                     <Dialog open={isAdminResetOpen} onOpenChange={setIsAdminResetOpen}>
                         <DialogTrigger asChild>
-                            <button type="button" className="underline text-muted-foreground">Forgot password?</button>
+                            <button type="button" className="underline text-muted-foreground">Set up or reset password</button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Reset Admin Password</DialogTitle>
+                                <DialogTitle>Set Up or Reset Admin Password</DialogTitle>
                                 <DialogDescription>
-                                    Enter your admin email address to receive a password reset link.
+                                    Enter your admin email address to receive a secure password setup or reset link.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-2">
@@ -349,13 +349,13 @@ function LoginPageContent() {
                 <div className="text-sm">
                     <Dialog open={isRetailerResetOpen} onOpenChange={setIsRetailerResetOpen}>
                         <DialogTrigger asChild>
-                            <button type="button" className="underline text-muted-foreground">Forgot password?</button>
+                            <button type="button" className="underline text-muted-foreground">Set up or reset password</button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Reset Retailer Password</DialogTitle>
+                                <DialogTitle>Set Up or Reset Retailer Password</DialogTitle>
                                 <DialogDescription>
-                                    Enter your retailer email address to receive a password reset link.
+                                    Enter your retailer email address to receive a secure password setup or reset link.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-2">

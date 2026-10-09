@@ -162,7 +162,6 @@ describe('platform retailer user management commands', () => {
       retailerId: 'retailer-1',
       displayName: 'Store Manager',
       email: 'manager@example.com',
-      password: 'temporary-password',
       role: 'storeManager',
       scope: {
         level: 'store',
@@ -182,10 +181,10 @@ describe('platform retailer user management commands', () => {
 
     expect(mockCreateUser).toHaveBeenCalledWith({
       email: 'manager@example.com',
-      password: 'temporary-password',
       displayName: 'Store Manager',
       emailVerified: false,
     });
+    expect(mockCreateUser.mock.calls[0][0]).not.toHaveProperty('password');
 
     const saved = userSet.mock.calls[0][0];
 
@@ -249,7 +248,6 @@ describe('platform retailer user management commands', () => {
         retailerId: 'retailer-1',
         displayName: 'Blocked User',
         email: 'blocked@example.com',
-        password: 'temporary-password',
         role: 'networkOwner',
         scope: {
           level: 'network',
@@ -285,7 +283,6 @@ describe('platform retailer user management commands', () => {
         retailerId: 'retailer-1',
         displayName: 'Foreign User',
         email: 'foreign@example.com',
-        password: 'temporary-password',
         role: 'networkOwner',
         scope: {
           level: 'network',
@@ -337,7 +334,6 @@ describe('platform retailer user management commands', () => {
         retailerId: 'retailer-1',
         displayName: 'Rollback User',
         email: 'rollback@example.com',
-        password: 'temporary-password',
         role: 'networkOwner',
         scope: {
           level: 'network',
@@ -395,7 +391,6 @@ describe('platform retailer user management commands', () => {
         retailerId: 'retailer-1',
         displayName: 'Created User',
         email: 'created@example.com',
-        password: 'temporary-password',
         role: 'networkOwner',
         scope: {
           level: 'network',

@@ -126,7 +126,6 @@ export type CreateRetailerUserInput = {
   idToken: string;
   displayName: string;
   email: string;
-  password: string;
   role: CanonicalRole;
   scope: AuthorizationScope;
   sidebarAccess?: SidebarAccess;
@@ -326,7 +325,6 @@ export async function createRetailerUser(
   try {
     const userRecord = await auth.createUser({
       email: provisionalProfile.email,
-      password: input.password,
       displayName: provisionalProfile.displayName,
       disabled: false,
     });

@@ -37,7 +37,6 @@ describe('createRetailerUserAction', () => {
       idToken: 'valid-token',
       displayName: 'Existing User',
       email: 'existing@example.com',
-      password: 'temporary-password',
       role: 'storeManager',
       scope: {
         level: 'store',
@@ -84,7 +83,6 @@ describe('createRetailerUserAction', () => {
         idToken: 'valid-token',
         displayName: 'New User',
         email: 'new@example.com',
-        password: 'temporary-password',
         role: 'storeManager',
         scope: user.scope,
         sidebarAccess: ['dashboard'],
@@ -105,7 +103,6 @@ describe('createRetailerUserAction', () => {
         idToken: 'valid-token',
         displayName: 'New User',
         email: 'new@example.com',
-        password: 'temporary-password',
         role: 'storeManager',
         scope: {
           level: 'store',

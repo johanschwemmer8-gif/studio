@@ -145,7 +145,6 @@ export default function RetailerUserAccessManager() {
   const [creatingUser, setCreatingUser] = React.useState(false);
   const [newDisplayName, setNewDisplayName] = React.useState('');
   const [newEmail, setNewEmail] = React.useState('');
-  const [newPassword, setNewPassword] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [editInitializing, setEditInitializing] = React.useState(false);
   const [lifecycleUser, setLifecycleUser] =
@@ -398,7 +397,6 @@ export default function RetailerUserAccessManager() {
     setCreatingUser(true);
     setNewDisplayName('');
     setNewEmail('');
-    setNewPassword('');
     setRole(null);
     setAnalystLevel(null);
     setScopePath([]);
@@ -411,7 +409,6 @@ export default function RetailerUserAccessManager() {
     setCreatingUser(false);
     setNewDisplayName('');
     setNewEmail('');
-    setNewPassword('');
     setRole(null);
     setAnalystLevel(null);
     setScopePath([]);
@@ -521,8 +518,7 @@ export default function RetailerUserAccessManager() {
       !selectedScope ||
       !assignmentComplete ||
       !newDisplayName.trim() ||
-      !newEmail.trim() ||
-      !newPassword
+      !newEmail.trim()
     ) {
       return;
     }
@@ -537,7 +533,6 @@ export default function RetailerUserAccessManager() {
         idToken,
         displayName: newDisplayName.trim(),
         email: newEmail.trim(),
-        password: newPassword,
         role,
         scope: selectedScope,
         sidebarAccess,
@@ -701,21 +696,13 @@ export default function RetailerUserAccessManager() {
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2 md:max-w-md">
-              <Label htmlFor="new-user-password">
-                Temporary Password
-              </Label>
-              <Input
-                id="new-user-password"
-                type="password"
-                value={newPassword}
-                disabled={saving}
-                autoComplete="new-password"
-                onChange={event => setNewPassword(event.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Set an initial password for this account. First-login
-                credential handling will be governed separately.
+            <div className="md:col-span-2 rounded-md border bg-muted/30 p-3">
+              <p className="text-sm font-medium">
+                Password setup
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                No password is required here. The user establishes their own
+                password securely from the iNteract sign-in page.
               </p>
             </div>
           </div>
@@ -1236,8 +1223,7 @@ export default function RetailerUserAccessManager() {
                 (creatingUser &&
                   (
                     !newDisplayName.trim() ||
-                    !newEmail.trim() ||
-                    !newPassword
+                    !newEmail.trim()
                   ))
               }
               onClick={() => {

@@ -43,7 +43,6 @@ import { createRetailerTenant } from '@/ai/flows/create-retailer-tenant';
 function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
-    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
 
@@ -55,7 +54,6 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
         const form = event.currentTarget;
         const name = (form.elements.namedItem('name') as HTMLInputElement).value;
         const email = (form.elements.namedItem('email') as HTMLInputElement).value;
-        const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
         if (!auth) {
             setFormError("Infrastructure Logic Error.");
@@ -71,7 +69,6 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
                 retailerId: retailer.id,
                 displayName: name,
                 email,
-                password,
                 role: 'networkOwner',
                 scope: {
                     level: 'network',
@@ -81,7 +78,7 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
 
             toast({
                 title: "Network Owner Established",
-                description: `${name} can now access ${retailer.name} as Network Owner.`,
+                description: `${name} has been provisioned as Network Owner for ${retailer.name}. They must establish their own password from the sign-in page.`,
             });
             form.reset();
             setIsDialogOpen(false);
@@ -117,11 +114,11 @@ function AddUserDialog({ retailer }: { retailer: SavedRetailer }) {
                             <Label className="text-[10px] font-black uppercase">Email</Label>
                             <Input name="email" type="email" required />
                         </div>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase">Temporary Password</Label>
-                            <div className="relative">
-                                <Input name="password" type={showPassword ? 'text' : 'password'} required className="pr-10" />
-                            </div>
+                        <div className="space-y-2 rounded-md border p-3">
+                            <Label className="text-[10px] font-black uppercase">Password Setup</Label>
+                            <p className="text-[11px] text-muted-foreground">
+                                No password is created by iNteract. The Network Owner establishes their own password securely from the sign-in page.
+                            </p>
                         </div>
 
                         <div className="space-y-2 rounded-md border p-3">

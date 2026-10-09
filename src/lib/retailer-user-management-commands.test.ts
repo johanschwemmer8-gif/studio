@@ -177,7 +177,6 @@ describe('authoritative retailer user commands', () => {
       idToken: 'valid-token',
       displayName: 'New Store Manager',
       email: 'new-manager@example.com',
-      password: 'temporary-password',
       role: 'storeManager',
       scope: {
         level: 'store',
@@ -193,10 +192,10 @@ describe('authoritative retailer user commands', () => {
 
     expect(createUser).toHaveBeenCalledWith({
       email: 'new-manager@example.com',
-      password: 'temporary-password',
       displayName: 'New Store Manager',
       disabled: false,
     });
+    expect(createUser.mock.calls[0][0]).not.toHaveProperty('password');
 
     expect(set).toHaveBeenCalledTimes(1);
 
@@ -247,7 +246,6 @@ describe('authoritative retailer user commands', () => {
         idToken: 'valid-token',
         displayName: 'Blocked User',
         email: 'blocked@example.com',
-        password: 'temporary-password',
         role: 'storeUser',
         scope: {
           level: 'store',
@@ -303,7 +301,6 @@ describe('authoritative retailer user commands', () => {
         idToken: 'valid-token',
         displayName: 'Rollback User',
         email: 'rollback@example.com',
-        password: 'temporary-password',
         role: 'storeManager',
         scope: {
           level: 'store',
@@ -362,7 +359,6 @@ describe('authoritative retailer user commands', () => {
         idToken: 'valid-token',
         displayName: 'No Audit User',
         email: 'no-audit@example.com',
-        password: 'temporary-password',
         role: 'storeManager',
         scope: {
           level: 'store',
@@ -416,7 +412,6 @@ describe('authoritative retailer user commands', () => {
       idToken: 'valid-token',
       displayName: 'Audit Failure User',
       email: 'audit-failure@example.com',
-      password: 'temporary-password',
       role: 'storeManager',
       scope: {
         level: 'store',

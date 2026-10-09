@@ -180,7 +180,6 @@ export type CreatePlatformManagedRetailerUserInput = {
   retailerId: string;
   displayName: string;
   email: string;
-  password: string;
   role: CanonicalRole;
   scope: AuthorizationScope;
   sidebarAccess?: SidebarAccess;
@@ -319,12 +318,6 @@ export async function createPlatformRetailerUser(
     );
   }
 
-  if (!input.password) {
-    throw new Error(
-      'PLATFORM_USER_MANAGEMENT_INVALID: Provisioning password is required.'
-    );
-  }
-
   /*
    * Validate the complete authorization proposal BEFORE creating
    * the Firebase Authentication identity.
@@ -349,7 +342,6 @@ export async function createPlatformRetailerUser(
 
     const userRecord = await auth.createUser({
       email: input.email,
-      password: input.password,
       displayName: input.displayName,
       emailVerified: false,
     });

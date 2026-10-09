@@ -26,6 +26,7 @@ import {
   getRetailerUserScopeContextAction,
 } from '@/ai/flows/get-retailer-user-scope-options';
 import {
+  createRetailerUserAction,
   listRetailerManagedUserDisplaySummariesAction,
   reactivateRetailerUserAction,
   suspendRetailerUserAction,
@@ -50,6 +51,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,6 +142,10 @@ export default function RetailerUserAccessManager() {
 
   const [editingUser, setEditingUser] =
     React.useState<RetailerManagedUserDisplaySummary | null>(null);
+  const [creatingUser, setCreatingUser] = React.useState(false);
+  const [newDisplayName, setNewDisplayName] = React.useState('');
+  const [newEmail, setNewEmail] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [editInitializing, setEditInitializing] = React.useState(false);
   const [lifecycleUser, setLifecycleUser] =
@@ -387,6 +393,33 @@ export default function RetailerUserAccessManager() {
     return path;
   }
 
+  function beginCreate() {
+    setEditingUser(null);
+    setCreatingUser(true);
+    setNewDisplayName('');
+    setNewEmail('');
+    setNewPassword('');
+    setRole(null);
+    setAnalystLevel(null);
+    setScopePath([]);
+    setChildren([]);
+    setSidebarAccess([]);
+    setError(null);
+  }
+
+  function cancelCreate() {
+    setCreatingUser(false);
+    setNewDisplayName('');
+    setNewEmail('');
+    setNewPassword('');
+    setRole(null);
+    setAnalystLevel(null);
+    setScopePath([]);
+    setChildren([]);
+    setSidebarAccess([]);
+    setError(null);
+  }
+
   async function beginEdit(
     managedUser: RetailerManagedUserDisplaySummary
   ) {
@@ -395,6 +428,7 @@ export default function RetailerUserAccessManager() {
     try {
       setEditInitializing(true);
       setError(null);
+      setCreatingUser(false);
 
       const path = await buildScopePath(managedUser.scope);
 
@@ -473,6 +507,54 @@ export default function RetailerUserAccessManager() {
         err instanceof Error
           ? err.message
           : 'Unable to save user authorization.'
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function createUser() {
+    if (
+      !user ||
+      !creatingUser ||
+      !role ||
+      !selectedScope ||
+      !assignmentComplete ||
+      !newDisplayName.trim() ||
+      !newEmail.trim() ||
+      !newPassword
+    ) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const idToken = await user.getIdToken();
+
+      await createRetailerUserAction({
+        idToken,
+        displayName: newDisplayName.trim(),
+        email: newEmail.trim(),
+        password: newPassword,
+        role,
+        scope: selectedScope,
+        sidebarAccess,
+      });
+
+      const users =
+        await listRetailerManagedUserDisplaySummariesAction({
+          idToken,
+        });
+
+      setManagedUsers(users);
+      cancelCreate();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to create retailer user.'
       );
     } finally {
       setSaving(false);
@@ -582,6 +664,98 @@ export default function RetailerUserAccessManager() {
 
   return (
     <div className="space-y-8">
+      {creatingUser && (
+        <section className="space-y-4 rounded-md border p-4">
+          <div>
+            <h3 className="text-xl font-bold">Add User</h3>
+            <p className="text-sm text-muted-foreground">
+              Create a retailer user, then assign their role,
+              organisational scope and sidebar access.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="new-user-name">Name &amp; Surname</Label>
+              <Input
+                id="new-user-name"
+                value={newDisplayName}
+                disabled={saving}
+                onChange={event => setNewDisplayName(event.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-user-email">Email</Label>
+              <Input
+                id="new-user-email"
+                type="email"
+                value={newEmail}
+                disabled={saving}
+                onChange={event => setNewEmail(event.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2 md:max-w-md">
+              <Label htmlFor="new-user-password">
+                Temporary Password
+              </Label>
+              <Input
+                id="new-user-password"
+                type="password"
+                value={newPassword}
+                disabled={saving}
+                autoComplete="new-password"
+                onChange={event => setNewPassword(event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Set an initial password for this account. First-login
+                credential handling will be governed separately.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold">Role</h4>
+              <p className="text-sm text-muted-foreground">
+                Choose the responsibility level for this retailer user.
+              </p>
+            </div>
+
+            <div className="max-w-md space-y-2">
+              <Label>Role</Label>
+              <Select
+                value={role ?? undefined}
+                onValueChange={value => {
+                  const nextRole = value as CanonicalRole;
+
+                  setSidebarAccess(current =>
+                    constrainSidebarAccessForRole(
+                      nextRole,
+                      current
+                    )
+                  );
+
+                  setRole(nextRole);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eligibleRoles.map(item => (
+                    <SelectItem key={item} value={item}>
+                      {ROLE_LABELS[item]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </section>
+      )}
+
       {editingUser && (
         <section className="space-y-4 rounded-md border p-4">
           <div>
@@ -639,11 +813,26 @@ export default function RetailerUserAccessManager() {
       )}
 
       <section className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">Managed Users</h3>
-          <p className="text-sm text-muted-foreground">
-            Users within your retailer and organisational authority.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-bold">Managed Users</h3>
+            <p className="text-sm text-muted-foreground">
+              Users within your retailer and organisational authority.
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            disabled={
+              creatingUser ||
+              editInitializing ||
+              saving ||
+              lifecyclePending
+            }
+            onClick={beginCreate}
+          >
+            Add User
+          </Button>
         </div>
 
         <div className="rounded-md border">
@@ -804,7 +993,7 @@ export default function RetailerUserAccessManager() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {editingUser && role && actorScope && (
+      {(editingUser || creatingUser) && role && actorScope && (
         <section className="space-y-4">
           <div>
             <h3 className="text-xl font-bold">
@@ -958,7 +1147,7 @@ export default function RetailerUserAccessManager() {
 
         )}
 
-      {editingUser && role && assignmentComplete && (
+      {(editingUser || creatingUser) && role && assignmentComplete && (
         <section className="space-y-4">
           <div>
             <h3 className="text-xl font-bold">
@@ -1036,16 +1225,31 @@ export default function RetailerUserAccessManager() {
           <div className="flex flex-wrap gap-3">
             <Button
               type="button"
-              disabled={saving || !assignmentComplete}
+              disabled={
+                saving ||
+                !assignmentComplete ||
+                (creatingUser &&
+                  (
+                    !newDisplayName.trim() ||
+                    !newEmail.trim() ||
+                    !newPassword
+                  ))
+              }
               onClick={() => {
-                void saveEdit();
+                if (creatingUser) {
+                  void createUser();
+                } else {
+                  void saveEdit();
+                }
               }}
             >
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving…
+                  {creatingUser ? 'Creating…' : 'Saving…'}
                 </>
+              ) : creatingUser ? (
+                'Create User'
               ) : (
                 'Save Changes'
               )}
@@ -1055,7 +1259,7 @@ export default function RetailerUserAccessManager() {
               type="button"
               variant="outline"
               disabled={saving}
-              onClick={cancelEdit}
+              onClick={creatingUser ? cancelCreate : cancelEdit}
             >
               Cancel
             </Button>

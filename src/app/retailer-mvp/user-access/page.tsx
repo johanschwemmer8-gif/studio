@@ -1,4 +1,5 @@
 import { Separator } from '@/components/ui/separator';
+import RetailerUserAccessManager from '@/components/dashboard/retailer-user-access-manager';
 
 export default function UserAccessPage() {
   return (
@@ -15,14 +16,7 @@ export default function UserAccessPage() {
 
       <Separator />
 
-      <section className="space-y-2">
-        <h3 className="text-xl font-bold">Retailer User Administration</h3>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          User administration is being connected to the authoritative retailer
-          access model. Role, organisational scope and Sidebar Access will be
-          managed here.
-        </p>
-      </section>
+      <RetailerUserAccessManager />
     </div>
   );
 }

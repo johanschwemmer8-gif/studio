@@ -209,8 +209,8 @@ export function resolveRetailerFunctionalArea(
 /**
  * Runtime functional-area access decision.
  *
- * Migration semantics:
- * - undefined = legacy profile not yet migrated; preserve existing access.
+ * Functional access semantics:
+ * - undefined = no functional access; fail closed.
  * - [] = explicitly no functional access.
  * - populated array = only assigned functional areas.
  */
@@ -219,7 +219,7 @@ export function hasRetailerFunctionalAccess(
   area: RetailerFunctionalArea
 ): boolean {
   if (sidebarAccess === undefined) {
-    return true;
+    return false;
   }
 
   return sidebarAccess.includes(area);

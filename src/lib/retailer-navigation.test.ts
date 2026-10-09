@@ -140,10 +140,10 @@ describe('Retailer navigation authorization contract', () => {
       .toBeNull();
   });
 
-  it('preserves legacy access only when sidebarAccess is absent', () => {
+  it('fails closed when sidebarAccess is absent', () => {
     expect(
       hasRetailerFunctionalAccess(undefined, 'dashboard')
-    ).toBe(true);
+    ).toBe(false);
 
     expect(
       hasRetailerFunctionalAccess([], 'dashboard')

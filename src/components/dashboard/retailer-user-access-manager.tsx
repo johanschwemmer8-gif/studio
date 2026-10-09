@@ -27,6 +27,8 @@ import {
 } from '@/ai/flows/get-retailer-user-scope-options';
 import {
   listRetailerManagedUserDisplaySummariesAction,
+  reactivateRetailerUserAction,
+  suspendRetailerUserAction,
   updateRetailerUserAuthorizationAction,
   type RetailerManagedUserDisplaySummary,
 } from '@/ai/flows/manage-retailer-users';
@@ -48,6 +50,16 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -130,6 +142,9 @@ export default function RetailerUserAccessManager() {
     React.useState<RetailerManagedUserDisplaySummary | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [editInitializing, setEditInitializing] = React.useState(false);
+  const [lifecycleUser, setLifecycleUser] =
+    React.useState<RetailerManagedUserDisplaySummary | null>(null);
+  const [lifecyclePending, setLifecyclePending] = React.useState(false);
   const skipRoleResetRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -464,6 +479,61 @@ export default function RetailerUserAccessManager() {
     }
   }
 
+  async function confirmLifecycleChange() {
+    if (!user || !lifecycleUser) {
+      return;
+    }
+
+    const target = lifecycleUser;
+
+    try {
+      setLifecyclePending(true);
+      setError(null);
+
+      const idToken = await user.getIdToken();
+
+      if (target.isActive) {
+        await suspendRetailerUserAction({
+          idToken,
+          targetUid: target.uid,
+        });
+      } else {
+        await reactivateRetailerUserAction({
+          idToken,
+          targetUid: target.uid,
+        });
+      }
+
+      const users =
+        await listRetailerManagedUserDisplaySummariesAction({
+          idToken,
+        });
+
+      setManagedUsers(users);
+
+      if (editingUser?.uid === target.uid) {
+        setEditingUser(null);
+        setRole(null);
+        setAnalystLevel(null);
+        setScopePath([]);
+        setChildren([]);
+        setSidebarAccess([]);
+      }
+
+      setLifecycleUser(null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : target.isActive
+            ? 'Unable to suspend this user.'
+            : 'Unable to reactivate this user.'
+      );
+    } finally {
+      setLifecyclePending(false);
+    }
+  }
+
   const analystLevels =
     actorScope
       ? LEVEL_ORDER.filter(level =>
@@ -640,17 +710,46 @@ export default function RetailerUserAccessManager() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={editInitializing || saving}
-                        onClick={() => {
-                          void beginEdit(managedUser);
-                        }}
-                      >
-                        Edit Access
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={
+                            editInitializing ||
+                            saving ||
+                            lifecyclePending
+                          }
+                          onClick={() => {
+                            void beginEdit(managedUser);
+                          }}
+                        >
+                          Edit Access
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant={
+                            managedUser.isActive
+                              ? 'destructive'
+                              : 'outline'
+                          }
+                          size="sm"
+                          disabled={
+                            editInitializing ||
+                            saving ||
+                            lifecyclePending
+                          }
+                          onClick={() => {
+                            setError(null);
+                            setLifecycleUser(managedUser);
+                          }}
+                        >
+                          {managedUser.isActive
+                            ? 'Suspend'
+                            : 'Reactivate'}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -659,6 +758,51 @@ export default function RetailerUserAccessManager() {
           </Table>
         </div>
       </section>
+
+      <AlertDialog
+        open={lifecycleUser !== null}
+        onOpenChange={open => {
+          if (!open && !lifecyclePending) {
+            setLifecycleUser(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lifecycleUser?.isActive
+                ? 'Suspend user?'
+                : 'Reactivate user?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {lifecycleUser?.isActive
+                ? `Suspend ${lifecycleUser?.displayName ?? 'this user'}? They will no longer be able to sign in or access the retailer workspace until reactivated.`
+                : `Reactivate ${lifecycleUser?.displayName ?? 'this user'}? Their sign-in and assigned retailer access will be restored.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={lifecyclePending}>
+              Cancel
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              disabled={lifecyclePending}
+              onClick={event => {
+                event.preventDefault();
+                void confirmLifecycleChange();
+              }}
+            >
+              {lifecyclePending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {lifecycleUser?.isActive
+                ? 'Suspend User'
+                : 'Reactivate User'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {editingUser && role && actorScope && (
         <section className="space-y-4">

@@ -582,6 +582,19 @@ describe('authoritative retailer user commands', () => {
   });
 
   test('suspends an authorized lower-authority user without deleting identity', async () => {
+    const getUser = jest.fn().mockResolvedValue({
+      uid: 'manager-1',
+      disabled: false,
+    });
+    const updateUser = jest.fn().mockResolvedValue({
+      uid: 'manager-1',
+    });
+
+    mockAdmin.auth.mockReturnValue({
+      getUser,
+      updateUser,
+    });
+
     const get = jest.fn().mockResolvedValue({
       exists: true,
       id: 'manager-1',
@@ -629,6 +642,19 @@ describe('authoritative retailer user commands', () => {
   });
 
   test('reactivates an authorized inactive user', async () => {
+    const getUser = jest.fn().mockResolvedValue({
+      uid: 'manager-1',
+      disabled: true,
+    });
+    const updateUser = jest.fn().mockResolvedValue({
+      uid: 'manager-1',
+    });
+
+    mockAdmin.auth.mockReturnValue({
+      getUser,
+      updateUser,
+    });
+
     const get = jest.fn().mockResolvedValue({
       exists: true,
       id: 'manager-1',
@@ -676,6 +702,73 @@ describe('authoritative retailer user commands', () => {
     expect(add.mock.calls[0][0].type).toBe(
       'RETAILER_USER_REACTIVATED'
     );
+  });
+
+  test('restores previous Firebase Auth disabled state when lifecycle profile persistence fails', async () => {
+    const getUser = jest.fn().mockResolvedValue({
+      uid: 'manager-1',
+      disabled: false,
+    });
+    const updateUser = jest.fn().mockResolvedValue({
+      uid: 'manager-1',
+    });
+
+    mockAdmin.auth.mockReturnValue({
+      getUser,
+      updateUser,
+    });
+
+    const update = jest
+      .fn()
+      .mockRejectedValue(new Error('Profile update failed'));
+
+    const add = jest.fn();
+
+    mockGetDb.mockReturnValue({
+      collection: jest.fn((name: string) => {
+        if (name === 'users') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                id: 'manager-1',
+                data: () => storedStoreManager(),
+              }),
+              update,
+            })),
+          };
+        }
+
+        if (name === 'auditLogs') {
+          return { add };
+        }
+
+        throw new Error(`Unexpected collection ${name}`);
+      }),
+    });
+
+    await expect(
+      suspendRetailerUser({
+        idToken: 'valid-token',
+        targetUid: 'manager-1',
+      })
+    ).rejects.toThrow('Profile update failed');
+
+    expect(getUser).toHaveBeenCalledWith('manager-1');
+
+    expect(updateUser).toHaveBeenNthCalledWith(
+      1,
+      'manager-1',
+      { disabled: true }
+    );
+
+    expect(updateUser).toHaveBeenNthCalledWith(
+      2,
+      'manager-1',
+      { disabled: false }
+    );
+
+    expect(add).not.toHaveBeenCalled();
   });
 
   test('rejects suspend of equal-authority user', async () => {

@@ -578,15 +578,38 @@ async function setRetailerUserActiveState(input: {
   }
 
   const now = admin.firestore.Timestamp.now();
+  const auth = admin.auth();
+  const authUser = await auth.getUser(current.uid);
+  const previousAuthDisabled = authUser.disabled;
+  const nextAuthDisabled = !input.isActive;
 
-  await db
-    .collection('users')
-    .doc(current.uid)
-    .update({
-      isActive: input.isActive,
-      updatedAt: now,
-      updatedBy: actor.uid,
-    });
+  await auth.updateUser(current.uid, {
+    disabled: nextAuthDisabled,
+  });
+
+  try {
+    await db
+      .collection('users')
+      .doc(current.uid)
+      .update({
+        isActive: input.isActive,
+        updatedAt: now,
+        updatedBy: actor.uid,
+      });
+  } catch (error) {
+    try {
+      await auth.updateUser(current.uid, {
+        disabled: previousAuthDisabled,
+      });
+    } catch (compensationError) {
+      console.error(
+        '[RetailerUserManagement] Failed to restore Firebase Auth state after profile update failure:',
+        compensationError
+      );
+    }
+
+    throw error;
+  }
 
   await writeRetailerUserAudit({
     type: input.isActive

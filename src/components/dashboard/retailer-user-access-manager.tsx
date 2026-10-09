@@ -18,11 +18,16 @@ import {
   getRetailerSidebarAccessGroups,
 } from '@/lib/retailer-sidebar-access';
 import {
+  authorizationScopesEqual,
+  initialSidebarAccessForEdit,
+} from '@/lib/retailer-user-edit-state';
+import {
   getRetailerUserScopeChildrenAction,
   getRetailerUserScopeContextAction,
 } from '@/ai/flows/get-retailer-user-scope-options';
 import {
   listRetailerManagedUserDisplaySummariesAction,
+  updateRetailerUserAuthorizationAction,
   type RetailerManagedUserDisplaySummary,
 } from '@/ai/flows/manage-retailer-users';
 import {
@@ -42,6 +47,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -120,6 +126,12 @@ export default function RetailerUserAccessManager() {
   const [sidebarAccess, setSidebarAccess] =
     React.useState<SidebarAccess>([]);
 
+  const [editingUser, setEditingUser] =
+    React.useState<RetailerManagedUserDisplaySummary | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [editInitializing, setEditInitializing] = React.useState(false);
+  const skipRoleResetRef = React.useRef(false);
+
   React.useEffect(() => {
     let cancelled = false;
 
@@ -181,19 +193,25 @@ export default function RetailerUserAccessManager() {
     Boolean(selectedScope && targetLevel) &&
     selectedScope?.level === targetLevel;
 
-  async function loadChildren(parentScope: AuthorizationScope) {
-    if (!user) return;
+  async function fetchChildren(
+    parentScope: AuthorizationScope
+  ): Promise<ScopeOption[]> {
+    if (!user) return [];
 
+    const idToken = await user.getIdToken();
+
+    return getRetailerUserScopeChildrenAction({
+      idToken,
+      parentScope,
+    });
+  }
+
+  async function loadChildren(parentScope: AuthorizationScope) {
     try {
       setLoadingChildren(true);
       setError(null);
 
-      const idToken = await user.getIdToken();
-      const result = await getRetailerUserScopeChildrenAction({
-        idToken,
-        parentScope,
-      });
-
+      const result = await fetchChildren(parentScope);
       setChildren(result);
     } catch (err) {
       setChildren([]);
@@ -208,6 +226,11 @@ export default function RetailerUserAccessManager() {
   }
 
   React.useEffect(() => {
+    if (skipRoleResetRef.current) {
+      skipRoleResetRef.current = false;
+      return;
+    }
+
     setScopePath([]);
     setChildren([]);
     setAnalystLevel(null);
@@ -273,6 +296,174 @@ export default function RetailerUserAccessManager() {
     }
   }
 
+  function scopeId(scope: AuthorizationScope): string | undefined {
+    switch (scope.level) {
+      case 'network':
+        return scope.networkId;
+      case 'brand':
+        return scope.brandId;
+      case 'division':
+        return scope.divisionId;
+      case 'region':
+        return scope.regionId;
+      case 'area':
+        return scope.areaId;
+      case 'store':
+        return scope.storeId;
+    }
+  }
+
+  function scopeIsOnTargetPath(
+    candidate: AuthorizationScope,
+    target: AuthorizationScope
+  ): boolean {
+    switch (candidate.level) {
+      case 'network':
+        return candidate.networkId === target.networkId;
+      case 'brand':
+        return candidate.brandId === target.brandId;
+      case 'division':
+        return candidate.divisionId === target.divisionId;
+      case 'region':
+        return candidate.regionId === target.regionId;
+      case 'area':
+        return candidate.areaId === target.areaId;
+      case 'store':
+        return candidate.storeId === target.storeId;
+    }
+  }
+
+  async function buildScopePath(
+    targetScope: AuthorizationScope
+  ): Promise<ScopeOption[]> {
+    if (!actorScope) {
+      return [];
+    }
+
+    if (actorScope.level === targetScope.level) {
+      if (!authorizationScopesEqual(actorScope, targetScope)) {
+        throw new Error(
+          'This user is outside your organisational scope.'
+        );
+      }
+
+      return [];
+    }
+
+    const path: ScopeOption[] = [];
+    let parent = actorScope;
+
+    while (parent.level !== targetScope.level) {
+      const options = await fetchChildren(parent);
+      const next = options.find(option =>
+        scopeIsOnTargetPath(option.scope, targetScope)
+      );
+
+      if (!next) {
+        throw new Error(
+          'Unable to reconstruct this user\'s organisational scope.'
+        );
+      }
+
+      path.push(next);
+      parent = next.scope;
+    }
+
+    return path;
+  }
+
+  async function beginEdit(
+    managedUser: RetailerManagedUserDisplaySummary
+  ) {
+    if (!actorScope) return;
+
+    try {
+      setEditInitializing(true);
+      setError(null);
+
+      const path = await buildScopePath(managedUser.scope);
+
+      skipRoleResetRef.current = true;
+      setEditingUser(managedUser);
+      setRole(managedUser.role);
+      setAnalystLevel(
+        managedUser.role === 'analyst'
+          ? managedUser.scope.level
+          : null
+      );
+      setScopePath(path);
+      setChildren([]);
+
+      setSidebarAccess(
+        initialSidebarAccessForEdit(
+          managedUser.role,
+          managedUser.sidebarAccess
+        )
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to prepare this user for editing.'
+      );
+    } finally {
+      setEditInitializing(false);
+    }
+  }
+
+  function cancelEdit() {
+    setEditingUser(null);
+    setRole(null);
+    setAnalystLevel(null);
+    setScopePath([]);
+    setChildren([]);
+    setSidebarAccess([]);
+    setError(null);
+  }
+
+  async function saveEdit() {
+    if (
+      !user ||
+      !editingUser ||
+      !role ||
+      !selectedScope ||
+      !assignmentComplete
+    ) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const idToken = await user.getIdToken();
+
+      await updateRetailerUserAuthorizationAction({
+        idToken,
+        targetUid: editingUser.uid,
+        role,
+        scope: selectedScope,
+        sidebarAccess,
+      });
+
+      const users =
+        await listRetailerManagedUserDisplaySummariesAction({
+          idToken,
+        });
+
+      setManagedUsers(users);
+      cancelEdit();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to save user authorization.'
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const analystLevels =
     actorScope
       ? LEVEL_ORDER.filter(level =>
@@ -321,13 +512,29 @@ export default function RetailerUserAccessManager() {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">Role</h3>
-          <p className="text-sm text-muted-foreground">
-            Choose the responsibility level for the retailer user.
-          </p>
-        </div>
+      {editingUser && (
+        <section className="space-y-4 rounded-md border p-4">
+          <div>
+            <h3 className="text-xl font-bold">Edit User Access</h3>
+            <p className="text-sm text-muted-foreground">
+              {editingUser.displayName} · {editingUser.email}
+            </p>
+          </div>
+
+          {editingUser.sidebarAccess === undefined && (
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              This user currently has legacy sidebar access. Saving changes
+              will convert that access to an explicit governed assignment.
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold">Role</h4>
+              <p className="text-sm text-muted-foreground">
+                Choose the responsibility level for this retailer user.
+              </p>
+            </div>
 
         <div className="max-w-md space-y-2">
           <Label>Role</Label>
@@ -356,8 +563,10 @@ export default function RetailerUserAccessManager() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </section>
+          </div>
+          </div>
+        </section>
+      )}
 
       <section className="space-y-4">
         <div>
@@ -376,13 +585,14 @@ export default function RetailerUserAccessManager() {
                 <TableHead>Organisational Scope</TableHead>
                 <TableHead>Sidebar Access</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {managedUsers.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="h-24 text-center text-muted-foreground"
                   >
                     No manageable users found.
@@ -429,6 +639,19 @@ export default function RetailerUserAccessManager() {
                         )}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={editInitializing || saving}
+                        onClick={() => {
+                          void beginEdit(managedUser);
+                        }}
+                      >
+                        Edit Access
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -437,7 +660,7 @@ export default function RetailerUserAccessManager() {
         </div>
       </section>
 
-      {role && actorScope && (
+      {editingUser && role && actorScope && (
         <section className="space-y-4">
           <div>
             <h3 className="text-xl font-bold">
@@ -591,7 +814,7 @@ export default function RetailerUserAccessManager() {
 
         )}
 
-      {role && assignmentComplete && (
+      {editingUser && role && assignmentComplete && (
         <section className="space-y-4">
           <div>
             <h3 className="text-xl font-bold">
@@ -664,6 +887,34 @@ export default function RetailerUserAccessManager() {
               {sidebarAccess.length}
             </span>{' '}
             of 15 areas assigned.
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              disabled={saving || !assignmentComplete}
+              onClick={() => {
+                void saveEdit();
+              }}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving}
+              onClick={cancelEdit}
+            >
+              Cancel
+            </Button>
           </div>
         </section>
       )}

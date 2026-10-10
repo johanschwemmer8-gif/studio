@@ -1,183 +1,300 @@
 'use client';
 
-import React from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import {
-  BrainCircuit,
-  CheckCircle2,
-  QrCode,
-  TrendingUp,
   Activity,
   AlertTriangle,
+  CheckCircle2,
+  Cloud,
+  FileClock,
+  Gauge,
+  Server,
+  ShieldCheck,
 } from 'lucide-react';
+
+import { useAuth } from '@/context/auth-context';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+  getPlatformHealthSnapshot,
+  type PlatformHealthSnapshot,
+} from '@/lib/platform-health-server';
 
-const activityData: { retailer: string; store: string; product: string; interaction: string; conversion: boolean; time: string; }[] = [];
-
-const topQrCodes: { id: string; product: string; retailer: string; scans: string; conversions: number; rate: string; }[] = [];
-
-const healthData: { name: string; api: number; ai: number; }[] = [];
-
-const chartConfig = {
-  api: {
-    label: 'API (ms)',
-    color: 'hsl(var(--chart-1))',
-  },
-  ai: {
-    label: 'AI (ms)',
-    color: 'hsl(var(--chart-2))',
-  },
-};
-
-
-export default function BackendManagementDashboard() {
+function StatusBadge({
+  children,
+  variant = 'neutral',
+}: {
+  children: React.ReactNode;
+  variant?: 'neutral' | 'available' | 'warning';
+}) {
+  const classes =
+    variant === 'available'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+      : variant === 'warning'
+        ? 'border-amber-200 bg-amber-50 text-amber-800'
+        : 'border-slate-200 bg-slate-50 text-slate-700';
 
   return (
-    <div className="flex-1 space-y-6">
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${classes}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+export default function PlatformHealthPage() {
+  const { user } = useAuth();
+  const [snapshot, setSnapshot] = useState<PlatformHealthSnapshot | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!user) {
+        if (!cancelled) {
+          setSnapshot(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const idToken = await user.getIdToken();
+        const result = await getPlatformHealthSnapshot(idToken);
+
+        if (!cancelled) {
+          setSnapshot(result);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setSnapshot(null);
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Platform Health is currently unavailable.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        Loading Platform Health…
+      </div>
+    );
+  }
+
+  if (error || !snapshot) {
+    return (
+      <div className="space-y-4 p-6">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Platform Health
+        </h1>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">
+          {error ?? 'Platform Health evidence is unavailable.'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 p-6">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Platform Health
+        </h1>
+        <p className="mt-2 max-w-4xl text-muted-foreground">
+          Platform Operator visibility into production runtime, monitoring
+          coverage, operational evidence and incident readiness.
+        </p>
+      </div>
+
+      <section className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+        <div className="flex gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+          <div>
+            <h2 className="font-semibold text-blue-950">
+              Health assertion boundary
+            </h2>
+            <p className="mt-1 text-sm text-blue-900">
+              Platform Health reports only states supported by authoritative
+              operational evidence. Missing monitoring is reported as missing
+              monitoring; it is not interpreted as evidence that the platform
+              is healthy or unhealthy.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
         <div>
-            <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">Platform Health Overview</h2>
-            <Alert className="bg-yellow-50 border-yellow-200">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertTitle className="text-xs font-black uppercase tracking-widest text-yellow-800">System Monitoring Status: Simulation</AlertTitle>
-                <AlertDescription className="text-xs text-yellow-700">
-                    Infrastructure telemetry and operational events are currently using simulated benchmarks for the pilot phase. Real-time diagnostic hooks are pending production environment handshake.
-                </AlertDescription>
-            </Alert>
+          <h2 className="text-xl font-semibold">Production Runtime</h2>
+          <p className="text-sm text-muted-foreground">
+            Authoritative runtime context for the deployed iNteract
+            application.
+          </p>
         </div>
 
-        {/* Bento Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border bg-card p-5">
+            <Cloud className="h-5 w-5" />
+            <p className="mt-4 text-sm text-muted-foreground">Hosting</p>
+            <p className="font-semibold">{snapshot.runtime.hosting}</p>
+          </div>
 
-            {/* Column 1 */}
-            <div className="lg:col-span-3 space-y-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Retailers</CardTitle></CardHeader><CardContent><div className="text-4xl font-black">0</div><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Simulation Baseline</p></CardContent></Card>
-                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">QR Points</CardTitle></CardHeader><CardContent><div className="text-4xl font-black">0</div><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Sync Pending</p></CardContent></Card>
-                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Daily Volume</CardTitle></CardHeader><CardContent><div className="text-4xl font-black">0</div><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Load Monitor Off</p></CardContent></Card>
-                    <Card className="glassmorphic-card"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AI Nodes</CardTitle></CardHeader><CardContent><div className="text-4xl font-black">0</div><p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Ari Hub Idle</p></CardContent></Card>
-                </div>
-                <div className="grid md:grid-cols-5 gap-6">
-                    <Card className="md:col-span-3 glassmorphic-card">
-                        <CardHeader>
-                            <CardTitle className="font-black text-lg">Operational Activity Feed</CardTitle>
-                            <CardDescription className="text-xs">Factual log of cross-tenant interaction nodes.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow className="text-[10px] uppercase font-black tracking-widest">
-                                        <TableHead>Retailer/Store</TableHead>
-                                        <TableHead>Interaction</TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {activityData.length === 0 ? (
-                                        <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground italic text-xs uppercase tracking-widest opacity-50">No activity recorded during this monitor window.</TableCell></TableRow>
-                                    ) : activityData.map((item, index) =>(
-                                        <TableRow key={index}>
-                                            <TableCell>
-                                                <div className="font-bold">{item.retailer}</div>
-                                                <div className="text-[10px] text-muted-foreground uppercase">{item.store}</div>
-                                            </TableCell>
-                                            <TableCell><Badge variant="secondary" className="text-[10px] font-bold uppercase">{item.interaction}</Badge></TableCell>
-                                            <TableCell>
-                                                <Badge variant={item.conversion ? "default" : "destructive"} className="text-[9px] font-black">
-                                                    {item.conversion ? 'VERIFIED' : 'NONE'}
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                    <Card className="md:col-span-2 glassmorphic-card">
-                        <CardHeader>
-                            <CardTitle className="font-black text-lg">Latency Benchmarks</CardTitle>
-                            <CardDescription className="text-xs">API & Model Response Timings (ms)</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ChartContainer config={chartConfig} className="h-[150px] w-full">
-                                <LineChart data={healthData} margin={{ top:5, right: 10, left: -20, bottom: 0}}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.5)" />
-                                    <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                                    <YAxis fontSize={10} tickLine={false} axisLine={false} />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Line type="monotone" dataKey="api" stroke="var(--color-api)" strokeWidth={2} name="API Gateway" />
-                                    <Line type="monotone" dataKey="ai" stroke="var(--color-ai)" strokeWidth={2} name="Ari Node" />
-                                </LineChart>
-                            </ChartContainer>
-                            <p className="text-[9px] text-center text-muted-foreground mt-4 italic font-medium">Monitoring simulation benchmarks. Production telemetry inactive.</p>
-                        </CardContent>
-                    </Card>
-                </div>
+          <div className="rounded-xl border bg-card p-5">
+            <Server className="h-5 w-5" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Cloud platform
+            </p>
+            <p className="font-semibold">
+              {snapshot.runtime.cloudPlatform}
+            </p>
+          </div>
+
+          <div className="rounded-xl border bg-card p-5">
+            <Activity className="h-5 w-5" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Runtime health
+            </p>
+            <div className="mt-1">
+              <StatusBadge variant="warning">
+                Authoritative health feed not configured
+              </StatusBadge>
             </div>
-
-            {/* Column 2 */}
-            <div className="lg:col-span-1 space-y-6">
-                <Card className="glassmorphic-card">
-                    <CardHeader>
-                        <CardTitle className="font-black text-lg uppercase tracking-tight">Top Identifiers</CardTitle>
-                         <CardDescription className="text-xs">By global scan volume.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="space-y-4">
-                            {topQrCodes.length === 0 ? (
-                                <p className="text-center text-[10px] font-black uppercase text-muted-foreground py-8 opacity-40">Awaiting portfolio reach...</p>
-                            ) : topQrCodes.map((item, index) =>(
-                                <div key={index} className="flex justify-between items-center">
-                                    <div>
-                                        <div className="font-mono text-[10px] text-primary font-bold">{item.id}</div>
-                                        <div className="text-[10px] font-bold truncate max-w-[100px]">{item.product}</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="font-black text-sm">{item.scans}</div>
-                                        <div className="text-[8px] font-black uppercase text-muted-foreground">{item.rate} Yield</div>
-                                    </div>
-                                </div>
-                            ))}
-                         </div>
-                    </CardContent>
-                </Card>
-                 <Card className="glassmorphic-card">
-                    <CardHeader>
-                        <CardTitle className="font-black text-lg uppercase tracking-tight">Network Reach</CardTitle>
-                         <CardDescription className="text-xs">Portfolio scan density.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-48 flex items-center justify-center bg-muted/20 rounded-md border border-dashed">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase opacity-40">Map Visualization - Offline</p>
-                    </CardContent>
-                </Card>
-            </div>
-
+          </div>
         </div>
+
+        <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+          {snapshot.runtime.healthMessage}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Monitoring Coverage</h2>
+          <p className="text-sm text-muted-foreground">
+            Monitoring coverage is shown independently from runtime health so
+            that missing telemetry cannot create false assurance.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {snapshot.monitoring.capabilities.map(capability => (
+            <div
+              key={capability.id}
+              className="rounded-xl border bg-card p-5"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold">{capability.name}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {capability.detail}
+                  </p>
+                </div>
+                <Gauge className="h-5 w-5 shrink-0" />
+              </div>
+
+              <div className="mt-4">
+                <StatusBadge variant="warning">
+                  Authoritative monitoring not configured
+                </StatusBadge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <h2 className="font-semibold">
+                Operational Events & Incidents
+              </h2>
+              <div className="mt-3">
+                <StatusBadge variant="warning">
+                  Incident register not configured
+                </StatusBadge>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {snapshot.incidents.message}
+              </p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                This does not mean that no incidents have occurred. It means
+                Platform Health does not yet have an authoritative incident
+                source from which to make that assertion.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex gap-3">
+            <FileClock className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <h2 className="font-semibold">
+                Security & Governance Evidence
+              </h2>
+              <div className="mt-3">
+                <StatusBadge variant="available">
+                  Audit evidence architecture available
+                </StatusBadge>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {snapshot.governanceEvidence.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-muted/20 p-5">
+        <div className="flex gap-3">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <h2 className="font-semibold">Operational Authority Boundary</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Firebase App Hosting and Google Cloud remain the managed runtime
+              and infrastructure authorities. Platform Health is iNteract's
+              operational visibility and evidence surface. Update Manager
+              governs application change, System Connections governs external
+              integration readiness, and Test Laboratory provides deliberate
+              capability testing.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-dashed p-5">
+        <h2 className="font-semibold">ISO 27001 Monitoring Path</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Platform Health is designed to become an operational evidence surface
+          for logging and monitoring, availability, incident detection,
+          operational events and control-effectiveness evidence as authoritative
+          monitoring sources are implemented and validated.
+        </p>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Evidence snapshot generated {snapshot.calculatedAt}.
+        </p>
+      </section>
     </div>
   );
 }

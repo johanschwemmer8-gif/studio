@@ -6,8 +6,10 @@ import Link from 'next/link';
 import {
   normalizeTenantDocument,
   getNextTenantLifecycleStatus,
+  isTenantDecommissioningReady,
   type SavedRetailer,
   type TenantLifecycleStatus,
+  type TenantRetentionDecision,
 } from '@/lib/schemas/tenant';
 import {
   Card,
@@ -43,6 +45,7 @@ import { Badge } from '@/components/ui/badge';
 import { doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { updateRetailerLifecycle } from '@/ai/flows/update-retailer-lifecycle';
+import { updateRetailerOffboarding } from '@/ai/flows/update-retailer-offboarding';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
 
@@ -52,6 +55,7 @@ export default function RetailerViewPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [isSeeding, startSeeding] = useTransition();
   const [isLifecyclePending, startLifecycleTransition] = useTransition();
+  const [isOffboardingPending, startOffboardingUpdate] = useTransition();
   const params = useParams();
   const { toast } = useToast();
 
@@ -166,6 +170,68 @@ export default function RetailerViewPage() {
     });
   };
 
+  const handleOffboardingCheckpoint = (
+    checkpoint: 'EXPORT_PREPARATION' | 'HANDOVER' | 'RETENTION_DECISION',
+    decision?: TenantRetentionDecision
+  ) => {
+    if (!retailer) return;
+
+    startOffboardingUpdate(async () => {
+      try {
+        const idToken = await auth.currentUser?.getIdToken();
+
+        if (!idToken) {
+          throw new Error('Authentication required.');
+        }
+
+        const result =
+          checkpoint === 'RETENTION_DECISION'
+            ? await updateRetailerOffboarding({
+                idToken,
+                retailerId: retailer.id,
+                checkpoint,
+                decision: decision!,
+              })
+            : await updateRetailerOffboarding({
+                idToken,
+                retailerId: retailer.id,
+                checkpoint,
+              });
+
+        if (!result.success) {
+          throw new Error(result.message);
+        }
+
+        if (!db) {
+          throw new Error('Firestore is unavailable.');
+        }
+
+        const docRef = doc(db, 'tenants', retailer.id);
+        const snap = await getDoc(docRef);
+
+        if (!snap.exists()) {
+          throw new Error('Retailer tenant could not be refreshed.');
+        }
+
+        setRetailer(normalizeTenantDocument(snap.id, snap.data()));
+
+        toast({
+          title: 'Offboarding Checkpoint Updated',
+          description: result.message,
+        });
+      } catch (error) {
+        toast({
+          title: 'Checkpoint Update Failed',
+          description:
+            error instanceof Error
+              ? error.message
+              : 'Retailer offboarding checkpoint update failed.',
+          variant: 'destructive',
+        });
+      }
+    });
+  };
+
   if (loading) {
     return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
   }
@@ -183,6 +249,16 @@ export default function RetailerViewPage() {
   const isTestRetailer = retailer.id === TEST_RETAILER_ID;
   const nextLifecycleStatus = getNextTenantLifecycleStatus(
     retailer.lifecycleStatus
+  );
+
+  const exportPrepared =
+    retailer.offboarding?.exportPreparation?.completed === true;
+  const handoverCompleted =
+    retailer.offboarding?.handover?.completed === true;
+  const retentionDecision =
+    retailer.offboarding?.retentionDecision?.decision;
+  const decommissioningReady = isTenantDecommissioningReady(
+    retailer.offboarding
   );
 
   const lifecycleActionLabel: Partial<
@@ -354,6 +430,127 @@ export default function RetailerViewPage() {
                   Platform Operator authority remains separate from Retailer MVP access.
                 </p>
 
+                {(retailer.lifecycleStatus === 'OFFBOARDING' ||
+                  retailer.lifecycleStatus === 'SUSPENDED' ||
+                  retailer.lifecycleStatus === 'DECOMMISSIONED') && (
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-widest">
+                        Offboarding Checkpoints
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Governance evidence required before final decommissioning.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span>Export preparation</span>
+
+                        {exportPrepared ? (
+                          <Badge variant="outline">Completed</Badge>
+                        ) : retailer.lifecycleStatus === 'OFFBOARDING' ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isOffboardingPending}
+                            onClick={() =>
+                              handleOffboardingCheckpoint(
+                                'EXPORT_PREPARATION'
+                              )
+                            }
+                          >
+                            Record Prepared
+                          </Button>
+                        ) : (
+                          <Badge variant="destructive">Incomplete</Badge>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span>Operational handover</span>
+
+                        {handoverCompleted ? (
+                          <Badge variant="outline">Completed</Badge>
+                        ) : retailer.lifecycleStatus === 'OFFBOARDING' ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isOffboardingPending}
+                            onClick={() =>
+                              handleOffboardingCheckpoint('HANDOVER')
+                            }
+                          >
+                            Record Completed
+                          </Button>
+                        ) : (
+                          <Badge variant="destructive">Incomplete</Badge>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span>Retention decision</span>
+
+                        {retentionDecision ? (
+                          <Badge variant="outline">
+                            {retentionDecision === 'RETAIN'
+                              ? 'Retain'
+                              : 'Delete After Retention'}
+                          </Badge>
+                        ) : retailer.lifecycleStatus === 'SUSPENDED' ? (
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isOffboardingPending}
+                              onClick={() =>
+                                handleOffboardingCheckpoint(
+                                  'RETENTION_DECISION',
+                                  'RETAIN'
+                                )
+                              }
+                            >
+                              Retain
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isOffboardingPending}
+                              onClick={() =>
+                                handleOffboardingCheckpoint(
+                                  'RETENTION_DECISION',
+                                  'DELETE_AFTER_RETENTION'
+                                )
+                              }
+                            >
+                              Delete After Retention
+                            </Button>
+                          </div>
+                        ) : (
+                          <Badge variant="secondary">
+                            Pending Suspension
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {retailer.lifecycleStatus === 'SUSPENDED' && (
+                      <p className="text-xs text-muted-foreground">
+                        {decommissioningReady
+                          ? 'Decommissioning readiness gate satisfied.'
+                          : 'Decommissioning remains blocked until all required checkpoints are complete.'}
+                      </p>
+                    )}
+
+                    {retentionDecision === 'DELETE_AFTER_RETENTION' && (
+                      <p className="text-xs text-muted-foreground">
+                        This records the retention decision only. It does not automatically delete retailer data.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {retailer.lifecycleStatus === 'DECOMMISSIONED' && (
                   <p className="text-sm font-medium">
                     This retailer is operationally decommissioned. No further lifecycle transition is available.
@@ -371,7 +568,12 @@ export default function RetailerViewPage() {
                             ? 'outline'
                             : 'destructive'
                         }
-                        disabled={isLifecyclePending}
+                        disabled={
+                          isLifecyclePending ||
+                          isOffboardingPending ||
+                          (nextLifecycleStatus === 'DECOMMISSIONED' &&
+                            !decommissioningReady)
+                        }
                         className="gap-2 font-bold uppercase text-[10px] tracking-widest"
                       >
                         {isLifecyclePending && (

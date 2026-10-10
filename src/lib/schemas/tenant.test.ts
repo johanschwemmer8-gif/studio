@@ -5,6 +5,7 @@ import {
   isTenantOperational,
   getNextTenantLifecycleStatus,
   canTransitionTenantLifecycle,
+  isTenantDecommissioningReady,
 } from './tenant';
 
 describe('tenant schema compatibility', () => {
@@ -85,6 +86,77 @@ describe('tenant schema compatibility', () => {
     expect(canTransitionTenantLifecycle('OFFBOARDING', 'ACTIVE')).toBe(false);
     expect(canTransitionTenantLifecycle('SUSPENDED', 'ACTIVE')).toBe(false);
     expect(canTransitionTenantLifecycle('DECOMMISSIONED', 'ACTIVE')).toBe(false);
+  });
+
+  it('requires all offboarding checkpoints before decommissioning readiness', () => {
+    expect(isTenantDecommissioningReady(undefined)).toBe(false);
+
+    expect(
+      isTenantDecommissioningReady({
+        exportPreparation: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+        handover: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+      })
+    ).toBe(false);
+
+    expect(
+      isTenantDecommissioningReady({
+        exportPreparation: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+        handover: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+        retentionDecision: {
+          decision: 'RETAIN',
+          recordedAt: {},
+          recordedBy: 'operator-1',
+        },
+      })
+    ).toBe(true);
+  });
+
+  it('preserves canonical offboarding checkpoint evidence', () => {
+    const tenant = normalizeTenantDocument('example-retailer', {
+      name: 'Example Retailer',
+      type: 'production',
+      lifecycleStatus: 'SUSPENDED',
+      createdAt: {},
+      offboarding: {
+        exportPreparation: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+        handover: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+        retentionDecision: {
+          decision: 'DELETE_AFTER_RETENTION',
+          recordedAt: {},
+          recordedBy: 'operator-1',
+        },
+      },
+    });
+
+    expect(tenant.offboarding?.exportPreparation?.completed).toBe(true);
+    expect(tenant.offboarding?.handover?.completed).toBe(true);
+    expect(tenant.offboarding?.retentionDecision?.decision).toBe(
+      'DELETE_AFTER_RETENTION'
+    );
   });
 
   it('projects a legacy tenant into the canonical model', () => {

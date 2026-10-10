@@ -13,11 +13,35 @@ export const LegacyTenantStatusSchema = z.enum([
   'active',
 ]);
 
+export const TenantRetentionDecisionSchema = z.enum([
+  'RETAIN',
+  'DELETE_AFTER_RETENTION',
+]);
+
+export const TenantOffboardingCheckpointSchema = z.object({
+  completed: z.boolean(),
+  completedAt: z.unknown().optional(),
+  completedBy: z.string().trim().min(1).optional(),
+});
+
+export const TenantRetentionCheckpointSchema = z.object({
+  decision: TenantRetentionDecisionSchema,
+  recordedAt: z.unknown(),
+  recordedBy: z.string().trim().min(1),
+});
+
+export const TenantOffboardingSchema = z.object({
+  exportPreparation: TenantOffboardingCheckpointSchema.optional(),
+  handover: TenantOffboardingCheckpointSchema.optional(),
+  retentionDecision: TenantRetentionCheckpointSchema.optional(),
+});
+
 export const TenantDocumentSchema = z.object({
   name: z.string().trim().min(1),
   type: TenantTypeSchema,
   lifecycleStatus: TenantLifecycleStatusSchema.optional(),
   status: LegacyTenantStatusSchema.optional(),
+  offboarding: TenantOffboardingSchema.optional(),
   createdAt: z.unknown(),
   updatedAt: z.unknown().optional(),
 });
@@ -26,6 +50,10 @@ export type TenantType = z.infer<typeof TenantTypeSchema>;
 export type TenantLifecycleStatus = z.infer<
   typeof TenantLifecycleStatusSchema
 >;
+export type TenantRetentionDecision = z.infer<
+  typeof TenantRetentionDecisionSchema
+>;
+export type TenantOffboarding = z.infer<typeof TenantOffboardingSchema>;
 export type TenantDocument = z.infer<typeof TenantDocumentSchema>;
 
 export type SavedRetailer = TenantDocument & {
@@ -95,6 +123,22 @@ export const TENANT_LIFECYCLE_TRANSITIONS: Readonly<
   OFFBOARDING: 'SUSPENDED',
   SUSPENDED: 'DECOMMISSIONED',
 };
+
+export function isTenantDecommissioningReady(
+  offboarding: TenantOffboarding | undefined
+): boolean {
+  return Boolean(
+    offboarding?.exportPreparation?.completed === true &&
+      offboarding.exportPreparation.completedAt &&
+      offboarding.exportPreparation.completedBy &&
+      offboarding?.handover?.completed === true &&
+      offboarding.handover.completedAt &&
+      offboarding.handover.completedBy &&
+      offboarding?.retentionDecision?.decision &&
+      offboarding.retentionDecision.recordedAt &&
+      offboarding.retentionDecision.recordedBy
+  );
+}
 
 export function getNextTenantLifecycleStatus(
   current: TenantLifecycleStatus

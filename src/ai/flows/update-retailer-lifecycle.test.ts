@@ -160,6 +160,23 @@ describe('updateRetailerLifecycle', () => {
   test('transitions SUSPENDED to DECOMMISSIONED', async () => {
     const { update } = mockLifecycleDb({
       lifecycleStatus: 'SUSPENDED',
+      offboarding: {
+        exportPreparation: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+        handover: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+        retentionDecision: {
+          decision: 'RETAIN',
+          recordedAt: {},
+          recordedBy: 'operator-1',
+        },
+      },
     });
 
     const result = await updateRetailerLifecycle({
@@ -177,6 +194,39 @@ describe('updateRetailerLifecycle', () => {
         decommissionedBy: 'operator-1',
       })
     );
+  });
+
+  test('blocks decommissioning until offboarding checkpoints are complete', async () => {
+    const { update, auditAdd } = mockLifecycleDb({
+      lifecycleStatus: 'SUSPENDED',
+      offboarding: {
+        exportPreparation: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+        handover: {
+          completed: true,
+          completedAt: {},
+          completedBy: 'operator-1',
+        },
+      },
+    });
+
+    const result = await updateRetailerLifecycle({
+      idToken: 'token',
+      retailerId: 'retailer-1',
+      nextStatus: 'DECOMMISSIONED',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      message:
+        'Decommissioning requires completed export preparation, completed handover, and a recorded retention decision.',
+    });
+
+    expect(update).not.toHaveBeenCalled();
+    expect(auditAdd).not.toHaveBeenCalled();
   });
 
   test('rejects skipped lifecycle transitions', async () => {

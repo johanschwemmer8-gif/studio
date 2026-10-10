@@ -7,6 +7,8 @@ import {
   TenantLifecycleStatusSchema,
   canTransitionTenantLifecycle,
   normalizeTenantLifecycleStatus,
+  TenantOffboardingSchema,
+  isTenantDecommissioningReady,
   type TenantLifecycleStatus,
 } from '@/lib/schemas/tenant';
 
@@ -94,6 +96,19 @@ export async function updateRetailerLifecycle(
         );
       }
 
+      if (input.nextStatus === 'DECOMMISSIONED') {
+        const offboarding = TenantOffboardingSchema.safeParse(
+          data.offboarding
+        );
+
+        if (
+          !offboarding.success ||
+          !isTenantDecommissioningReady(offboarding.data)
+        ) {
+          throw new Error('DECOMMISSIONING_NOT_READY');
+        }
+      }
+
       transaction.update(tenantRef, {
         lifecycleStatus: input.nextStatus,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -145,6 +160,14 @@ export async function updateRetailerLifecycle(
       return {
         success: false,
         message: 'The requested retailer lifecycle transition is not permitted.',
+      };
+    }
+
+    if (message === 'DECOMMISSIONING_NOT_READY') {
+      return {
+        success: false,
+        message:
+          'Decommissioning requires completed export preparation, completed handover, and a recorded retention decision.',
       };
     }
 

@@ -611,47 +611,6 @@ export default function RetailerViewPage() {
           </>
         )}
 
-        <Separator />
-        
-        <div>
-            <h3 className="text-lg font-black uppercase tracking-tighter">Tenant Activity Audit</h3>
-             <p className="text-muted-foreground text-sm">Summary of factual engagement across the portfolio.</p>
-        </div>
-        
-         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-             <Card className="bg-muted/30 border-none shadow-inner">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">True Reach</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-black">0</p>
-                </CardContent>
-            </Card>
-            <Card className="bg-muted/30 border-none shadow-inner">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assisted Sales</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-black">0</p>
-                </CardContent>
-            </Card>
-            <Card className="bg-muted/30 border-none shadow-inner">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Uplift Delta</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-black text-green-600">R0.00</p>
-                </CardContent>
-            </Card>
-            <Card className="bg-muted/30 border-none shadow-inner">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Points</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl font-black">0</p>
-                </CardContent>
-            </Card>
-         </div>
     </div>
   );
 }

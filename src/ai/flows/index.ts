@@ -4,7 +4,6 @@
 import { analyzeEngagementMetrics, type AnalyzeEngagementMetricsOutput } from './analyze-engagement-metrics';
 import { submitBulkQrRequest, type SubmitBulkQrRequestInput, type SubmitBulkQrRequestOutput } from './submit-bulk-qr-request';
 import { generateCrossSellRecommendations, type GenerateCrossSellRecommendationsInput, type GenerateCrossSellRecommendationsOutput } from './generate-cross-sell-recommendations';
-import { getExecutiveRoiMetrics, type ExecutiveRoiMetricsOutput } from './get-executive-roi-metrics';
 import { getQrTemplates } from './get-qr-templates';
 import { type GetQrTemplatesInput, type QrTemplate } from '@/lib/schemas/qr-templates';
 import { getScanEvents } from './get-scan-events';
@@ -81,7 +80,6 @@ export {
     analyzeEngagementMetrics,
     submitBulkQrRequest,
     generateCrossSellRecommendations,
-    getExecutiveRoiMetrics,
     getQrTemplates,
     getScanEvents,
     getScanInteraction,
@@ -127,7 +125,6 @@ export type {
     AnalyzeEngagementMetricsOutput,
     SubmitBulkQrRequestInput, SubmitBulkQrRequestOutput,
     GenerateCrossSellRecommendationsInput, GenerateCrossSellRecommendationsOutput,
-    ExecutiveRoiMetricsOutput,
     GetQrTemplatesInput,
     QrTemplate,
     GetScanEventsInput, GetScanEventsOutput,

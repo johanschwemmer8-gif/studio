@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 /**
  * Authoritative Profit & ROI server action boundary.
@@ -61,34 +61,19 @@ function toScope(
  * This kernel converts already-scoped source records into the canonical
  * ProfitRoiSnapshot while preserving the evidence ladder.
  */
-export async function getProfitRoiEvidence(
-  idToken: string | undefined,
+export async function getProfitRoiEvidenceForScope(
+  retailerId: string,
+  scope: OverviewScope,
   granularity: OverviewPeriodGranularity = 'MONTHLY'
 ): Promise<ProfitRoiSnapshot> {
-  const auth = await verifyAuth(idToken);
-
-  if ('error' in auth) {
-    throw new Error(auth.error);
-  }
-
-  if (!auth.retailerId) {
-    throw new Error('RETAILER_AUTHORIZATION_REQUIRED');
-  }
-
-  if (!auth.permissions.roi) {
-    throw new Error('ROI_ACCESS_DENIED');
-  }
-
   const db = getDb();
 
   if (!db) {
     throw new Error('INFRASTRUCTURE_UNAVAILABLE');
   }
 
-  const retailerId = auth.retailerId;
-
   const [resolvedScope, reportingCalendar] = await Promise.all([
-    resolveOrganizationScope(retailerId, auth.scope),
+    resolveOrganizationScope(retailerId, scope),
     resolveReportingCalendar(retailerId),
   ]);
 
@@ -225,4 +210,36 @@ export async function getProfitRoiEvidence(
     sourcesComplete,
     calculatedAt,
   });
+}
+
+/**
+ * Retailer-authenticated Profit & ROI boundary.
+ *
+ * Retailer authorization remains independent from platform authorization.
+ * Once authorized, both retailer and platform callers use the same
+ * tenant-scoped evidence kernel above.
+ */
+export async function getProfitRoiEvidence(
+  idToken: string | undefined,
+  granularity: OverviewPeriodGranularity = 'MONTHLY'
+): Promise<ProfitRoiSnapshot> {
+  const auth = await verifyAuth(idToken);
+
+  if ('error' in auth) {
+    throw new Error(auth.error);
+  }
+
+  if (!auth.retailerId) {
+    throw new Error('RETAILER_AUTHORIZATION_REQUIRED');
+  }
+
+  if (!auth.permissions.roi) {
+    throw new Error('ROI_ACCESS_DENIED');
+  }
+
+  return getProfitRoiEvidenceForScope(
+    auth.retailerId,
+    toScope(auth.scope),
+    granularity
+  );
 }

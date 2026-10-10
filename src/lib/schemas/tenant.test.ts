@@ -2,6 +2,7 @@ import {
   normalizeTenantDocument,
   normalizeTenantLifecycleStatus,
   isTenantActive,
+  isTenantOperational,
 } from './tenant';
 
 describe('tenant schema compatibility', () => {
@@ -44,6 +45,25 @@ describe('tenant schema compatibility', () => {
   it('fails closed for missing or unrecognized tenant lifecycle', () => {
     expect(isTenantActive(undefined, undefined)).toBe(false);
     expect(isTenantActive('UNKNOWN_STATE', undefined)).toBe(false);
+  });
+
+  it('treats ACTIVE and OFFBOARDING tenants as operational', () => {
+    expect(isTenantOperational('ACTIVE', undefined)).toBe(true);
+    expect(isTenantOperational('OFFBOARDING', undefined)).toBe(true);
+  });
+
+  it('treats legacy active tenant as operational', () => {
+    expect(isTenantOperational(undefined, 'active')).toBe(true);
+  });
+
+  it('blocks SUSPENDED and DECOMMISSIONED tenants from runtime operation', () => {
+    expect(isTenantOperational('SUSPENDED', undefined)).toBe(false);
+    expect(isTenantOperational('DECOMMISSIONED', undefined)).toBe(false);
+  });
+
+  it('fails closed for missing or unrecognized operational lifecycle', () => {
+    expect(isTenantOperational(undefined, undefined)).toBe(false);
+    expect(isTenantOperational('UNKNOWN_STATE', undefined)).toBe(false);
   });
 
   it('projects a legacy tenant into the canonical model', () => {

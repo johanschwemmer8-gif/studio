@@ -21,6 +21,7 @@ import {
 } from './auth-types';
 import { isRoleScopeValid } from './authorization';
 import { isSidebarAccess } from './retailer-navigation';
+import { isTenantOperational } from './schemas/tenant';
 
 export type AuthFailure = {
   uid: '';
@@ -217,6 +218,31 @@ export async function verifyAuth(idToken?: string): Promise<AuthResult> {
       if (!isValidAuthorizationProfile(userData, decodedToken.uid)) {
         return authenticationFailure(
           'INVALID_AUTHORIZATION_PROFILE: Authoritative user profile is invalid.'
+        );
+      }
+
+      const tenantDoc = await db
+        .collection('tenants')
+        .doc(userData.retailerId)
+        .get();
+
+      if (!tenantDoc.exists) {
+        return authenticationFailure(
+          'TENANT_NOT_FOUND: Authoritative retailer tenant not found.'
+        );
+      }
+
+      const tenantData = tenantDoc.data();
+
+      if (
+        !tenantData ||
+        !isTenantOperational(
+          tenantData.lifecycleStatus,
+          tenantData.status
+        )
+      ) {
+        return authenticationFailure(
+          'TENANT_NOT_OPERATIONAL: Retailer tenant is not operational.'
         );
       }
 

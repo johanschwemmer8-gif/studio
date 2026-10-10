@@ -62,6 +62,32 @@ export function isTenantActive(
   }
 }
 
+/**
+ * Runtime operational access is deliberately broader than ACTIVE-only
+ * administrative eligibility.
+ *
+ * ACTIVE and OFFBOARDING tenants remain operational so controlled
+ * handover/export work can continue during offboarding.
+ *
+ * SUSPENDED, DECOMMISSIONED, missing, and unrecognized lifecycle states
+ * fail closed.
+ */
+export function isTenantOperational(
+  lifecycleStatus: unknown,
+  legacyStatus?: unknown
+): boolean {
+  try {
+    const status = normalizeTenantLifecycleStatus(
+      lifecycleStatus,
+      legacyStatus
+    );
+
+    return status === 'ACTIVE' || status === 'OFFBOARDING';
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeTenantDocument(
   id: string,
   data: Record<string, unknown>

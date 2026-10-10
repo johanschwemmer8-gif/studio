@@ -54,15 +54,37 @@ function validUserProfile(
 }
 
 function mockFirestoreProfile(
-  profile: Record<string, unknown> | null
+  profile: Record<string, unknown> | null,
+  tenant: Record<string, unknown> | null = {
+    name: 'Test Retailer',
+    type: 'production',
+    lifecycleStatus: 'ACTIVE',
+    createdAt: {},
+  }
 ): void {
   mockGetDb.mockReturnValue({
-    collection: jest.fn(() => ({
+    collection: jest.fn((collectionName: string) => ({
       doc: jest.fn(() => ({
-        get: jest.fn(async () => ({
-          exists: profile !== null,
-          data: () => profile ?? undefined,
-        })),
+        get: jest.fn(async () => {
+          if (collectionName === 'users') {
+            return {
+              exists: profile !== null,
+              data: () => profile ?? undefined,
+            };
+          }
+
+          if (collectionName === 'tenants') {
+            return {
+              exists: tenant !== null,
+              data: () => tenant ?? undefined,
+            };
+          }
+
+          return {
+            exists: false,
+            data: () => undefined,
+          };
+        }),
       })),
     })),
   });
@@ -249,6 +271,127 @@ describe('verifyAuth', () => {
     expect(result.error).toBe(
       'ACCOUNT_INACTIVE: User account is inactive.'
     );
+  });
+
+  test('allows an ACTIVE retailer tenant', async () => {
+    mockVerifiedToken();
+    mockFirestoreProfile(validUserProfile(), {
+      name: 'Test Retailer',
+      type: 'production',
+      lifecycleStatus: 'ACTIVE',
+      createdAt: {},
+    });
+
+    const result = await verifyAuth('valid-token');
+
+    expect('error' in result).toBe(false);
+    expect(result.uid).toBe('user-123');
+  });
+
+  test('allows an OFFBOARDING retailer tenant during controlled handover', async () => {
+    mockVerifiedToken();
+    mockFirestoreProfile(validUserProfile(), {
+      name: 'Test Retailer',
+      type: 'production',
+      lifecycleStatus: 'OFFBOARDING',
+      createdAt: {},
+    });
+
+    const result = await verifyAuth('valid-token');
+
+    expect('error' in result).toBe(false);
+    expect(result.uid).toBe('user-123');
+  });
+
+  test('fails closed for a SUSPENDED retailer tenant', async () => {
+    mockVerifiedToken();
+    mockFirestoreProfile(validUserProfile(), {
+      name: 'Test Retailer',
+      type: 'production',
+      lifecycleStatus: 'SUSPENDED',
+      createdAt: {},
+    });
+
+    const result = await verifyAuth('valid-token');
+
+    expect(result).toEqual({
+      uid: '',
+      error: 'TENANT_NOT_OPERATIONAL: Retailer tenant is not operational.',
+    });
+  });
+
+  test('fails closed for a DECOMMISSIONED retailer tenant', async () => {
+    mockVerifiedToken();
+    mockFirestoreProfile(validUserProfile(), {
+      name: 'Test Retailer',
+      type: 'production',
+      lifecycleStatus: 'DECOMMISSIONED',
+      createdAt: {},
+    });
+
+    const result = await verifyAuth('valid-token');
+
+    expect(result).toEqual({
+      uid: '',
+      error: 'TENANT_NOT_OPERATIONAL: Retailer tenant is not operational.',
+    });
+  });
+
+  test('fails closed when the authoritative retailer tenant does not exist', async () => {
+    mockVerifiedToken();
+    mockFirestoreProfile(validUserProfile(), null);
+
+    const result = await verifyAuth('valid-token');
+
+    expect(result).toEqual({
+      uid: '',
+      error: 'TENANT_NOT_FOUND: Authoritative retailer tenant not found.',
+    });
+  });
+
+  test('fails closed for missing or unrecognized tenant lifecycle', async () => {
+    mockVerifiedToken();
+    mockFirestoreProfile(validUserProfile(), {
+      name: 'Test Retailer',
+      type: 'production',
+      createdAt: {},
+    });
+
+    const result = await verifyAuth('valid-token');
+
+    expect(result).toEqual({
+      uid: '',
+      error: 'TENANT_NOT_OPERATIONAL: Retailer tenant is not operational.',
+    });
+
+    mockFirestoreProfile(validUserProfile(), {
+      name: 'Test Retailer',
+      type: 'production',
+      lifecycleStatus: 'UNKNOWN_STATE',
+      createdAt: {},
+    });
+
+    const unknownResult = await verifyAuth('valid-token');
+
+    expect(unknownResult).toEqual({
+      uid: '',
+      error: 'TENANT_NOT_OPERATIONAL: Retailer tenant is not operational.',
+    });
+  });
+
+  test('allows a legacy active tenant during compatibility migration', async () => {
+    mockVerifiedToken();
+    mockFirestoreProfile(validUserProfile(), {
+      name: 'Legacy Retailer',
+      type: 'production',
+      status: 'active',
+      createdAt: {},
+    });
+
+    const result = await verifyAuth('valid-token');
+
+    expect('error' in result).toBe(false);
+    expect(result.uid).toBe('user-123');
   });
 
   test('fails closed for an invalid role', async () => {

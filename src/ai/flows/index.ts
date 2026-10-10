@@ -11,8 +11,6 @@ import { getScanEvents } from './get-scan-events';
 import { type GetScanEventsInput, type GetScanEventsOutput } from '@/lib/schemas/scan-events';
 import { getScanInteraction } from './get-scan-interaction';
 import { type GetScanInteractionInput, type GetScanInteractionOutput } from '@/lib/schemas/scan-interaction';
-import { logAdClick, type LogAdClickInput } from './log-ad-click';
-import { logPurchaseConversion, type LogPurchaseConversionInput } from './log-purchase-conversion';
 import { processBulkQrQueue, type ProcessBulkQrQueueOutput } from './process-bulk-qr-queue';
 import { productChat, type ProductChatInput, type ProductChatOutput } from './product-chat-flow';
 import { regenerateQrCode, type RegenerateQrCodeInput, type RegenerateQrCodeOutput } from './regenerate-qr-code';
@@ -87,8 +85,6 @@ export {
     getQrTemplates,
     getScanEvents,
     getScanInteraction,
-    logAdClick,
-    logPurchaseConversion,
     processBulkQrQueue,
     productChat,
     regenerateQrCode,
@@ -136,8 +132,6 @@ export type {
     QrTemplate,
     GetScanEventsInput, GetScanEventsOutput,
     GetScanInteractionInput, GetScanInteractionOutput,
-    LogAdClickInput,
-    LogPurchaseConversionInput,
     ProcessBulkQrQueueOutput,
     ProductChatInput, ProductChatOutput,
     RegenerateQrCodeInput, RegenerateQrCodeOutput,

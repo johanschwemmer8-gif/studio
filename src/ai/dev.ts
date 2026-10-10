@@ -16,8 +16,6 @@ import '@/ai/flows/get-scan-events.ts';
 import '@/ai/flows/scan-analytics.ts';
 import '@/ai/flows/get-scan-interaction.ts';
 import '@/ai/flows/log-ab-test-conversion.ts';
-import '@/ai/flows/log-ad-click.ts';
-import '@/ai/flows/log-purchase-conversion.ts';
 import '@/ai/flows/sync-products.ts';
 import '@/ai/flows/save-retailer-api-key.ts';
 import '@/ai/flows/get-displays.ts';

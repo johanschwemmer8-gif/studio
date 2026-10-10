@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import ProductChatbot from '@/components/product/product-chatbot';
 import defaultTheme from '@/config/theme.json';
-import SponsoredProduct from '@/components/product/sponsored-product';
 import ShopperProfileCta from '@/components/shopper/shopper-profile-cta';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState, useEffect, use } from 'react';
@@ -172,7 +171,6 @@ export default function ExperienceLayerPage({ params }: { params: Promise<{ gtin
           </Tabs>
           
           {optionalModules.aiRecommendations && <div className="mt-20"><AiRecommendations product={product} /></div>}
-          {optionalModules.retailMediaNetwork && <SponsoredProduct />}
         </div>
       </div>
     </div>

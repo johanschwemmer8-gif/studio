@@ -55,7 +55,12 @@ export default function SystemIntegrationPage() {
               </CardDescription>
           </CardHeader>
           <CardContent>
-              <ApiKeyManager />
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Integration configuration records setup information only. It does not by itself indicate that a production integration is active.
+                </p>
+                <ApiKeyManager />
+              </div>
           </CardContent>
       </Card>
 

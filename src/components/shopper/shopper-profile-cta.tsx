@@ -45,16 +45,7 @@ export default function ShopperProfileCta({ product }: ShopperProfileCtaProps) {
         savedAt: serverTimestamp(),
       });
       
-      const interactionRef = doc(db, 'product_interactions', `save_${Date.now()}`);
-      await setDoc(interactionRef, {
-        shopperId: user.uid,
-        gtin: product.gtin,
-        retailerId,
-        type: 'save',
-        timestamp: serverTimestamp(),
-      });
-
-      setIsSaved(true);
+setIsSaved(true);
       toast({
         title: "Preference Synced",
         description: "Your interest has been archived in the persistent intelligence layer.",

@@ -107,7 +107,7 @@ export default function CoreIntegrationPage() {
                   Core Features
               </CardTitle>
               <CardDescription>
-                  Manage the core features of the iNteract AOE platform that can be assigned to API Keys.
+                  Manage integration configuration for iNteract services. These controls represent configuration readiness and do not by themselves establish a live production connection.
               </CardDescription>
           </CardHeader>
           <CardContent>
@@ -129,10 +129,10 @@ export default function CoreIntegrationPage() {
           <CardHeader>
               <CardTitle className="flex items-center gap-2">
                   <KeyRound className="text-primary" />
-                  API Key Management
+                  Integration Configuration
               </CardTitle>
               <CardDescription>
-                  Generate and manage API keys for your retailers to provide secure access to iNteract services.
+                  Manage retailer integration configuration. A saved configuration does not by itself indicate that a production integration is active.
               </CardDescription>
           </CardHeader>
           <CardContent>

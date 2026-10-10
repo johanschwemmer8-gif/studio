@@ -31,7 +31,6 @@ import { auth, db } from '@/lib/firebase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { createPlatformRetailerUserAction } from '@/ai/flows/create-platform-retailer-user';
 import { Badge } from '@/components/ui/badge';
-import { PlatformAiGovernanceManager } from '@/components/dashboard/platform-ai-governance-manager';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import {
   normalizeTenantDocument,
@@ -271,12 +270,6 @@ export default function AdminPage() {
             </Card>
         </div>
 
-        <div className="space-y-8">
-            <PlatformAiGovernanceManager />
-
-
-
-        </div>
       </div>
     </div>
   );

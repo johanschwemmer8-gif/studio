@@ -8,6 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { admin } from '@/lib/firebase-admin';
+import { getAuthorizedRetailerId } from '@/lib/auth-server';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -23,7 +24,8 @@ const ProductSchema = z.object({
 });
 
 const SyncProductsInputSchema = z.object({
-  retailerId: z.string(),
+  idToken: z.string().min(1),
+  retailerId: z.string().min(1),
   products: z.array(ProductSchema),
 });
 export type SyncProductsInput = z.infer<typeof SyncProductsInputSchema>;
@@ -44,7 +46,12 @@ const syncProductsFlow = ai.defineFlow(
     inputSchema: SyncProductsInputSchema,
     outputSchema: SyncProductsOutputSchema,
   },
-  async ({ retailerId, products }) => {
+  async ({ idToken, retailerId, products }) => {
+    const authorizedRetailerId = await getAuthorizedRetailerId(
+      idToken,
+      retailerId
+    );
+
     const db = admin.firestore();
     const BATCH_SIZE = 500;
     let syncedCount = 0;
@@ -58,7 +65,7 @@ const syncProductsFlow = ai.defineFlow(
                 const productRef = db.collection('products').doc(product.sku);
                 batch.set(productRef, {
                     ...product,
-                    retailerId: retailerId,
+                    retailerId: authorizedRetailerId,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 }, { merge: true });
                 syncedCount++;

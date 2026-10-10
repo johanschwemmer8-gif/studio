@@ -18,7 +18,28 @@ service firebase.storage {
         ).data.retailerId == retailerId
         && firestore.get(
           /databases/(default)/documents/users/$(request.auth.uid)
-        ).data.isActive == true;
+        ).data.isActive == true
+        && firestore.exists(
+          /databases/(default)/documents/tenants/$(retailerId)
+        )
+        && (
+          firestore.get(
+            /databases/(default)/documents/tenants/$(retailerId)
+          ).data.lifecycleStatus == 'ACTIVE'
+          || firestore.get(
+            /databases/(default)/documents/tenants/$(retailerId)
+          ).data.lifecycleStatus == 'OFFBOARDING'
+          || (
+            !(
+              'lifecycleStatus' in firestore.get(
+                /databases/(default)/documents/tenants/$(retailerId)
+              ).data
+            )
+            && firestore.get(
+              /databases/(default)/documents/tenants/$(retailerId)
+            ).data.status == 'active'
+          )
+        );
     }
   }
 }

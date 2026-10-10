@@ -30,12 +30,35 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isActive == true;
     }
 
-    function isActiveRetailerUser() {
-      return hasRetailerProfile();
-    }
-
     function currentRetailerId() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.retailerId;
+    }
+
+    // Tenant lifecycle is an independent authorization gate.
+    //
+    // ACTIVE and OFFBOARDING remain operational so controlled handover,
+    // export, and reconciliation can continue during offboarding.
+    //
+    // SUSPENDED, DECOMMISSIONED, missing, and unrecognized tenant states
+    // fail closed for retailer-authorized operations.
+    //
+    // Legacy status == 'active' remains temporarily compatible only when
+    // lifecycleStatus has not yet been written.
+    function isOperationalTenant(retailerId) {
+      return exists(/databases/$(database)/documents/tenants/$(retailerId))
+        && (
+          get(/databases/$(database)/documents/tenants/$(retailerId)).data.lifecycleStatus == 'ACTIVE'
+          || get(/databases/$(database)/documents/tenants/$(retailerId)).data.lifecycleStatus == 'OFFBOARDING'
+          || (
+            !('lifecycleStatus' in get(/databases/$(database)/documents/tenants/$(retailerId)).data)
+            && get(/databases/$(database)/documents/tenants/$(retailerId)).data.status == 'active'
+          )
+        );
+    }
+
+    function isActiveRetailerUser() {
+      return hasRetailerProfile()
+        && isOperationalTenant(currentRetailerId());
     }
 
     function isSameRetailer(retailerId) {

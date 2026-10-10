@@ -1,157 +1,284 @@
-
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertTriangle, FlaskConical, PlayCircle, Bot, Database, Server, UserCheck, ShieldCheck, Rocket } from 'lucide-react';
-import ScanFailuresLog from '@/components/dashboard/scan-failures-log';
-import ModuleActivationLogs from '@/components/dashboard/module-activation-logs';
-import { scanFailuresLog, moduleActivationLogs } from '@/lib/data';
-import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import Link from 'next/link';
+  CheckCircle2,
+  CircleDashed,
+  Database,
+  FlaskConical,
+  PlayCircle,
+  ServerCog,
+  ShieldCheck,
+  TriangleAlert,
+} from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/auth-context';
+import {
+  getTestLaboratorySnapshot,
+  runTestLaboratoryDiagnostic,
+  type DiagnosticResult,
+  type TestLaboratorySnapshot,
+} from '@/lib/test-laboratory-server';
 
-const TestModuleCard = ({ title, description, status }: { title: string, description: string, status: 'Passing' | 'Failing' | 'Not Run' }) => {
-    const { toast } = useToast();
-    const [isTesting, setIsTesting] = useState(false);
+function DiagnosticIcon({ id }: { id: string }) {
+  if (id === 'platform-authorization') {
+    return <ShieldCheck className="h-5 w-5" />;
+  }
 
-    const getStatusIndicator = () => {
-        switch(status) {
-            case 'Passing': return <CheckCircle className="h-5 w-5 text-green-500" />;
-            case 'Failing': return <AlertTriangle className="h-5 w-5 text-red-500" />;
-            default: return <FlaskConical className="h-5 w-5 text-muted-foreground" />;
-        }
-    }
+  if (id === 'firestore-connectivity') {
+    return <Database className="h-5 w-5" />;
+  }
 
-    const handleRunTest = () => {
-        setIsTesting(true);
-        toast({
-            title: `Testing: ${title}`,
-            description: "Running automated tests...",
-        });
+  return <ServerCog className="h-5 w-5" />;
+}
 
-        setTimeout(() => {
-            setIsTesting(false);
-            const isSuccess = status !== 'Failing';
-            toast({
-                title: isSuccess ? 'Test Passed' : 'Test Failed',
-                description: `${title} tests completed.`,
-                variant: isSuccess ? 'default' : 'destructive',
-            });
-        }, 2000 + Math.random() * 1500);
-    }
-
+function ResultBadge({
+  result,
+}: {
+  result?: DiagnosticResult;
+}) {
+  if (!result) {
     return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{title}</CardTitle>
-                    {getStatusIndicator()}
-                </div>
-                <CardDescription>{description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button className="w-full" onClick={handleRunTest} disabled={isTesting}>
-                    <PlayCircle className="mr-2 h-4 w-4" />
-                    {isTesting ? 'Running...' : 'Run Tests'}
-                </Button>
-            </CardContent>
-        </Card>
+      <span className="inline-flex items-center gap-1.5 rounded-full border bg-slate-50 px-2.5 py-1 text-xs text-slate-700">
+        <CircleDashed className="h-3.5 w-3.5" />
+        NOT RUN
+      </span>
     );
-};
+  }
 
+  if (result.status === 'PASS') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        PASS
+      </span>
+    );
+  }
 
-export default function SystemIntegrationTestPage() {
+  if (result.status === 'FAIL') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs text-red-800">
+        <TriangleAlert className="h-3.5 w-3.5" />
+        FAIL
+      </span>
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-800">
+      <TriangleAlert className="h-3.5 w-3.5" />
+      UNAVAILABLE
+    </span>
+  );
+}
+
+export default function TestLaboratoryPage() {
+  const { user } = useAuth();
+  const [snapshot, setSnapshot] =
+    useState<TestLaboratorySnapshot | null>(null);
+  const [results, setResults] = useState<
+    Record<string, DiagnosticResult>
+  >({});
+  const [running, setRunning] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!user) {
+        if (!cancelled) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const idToken = await user.getIdToken();
+        const data = await getTestLaboratorySnapshot(idToken);
+
+        if (!cancelled) {
+          setSnapshot(data);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Test Laboratory is unavailable.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  async function runDiagnostic(diagnosticId: string) {
+    if (!user) {
+      return;
+    }
+
+    try {
+      setRunning(diagnosticId);
+
+      const idToken = await user.getIdToken();
+      const result = await runTestLaboratoryDiagnostic(
+        idToken,
+        diagnosticId
+      );
+
+      setResults(current => ({
+        ...current,
+        [diagnosticId]: result,
+      }));
+    } finally {
+      setRunning(null);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        Loading Test Laboratory…
+      </div>
+    );
+  }
+
+  if (error || !snapshot) {
+    return (
+      <div className="space-y-4 p-6">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Test Laboratory
+        </h1>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">
+          {error ?? 'Test Laboratory evidence is unavailable.'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 p-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          System Integration & Testing Dashboard
-        </h2>
-        <p className="text-muted-foreground max-w-3xl">
-          A centralized dashboard for validating all components of the iNteract-AOE MVP, from backend APIs to end-user interactions.
+        <div className="flex items-center gap-3">
+          <FlaskConical className="h-7 w-7" />
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Test Laboratory
+          </h1>
+        </div>
+        <p className="mt-2 max-w-4xl text-muted-foreground">
+          Deliberately execute defined production diagnostics and inspect the
+          immediate evidence returned by those tests.
         </p>
       </div>
 
-      <Separator />
-
-       <Card>
-          <CardHeader>
-              <CardTitle>Overall System Health</CardTitle>
-              <CardDescription>A real-time overview of all major system components.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-                <div className="p-4 bg-green-100/50 rounded-lg"><p className="font-semibold text-green-800">QR Generation: Operational</p></div>
-                <div className="p-4 bg-green-100/50 rounded-lg"><p className="font-semibold text-green-800">AI Services: Operational</p></div>
-                <div className="p-4 bg-green-100/50 rounded-lg"><p className="font-semibold text-green-800">Database: Operational</p></div>
-                <div className="p-4 bg-red-100/50 rounded-lg"><p className="font-semibold text-red-800">Third-Party APIs: Degraded</p></div>
-          </CardContent>
-      </Card>
-      
-      <div className="grid gap-8 lg:grid-cols-2">
-        <ScanFailuresLog logs={scanFailuresLog} />
-        <ModuleActivationLogs logs={moduleActivationLogs} />
-      </div>
-
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold">Component Testing Modules</h3>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <TestModuleCard 
-                title="QR Generation"
-                description="Validate bulk creation, readability, styling, and error handling for QR codes."
-                status="Passing"
-            />
-            <TestModuleCard 
-                title="AI Interactions"
-                description="Test conversation flows, response accuracy, and performance under load."
-                status="Passing"
-            />
-            <TestModuleCard 
-                title="Database Integrity"
-                description="Verify data consistency, backups, performance, and security rules."
-                status="Passing"
-            />
-             <TestModuleCard 
-                title="API Suite"
-                description="Run functional, auth, rate limiting, and error handling tests on all endpoints."
-                status="Failing"
-            />
-             <TestModuleCard 
-                title="User Acceptance (UAT)"
-                description="Simulate retailer and customer workflows across different devices and browsers."
-                status="Not Run"
-            />
-             <TestModuleCard 
-                title="Deployment Validation"
-                description="Check production environment, security certificates, and monitoring setup."
-                status="Not Run"
-            />
+      <section className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+        <div className="flex gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+          <div>
+            <h2 className="font-semibold text-blue-950">
+              Test evidence boundary
+            </h2>
+            <p className="mt-1 text-sm text-blue-900">
+              {snapshot.evidenceBoundary}
+            </p>
+          </div>
         </div>
-      </div>
-      
-       <Card>
-            <CardHeader>
-                <CardTitle>Performance & Load Testing</CardTitle>
-                <CardDescription>
-                    Monitor real-time system metrics and run simulated load tests.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row gap-4">
-                 <Button asChild variant="outline">
-                    <Link href="/dashboard/system-integration/performance">View Performance Dashboard</Link>
-                 </Button>
-            </CardContent>
-        </Card>
+      </section>
 
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Diagnostic Catalogue</h2>
+          <p className="text-sm text-muted-foreground">
+            Tests are NOT RUN until a Platform Operator deliberately executes
+            them. Results are not simulated or inferred from UI state.
+          </p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          {snapshot.diagnostics.map(diagnostic => {
+            const result = results[diagnostic.id];
+            const isRunning = running === diagnostic.id;
+
+            return (
+              <div
+                key={diagnostic.id}
+                className="flex flex-col rounded-xl border bg-card p-5"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <DiagnosticIcon id={diagnostic.id} />
+                  <ResultBadge result={result} />
+                </div>
+
+                <h3 className="mt-4 font-semibold">{diagnostic.name}</h3>
+
+                <p className="mt-2 flex-1 text-sm text-muted-foreground">
+                  {diagnostic.description}
+                </p>
+
+                {result && (
+                  <div className="mt-4 rounded-lg bg-muted/40 p-3">
+                    <p className="text-xs font-medium">
+                      Evidence from this execution
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {result.evidence}
+                    </p>
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {new Date(result.executedAt).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  className="mt-5 w-full"
+                  variant="outline"
+                  disabled={Boolean(running)}
+                  onClick={() => void runDiagnostic(diagnostic.id)}
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  {isRunning ? 'Running…' : 'Run Diagnostic'}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-muted/20 p-5">
+        <h2 className="font-semibold">Operational Boundary</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Test Laboratory performs deliberate point-in-time diagnostics.
+          Platform Health owns continuous operational monitoring and incident
+          visibility. System Connections owns external integration capability
+          and readiness. Update Manager owns application change governance.
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-dashed p-5">
+        <h2 className="font-semibold">Future Test Evidence</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Additional diagnostics may be introduced only when iNteract has an
+          authoritative and safe mechanism capable of executing the defined
+          test and returning evidence. Performance, load, integration, AI and
+          security tests must not be represented as successful from simulated
+          data.
+        </p>
+      </section>
     </div>
   );
 }

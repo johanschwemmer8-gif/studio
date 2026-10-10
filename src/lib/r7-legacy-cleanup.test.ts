@@ -53,10 +53,11 @@ describe('R7 legacy cleanup contract', () => {
       'src/app/retailer-mvp/system-integration/page.tsx'
     );
 
-    expect(admin).toContain('Integration Configuration');
-    expect(admin).toContain(
-      'does not by itself indicate that a production integration is active'
-    );
+    expect(admin).toContain('Integration Capability Register');
+    expect(admin).toContain('Connection authority boundary');
+    expect(admin).toContain('authoritative integration mechanism');
+    expect(admin).toContain('verifiable evidence');
+    expect(admin).toContain('Production connector not configured');
     expect(retailer).toContain(
       'does not by itself indicate that a production integration is active'
     );

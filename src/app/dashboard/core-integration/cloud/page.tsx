@@ -1,129 +1,106 @@
-'use client';
-
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-import { Save, TestTube2, Cloud, BrainCircuit } from 'lucide-react';
-import { BackButton } from '@/components/ui/back-button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  ArrowLeft,
+  Bot,
+  Cloud,
+  Info,
+  LockKeyhole,
+  Server,
+} from 'lucide-react';
 
-export default function CloudConfigurationPage() {
-  const { toast } = useToast();
-
-  const handleSaveChanges = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast({
-      title: 'Settings Saved',
-      description: 'Your cloud and AI model configuration has been updated.',
-    });
-  };
-  
-  const handleTestConnection = () => {
-    toast({
-      title: 'Connection Successful',
-      description: 'Successfully connected to the cloud provider.',
-    });
-  };
-
+export default function CloudRuntimePage() {
   return (
-    <div className="space-y-8">
-       <div>
-        <BackButton fallback="/dashboard/core-integration" label="Back to Infrastructure Layer" />
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          Cloud Services & AI Model Configuration
-        </h2>
-        <p className="text-muted-foreground max-w-3xl">
-          Manage connections to your cloud provider and configure generative AI models.
+    <div className="space-y-8 p-6">
+      <Link
+        href="/dashboard/core-integration"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to System Connections
+      </Link>
+
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Cloud &amp; AI Runtime
+        </h1>
+
+        <p className="mt-2 max-w-4xl text-muted-foreground">
+          Platform-managed infrastructure and AI runtime supporting the
+          centrally delivered iNteract application.
         </p>
       </div>
 
-      <Separator />
+      <section className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+        <div className="flex gap-3">
+          <Cloud className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
 
-      <form onSubmit={handleSaveChanges}>
-        <div className="space-y-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Cloud className="text-primary"/> Cloud Provider</CardTitle>
-                    <CardDescription>
-                        Provide the API credentials for your cloud services provider.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                     <div className="space-y-2">
-                        <Label htmlFor="cloud-provider">Cloud Provider</Label>
-                        <Select defaultValue="gcp">
-                            <SelectTrigger id="cloud-provider">
-                                <SelectValue placeholder="Select a provider" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="gcp">Google Cloud Platform</SelectItem>
-                                <SelectItem value="aws">Amazon Web Services</SelectItem>
-                                <SelectItem value="azure">Microsoft Azure</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="api-key">API Key</Label>
-                        <Input id="api-key" type="password" placeholder="••••••••••••••••••••" />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="api-secret">API Secret / Private Key</Label>
-                        <Input id="api-secret" type="password" placeholder="••••••••••••••••••••" />
-                    </div>
-                    <div className="flex gap-2">
-                        <Button type="button" variant="secondary" onClick={handleTestConnection}>
-                            <TestTube2 className="mr-2 h-4 w-4" />
-                            Test Connection
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+          <div>
+            <h2 className="font-semibold text-blue-950">
+              Platform-managed runtime
+            </h2>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BrainCircuit className="text-primary"/> Generative AI Models</CardTitle>
-                    <CardDescription>
-                        Configure the AI models used for different platform features.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="chat-model">Chat & Personalization Model</Label>
-                        <Input id="chat-model" defaultValue="gemini-2.5-flash" />
-                         <p className="text-xs text-muted-foreground">Model used for chatbot conversations and product recommendations.</p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="analytics-model">Analytics Model</Label>
-                        <Input id="analytics-model" defaultValue="gemini-2.5-pro" />
-                         <p className="text-xs text-muted-foreground">Model used for analyzing dashboard metrics and providing insights.</p>
-                    </div>
-                </CardContent>
-            </Card>
+            <p className="mt-1 text-sm text-blue-900">
+              iNteract's application runtime is managed through its controlled
+              cloud and application-hosting environment. This page does not
+              provide a browser-based credential configuration mechanism.
+            </p>
+          </div>
         </div>
-        
-        <div className="flex justify-end mt-8">
-            <Button type="submit">
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-            </Button>
-        </div>
-      </form>
+      </section>
 
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border bg-card p-5">
+          <Server className="h-5 w-5" />
+          <h2 className="mt-3 font-semibold">Application Runtime</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Firebase App Hosting and the supporting Google Cloud environment
+            provide the managed production runtime for the iNteract
+            application.
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-card p-5">
+          <Bot className="h-5 w-5" />
+          <h2 className="mt-3 font-semibold">AI Runtime</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            iNteract's governed AI capabilities use the platform's managed AI
+            runtime and application configuration. AI policy and governance
+            remain controlled through the dedicated AI Rules capability.
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-card p-5">
+        <div className="flex gap-3">
+          <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0" />
+
+          <div>
+            <h2 className="font-semibold">Secrets boundary</h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              API keys, service credentials and private keys are not collected
+              through this screen. Production secrets belong in controlled
+              infrastructure and secrets-management mechanisms.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-muted/20 p-5">
+        <div className="flex gap-3">
+          <Info className="mt-0.5 h-5 w-5 shrink-0" />
+
+          <div>
+            <h2 className="font-semibold">Scope boundary</h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              This capability describes platform integration and runtime
+              context. Operational availability, incidents and runtime health
+              belong to Platform Health rather than System Connections.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

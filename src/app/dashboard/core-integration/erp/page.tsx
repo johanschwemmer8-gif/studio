@@ -1,90 +1,88 @@
-'use client';
-
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-import { Save, TestTube2 } from 'lucide-react';
-import { BackButton } from '@/components/ui/back-button';
+  ArrowLeft,
+  Database,
+  Info,
+  LockKeyhole,
+  ShieldCheck,
+} from 'lucide-react';
 
-export default function ErpConfigurationPage() {
-  const { toast } = useToast();
-
-  const handleSaveChanges = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast({
-      title: 'Settings Saved',
-      description: 'Your ERP configuration has been updated.',
-    });
-  };
-  
-  const handleTestConnection = () => {
-    toast({
-      title: 'Connection Successful',
-      description: 'Successfully connected to the ERP system.',
-    });
-  };
-
+export default function ErpCapabilityPage() {
   return (
-    <div className="space-y-8">
-       <div>
-        <BackButton fallback="/dashboard/core-integration" label="Back to Infrastructure Layer" />
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          ERP System Integration
-        </h2>
-        <p className="text-muted-foreground max-w-3xl">
-          Connect iNteract to your Enterprise Resource Planning system for live stock, pricing, and product data.
+    <div className="space-y-8 p-6">
+      <Link
+        href="/dashboard/core-integration"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to System Connections
+      </Link>
+
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          ERP Integration Capability
+        </h1>
+
+        <p className="mt-2 max-w-4xl text-muted-foreground">
+          Enterprise resource planning integration boundary for stock,
+          pricing and relevant enterprise data.
         </p>
       </div>
 
-      <Separator />
+      <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <div className="flex gap-3">
+          <Database className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
 
-      <form onSubmit={handleSaveChanges}>
-        <Card>
-            <CardHeader>
-                <CardTitle>Connection Settings</CardTitle>
-                <CardDescription>
-                    Provide the API details for your ERP system.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="api-endpoint">API Endpoint URL</Label>
-                    <Input id="api-endpoint" placeholder="https://api.your-erp.com/v1/" />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="api-key">API Key</Label>
-                    <Input id="api-key" type="password" placeholder="••••••••••••••••••••" />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="api-secret">API Secret</Label>
-                    <Input id="api-secret" type="password" placeholder="••••••••••••••••••••" />
-                </div>
-                <div className="flex gap-2">
-                    <Button type="button" variant="secondary" onClick={handleTestConnection}>
-                        <TestTube2 className="mr-2 h-4 w-4" />
-                        Test Connection
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-        
-        <div className="flex justify-end mt-8">
-            <Button type="submit">
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-            </Button>
+          <div>
+            <h2 className="font-semibold text-amber-950">
+              Production connector not configured
+            </h2>
+
+            <p className="mt-1 text-sm text-amber-900">
+              iNteract does not currently have an authoritative production ERP
+              connector configured through this capability. No live connection
+              is represented by this screen.
+            </p>
+          </div>
         </div>
-      </form>
+      </section>
 
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border bg-card p-5">
+          <ShieldCheck className="h-5 w-5" />
+          <h2 className="mt-3 font-semibold">Intended capability</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            A retailer-specific ERP connector may provide governed access to
+            stock, pricing and other agreed enterprise data required by a
+            defined pilot or production integration.
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-card p-5">
+          <LockKeyhole className="h-5 w-5" />
+          <h2 className="mt-3 font-semibold">Credential boundary</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            ERP API keys, secrets and credentials are not entered or stored on
+            this page. A real connector must use approved credential and
+            secrets-management controls.
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-muted/20 p-5">
+        <div className="flex gap-3">
+          <Info className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <h2 className="font-semibold">Activation requirement</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Before ERP integration can be represented as configured or
+              connected, iNteract requires a defined provider, authentication
+              model, data contract, tenant boundary, test procedure and
+              verifiable connection evidence.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,195 +1,199 @@
-
 'use client';
 
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Cloud, Database, ShoppingBasket, KeyRound, Settings, ShieldCheck, Ban, SlidersHorizontal, BarChart2, Eye, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-import ApiKeyManager from '@/components/dashboard/api-key-manager';
-import { useToast } from '@/hooks/use-toast';
+import {
+  ArrowRight,
+  Boxes,
+  CheckCircle2,
+  Cloud,
+  Database,
+  Info,
+  LockKeyhole,
+  Network,
+  Server,
+} from 'lucide-react';
 
-export default function CoreIntegrationPage() {
-  const { toast } = useToast();
+type CapabilityCardProps = {
+  title: string;
+  description: string;
+  status: string;
+  statusDetail: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
 
-  const handleUpdateLiveApp = () => {
-    toast({
-      title: 'Live App Updated',
-      description: 'The latest configurations have been synchronized with the live application.',
-    });
-  };
-
-
-  const coreFeatures = [
-    { 
-      name: "Secure Key Storage", 
-      description: "Keys are encrypted at rest and in transit, ensuring they are never exposed.",
-      icon: <ShieldCheck className="h-5 w-5 text-green-500" />
-    },
-    { 
-      name: "Revocation & Rotation", 
-      description: "Instantly revoke compromised keys and set up automated rotation policies.",
-      icon: <Ban className="h-5 w-5 text-red-500" />
-    },
-    { 
-      name: "Scope Management", 
-      description: "Assign granular permissions to each key, limiting access to specific resources.",
-      icon: <SlidersHorizontal className="h-5 w-5 text-blue-500" />
-    },
-    { 
-      name: "Rate Limiting", 
-      description: "Protect your services from abuse with customizable rate limits per key.",
-      icon: <BarChart2 className="h-5 w-5 text-yellow-500" />
-    },
-    { 
-      name: "Usage Tracking", 
-      description: "Monitor API usage and performance with detailed logs and analytics.",
-      icon: <Eye className="h-5 w-5 text-purple-500" />
-    },
-     { 
-      name: "Key Preview Display", 
-      description: "Safely preview key details without exposing the full key, reducing accidental leaks.",
-      icon: <Eye className="h-5 w-5 text-indigo-500" />
-    },
-  ];
-
-
+function CapabilityCard({
+  title,
+  description,
+  status,
+  statusDetail,
+  href,
+  icon: Icon,
+}: CapabilityCardProps) {
   return (
-    <div className="space-y-8">
-      <div>
-        <Button asChild variant="ghost" className="-ml-4 mb-4">
-            <Link href="/dashboard/admin">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to iNteract Admin Panel
-            </Link>
-        </Button>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">
-          iNteract Core Integration
-        </h2>
-        <p className="text-muted-foreground max-w-3xl">
-          Configure and manage the core systems, data sources, and cloud services that power the iNteract AOE platform.
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex gap-3">
+          <div className="rounded-lg border bg-muted/40 p-2.5">
+            <Icon className="h-5 w-5" />
+          </div>
+
+          <div>
+            <h2 className="font-semibold">{title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {description}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-lg border bg-muted/20 p-4">
+        <p className="text-sm font-medium">{status}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {statusDetail}
         </p>
       </div>
 
-      <Separator />
+      <Link
+        href={href}
+        className="mt-5 inline-flex items-center gap-2 text-sm font-medium underline-offset-4 hover:underline"
+      >
+        View capability
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
 
-       <Card>
-          <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="text-primary" />
-                  Live App Synchronization
-              </CardTitle>
-              <CardDescription>
-                  Manually push the latest MVP configurations to the live customer-facing application. This serves as a secondary measure to ensure all changes are reflected.
-              </CardDescription>
-          </CardHeader>
-          <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                  While changes are typically reflected automatically, this action forces a refresh of all live configurations. Use this if you notice a delay in your updates appearing on the live app.
+export default function CoreIntegrationPage() {
+  return (
+    <div className="space-y-8 p-6">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          System Connections
+        </h1>
+
+        <p className="mt-2 max-w-4xl text-muted-foreground">
+          Platform-level visibility and governance for external-system
+          integration capabilities used by iNteract.
+        </p>
+      </div>
+
+      <section className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+        <div className="flex gap-3">
+          <Network className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+
+          <div>
+            <h2 className="font-semibold text-blue-950">
+              Connection authority boundary
+            </h2>
+
+            <p className="mt-1 text-sm text-blue-900">
+              System Connections records capability and readiness context. It
+              does not represent an external system as configured, connected,
+              tested or healthy unless that state is supported by an
+              authoritative integration mechanism and verifiable evidence.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">
+            Integration Capability Register
+          </h2>
+
+          <p className="text-sm text-muted-foreground">
+            Current platform integration capabilities and their truthful
+            production-readiness state.
+          </p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <CapabilityCard
+            title="ERP"
+            description="Enterprise resource planning capability for stock, pricing and relevant enterprise data."
+            status="Production connector not configured"
+            statusDetail="A provider-specific connector must be implemented and validated before a live ERP connection can be represented."
+            href="/dashboard/core-integration/erp"
+            icon={Database}
+          />
+
+          <CapabilityCard
+            title="PIM"
+            description="Product information management capability for authoritative catalogue and product data."
+            status="Production connector not configured"
+            statusDetail="A provider-specific connector must be implemented and validated before a live PIM connection can be represented."
+            href="/dashboard/core-integration/pim"
+            icon={Boxes}
+          />
+
+          <CapabilityCard
+            title="Cloud & AI Runtime"
+            description="Managed infrastructure and AI runtime supporting the iNteract application."
+            status="Platform-managed"
+            statusDetail="Runtime infrastructure is managed through the controlled platform environment rather than browser-entered credentials."
+            href="/dashboard/core-integration/cloud"
+            icon={Cloud}
+          />
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex gap-3">
+            <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0" />
+
+            <div>
+              <h2 className="font-semibold">Credential Handling</h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Raw external-system API keys, secrets and private keys are not
+                collected through these Platform Operator screens. Production
+                credentials must use an approved secrets-management and
+                integration architecture.
               </p>
-              <Button onClick={handleUpdateLiveApp}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Update Live App
-              </Button>
-          </CardContent>
-      </Card>
-
-       <Card>
-          <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                  <Settings className="text-primary" />
-                  Core Features
-              </CardTitle>
-              <CardDescription>
-                  Manage integration configuration for iNteract services. These controls represent configuration readiness and do not by themselves establish a live production connection.
-              </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {coreFeatures.map(feature => (
-                    <div key={feature.name} className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
-                        <div className="flex-shrink-0">{feature.icon}</div>
-                        <div>
-                            <h3 className="font-semibold">{feature.name}</h3>
-                            <p className="text-sm text-muted-foreground">{feature.description}</p>
-                        </div>
-                    </div>
-                ))}
             </div>
-          </CardContent>
-      </Card>
+          </div>
+        </div>
 
-       <Card>
-          <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                  <KeyRound className="text-primary" />
-                  Integration Configuration
-              </CardTitle>
-              <CardDescription>
-                  Manage retailer integration configuration. A saved configuration does not by itself indicate that a production integration is active.
-              </CardDescription>
-          </CardHeader>
-          <CardContent>
-              <ApiKeyManager />
-          </CardContent>
-      </Card>
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
 
+            <div>
+              <h2 className="font-semibold">Pilot Integration Principle</h2>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Database className="text-primary" />
-                    ERP System
-                </CardTitle>
-                <CardDescription>
-                    Connect to your Enterprise Resource Planning system for live stock and pricing data.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild className="w-full">
-                  <Link href="/dashboard/core-integration/erp">Configure ERP</Link>
-                </Button>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <ShoppingBasket className="text-primary" />
-                    PIM System
-                </CardTitle>
-                <CardDescription>
-                   Sync your Product Information Management system to keep product details up-to-date.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild className="w-full">
-                  <Link href="/dashboard/core-integration/pim">Configure PIM</Link>
-                </Button>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Cloud className="text-primary" />
-                    Cloud Services
-                </CardTitle>
-                <CardDescription>
-                    Manage connections to cloud providers and generative AI model configurations.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild className="w-full">
-                    <Link href="/dashboard/core-integration/cloud">Configure Cloud</Link>
-                </Button>
-            </CardContent>
-        </Card>
+              <p className="mt-1 text-sm text-muted-foreground">
+                A production connector is introduced only against a defined
+                retailer requirement, provider contract and testable technical
+                integration boundary.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-muted/20 p-5">
+        <div className="flex gap-3">
+          <Info className="mt-0.5 h-5 w-5 shrink-0" />
+
+          <div>
+            <h2 className="font-semibold">Operational boundary</h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              System Connections answers what external integration
+              capabilities exist and what their authoritative readiness state
+              is. Platform Health separately answers whether the iNteract
+              platform is operating correctly.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div className="hidden">
+        <Server />
       </div>
     </div>
   );

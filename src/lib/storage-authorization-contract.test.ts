@@ -19,21 +19,27 @@ describe('Firebase Storage retailer authorization contract', () => {
     );
   });
 
-  test('allows the matching retailer ID custom claim', () => {
-    expect(rules).toContain(
-      'request.auth.token.retailerId == retailerId'
-    );
-  });
-
-  test('retains the retailer user-profile fallback', () => {
-    expect(rules).toContain(
-      'request.auth.token.retailerId == null'
-    );
+  test('uses the authoritative retailer user profile for tenant identity', () => {
     expect(rules).toContain(
       '/databases/(default)/documents/users/$(request.auth.uid)'
     );
     expect(rules).toContain(
+      ').data.uid == request.auth.uid'
+    );
+    expect(rules).toContain(
       ').data.retailerId == retailerId'
+    );
+  });
+
+  test('requires the authoritative retailer user profile to be active', () => {
+    expect(rules).toContain(
+      ').data.isActive == true'
+    );
+  });
+
+  test('does not trust retailer authorization from custom claims', () => {
+    expect(rules).not.toContain(
+      'request.auth.token.retailerId'
     );
   });
 

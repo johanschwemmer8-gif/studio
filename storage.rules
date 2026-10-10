@@ -7,15 +7,18 @@ service firebase.storage {
       allow read: if true;
 
       allow write: if request.auth != null
-        && (
-          request.auth.token.retailerId == retailerId
-          || (
-            request.auth.token.retailerId == null
-            && firestore.get(
-              /databases/(default)/documents/users/$(request.auth.uid)
-            ).data.retailerId == retailerId
-          )
-        );
+        && firestore.exists(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        )
+        && firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.uid == request.auth.uid
+        && firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.retailerId == retailerId
+        && firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.isActive == true;
     }
   }
 }

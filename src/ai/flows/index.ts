@@ -70,7 +70,6 @@ import { saveQrTemplate } from './save-qr-template';
 import { type SaveQrTemplateInput, type SaveQrTemplateOutput } from '@/lib/schemas/qr-templates';
 import { saveRetailerApiKey, type SaveRetailerApiKeyInput, type SaveRetailerApiKeyOutput } from './save-retailer-api-key';
 import { getScanAnalytics, type ScanAnalyticsInput, type ScanAnalyticsOutput } from './scan-analytics';
-import { scheduledProductSync, type ScheduledProductSyncInput, type ScheduledProductSyncOutput } from './scheduled-product-sync';
 import { syncProducts, type SyncProductsInput, type SyncProductsOutput } from './sync-products';
 import { aggregateIntelligence } from './aggregate-intelligence';
 import { attributeTransactions } from './attribute-transactions';
@@ -119,7 +118,6 @@ export {
     saveQrTemplate,
     saveRetailerApiKey,
     getScanAnalytics,
-    scheduledProductSync,
     syncProducts,
     aggregateIntelligence,
     attributeTransactions,
@@ -169,7 +167,6 @@ export type {
     SaveQrTemplateInput, SaveQrTemplateOutput,
     SaveRetailerApiKeyInput, SaveRetailerApiKeyOutput,
     ScanAnalyticsInput, ScanAnalyticsOutput,
-    ScheduledProductSyncInput, ScheduledProductSyncOutput,
     SyncProductsInput, SyncProductsOutput,
     AttributionReport, AttributionRecord,
 };

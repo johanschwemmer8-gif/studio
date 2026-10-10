@@ -3,6 +3,8 @@ import {
   normalizeTenantLifecycleStatus,
   isTenantActive,
   isTenantOperational,
+  getNextTenantLifecycleStatus,
+  canTransitionTenantLifecycle,
 } from './tenant';
 
 describe('tenant schema compatibility', () => {
@@ -64,6 +66,25 @@ describe('tenant schema compatibility', () => {
   it('fails closed for missing or unrecognized operational lifecycle', () => {
     expect(isTenantOperational(undefined, undefined)).toBe(false);
     expect(isTenantOperational('UNKNOWN_STATE', undefined)).toBe(false);
+  });
+
+  it('enforces the canonical forward-only lifecycle transition sequence', () => {
+    expect(getNextTenantLifecycleStatus('ACTIVE')).toBe('OFFBOARDING');
+    expect(getNextTenantLifecycleStatus('OFFBOARDING')).toBe('SUSPENDED');
+    expect(getNextTenantLifecycleStatus('SUSPENDED')).toBe('DECOMMISSIONED');
+    expect(getNextTenantLifecycleStatus('DECOMMISSIONED')).toBeNull();
+  });
+
+  it('rejects skipped, reversed, and terminal lifecycle transitions', () => {
+    expect(canTransitionTenantLifecycle('ACTIVE', 'OFFBOARDING')).toBe(true);
+    expect(canTransitionTenantLifecycle('OFFBOARDING', 'SUSPENDED')).toBe(true);
+    expect(canTransitionTenantLifecycle('SUSPENDED', 'DECOMMISSIONED')).toBe(true);
+
+    expect(canTransitionTenantLifecycle('ACTIVE', 'SUSPENDED')).toBe(false);
+    expect(canTransitionTenantLifecycle('ACTIVE', 'DECOMMISSIONED')).toBe(false);
+    expect(canTransitionTenantLifecycle('OFFBOARDING', 'ACTIVE')).toBe(false);
+    expect(canTransitionTenantLifecycle('SUSPENDED', 'ACTIVE')).toBe(false);
+    expect(canTransitionTenantLifecycle('DECOMMISSIONED', 'ACTIVE')).toBe(false);
   });
 
   it('projects a legacy tenant into the canonical model', () => {

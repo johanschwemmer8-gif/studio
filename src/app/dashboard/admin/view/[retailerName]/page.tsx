@@ -5,7 +5,9 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   normalizeTenantDocument,
+  getNextTenantLifecycleStatus,
   type SavedRetailer,
+  type TenantLifecycleStatus,
 } from '@/lib/schemas/tenant';
 import {
   Card,
@@ -40,6 +42,7 @@ import { seedTestRetailerDemo } from '@/ai/flows/seed-test-retailer-demo';
 import { Badge } from '@/components/ui/badge';
 import { doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { updateRetailerLifecycle } from '@/ai/flows/update-retailer-lifecycle';
 
 const TEST_RETAILER_ID = 'interact-test-tenant';
 
@@ -48,6 +51,7 @@ export default function RetailerViewPage() {
   const [loading, setLoading] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
   const [isSeeding, startSeeding] = useTransition();
+  const [isLifecyclePending, startLifecycleTransition] = useTransition();
   const params = useParams();
   const { toast } = useToast();
 
@@ -113,6 +117,55 @@ export default function RetailerViewPage() {
     });
   };
 
+  const handleLifecycleTransition = (
+    nextStatus: TenantLifecycleStatus
+  ) => {
+    if (!retailer) return;
+
+    startLifecycleTransition(async () => {
+      try {
+        const idToken = await auth.currentUser?.getIdToken();
+
+        if (!idToken) {
+          throw new Error('Authentication required.');
+        }
+
+        const result = await updateRetailerLifecycle({
+          idToken,
+          retailerId: retailer.id,
+          nextStatus,
+        });
+
+        if (!result.success || !result.lifecycleStatus) {
+          throw new Error(result.message);
+        }
+
+        setRetailer((current) =>
+          current
+            ? {
+                ...current,
+                lifecycleStatus: result.lifecycleStatus!,
+              }
+            : current
+        );
+
+        toast({
+          title: 'Retailer Lifecycle Updated',
+          description: result.message,
+        });
+      } catch (error) {
+        toast({
+          title: 'Lifecycle Update Failed',
+          description:
+            error instanceof Error
+              ? error.message
+              : 'Retailer lifecycle update failed.',
+          variant: 'destructive',
+        });
+      }
+    });
+  };
+
   if (loading) {
     return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
   }
@@ -128,6 +181,28 @@ export default function RetailerViewPage() {
   }
 
   const isTestRetailer = retailer.id === TEST_RETAILER_ID;
+  const nextLifecycleStatus = getNextTenantLifecycleStatus(
+    retailer.lifecycleStatus
+  );
+
+  const lifecycleActionLabel: Partial<
+    Record<TenantLifecycleStatus, string>
+  > = {
+    OFFBOARDING: 'Begin Offboarding',
+    SUSPENDED: 'Suspend Retailer Access',
+    DECOMMISSIONED: 'Decommission Retailer',
+  };
+
+  const lifecycleConfirmation: Partial<
+    Record<TenantLifecycleStatus, string>
+  > = {
+    OFFBOARDING:
+      'This starts controlled retailer offboarding. Existing authorized users remain operational while export, reconciliation, and handover activities are completed.',
+    SUSPENDED:
+      'This suspends normal Retailer MVP access at the tenant level. Retailer data is preserved and Platform Operator administration remains available.',
+    DECOMMISSIONED:
+      'This marks the retailer as operationally decommissioned. This is a terminal lifecycle state. The retailer record and retained data are not hard-deleted.',
+  };
 
   return (
     <div className="space-y-8">
@@ -250,6 +325,90 @@ export default function RetailerViewPage() {
             </Card>
         </div>
         
+        {!isTestRetailer && (
+          <>
+            <Separator />
+
+            <Card className="border-primary/20">
+              <CardHeader>
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base font-bold uppercase tracking-tight">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      Retailer Lifecycle
+                    </CardTitle>
+                    <CardDescription className="mt-2">
+                      Govern controlled offboarding, access suspension, and final operational decommissioning.
+                    </CardDescription>
+                  </div>
+
+                  <Badge variant="outline" className="w-fit font-black tracking-widest">
+                    {retailer.lifecycleStatus}
+                  </Badge>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Lifecycle changes are forward-only and do not delete retailer data.
+                  Platform Operator authority remains separate from Retailer MVP access.
+                </p>
+
+                {retailer.lifecycleStatus === 'DECOMMISSIONED' && (
+                  <p className="text-sm font-medium">
+                    This retailer is operationally decommissioned. No further lifecycle transition is available.
+                  </p>
+                )}
+              </CardContent>
+
+              {nextLifecycleStatus && (
+                <CardFooter>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant={
+                          nextLifecycleStatus === 'OFFBOARDING'
+                            ? 'outline'
+                            : 'destructive'
+                        }
+                        disabled={isLifecyclePending}
+                        className="gap-2 font-bold uppercase text-[10px] tracking-widest"
+                      >
+                        {isLifecyclePending && (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        )}
+                        {lifecycleActionLabel[nextLifecycleStatus]}
+                      </Button>
+                    </AlertDialogTrigger>
+
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {lifecycleActionLabel[nextLifecycleStatus]}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {lifecycleConfirmation[nextLifecycleStatus]}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() =>
+                            handleLifecycleTransition(nextLifecycleStatus)
+                          }
+                        >
+                          Confirm {lifecycleActionLabel[nextLifecycleStatus]}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardFooter>
+              )}
+            </Card>
+          </>
+        )}
+
         <Separator />
         
         <div>

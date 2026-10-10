@@ -88,6 +88,27 @@ export function isTenantOperational(
   }
 }
 
+export const TENANT_LIFECYCLE_TRANSITIONS: Readonly<
+  Partial<Record<TenantLifecycleStatus, TenantLifecycleStatus>>
+> = {
+  ACTIVE: 'OFFBOARDING',
+  OFFBOARDING: 'SUSPENDED',
+  SUSPENDED: 'DECOMMISSIONED',
+};
+
+export function getNextTenantLifecycleStatus(
+  current: TenantLifecycleStatus
+): TenantLifecycleStatus | null {
+  return TENANT_LIFECYCLE_TRANSITIONS[current] ?? null;
+}
+
+export function canTransitionTenantLifecycle(
+  current: TenantLifecycleStatus,
+  next: TenantLifecycleStatus
+): boolean {
+  return getNextTenantLifecycleStatus(current) === next;
+}
+
 export function normalizeTenantDocument(
   id: string,
   data: Record<string, unknown>

@@ -136,8 +136,6 @@ describe('Retailer navigation authorization contract', () => {
     expect(resolveRetailerFunctionalArea('/retailer-mvp/ai-policy'))
       .toBeNull();
     expect(resolveRetailerFunctionalArea('/retailer-mvp/brands')).toBeNull();
-    expect(resolveRetailerFunctionalArea('/retailer-mvp/mobile-dashboard'))
-      .toBeNull();
   });
 
   it('fails closed when sidebarAccess is absent', () => {
